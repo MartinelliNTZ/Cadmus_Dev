@@ -42,6 +42,10 @@ Traducao: 9
   - Usar iconManager para carregar ícones de forma centralizada e eficiente
  changelog=
  use def load_vector_layer_from_file( e elimine o def load_vector_layer_from_source_path( mnao e necessario novo metodo, 
+2.3.17
+    - Reiniciado repositorio
+2.3.16
+  - inicio pyqtsignal
 2.3.15 14/04/2026
     - implementado reconstrucao de toolbar
     - implementado alteracao das ordens das tools

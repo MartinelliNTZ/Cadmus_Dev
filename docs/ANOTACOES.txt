@@ -1,0 +1,727 @@
+bandit -r . -f html -o bandit-report.html
+flake8 . --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
+flake8 . --ignore=E501 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
+flake8 . --max-line-length=100 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
+ferramentas = name                              tipo                            plugin_class                risco
+    - 01: Exportar Todos os Layouts             janela                          ExportAllLayoutsPlugin      substituir produtos antigos
+    - 02: Substituir Textos nos Layouts         janela                          ReplaceInLayoutsPlugin      crítico/alteração QGZ
+    - 03: Salvar, Fechar e Reabrir Projeto      instantânea                     RestartQGISPlugin           crítico/alteração QGZ
+    - 04: Carregar Pasta de Arquivos            janela                          LoadFolderLayersPlugin      alteração QGZ
+    - 05: Gerar Rastro de Implemento            janela                          GenerateTrailPlugin         nenhum
+    - 06: Sobre o Cadmus                        janela                          AboutDialog                 nenhum
+    - 07: Capturar Coordenadas                  instantânea+resultado           CoordClickTool              travamento da task
+    - 08: Calcular Campos Vetoriais             instantânea                     VectorFieldPlugin          manipulação de vetores
+    - 09: Obter Coordenadas de Drone            janela                          DroneCoordinatesPlugin      travamento por excesso de dados
+    - 10: Converter Multipart                   instantânea                     VectorMultipartPlugin       manipulação de vetores
+    - 11: Copiar Atributos de Vetores           janela                          CopyAttributesPlugin        manipulação de vetores
+    - 12: LogCat Viewer                         janela (multithread)            LogCatPlugin                nenhum
+    - 13: SettingsPlugin                        janela                                                      nenhum
+    - 14: AmostradorMassivo de Raster           Processing
+    - 15: Gerador de diferença entre campos     Processing
+    - 16: Estatisticas de atributos             Processing
+    - 17: Recortador Massivo de Raster          Processing                      RasterMassClipper              manipulação de raster
+    - 18: Gerador de Linhas entre Pontos        Processing                      GeometryLineFromPoints         manipulação de vetores
+    - 19: Gerador de diferença entre rasters    Processing                      RasterDifferenceStats          manipulação de raster
+    - 20: Ferramenta de remoção de campos KML   instantânea                     RemoveKmlFieldsPlugin         manipulação de vetores
+    - 21: Vetor para SVG                        Janela
+    - 22: Criador de Projeto                    Instantânea
+    - 23: Metadata de fotos
+    - 24: Relatorio de fotos 
+    - 25: Media Ponderada de Raster
+    - 26: Separacao de faixas
+
+
+Documentação de cenarios: 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13
+Instrucoes: 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18
+Traducao: 9
+  - Geral: Impedir múltiplas instâncias de plugins rodando simultaneamente
+  - criar gerador de indices ndvi, ndre, e gli automaticos
+  - multpart nao ta em task e pode bugar
+  - criar 3 ico de plugins 
+  - eLIMIAR TODOS OS untraceable exceptions e garantir que tudo seja logado
+  - Usar iconManager para carregar ícones de forma centralizada e eficiente
+ changelog=
+ use def load_vector_layer_from_file( e elimine o def load_vector_layer_from_source_path( mnao e necessario novo metodo, 
+2.3.15 14/04/2026
+    - implementado reconstrucao de toolbar
+    - implementado alteracao das ordens das tools
+
+2.3.14 14/04/2026
+    - usages
+
+2.3.13 13/04/2026
+    - Início da ferramenta de divisão de pontos por faixas com estrutura completa (registro, UI, i18n, help), execução ainda como placeholder
+    - Melhoria da interface reutilizando textos, uso de dropdowns dinâmicos de atributos, organização de parâmetros e criação de helper para leitura de campos
+    - Implementação da segmentação de pontos com análise de azimute, médias, deltas e score, incluindo escrita de atributos derivados e integração ao plugin
+    - Aumento da robustez aceitando diferentes geometrias, ordenação segura de IDs e suporte a múltiplos formatos de data/hora
+    - Adição de logs detalhados para monitoramento de progresso e desempenho em grandes volumes de dados
+    - Alteração da estratégia de saída para gerar nova camada em memória, evitando travamentos na interface
+    - Correção no uso da API para criação de atributos em camadas de memória
+    - Correção na cópia de atributos entre features evitando erros de chave
+    - Simplificação da estrutura de campos, padronização em português e adição de comentários no código principal
+    - Adição de seleção de campos de saída, permitindo salvar apenas os desejados
+    - Melhoria da interface com tooltips e simplificação de textos
+    - Redução e padronização de nomes e descrições para maior clareza
+    - Refinamento das descrições dos parâmetros de sensibilidade para facilitar entendimento
+
+2.3.12 11/04/2026
+    - RasterLayerProjection: implementado reproject_raster_to_crs() usando gdal:warpreproject
+    - RasterLayerProjection: reproject_raster_to_crs() passou a usar ResamplingMethod com padrão CUBICO_SUAVIZADO
+    - RasterLayerProjection: implementado get_raster_crs()
+    - RasterWeightedAverage: removido _resample_rasters() e centralizada preparação em RasterLayerProjection
+    - RasterWeightedAverage: adicionado parâmetro OUTPUT_CRS
+    - RasterWeightedAverage: novo fluxo _prepare_rasters_for_execution()
+    - RasterWeightedAverage: validação e logs refinados no pipeline de média ponderada
+
+2.3.11 09/04/2026
+    - MetadataFields: separados campos EXIF e XMP com métodos exif_keys() e xmp_keys()
+    - DroneCoordinates UI: separada seção Required Fields em EXIF Fields e DJI Fields
+    - DroneCoordinates: preferências separadas para seleção EXIF e XMP
+    - PhotoMetadata: lookup direto por enum MetadataFieldKey substituindo lógica de sufixos
+    - MetadataFieldKey: adicionados 5 novos enums EXIF
+    - MetadataFields: adicionado sanitize_field_name() e is_authorized_field()
+    - XmpUtil: refatorado para retornar apenas campos autorizados com nomes canônicos
+    - ExifUtil: refatorado para nomes canônicos e sanitização contra MetadataFields
+    - PhotoFolderVectorizationService: removidos campos MRK do output no modo sem MRK
+    - Corrigido bug de comparação entre MetadataFieldKey enum e str em sorted() e set()
+    - CheckboxGridWidget: corrigida conversão de chaves enum para string
+    - Corrigidos atributos duplicados FlightNumber e FlightName (renomeados DrvFNum e DrvFNam)
+    - Criada documentação para Report system e Processing Provider em docs/skills/
+
+2.3.10 09/04/2026
+    - Criado enum MetadataFieldKey com todas as chaves de REQUIRED, CUSTOM e MRK fields
+    - MetadataFields: adicionados resolvedores centralizados (all_fields, resolve_key, map_record_to_output_attributes)
+    - Criado core/model/Field.py com dataclass Field
+    - Criado core/enum/LightSourceEnum.py
+    - VectorLayerGeometry.create_point_layer_from_dicts refatorado para receber schema do chamador
+    - Dump JSON reformatado para raw_records por arquivo com whitelist do MetadataFields
+    - Padronização de nomenclatura no MetadataFields para PascalCase
+    - ExplorerUtils: adicionados diretórios temporários dedicados para reports (json e html)
+    - Criado ReportGenerationService.py
+    - Novos módulos em utils/report: JSONUtil, RangeMetadataManager, IMGMetadata, AggregateAnalyzer, RenderEngine
+    - Criada ferramenta Report Metadata com ReportMetadataPlugin.py e ToolKey REPORT_METADATA
+    - ReportMetadataPlugin: adicionado fluxo para fotos sem MRK
+    - Geração de relatório movida para background task com ReportGenerationStep e ReportGenerationTask
+    - Criado PhotoVectorizationPlugin separando vetorização do ReportMetadataPlugin
+    - PhotoVectorizationPlugin refatorado para usar AsyncPipelineEngine
+    - i18n atualizado (pt_BR/en/es/de)
+
+2.3.9 08/04/2026
+    - Planejamento da reimplementação do DroneCoordinates com plano técnico em docs/ia/
+    - Padronização das classes de metadata em utils/mrk com logging unificado
+    - MetadataFields: adicionado MRK_FIELDS e expansão de CUSTOM_FIELDS
+    - PhotoMetadata reestruturado como manager/orquestrador
+    - CheckboxGridWidget reimplementado com retrocompatibilidade e suporte a tooltip
+    - DroneCoordinates UI: adicionados 3 collapsibles de campos (Required, Custom, MRK)
+    - Cadeia de filtros propagada para PhotoMetadataStep, PhotoMetadataTask e DroneCoordinatesRunner
+    - RasterWeightedAverage: adicionado OUTPUT_RESOLUTION com reamostragem via gdal:warp
+    - RasterWeightedAverage: corrigida compatibilidade com QGIS 3.16
+    - ReportGenerationStep: corrigido KeyError quando json_path ausente
+    - ExifUtil: expandido para expandir GPSInfo em chaves individuais
+    - PhotoMetadataStep: adicionada inferência de tipo de campo (numérico ou texto)
+    - PhotoMetadataTask: adicionado suporte a source_points do ExecutionContext
+
+2.3.8 07/04/2026
+    - DroneCoordinates: início da reimplementação completa com plano técnico em docs/ia/
+    - ExplorerUtils: adicionado helper create_temp_json()
+
+2.3.7 07/04/2026
+    - Adicionado basemap Google (Hybrid) automaticamente ao criar novos projetos.
+    - Corrigido problema na URL do basemap que impedia o carregamento correto.
+    - Aplicação automática do CRS padrão definido nas preferências, com fallback para EPSG:4326.
+    - Ajustes na estrutura do projeto:
+      - Arquivo `line.gpkg` agora é copiado para a pasta do projeto antes de ser carregado.
+      - Centralização automática do mapa com base na camada de referência.
+    - Refatoração geral do código:
+      - Separação de responsabilidades entre utilitários (ExplorerUtils, ProjectUtils, RasterLayerSource).
+      - Simplificação do CreateProjectPlugin.
+      - Centralização da lógica de adição de camadas.
+    - Generalização da criação de basemaps Google (satélite, híbrido e mapa), mantendo compatibilidade com versões anteriores.
+2.3.6 — 05/04/2026
+    - Adicionado seletor de “Pasta de projetos” nas configurações, com salvamento nas preferências.
+    - Implementado seletor de CRS padrão usando o widget nativo do QGIS, com persistência da escolha.
+    - Nova ferramenta para criação de estrutura de projetos, com definição automática da pasta padrão quando necessário.
+    - Ajustado comportamento de criação de projeto:
+      - Se o projeto atual não estiver salvo, ele é salvo na nova pasta com suas camadas.
+      - Se já estiver salvo, um novo projeto em branco é criado em outra janela.
+    - Padronização de textos usando o TranslationManager (pt-BR).
+    - Remoção de duplicações e melhorias na organização das configurações.
+
+ 2.3.5 2026/04/05
+    - Refatoracao da visibilidade da toolbar por categoria
+    - SettingsPlugin ajustado para montar e persistir o grid de categorias usando a API do MenuManager, reduzindo acoplamento e simplificando a manutencao.
+    - Traducoes em alemao adicionadas para o sistema de instrucoes 
+    - BasePlugin ajustado para usar STR.INSTRUCTIONS no titulo do dialogo de instrucoes, com a nova chave adicionada nas classes de strings de pt_BR, en, es e de.
+
+ 2.3.4 2026/04/05
+    - Reorganização do SettingsPlugin com seções colapsáveis e ajustes nas configurações de campos vetoriais (agora baseadas em sufixos configuráveis com validação e persistência).
+    - Correções e robustez no sistema de logging (LogUtils), garantindo funcionamento seguro mesmo sem acesso a diretórios de escrita.
+    - Criação da ferramenta VectorToSvgPlugin:
+    - Implementação do SVGUtils para centralizar a geração de SVG (geometrias, estilos, labeling e escrita), reduzindo acoplamento.
+    - Padronização de mensagens (QgisMessageUtil) e uso de STR.
+    - Encapsulamento de botao de pasta do projeto no SelectorWidget.
+    - Atalhos na toolbar para ferramentas de raster via Processing.
+  2.3.3 2026/03/28
+    - Temporaridialog e qgismensagem util
+  2.3.2 2026/03/27
+    - iniciado svg
+  2.3.1 2026/03/26
+    - Reorganizada interface do SettingsPlugin: adicionados dois widgets colapsáveis - "Geral" 
+    - Corrigido bug de inicialização de log em LogUtils: anteriormente usava Path.cwd() 
+        (ex: C:\Windows\system32) quando não inicializado, causando PermissionError ao criar pasta log.
+    - Implementado fallback seguro para plugin_root via Path(__file__).resolve().parents[3] e, 
+        se necessário, Path.home()/Cadmus/log.
+    - Ajustado LogUtils._write_event para continuar sem arquivo de log e enviar mensagem por 
+        QgsMessageLog/stderr em casos de falha de criação de arquivo.
+    - Adicionados no SettingsPlugin, dentro de calc_collapsable, dois campos configuráveis 
+        inicialmente para nomes de área cartesiana e elipsoidal
+    - As preferências desses campos passaram a ser carregadas e salvas em ToolKey.VECTOR_FIELDS.
+    - Incluída validação para impedir salvamento quando os dois valores configurados forem iguais, 
+        exibindo alerta com QgisMessageUtil.
+    - Ajustados os dois campos do SettingsPlugin para representar sufixos, não nomes completos de 
+        campo: "Sufixo Cartesiano" com padrão "" e "Sufixo Elipsoidal" com padrão "_eli".
+    - As preferências em ToolKey.VECTOR_FIELDS passaram a usar as chaves cartesian_suffix e ellipsoidal_suffix.
+    - Mantida a validação para impedir salvamento quando os dois sufixos forem iguais, agora 
+        com mensagem alinhada ao novo comportamento.
+    - Implementada a leitura dos sufixos configurados em ToolKey.VECTOR_FIELDS no VectorFieldsCalculationPlugin.
+    - Os cálculos de length para linhas e area para polígonos agora usam os sufixos configuráveis ao resolver os nomes dos campos.
+    - O comportamento de pontos (x e y) foi mantido sem alterações.
+    - Corrigida chamada de leitura dos sufixos no SettingsPlugin para compatibilidade com InputFieldsWidget.get_value, evitando erro em runtime ao salvar as preferências.
+  2.3.0 2026/03/25
+    - pep8  
+  2.2.4 2026/03/24
+    - Correção crítica: VectorFieldPlugin agora detecta automaticamente CRS geográfico e calcula ambos os modos 
+      (elipsoidal e cartesiano) por padrão, garantindo que os usuários obtenham resultados precisos sem precisar configurar 
+      manualmente. Para CRS projetado, o plugin respeita o modo selecionado nas preferências, proporcionando flexibilidade
+      e controle total sobre os cálculos de campos vetoriais.
+    - Corrigido erro em finish_stats: adicionado método FormatUtils.pretty para formatar velocidades de feições e arquivos
+    - Corrigida lógica de cálculo de campos vetoriais: para CRS geográfico, calcula ambos os modos (elipsoidal e cartesiano)
+      por padrão; para CRS projetado, respeita o modo selecionado nas preferências
+  2.2.3 2026/03/24
+    - Adicionada ferramenta vetorial instantânea RemoveKmlFieldsPlugin para remover os campos listados em StringManager.KML_FIELDS da camada ativa
+    - Ferramenta valida camada vetorial ativa, exige modo de edição e nunca salva nem encerra a edição da camada
+    - Camadas .kml e .kmz passaram a ser bloqueadas nesse fluxo com validação por extensão do source
+    - Resolução de extensão centralizada em VectorLayerSource.get_extension(path, tool_key)
+    - Removida de ProjectUtils a responsabilidade de identificar extensão/tipo de source vetorial
+    - Registrada nova entrada da ferramenta na categoria VECTOR do ToolRegistry e nova ToolKey dedicada
+  2.2.2 2026/03/23
+    - DroneCoordinatesRunner agora atribui nomes de camadas baseados no arquivo MRK (ex: <base>_points, <base>_track)
+    - Corrigido para que camadas carregadas de .gpkg existentes também herdem o nome correto
+    - DroneCoordinatesRunner agora lê preferências do plugin DroneCoordinates automaticamente
+    - Se "photos": true nas prefs, o Runner adiciona PhotoMetadataStep ao pipeline
+    - Se "apply_style_points": true e qml_path_points válido, estilo QML aplicado aos pontos automaticamente
+    - Se "apply_style_track": true e qml_path_track válido, estilo QML aplicado à trilha automaticamente
+    - Runner e Plugin agora compartilham a mesma orquestração de steps e fluxo de estilos QML
+    - Implementado fluxo inicial de drag and drop/importação de arquivos .mrk via QgsCustomDropHandler
+    - Adicionado DroneCoordinatesRunner para executar cadeia de conversão de MRK fora do diálogo da ferramenta
+    - MrkParseTask agora suporta arquivo .mrk único sem expandir automaticamente para toda a pasta
+    - MrkParser agora expõe parse_file(file_path, ...) e reutiliza esse fluxo no parse por pasta
+    - Saídas .gpkg do drag and drop usam nomes localizados com STR.POINTS e STR.TRACK
+    - Quando os .gpkg de saída já existem, sistema carrega as saídas existentes em vez de sobrescrever
+    - Ajustada nomenclatura das mensagens para reaproveitar strings genéricas: CONVERT_FILE_SUCCESS, LOADED_EXISTING_GPKG,
+       CONVERT_FILE_ERROR
+    - Arquitetura simplificada para duas classes centrais: core/services/MrkDropHandler.py e core/services/DroneCoordinatesRunner.py
+    - Eliminado MrkDropUtils; helpers pequenos de extensão e path movidos para utils/ExplorerUtils.py
+  2.2.1 2026/03/23
+    - Implementação do fluxo de drag and drop para arquivos .mrk, permitindo importação rápida e intuitiva de coordenadas de drone. O sistema agora suporta processamento automático dos arquivos MRK, geração de camadas de pontos e trilha, e aplicação de estilos QML conforme as preferências do usuário, proporcionando uma experiência integrada e eficiente.
+  2.2.0 2026/03/23
+    - Toolbar agora exibe ícones corretamente
+    - Botões dropdown funcionam conforme esperado
+    - Menus e toolbars não duplicam mais ao recarregar o plugin
+    - Tradução completa em Português, Espanhol e Inglês
+    - Todas as telas e mensagens agora aparecem no idioma configurado no QGIS
+    - Plugin inicia mais rápido e de forma mais confiável
+  2.1.5 2026/03/22
+    - Correção crítica: LogUtils agora é inicializado antes de qualquer outro componente, garantindo que o logger esteja disponível para todos os logs, incluindo erros de inicialização do plugin. Logs de inicialização do PluginBootstrap e TranslationManager confirmam que o logger está ativo desde o início, prevenindo falhas silenciosas e garantindo que quaisquer erros durante a carga sejam capturados no log do plugin.
+    - Traducao En e Es finalizada
+    - Usar InstructionsManager para carregar instruções de forma centralizada e eficiente, com suporte a formatação e imagens
+    - HtmlInstructionsProvider 
+
+  2.1.4 2026/03/21
+    - Implementacao de Bootsatrap, Toolregistry e MenmuManager, para aliviar responsabilidades da classe principal
+    - **Arquitetura Modular:** Implementada nova arquitetura com ToolRegistry (registro centralizado de ferramentas), MenuManager (gerenciamento unificado de menus e toolbar) e PluginBootstrap (inicialização de logs e providers), removendo responsabilidades da classe principal CadmusPlugin
+    - **Correções Críticas:** Toolbar vazia resolvida com adição explícita de ícones, uso de addWidget() em vez de addAction(), e verificação de toolbars existentes antes da criação. Botões dropdown agora funcionam corretamente com QToolButton encapsulado e ações conectadas
+    - **Internacionalização:** Todas as strings exibidas ao usuário foram externalizadas via STR e catálogos de tradução (pt_BR, en, es), abrangendo todos os plugins
+    - **Ordenação e Controle:** Adicionados atributos order e show_in_toolbar às ferramentas para ordenação sequencial nos menus e controle fino de visibilidade na toolbar
+    - **Prevenção de Duplicação:** Implementada verificação e remoção de menus e toolbars existentes antes da recriação, com uso de deleteLater() para destruição adequada dos objetos Qt
+    - **Persistência de Posição:** Toolbar agora salva e restaura sua posição (Top, Bottom, Left, Right) nas preferências, mantendo o local escolhido pelo usuário após recarregar o plugin
+    - **Logs Detalhados:** Adicionados logs extensivos em todas as etapas de criação de menus e toolbar, facilitando diagnóstico de problemas com contagem de ferramentas por categoria
+    - **Internacionalização Expandida:** Plugins Settings, ReplaceInLayouts, LoadFolderLayers, GenerateTrail, CopyAttributes, ExportAllLayouts e DroneCoordinates totalmente internacionalizados
+    - **Refatoração de Execução:** ToolRegistry agora centraliza a criação de ferramentas e execução, com todos os run_ methods movidos para dentro do registro, reduzindo responsabilidades do CadmusPlugin
+  
+  2.1.3 2026/03/20
+    - TRaducao de plugins
+  2.1.2 2026/03/20
+    - Criacao do sistema de traducao
+  2.1.1 2026/03/19
+    - Tentando traduzir
+  2.1.0 2026/03/18
+    - Tooltips na toolbar
+    - Implementado icon Manager  para centralizar carregamento de ícones do plugin, evitando múltiplas instâncias e melhorando performance
+    - Implementado Instructions Manager para centralizar carregamento de instruções, com suporte a formatação e imagens, e integração com checkbox de exibição de ajuda
+  2.0.9 2026/03/18
+    - Nova ferramenta: "Estatísticas de Diferença entre Rasters"
+      - Processamento de rasters em pasta e/ou camadas selecionadas, gerando arquivos HTML de estatísticas para cada raster de diferença e um resumo consolidado.
+      - Verificação de sobreposição e grade entre rasters para evitar erros de cálculo.
+      - Tratamento robusto de exceções durante operações de raster, com logs detalhados.
+    - Implementacao de Checkbox "Exibir campo de ajuda" no provider, com persistencia via Preferences e exibicao condicional de mensagens de ajuda no processamento.
+    - Substituição dos arquivos HTML de ajuda por sistema dinâmico via HtmlInstructionsProvider, permitindo manutenção centralizada e formatação consistente com logos e alertas estilizados.
+
+  2.0.8.1 2026/03/17
+    - QgisMessageUtil ajustado para compatibilidade Qt5/Qt6: adicionado helper _exec_dialog que resolve diferenças entre exec() e exec_(), e migradas todas as chamadas de QMessageBox.
+  
+  2.0.8 2026/03/17
+    - Nova Ferramenta: "Linha de Diferença entre Pontos por Atributo"
+      - Modo 1: camada de pontos única, agrupa por campo e cria linhas sequenciais entre features com mesmo valor.
+      - Modo 2: duas camadas de pontos, mapa de campo A/B com pares e criação de linha por cada par de correspondência.
+    - Refatoração: BaseProcessingAlgorithm para padronizar integração com QGIS Processing
+    - Refatoração: persistência de preferências usando Preferences e API padrão em BaseProcessingAlgorithm
+    - Refatoração: GeometryLineFromPoints, RasterMassSampler e RasterMassClipper para usar nova arquitetura de processamento e persistência
+    - Novo sistema de helper HTML para cada algoritmo, referenciado por INSTRUCTIONS_FILE em cada classe de algoritmo, renderizado no diálogo de processamento
+    - GeometryLineFromPointsAlgorithm refatorado para herdar de BaseProcessingAlgorithm.
+    - Adicionado LogUtils (self.logger) em pontos-chave (inicialização, processAlgorithm, append_line_features).
+    - Persistência do checkbox `use_second_layer` implementada via Preferences.
+    - BaseProcessingAlgorithm estendido com API padrão: load_preferences, save_preferences, atributos de classe para nome, nome de exibição, grupo e ícone.
+    - RasterMassSampler, RasterMassClipper e GeometryLineFromPoints atualizados para usar save_preferences/load_preferences, eliminando repetição de load_tool_prefs/save_tool_prefs.
+    - Definição simplificada de name/displayName/group/groupId nas subclasses através de atributos de classe.
+    - RasterMassSampler e RasterMassClipper: removidos overrides redundantes de group()/groupId() e name()/displayName().
+    - RasterMassSampler e RasterMassClipper agora implementam métodos específicos save_prefs (com parâmetros explícitos) e load_prefs em initAlgorithm.
+    - DifferenceFieldsAlgorithm adaptado para o mesmo padrão: _load_prefs em initAlgorithm e save_prefs ao final de processAlgorithm.
+  
+  2.0.7 2026/03/16
+    - Nova ferramenta: RasterMassClipper (recorte massivo de rasters por polígono)
+    - Implementada classe BaseAlgoritmo para padronizar integração com QGIS Processing
+    - Refactor: AboutDialog padronizado usando BaseDialog e WidgetFactory
+    - Fix: metadados de fotos agora usam chave (mrk_folder, foto)
+      evitando conflito entre voos com mesmo número de foto
+    - Refactor: removida opção "merge" do DroneCoordinates
+    - Feature: VectorLayerGeometry.create_line_layer_from_points
+      agora suporta gerar linhas por grupo de atributos
+    - Fixes em MRK e resolução de paths
+      - folder agora é basename
+      - folder_path guarda caminho absoluto
+      - PhotoMetadata resolve caminhos relativos corretamente
+  
+  2.0.6 2026/03/15
+    - PEP8 fix issues 
+  
+  2.0.5 2026/03/15
+    - PEP8 fix issues
+  
+  2.0.4 2026/03/15
+    - PEP8 fix issues
+  
+  2.0.3 2026/03/15
+    - Correcoes de bug
+    - PEP8 fix issues
+  
+  2.0.2 2026/03/15
+    - readme.md
+    - Correção de bugs críticos em MainLayout.py: tratamento de exceções aprimorado para evitar falhas silenciosas durante eventos de redimensionamento e movimento do mouse. Adicionados logs de debug para identificar falhas na leitura de dados do evento e geometria do diálogo pai, melhorando a robustez e a observabilidade do comportamento de redimensionamento.
+    
+  2.0.1 2026/03/15
+    -retirada dos bats de restart qgis e subprocess com shell=False
+    -padronizacao
+   
+  2.0.0 2026/03/14
+    - MUDANCA DE nome para cadmus  
+
+  1.7.2
+    -Refactor InfoDialog and BaseDialog to enhance UI construction and logging
+    - Security: avoid Bandit B310 by replacing `urllib.request.urlopen` with `http.client` requests
+    - `core/task/altimetry_task.py`: use `http.client.HTTPSConnection`/`HTTPConnection` with validated scheme
+    - `core/task/reverse_geocoding_task.py`: same replacement and validation
+    - Adds explicit `User-Agent`, checks HTTP status and returns descriptive errors
+    - ReverseGeocode: follow HTTP 3xx redirects (max 5)
+    - `core/task/reverse_geocoding_task.py`: follow `Location` headers, resolve relative redirects, validate redirect schemes
+    - Log redirect locations and errors via `LogUtils`
+    - Fix restart subprocess security (avoid shell=True)
+    - `plugins/RestartQgis.py`: do not create .bat or call subprocess with `shell=True`
+    - Prepare command list and execute with `subprocess.Popen(cmd, shell=False)` on `aboutToQuit`
+    - Logs command and errors via `LogUtils`; removes shell injection risk (B602/B404)
+    - FIX: TRATAMENTO DE EXCEPTS EM MainLayout.py
+    - Substitui blocos `except` corrompidos por `logger.error` em widgets de borda
+    - Evita exceções silenciosas durante eventos de UI (`resizeEvent`, `enterEvent`, `leaveEvent`, `mouse*Event`)
+    - Melhora observabilidade: erros agora aparecem no JSONL do plugin e no log do QGIS
+    - FIX: CORREÇÕES NO LOGCAT (IO E UI)
+    - Adicionado logger local em `plugins/logcat/core/io/log_file_watcher.py` para evitar NameError em handlers de exceção durante monitoramento de arquivos.
+    - Ajustado import de `LOG_FILE_LOCK` em `plugins/logcat/core/io/log_loader.py` para tentar import absoluto e usar fallback seguro (`threading.Lock`) em caso de falha.
+    - Corrigida a indentação e métodos em `plugins/logcat/ui/log_table_model.py` (mover `append_entries` para dentro da classe, tooltips seguros, tratamento de cores), prevenindo erros/syntax issues que podiam travar o diálogo do Logcat.
+    - FIX: CORREÇÃO EM cadmus_plugin.py - _logger_global
+    - Adiciona declaração `global _logger_global` dentro de `handle_exception` em `cadmus_plugin.py` para evitar erro F823 (variável definida no escopo externo referenciada antes da atribuição) e garantir logging consistente de exceções não tratadas.
+  
+  1.7.1    
+    - Propagate plugin `icon_path` into AppBarWidget and render icon
+    - Add `WidgetFactory.create_text_browser` helper
+    - Use `WidgetFactory.create_simple_button` in `InfoDialog`
+    - Rename plugin mentions from `MTL_Tools`/`mtl_tools` to `Cadmus`/`cadmus`
+    - Updated: `processing/provider.py`, `core/config/LogUtils.py`, `resources/__init__.py`, docs and IDE metadata
+    - Fix import cycle causing ImportError on startup
+    - Removed `ExplorerUtils` import from `utils/__init__.py` to avoid circular import between `core.config.LogUtils` and `utils` package
+    - This prevents `ImportError: cannot import name 'LogUtils'` during plugin load
+    - Security: validar esquema de URL antes de abrir conexões
+    - `core/task/altimetry_task.py`: validar `urlparse(url).scheme` aceita apenas `http/https` antes de `urlopen`
+    - `core/task/reverse_geocoding_task.py`: validar `urlparse(url).scheme` aceita apenas `http/https` antes de `Request`/`urlopen`
+    - Previne uso acidental de esquemas inseguros (ex.: `file://`, `ftp://`)
+    - Replace silent exception handlers with structured logging
+    - `core/task/altimetry_task.py`: log exceptions in `finished()` using `LogUtils` instead of silent `pass`
+    - `core/task/reverse_geocoding_task.py`: log exceptions in `finished()` using `LogUtils` instead of silent `pass`
+    - Ensures errors are captured in plugin JSONL logs and QGIS message log when critical
+  
+  1.7.0 2026/03/12
+  - Documentacao pesada 
+  
+  1.6.11 2026/03/12
+  - FEATURE: ReadOnlyFieldWidget
+    - Criado widget exclusivo para exibição de campos somente leitura com botão de cópia individual e opção "copiar tudo".
+    - Integração via WidgetFactory.create_readonly_field().
+    - Preparação da base para novos diálogos com campos estruturados.
+
+  1.6.10 2026/03/11
+  - ARQUITETURA
+    - Criada classe API para centralização de acesso a serviços do sistema.
+    - Criada classe Preferences para padronizar manipulação de preferências.
+    - Preparação da base arquitetural para desacoplamento de UI e lógica.
+
+  1.6.9 2026/03/10
+  - PADRONIZAÇÃO
+    - Ajustes nos estilos da aplicação.
+    - Organização e padronização de componentes visuais.
+    - Melhoria de consistência visual da interface.
+
+  1.6.8 2026/03/09
+  - GRANDE REFATORAÇÃO DE ARQUITETURA E UI
+    - Padronização de interfaces usando BasePluginMTL + WidgetFactory.
+    - Centralização de estilos e componentes visuais em Styles.py.
+    - Refatoração de utilitários e organização de módulos utils.
+    - Criação de documentação arquitetural extensa do sistema.
+    - Melhorias de robustez em diálogos, widgets e pipeline de plugins.
+    - Introdução de novos widgets reutilizáveis e padronização de layouts.
+    - Ajustes de compatibilidade Python/QGIS e correções de bugs diversos.
+    - Evolução da arquitetura para separação clara entre UI, lógica e utilitários.
+
+  1.6.7 2026/03/09
+  - REFATORAÇÃO DE PLUGINS E INFRAESTRUTURA
+    - Padronização de plugins com BasePluginMTL e WidgetFactory.
+    - Refatoração do ExportAllLayoutsDialog para arquitetura padrão.
+    - Criação de PDFUtils e DependenciesManager para gerenciamento de merges e dependências.
+    - Melhorias de logging estruturado e tratamento robusto de erros.
+    - Ajustes visuais em grids de checkbox e widgets de interface.
+    - Criação de análises de cenário e expansão da documentação técnica.
+
+  1.6.6 2026/03/09
+      - PERSISTÊNCIA DE TAMANHO DE JANELA
+        - Implementado salvamento automático de dimensões da janela do plugin
+        - Campos persistidos: window_width e window_height
+        - Plugin agora abre sempre no último tamanho utilizado pelo usuário
+        - Implementado no método _save_prefs() em plugins/replace_in_layouts.py
+      - NOVO BOTÃO DE INVERSÃO DE TEXTO
+        - Adicionado botão "⇅ Inverter" na interface
+        - Função: troca rapidamente os valores entre os campos old_text e new_text
+        - Implementado via método _swap_fields()
+        - Utiliza widget SimpleButtonWidget integrado ao InputFieldsWidget
+        - Facilita testar substituições nos dois sentidos
+      - CORREÇÃO DE ESTRUTURA DE LAYOUT
+        - Problema: espaço vazio entre AppBar e conteúdo em alguns plugins
+        - Causa: ausência de addStretch() no layout interno
+        - Solução: adicionado self._inner_layout.addStretch() no MainLayout
+        - Arquivo: resources/widgets/MainLayout.py
+        - Resultado: conteúdo agora sempre ancorado no topo
+        - Impacto: comportamento consistente com e sem scroll
+        - Plugins afetados: ReplaceInLayouts, DroneCoordinates, GenerateTrailPlugin
+      - CORREÇÃO DE ESPAÇAMENTO ENTRE WIDGETS
+        - Problema: quando enable_scroll=False o spacing padrão não era aplicado
+        - Solução: aplicação explícita de setSpacing() no layout interno
+        - Implementado via Styles.spacing_md()
+        - Resultado: espaçamento uniforme entre widgets em todos os layouts
+
+  1.6.5 2026/03/08
+      - AJUSTES NA ARQUITETURA DE LAYOUT
+        - Refinamento do comportamento estrutural do MainLayout
+        - Melhor previsibilidade no posicionamento de widgets
+        - Padronização da estrutura base utilizada pelos plugins
+      - MELHORIAS NA WIDGETFACTORY
+        - Ajustes internos na criação de widgets compostos
+        - Melhor organização do fluxo de construção de UI
+        - Preparação da arquitetura para layouts com e sem scroll
+      - PEQUENAS CORREÇÕES VISUAIS
+        - Ajustes de alinhamento e organização vertical
+        - Correções menores de espaçamento em alguns diálogos
+
+  1.6.4 2026/03/07
+      - INTRODUÇÃO DO MAINLAYOUT
+        - Criado componente MainLayout para padronizar estrutura de telas
+        - Responsável por gerenciar layout principal e AppBar
+        - Preparação da base para encapsular comportamento de scroll
+      - INTEGRAÇÃO INICIAL COM WIDGETFACTORY
+        - AppBar agora criado via WidgetFactory.create_app_bar()
+        - Padronização da criação de componentes de interface
+      - ORGANIZAÇÃO DE ESTRUTURA DE UI
+        - Ajustes na hierarquia de layouts das telas
+        - Melhor separação entre header (AppBar) e conteúdo principal
+
+  1.6.3 2026/03/06
+    - LIMPEZA DE SISTEMA: Substituição completa de LogUtilsOld → LogUtilsNew em todos os arquivos funcionais
+      - Migração: project_utils.py, layouts_utils.py, base_tool.py, todos os Step/Task files
+      - Referências restantes apenas em utils/log_utils.py (classe original) e docs/ANOTACOES.txt (documentação)
+      - Padrão unificado: logger = LogUtilsNew(tool=tool_key, class_name=ClassName) → logger.info/debug/error/exception()
+    - REMOÇÃO de base_tool do menu principal
+      - Removido: action_base_tool, run_base_tool() method de Cadmus_plugin.py
+      - Removido: BASE_TOOL constant de tool_keys.py e mapeamentos de cores
+      - Preservado: BaseTool class em plugins/base_tool.py para uso futuro
+      - Classe agora usa TOOL_KEY = "base_tool" (string literal)
+    - REORGANIZAÇÃO DE ARQUIVOS
+      - Algumas classes movidas entre módulos para melhor encapsulação
+      - Estrutura de diretórios mantida, apenas refatoração interna de dependências
+    
+  1.6.2 2026/03/06
+  - Refatorado: VectorLayerGeometry agora contém helpers de criação de layer (pontos + trilha) usados pelo DroneCordinates.
+  - Refatorado: VectorLayerSource agora expõe save_layer_to_path() e save_and_load_layer() para salvar camadas em disco com comportamento "rename/overwrite" consistente.
+  - Melhorado logging de PhotoMetadata: migrado para LogUtilsNew e adicionado log de quantas fotos foram indexadas / não encontradas (ajuda a diagnosticar por que só algumas imagens aparecem).
+  - DronePhotosTask: Migrado de LogUtilsOld para LogUtilsNew - substituído LogUtilsOld.log() por instância self._logger com métodos info()/warning()/exception() semanticamente corretos.
+
+  1.6.1 2026/03/05-06
+  - REFATORAÇÃO COMPLETA: PathSelectorWidget agora é "caixa preta" auto-contida
+    - Widget contém 2 radios internos: 📁 Pasta | 📄 Arquivos (não expostos ao plugin)
+    - Validação automática: user cola path → widget detecta tipo (pasta/arquivo/múltiplos) → atualiza radio interno
+    - `get_paths()` SEMPRE retorna lista: [] | ["pasta"] | ["arquivo"] | ["a", "b", "c"]
+    - Plugin recebe apenas lista, NUNCA toca em internals do widget (encapsulação total)
+  - WidgetFactory.create_path_selector() corrigido
+    - Removido parâmetro `mode=` (incompatível com novo design)
+    - Factory agora cria PathSelectorWidget sem passar modos externos
+    - Documentação atualizada com exemplos de uso
+  - DroneCordinatesPlugin simplificado drasticamente
+    - Removidas: _on_radio_folder_toggled(), _on_radio_files_toggled(), _change_widget_mode() (40+ linhas)
+    - Radio handlers agora INTERNOS ao widget (PathSelectorWidget._on_radio_*_changed)
+    - _load_prefs() reduzido: 35 linhas → 15 linhas (apenas set_path + checkboxes)
+    - _save_prefs() reduzido: 24 linhas → 16 linhas (apenas paths[0])
+    - _run() completamente reescrito para iterar sobre lista de paths (60 linhas, clara intenção)
+  - Logging aprimorado em _run()
+    - Adicionado glob.glob() para debug: mostra quantos .mrk foram encontrados em cada pasta
+    - Code="MRK_FILES_FOUND" com base, mrk_count, recursive, primeiros 5 arquivos
+    - Code="PATH_PROCESSING" com is_dir/is_file validation
+    - Facilita identificação de bugs em MrkParser.parse_folder()
+  - Suporte a múltiplos MRKs
+    - User pode selecionar 1 pasta, múltiplos arquivos, ou 1 arquivo
+    - Widget valida automático: pasta → radio=FOLDER | arquivo → radio=FILE | múltiplos → radio=FILES
+    - _run() processa cada path individualmente: pasta (recursivo ou não) + múltiplos arquivos juntos
+    - Cada path gera sua lista de pontos, tudo agregado em all_points[]
+  - Syntax validated: 0 errors em PathSelectorWidget.py, drone_cordinates.py, WidgetFactory.py
+
+  1.6.0 2026/03/03
+  - bug corrigido: ExplodeHugeLayerTask crash "QgsVectorLayer(): argument 1 has unexpected type 'QgsVectorLayer'" - ExplodeStep agora força disk export e passa file path string
+  - bug corrigido: GPKG "UNIQUE constraint failed: exploded.fid" erro 400+ vezes - explode_lines_to_path_safe() agora deleta stale output file, resets feature ID (setId(-1)), nulls 'fid' attribute herdado
+  - VectorFieldPlugin: REFATORAÇÃO COMPLETA de progress reporting - PointFieldsTask/LineFieldsTask/PolygonFieldsTask agora calculam progresso (1-100%) baseado em feature count total
+  - TaskFeedback: Adicionados helper methods setProgress(), pushInfo(), pushWarning(), pushCritical() para safe progress forwarding com try/except
+  - VectorFieldPlugin: Melhorado logging em _execute_sync_calculation() com step-by-step detalhes
+  - VectorFieldPlugin: Melhorado logging em _start_async_calculation() com contexto (layer name, feature count)
+  - VectorFieldPlugin: _on_async_finished() com mensagens geometry-type-specific, _on_async_error() com detailed error feedback, _on_async_cancelled() com UX melhorada
+  - Documentação: Criado VECTORFIELD_PLUGIN_INSTRUCTIONS.txt com referência completa de VectorField refactoring
+  - Validação: Todas as mudanças isoladas em VectorField (GenerateTrail deixado intocado por revert)
+  - Performance: Progress bar atualizado periodicamente durante field calculations, não mais UI travada
+  1.5.12 2026/03/02
+  - bug corrigido> v - LogCat Viewer: Loop infinito na sessão + memory leak em lambda + scroll reset corrigido (3 bugs críticos consolidados)
+  - bug corrigido> v - VectorFieldPlugin: Cálculo automático trava em arquivos KML - não permitir em KML
+  - Cadmus: Migração de LogUtils para LogUtilsNew (class_name="Cadmus") mantendo LogUtils.init() para compatibilidade
+  - VectorFieldPlugin: OTIMIZAÇÃO CRÍTICA - Feature count threshold substitui compute_size() para decisão sync/async (featureCount() é O(1) e confiável)
+  - VectorFieldPlugin: Threshold empírico = 1000 features (< 1000 = sync rápido, >= 1000 = async obrigatório para não travar UI)
+  - VectorFieldPlugin: Memory layers (`memory:`) SEMPRE rodam assíncrono (compute_size() retorna 0, causava sync em 50k features)
+  - PointFieldsStep/PolygonFieldsStep/LineFieldsStep: Adicionado blockSignals(True) em on_success() antes de batches (reduz ~60% overhead de sinais QGIS)
+  - PointFieldsStep/PolygonFieldsStep/LineFieldsStep: Implementado try/finally com blockSignals(False) para garantir desbloqueio mesmo em erro/cancelamento
+  - PointFieldsStep/PolygonFieldsStep/LineFieldsStep: Cancelamento via break (não return) para permitir limpeza em finally
+  - VectorFieldPlugin: CRS geográfico (lat/lon) detectado automaticamente; se usuário selecionar Cartesiana → warning bar + força modo "Ambos"
+  - VectorLayerProjection: is_geographic_crs() valida EPSG codes (4326, 4269, etc) e detecta +geog em +proj strings
+  - Performance: Log validation mostra 1500 features processadas assincronamente com sucesso (batch 0-1500 em ~2.5s sem UI travar)
+  - Arquitetura: Documento ARQUITETURA_INSTRUCOES_IA.md consolidado com regras críticas DO/DON'T para AsyncPipelineEngine
+  - Correção: Todos os sync/async loops agora em batch de 2000 features com processEvents() entre batches
+  - Correção: Nenhuma task toca em layer (worker thread only calcula, retorna dict com updates + missing_fields)
+  - Validação: Zero syntax errors em 4 arquivos modificados (vector_field_plugin.py + 3 Steps)
+
+  1.5.11 2026/03/02
+  - VectorFieldPlugin: Implementado cálculos assíncronos baseados em Tasks (compute-only). Tasks retornam mapeamentos de atualizações e campos faltantes; Steps aplicam alterações no thread principal.
+  - VectorFieldPlugin: Preferência `async_threshold_features` (número de feições para trigger async); antiga `async_threshold_bytes` removida.
+  - Refatoração: Point/Line/Polygon Tasks/Steps atualizados para evitar escritas em threads de worker; Steps agora aplicam valores no edit buffer usando `layer.addAttribute` + `layer.changeAttributeValue` em lotes, sem chamar `commitChanges()` automaticamente.
+  - Comportamento: alterações permanecem em modo de edição para que o usuário decida salvar/descartar. Camadas de memória (`memory:`) e camadas com tamanho estimado <=0 são forçadas para o caminho assíncrono.
+  - Performance: documentado comportamento observado com GPKG (mais lento em edit-buffer); sugerido ajuste do tamanho de chunk e opção futura para modo provider-batched com backup/aviso ao usuário.
+  - Correções: evita crashes causados por escrita em threads de worker; adicionados checagens de cancelamento em loops e chamadas a `QApplication.processEvents()` entre batches.
+  - Outros: limpeza de logs ruidosos em loops de batch e atualizações na documentação de cenários para orientar testes comparativos (shp vs gpkg).
+
+  1.5.10 2026/03/01
+  - LogUtilsNew: Adicionado suporte a CRITICAL/ERROR no QgsMessageLog oficial do QGIS com mapeamento de níveis automático
+  - CopyAttributesPlugin: Migrado de LogUtils para LogUtilsNew
+  - BasePluginMTL: Parâmetro build_ui=True adicionado - permite plugins sem UI configurarem logger/settings sem construir componentes visuais
+  - BasePluginMTL: Parâmetro load_settings_prefs=False adicionado - carregamento opcional de preferências globais
+  - BasePluginMTL: Variável settings_preferences={} para armazenar preferências globais acessíveis a todos os plugins
+  - BasePluginMTL: Lógica de resize centralizada em MainLayout com rastreamento de mouse e cursor dinâmico
+  - VectorFieldPlugin: CORRIGIDO bug crítico - logger não inicializado causando 'NoneType' object has no attribute 'debug'
+  - VectorFieldPlugin: REFATORAÇÃO COMPLETA - removido VectorFieldCalculator, lógica migrada para VectorLayerAttributes/VectorLayerMetrics
+  - VectorFieldPlugin: Implementado modo automático "Ambos" (elipsoidal+cartesiano) com detecção de CRS geográfico e fallback
+  - VectorFieldPlugin: Handlers implementados para ponto (_run_point_fields), linha (_run_line_fields) e polígono (_run_polygon_fields)
+  - VectorFieldPlugin: Migrado para usar init() com build_ui=False e load_settings_prefs=True
+  - VectorMultipartPlugin: Migrado para usar init() com build_ui=False, padronizando inicialização
+  - VectorLayerAttributes: CRIADA - centraliza operações de campo (create_point_coordinate_fields, update_point_xy_coordinates, generate_field_name_with_suffix com limite SHP 10-char)
+  - VectorLayerMetrics: Refatorado - unificado calculate_line_length() e calculate_polygon_area() com parâmetro use_ellipsoidal=True, removidos métodos deprecated
+  - VectorLayerProjection: Adicionado is_geographic_crs(layer) para detecção automática de CRS geográfico
+  - VectorLayerGeometry: Migrado para LogUtilsNew com helper method _get_logger() - thread-safe para métodos estáticos
+  - VectorLayerSource: Migrado para LogUtilsNew com helper method _get_logger()
+  - SettingsPlugin: Adicionada lista CALCULATION_METHODS=["Elipsoidal","Cartesiana","Ambos"] com persistência de configuração
+  - REFATORAÇÃO ARQUITETÔNICA: Separação de responsabilidades - cálculos vetoriais delegados a classes de domínio especializadas
+  1.5.7 2026/02/27
+  - Logcat: Removido DEBUG logs excessivos; proteção anti-crash via desconexão de proxy model durante troca de sessão; corrigido bug de índice em duplo clique (mapToSource)
+  -bug removido:     - LogCatPlugin: Travamento ocasional ao ler/escrever logs em tempo real
+  - Plugin principal: Adicionado sys.excepthook handler global para capturar exceções não tratadas; proteção massiva em run_logcat() com logging detalhado de cada etapa
+  - SettingsPlugin: Novo plugin no grupo Sistema com acesso a preferências e configuração de cálculo vetorial (Elipsoidal/Cartesiana/Ambos)
+  - RadioButtonGridWidget: Novo widget exclusivo de radios com grid configurável (linhas/colunas), integrado via WidgetFactory
+  1.5.1 2026/02/25
+  - coloque a linha async como so rodar a cima de determinado limite pq costuma demorar mais.
+  - sistema de exibicao de media de tempo
+  1.5.0 2026/02/24
+  - FERRAMENTAS NORMALIZADAS: 5, 10, 11
+  1.4.0.14 2026/02/XX
+  - ExplodeStep e SaveVectorStep criados para pipeline de processamento
+  - Correção de bugs gerais
+  - Correção de bugs de compatibilidade com QGIS 3.16
+  1.4.0.13 2026/02/23
+  - Ícones adicionados ao LogCat Viewer
+  - Geração de pipeline e steps para encadeamento de tasks
+  - Classes BaseStep e BufferStep implementadas
+  1.4.0.12 2026/02/17
+  - Compatibilidade corrigida com QGIS 3.16 em Gerar Rastro de Implemento
+  - Bug de markdown corrigido para QGIS 3.16
+  - Bug de shapely corrigido em Obter Coordenadas de Drone
+  1.4.0.11 2026/02/XX
+  - Task ExplodeLinhasTask criada para explosão de linhas
+  1.4.0.10 2026/02/XX
+  - Estilos adicionados para checkbox marcado em marrom
+  - VectorLayerAttributes iniciado para refatoração de operações vetoriais
+  - Próximo passo: desacoplar VectorUtils de BasePluginMTL
+  1.4.0.9 2026/02/XX
+  - UIWidgetUtils desacoplado de GerGeometryTrailPlugin
+  - WidgetFactory criada para centralizar criação de componentes UI
+  - Sistema de Styles criado para gerenciamento de estilos
+  - Novos estilos aplicados a todos os plugins
+  1.4.0.8 2026/02/XX
+  - VectorLayerGeometry iniciado com métodos estáticos
+  - VectorUtils desacoplado de GerGeometryTrailPlugin
+  1.4.0.7 2026/02/XX
+  - Hierarquia de pastas reorganizada
+  - Classes para operações vetoriais criadas: VectorLayerSource, VectorLayerProjection, VectorLayerGeometry, VectorLayerMetrics, VectorLayerAttributes
+  - Classes para operações raster criadas: RasterLayerSource, RasterLayerProjection, RasterLayerProcessing, RasterLayerMetrics, RasterLayerRendering
+  - RasterVectorBridge criado para transição entre dados raster e vetoriais
+  - LogCat Viewer (ferramenta de debug) implementado
+  - Documentação de cenários adicionada para ferramentas 8, 10, 11
+  1.4.0.6 2026/02/XX
+  - Ferramentas 5 e 11 normalizadas novamente (padronização anterior tinha falhas)
+  1.4.0 2026/01/19
+  - Nova ferramenta: Converter Multipart para Singlepart
+  - Nova ferramenta: Copiar Atributos entre camadas vetoriais (com renomeação automática)
+  - BasePluginMTL criado para centralizar padrões de plugins
+  - Ferramentas padronizadas: 2, 8, 10, 11 (ferramentas 3, 6, 7 não padronizáveis)
+  - LayoutsUtils e ProjectUtils criados para operações comuns
+  - Documentação de cenários adicionada para ferramentas 8, 10, 11
+
+  1.3.0 - 2026/01/16
+  - retirado bug duplica instancia toda vez que fecho as ferramentas de janela
+  - Menu principal migrado para aba separada
+  - Criação de ícones de menu
+  - Organização do plugin principal
+  - Nova ferramenta: cálculo automático de campos de tamanho, comprimento e XY
+  - Melhoria na ferramenta de obtenção de UTM, com inclusão de informações de município e estado via API BigDataCloud
+  - Nova ferramenta: obtenção de trajeto e pontos das fotos do drone a partir de arquivos MRK
+  - Criação de grupos na toolbar para Vetores e Agricultura de Precisão
+  - Continuação e refinamento da ferramenta de obtenção de pontos de drone
+  - Criação de um plugin padrão
+  - Implementação de utilitário de logs (Log Utils)
+  - Conversão de ícones para formato .ico (redução de uso de memória)
+  - Criação de função padrão para adicionar botões na toolbar, organizando e padronizando o código
+  
+  1.2.6 — 2026/01/12
+  - Implementado menu de informações “Sobre”
+  - Reorganização da toolbar com divisão lógica de menus em grupos
+  - Adicionada aba de instruções para a ferramenta de criação de Rastro de Implemento
+  - Correção de bugs relacionados aos ícones das ferramentas
+  - Nova ferramenta: Obter Zona UTM e Altimetria a partir de clique no mapa
+
+  1.2.5 — 2026/01/11
+  - Ajustes no Rastro de Implemento para compatibilidade com QGIS 3.16
+  - Correção de bug na exportação de PDFs e PNGs
+  - Adicionado instalador automático de bibliotecas Python
+
+  1.2.4 — 2025/12/14
+  - Processing: Validador de MDT (implementação inicial – funcionalidade instável)
+
+  1.2.3 — 2025/12/12
+  - Refatoração: separação da lógica do Amostrador de Valores
+  - Refatoração: separação da lógica da Diferença de Atributos
+  - Refatoração: separação da lógica de Estatísticas
+  - Correção de bug na ferramenta de Estatística: flag de exportação CSV não era persistida
+  - Implementado CRS de saída configurável no Amostrador de Valores
+  - Criação de ToolKey centralizada para gerenciamento interno
+  - Correção de bug que iniciava uma nova instância do QGIS antes do encerramento completo ao reiniciar via plugin
+
+  1.2.2 — 2025/12/11
+  - Correções gerais de bugs e ajustes internos
+
+  1.2.1 — 2025/12/11
+  - Correções gerais de bugs
+  - Correção de bug na ferramenta de Estatística relacionado a campos de texto
+
+  1.2.0 — 2025/12/10
+  - Nova ferramenta: Carregar pastas de arquivos diretamente no QGIS
+  - Implementado sistema de instruções de uso em todas as ferramentas do plugin
+  - Ajuste no Replace para substituição de labels inteiros
+  - Processing: Amostragem em massa de valores de raster
+  - Adicionados ícones personalizados na Caixa de Ferramentas de Processamento
+  - Processing: Gerador de Diferença entre Campos
+
+  1.1.2 — 2025/12/10
+  - Criada aba dedicada para o plugin na interface do QGIS
+  - Correção de travamento na ferramenta Export All
+  - Implementada geração de livro de PDFs e livro de PNGs
+  - Ferramenta Replace Layouts removida do painel principal
+  - Persistência de configurações via sistema de preferências
+
+  1.1.1 — 2025/12/09
+  - Nova ferramenta: Reiniciar QGIS via plugin
+  - Criado Processing Provider do plugin
+
+  1.1.0 — 2025/12/09
+  - Nova ferramenta: Replace Text in Layouts
+  - Backup automático
+  - Log detalhado de execução
+
+  1.0.0 — 2025/12/09
+  - Versão inicial
+  - Ferramenta: Export All Layouts (PDF/PNG)
+
+
+IMPLEMENTACOES
+ 
+  - transformar ponto pos em linha atraves de gps time
+    -acrescentar centralizar tela de todos os layouts 
+    -Atribuir bandas 0 a todos raster 
+    -Todos scripts de colheita 
+    - matriz de linhas paralelas 
+    -Classificador de declividade 
+    -Amostrador de raster cálculo gerador de dif e gerador de estatística 
+
+    -Botão de adicionar estilos salvos no qgis meus como gradiente entre outros. 
+    - melhoria no buffer de vector util verificar se a camada e 4326 reprojetar, 
+    - melhoria no drone cordinates gerar a area concave hull 0,025000
+    - nova ferramenta que aplica buffer negativo e positivo
+
+
+Ferramenta de buffer, permitindo aplicação de buffer positivo ou negativo sobre camadas vetoriais.
+
+
+Ferramenta de processamento de declividade e altimetria. Recebe um DEM fornecido pelo usuário ou faz o download automático de um DEM. Recebe um KML definindo a área de interesse. Permite definir a resolução de saída do DEM e aplicar um buffer na área (por exemplo, 100 m). Possui seletor de intervalo para geração de curvas de nível. Permite gerar produtos individualmente, com opção de excluir ou salvar cada resultado. Possui opção de salvar os arquivos com nome padrão em uma pasta específica e carregar automaticamente os resultados em um grupo no QGIS. Aplica estilos predefinidos para declividade, altimetria e curvas de nível. Permite definir um tamanho mínimo para exclusão de curvas (por exemplo, 50 m).
+
+O fluxo inclui recortar o DEM pela área com buffer, gerar um DEM em alta resolução, extrair curvas de nível em intervalos configuráveis (1, 3, 5, 10, 20, 25, 50, 100), gerar declividade total e declividade recortada, melhorar a resolução da declividade, reclassificar os resultados e aplicar estilos automaticamente. Todas as opções de caminhos e pastas de saída são salvas nas preferências do plugin.
+
+Ferramenta de pesquisa de funções do QGIS, incluindo algoritmos de processamento e funcionalidades de plugins instalados, facilitando a descoberta de ferramentas.
+
+Gerenciador de atalhos por projeto, funcionando como um grupo dentro do plugin, permitindo configurar e organizar atalhos para ações frequentes, como corrigir geometrias, reprojetar camadas, entre outras, de forma específica para cada projeto.
+
+Ferramenta de criação automática de vetores, onde o usuário escolhe o tipo de vetor (ponto, linha ou polígono) e o plugin cria automaticamente o arquivo na pasta padrão (por exemplo, raiz/Shapefile), usando o último nome escolhido ou permitindo selecionar outra pasta.
+
+Assistente inteligente de preenchimento de atributos, que sugere valores de campos com base em regras, vizinhança espacial ou aprendizado mínimo semi-automático, funcionando como um “autocompletar” em tabelas de atributos. O objetivo é reduzir esforço manual, erros de digitação e aumentar a consistência dos dados.

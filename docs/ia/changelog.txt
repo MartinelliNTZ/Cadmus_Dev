@@ -1,0 +1,15 @@
+#inicie aqui sempre use a data atual nos logs sempre insira na sequencia
+2.3.14 14/04/2026
+[2.3.14.1][14/04/2026] comece aqui
+[2.3.14.2][14/04/2026] Alinhado padrão de carregamento/salvamento de preferências em GenerateTrailPlugin, PhotoVectorizationPlugin e LoadFolderLayers.
+[2.3.14.3][14/04/2026] Atualizado import e chamada de Preferences.save_tool_prefs no padrão de preferências.
+[2.3.14.4][14/04/2026] Implementada reconstrução dinâmica da toolbar no MenuManager e gatilho automático no SettingsPlugin ao alterar visibilidade de categorias.
+[2.3.14.5][14/04/2026] Main action dinâmico por categoria: adicionado campo tool_key à Tool, salvo category/tool_type em preferences, validação 1 main action POR CATEGORIA, reset seletivo em set_value_for_all_tools com filtro_by, e atualização automática ao fechar ferramenta.
+[2.3.14.6][14/04/2026] FIX CRÍTICO - LOGCAT com tool_key errado: tool LOGCAT estava usando ToolKey.SYSTEM (constante genérica para logs), causando conflito na criação da toolbar. Criado ToolKey.LOGCAT="logcat" e corrigido em ToolRegistry._create_tool_list().
+[2.3.14.7][14/04/2026] Refatorado set_value_for_all_tools() para ser COMPLETAMENTE GENÉRICO: filtra por qualquer chave-valor no dict de prefs. Adicionados logs ultra-detalhados em on_finish_plugin() e em set_value_for_all_tools().
+[2.3.14.8][14/04/2026] FIX CRÍTICO - MenuManager.reconstruct_toolbar() estava usando Tool objects ANTIGOS: criado método _refresh_tool_main_actions() que recarrega os valores de main_action das tools a partir das prefs atualizadas. Agora reconstruct_toolbar() sincroniza os estados antes de recriar a toolbar. Adicionados logs detalhados [_refresh_tool_main_actions] e [reconstruct_toolbar].
+2.3.16 15/04/2026
+[2.3.16.1][15/04/2026] comece aqui
+[2.3.16.2][15/04/2026] Adicionado evento global de instanciação de plugins filhos do BasePlugin via pyqtSignal, criado PyQtSignalManager para escutar o sinal e registrar a abertura no log, e integrado o manager ao ciclo de vida do CadmusPlugin.
+[2.3.16.3][15/04/2026] Movida a emissão do sinal de abertura de plugins do BasePluginMTL para o showEvent com trava de emissão única, removendo a dependência do método init para disparar o evento.
+[2.3.16.4][15/04/2026] Criado guia interno docs/skills/PYQT_SIGNAL_SKILL.md com padroes de uso de pyqtSignal no Cadmus, incluindo sinal local, hub global, manager observador, showEvent e erros comuns.

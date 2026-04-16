@@ -1,0 +1,587 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relatorio Fotogrametrico</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #151515;
+            --card: #222222;
+            --card-hover: #2A2A2A;
+            --text: #E0E0E0;
+            --muted: #888888;
+            --border: #333333;
+            --l1: #EF5350;
+            --l2: #FFB74D;
+            --l3: #FFD54F;
+            --l4: #81C784;
+            --l5: #4CAF50;
+        }
+        body[data-theme="light"] {
+            --bg: #f7f8fa;
+            --card: #ffffff;
+            --card-hover: #f1f4f8;
+            --text: #202733;
+            --muted: #637084;
+            --border: #dce2ea;
+            --l1: #d73027;
+            --l2: #fc8d59;
+            --l3: #fee08b;
+            --l4: #91cf60;
+            --l5: #1a9850;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .card:hover {
+            background: var(--card-hover);
+            transform: translateY(-1px);
+        }
+        .card summary {
+            cursor: pointer;
+            font-weight: 700;
+            margin-bottom: 10px;
+            user-select: none;
+            transition: color 0.2s ease, text-shadow 0.2s ease;
+        }
+        .card summary:hover {
+            color: var(--text);
+            text-shadow: 0 0 8px rgba(224, 224, 224, 0.2);
+        }
+        .card details[open] summary {
+            margin-bottom: 12px;
+        }
+        .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .summary-grid { display: grid; gap: 16px; grid-template-columns: 1.2fr 1.2fr 1fr 1fr; align-items: stretch; }
+        .report-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .report-title h1 {
+            margin-bottom: 6px;
+        }
+        .brand-logos {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-logo {
+            height: 150px;
+            width: auto;
+            object-fit: contain;
+        }
+        h1, h2, h3 { margin-top: 0; }
+        .muted { color: var(--muted); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            border-bottom: 1px solid var(--border);
+            padding: 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background: #2A2A2A;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 12px;
+        }
+        body[data-theme="light"] th { background: #eef3f8; }
+        tr:nth-child(even) td { background: #1A1A1A; }
+        body[data-theme="light"] tr:nth-child(even) td { background: #f8fafc; }
+        .level-1 { background: var(--l1); color: #111; font-weight: 700; }
+        .level-2 { background: var(--l2); color: #111; font-weight: 700; }
+        .level-3 { background: var(--l3); color: #111; font-weight: 700; }
+        .level-4 { background: var(--l4); color: #111; font-weight: 700; }
+        .level-5 { background: var(--l5); color: #111; font-weight: 700; }
+        .level-na { background: #5f6b7a; color: #fff; font-weight: 700; }
+        .stars { font-size: 22px; letter-spacing: 2px; }
+        .chart-wrap { min-height: 220px; }
+        #levelChart { max-height: 180px; }
+        .dist-stack {
+            display: flex;
+            width: 100%;
+            height: 22px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #edf1f6;
+        }
+        .dist-bar {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #111;
+            white-space: nowrap;
+            min-width: 52px;
+        }
+        .dist-bar.l1 { background: var(--l1); }
+        .dist-bar.l2 { background: var(--l2); }
+        .dist-bar.l3 { background: var(--l3); }
+        .dist-bar.l4 { background: var(--l4); }
+        .dist-bar.l5 { background: var(--l5); }
+        .dist-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 6px 0 10px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            display: inline-block;
+        }
+        .legend-dot.l1 { background: var(--l1); }
+        .legend-dot.l2 { background: var(--l2); }
+        .legend-dot.l3 { background: var(--l3); }
+        .legend-dot.l4 { background: var(--l4); }
+        .legend-dot.l5 { background: var(--l5); }
+        .range-details { margin-top: 6px; }
+        .range-details summary {
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 12px;
+            user-select: none;
+        }
+        .range-row {
+            margin-top: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .range-chip {
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            padding: 2px 7px;
+            font-size: 11px;
+            background: transparent;
+        }
+        .range-chip.l1 { border-color: var(--l1); color: var(--l1); }
+        .range-chip.l2 { border-color: var(--l2); color: var(--l2); }
+        .range-chip.l3 { border-color: var(--l3); color: var(--l3); }
+        .range-chip.l4 { border-color: var(--l4); color: var(--l4); }
+        .range-chip.l5 { border-color: var(--l5); color: var(--l5); }
+        .rule-badge {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 1px 6px;
+            border-radius: 999px;
+            font-size: 11px;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            background: #fff;
+        }
+        .status-ok { color: #1a9850; font-weight: 700; }
+        .status-warn { color: #b35c00; font-weight: 700; }
+        .status-critical { color: #c62828; font-weight: 700; }
+        .sev-critical { color: #c62828; font-weight: 700; }
+        .sev-alerta { color: #b35c00; font-weight: 700; }
+        .sev-info { color: #1e88e5; font-weight: 700; }
+        .theme-switcher {
+            display: inline-flex;
+            gap: 14px;
+            align-items: center;
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .theme-switcher input[type="radio"] { accent-color: var(--l5); }
+        @media (max-width: 900px) {
+            body { padding: 12px; }
+            th, td { font-size: 12px; }
+            .summary-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="card">
+        <div class="report-header">
+            <div class="report-title">
+                <h1>Relatorio Fotogrametrico</h1>
+                <p class="muted">Total de imagens: <strong>{{ total_images }}</strong></p>
+                <p>
+                    Score geral medio: <strong>{{ mean_overall }}/5</strong>
+                    <span class="stars">
+                        {% for _ in range(mean_overall|round(0, 'floor')|int) %}★{% endfor %}
+                        {% for _ in range(5 - (mean_overall|round(0, 'floor')|int)) %}☆{% endfor %}
+                    </span>
+                </p>
+            </div>
+            <div class="brand-logos">
+                <img src="{{ cadmus_icon_url }}" alt="Cadmus" class="brand-logo" onerror="this.onerror=null;this.src='{{ cadmus_icon_path }}';" />
+                <img src="{{ mtl_agro_icon_url }}" alt="MTL Agro" class="brand-logo" onerror="this.onerror=null;this.src='{{ mtl_agro_icon_path }}';" />
+            </div>
+        </div>
+        <div class="theme-switcher">
+            <label><input type="radio" name="theme_mode" value="dark" checked> Dark Premium</label>
+            <label><input type="radio" name="theme_mode" value="light"> Light Classic</label>
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="card">
+            <details open>
+                <summary>Informacoes Gerais</summary>
+                <table>
+                    <tr>
+                        <th>Modelo do equipamento</th>
+                        <td>{{ agg.general_info.equipment_models | join(', ') if agg.general_info.equipment_models else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Serial equipamento</th>
+                        <td>{{ agg.general_info.equipment_serial_numbers | join(', ') if agg.general_info.equipment_serial_numbers else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Modelo da camera</th>
+                        <td>{{ agg.general_info.camera_models | join(', ') if agg.general_info.camera_models else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Serial camera</th>
+                        <td>{{ agg.general_info.camera_serial_numbers | join(', ') if agg.general_info.camera_serial_numbers else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Data inicio</th>
+                        <td>{{ agg.general_info.capture_start }}</td>
+                    </tr>
+                    <tr>
+                        <th>Data fim</th>
+                        <td>{{ agg.general_info.capture_end }}</td>
+                    </tr>
+                    <tr>
+                        <th>Numero de voos</th>
+                        <td>{{ agg.general_info.total_flights }}</td>
+                    </tr>
+                    <tr>
+                        <th>Horas de voo (total)</th>
+                        <td>{{ agg.general_info.total_flight_time }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ultimo ShutterCount por camera</th>
+                        <td>
+                            {% if agg.general_info.last_shutter_per_camera %}
+                                {% for item in agg.general_info.last_shutter_per_camera %}
+                                    {{ item.camera_serial }}: {{ item.last_shutter_count }} ({{ item.file }} | {{ item.flight_id }}){% if not loop.last %}<br>{% endif %}
+                                {% endfor %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </details>
+        </div>
+        <div class="card">
+            <details open>
+                <summary>📊 Metricas Avancadas</summary>
+                <table>
+                    <tr>
+                        <th>RTK Diff Age (media / max / p95)</th>
+                        <td>{{ agg.advanced_analysis.metrics.rtk_diff_age_mean }} / {{ agg.advanced_analysis.metrics.rtk_diff_age_max }} / {{ agg.advanced_analysis.metrics.rtk_diff_age_p95 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Estabilidade RTK</th>
+                        <td>{{ agg.advanced_analysis.metrics.rtk_stability_class }} (media {{ agg.advanced_analysis.metrics.rtk_stability_mean }})</td>
+                    </tr>
+                    <tr>
+                        <th>Gimbal Offset (media / desvio / max)</th>
+                        <td>{{ agg.advanced_analysis.metrics.gimbal_offset_mean }} / {{ agg.advanced_analysis.metrics.gimbal_offset_std }} / {{ agg.advanced_analysis.metrics.gimbal_offset_max }}</td>
+                    </tr>
+                    <tr>
+                        <th>YawAlignmentError >= 150°</th>
+                        <td>{{ agg.advanced_analysis.metrics.yaw_inconsistent_pct }}%</td>
+                    </tr>
+                    <tr>
+                        <th>Overlap &lt; 60%</th>
+                        <td>{{ agg.advanced_analysis.metrics.overlap_below_ideal_pct }}% (media {{ agg.advanced_analysis.metrics.overlap_mean }})</td>
+                    </tr>
+                    <tr>
+                        <th>Velocidade media vs recomendada</th>
+                        <td>{{ agg.advanced_analysis.metrics.speed_ms_mean }} m/s ({{ agg.advanced_analysis.metrics.speed_ms_recommended }})</td>
+                    </tr>
+                </table>
+            </details>
+        </div>
+        <div class="card chart-wrap">
+            <details open>
+                <summary>Distribuicao de Niveis (%)</summary>
+                <canvas id="levelChart"></canvas>
+            </details>
+        </div>
+        <div class="card">
+            <details open>
+                <summary>Mapa</summary>
+                {{ map_snippet | safe }}
+            </details>
+        </div>
+    </div>
+
+    <div class="card">
+        <details open>
+            <summary>⚠️ Alertas Criticos</summary>
+            <table>
+                <tr><th>Severidade</th><th>Titulo</th><th>Detalhe</th><th>Impacto</th><th>Acao</th></tr>
+                <tr>
+                    <td class="{{ 'sev-critical' if agg.general_info.dewarp_status_type == 'critical' else ('sev-alerta' if agg.general_info.dewarp_status_type == 'warn' else 'sev-info') }}">
+                        {{ 'CRITICO' if agg.general_info.dewarp_status_type == 'critical' else ('ALERTA' if agg.general_info.dewarp_status_type == 'warn' else 'INFO') }}
+                    </td>
+                    <td>Dewarp</td>
+                    <td>{{ agg.general_info.dewarp_status_message }}</td>
+                    <td>Impacta diretamente geometrias e qualidade radiométrica da reconstrução.</td>
+                    <td>Garantir dewarping habilitado em 100% da missão.</td>
+                </tr>
+                <tr>
+                    <td class="{{ 'sev-alerta' if agg.general_info.altitude_status_type == 'warn' else 'sev-info' }}">
+                        {{ 'ALERTA' if agg.general_info.altitude_status_type == 'warn' else 'INFO' }}
+                    </td>
+                    <td>Altitude incompleta</td>
+                    <td>{{ agg.general_info.altitude_status_message }}</td>
+                    <td>Afeta consistência altimétrica, GSD e sobreposição prevista.</td>
+                    <td>Corrigir captura de Alt (MRK) e AbsoluteAltitude antes do processamento.</td>
+                </tr>
+                {% if agg.advanced_analysis.critical_alerts %}
+                {% for a in agg.advanced_analysis.critical_alerts %}
+                <tr>
+                    <td class="{{ 'sev-critical' if a.severity == 'CRITICO' else ('sev-alerta' if a.severity == 'ALERTA' else 'sev-info') }}">{{ a.severity }}</td>
+                    <td>{{ a.title }}</td>
+                    <td>{{ a.detail }}</td>
+                    <td>{{ a.impact }}</td>
+                    <td>{{ a.action }}</td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </table>
+        </details>
+    </div>
+
+    <div class="card">
+        <details open>
+            <summary>🌱 Insights Agronomicos</summary>
+            <table>
+                <tr><th>Insight</th><th>Valor</th></tr>
+                <tr><td>Area estimada coberta (ha)</td><td>{{ agg.advanced_analysis.metrics.estimated_area_ha if agg.advanced_analysis.metrics.estimated_area_ha is not none else 'N/A (coordenadas insuficientes)' }}</td></tr>
+                <tr><td>Inconsistencia de iluminacao (LightConsistency)</td><td>{{ agg.advanced_analysis.metrics.light_inconsistent_pct }}%</td></tr>
+            </table>
+        </details>
+    </div>
+
+    <div class="card">
+        <details open>
+            <summary>✅ Recomendacoes</summary>
+            <ol>
+                {% for rec in agg.advanced_analysis.recommendations %}
+                <li>{{ rec }}</li>
+                {% endfor %}
+            </ol>
+        </details>
+    </div>
+
+    <div class="card">
+        <details open>
+            <summary>Agregados por Indicador</summary>
+            <div class="dist-legend">
+                <span class="legend-item"><span class="legend-dot l1"></span>N1</span>
+                <span class="legend-item"><span class="legend-dot l2"></span>N2</span>
+                <span class="legend-item"><span class="legend-dot l3"></span>N3</span>
+                <span class="legend-item"><span class="legend-dot l4"></span>N4</span>
+                <span class="legend-item"><span class="legend-dot l5"></span>N5</span>
+                <span>| abra <strong>Ranges</strong> para ver os valores por cor</span>
+            </div>
+            <table>
+            <tr>
+                <th>Indicador</th>
+                <th>Score</th>
+                <th>Media</th>
+                <th>Desvio Padrao</th>
+                <th>Maxima</th>
+                <th>Minima</th>
+                <th>Range</th>
+                <th>Distribuicao</th>
+            </tr>
+            {% for ind, stat in per_indicator.items() %}
+            <tr>
+                <td title="{{ stat.description }}">
+                    {{ stat.label }}
+                    <span class="rule-badge">{{ stat.threshold_type }}</span>
+                </td>
+                {% set stat_level = stat.mean|round(0)|int %}
+                <td class="{{ ('level-' ~ stat_level) if (stat_level >= 1 and stat_level <= 5) else 'level-na' }}">{{ stat.mean }}</td>
+                <td>{{ stat.value_mean if stat.value_mean is not none else '-' }}</td>
+                <td>{{ stat.value_std if stat.value_std is not none else '-' }}</td>
+                <td>{{ stat.value_max if stat.value_max is not none else '-' }}</td>
+                <td>{{ stat.value_min if stat.value_min is not none else '-' }}</td>
+                <td>{{ stat.value_range if stat.value_range is not none else '-' }}</td>
+                <td>
+                    {% set d1 = stat.dist.get(1, 0) %}
+                    {% set d2 = stat.dist.get(2, 0) %}
+                    {% set d3 = stat.dist.get(3, 0) %}
+                    {% set d4 = stat.dist.get(4, 0) %}
+                    {% set d5 = stat.dist.get(5, 0) %}
+                    {% set total = d1 + d2 + d3 + d4 + d5 %}
+                    <div class="dist-stack">
+                        {% if d1 > 0 and total > 0 %}
+                        <div class="dist-bar l1" title="N1 | {{ stat.level_ranges.get('1', '-') }}" style="flex: {{ d1 }}">N1 {{ d1 }} ({{ ((d1 / total) * 100)|round(0)|int }}%)</div>
+                        {% endif %}
+                        {% if d2 > 0 and total > 0 %}
+                        <div class="dist-bar l2" title="N2 | {{ stat.level_ranges.get('2', '-') }}" style="flex: {{ d2 }}">N2 {{ d2 }} ({{ ((d2 / total) * 100)|round(0)|int }}%)</div>
+                        {% endif %}
+                        {% if d3 > 0 and total > 0 %}
+                        <div class="dist-bar l3" title="N3 | {{ stat.level_ranges.get('3', '-') }}" style="flex: {{ d3 }}">N3 {{ d3 }} ({{ ((d3 / total) * 100)|round(0)|int }}%)</div>
+                        {% endif %}
+                        {% if d4 > 0 and total > 0 %}
+                        <div class="dist-bar l4" title="N4 | {{ stat.level_ranges.get('4', '-') }}" style="flex: {{ d4 }}">N4 {{ d4 }} ({{ ((d4 / total) * 100)|round(0)|int }}%)</div>
+                        {% endif %}
+                        {% if d5 > 0 and total > 0 %}
+                        <div class="dist-bar l5" title="N5 | {{ stat.level_ranges.get('5', '-') }}" style="flex: {{ d5 }}">N5 {{ d5 }} ({{ ((d5 / total) * 100)|round(0)|int }}%)</div>
+                        {% endif %}
+                    </div>
+                    <details class="range-details">
+                        <summary>Ranges</summary>
+                        <div class="range-row">
+                            <span class="range-chip l1">N1: {{ stat.level_ranges.get('1', '-') }}</span>
+                            <span class="range-chip l2">N2: {{ stat.level_ranges.get('2', '-') }}</span>
+                            <span class="range-chip l3">N3: {{ stat.level_ranges.get('3', '-') }}</span>
+                            <span class="range-chip l4">N4: {{ stat.level_ranges.get('4', '-') }}</span>
+                            <span class="range-chip l5">N5: {{ stat.level_ranges.get('5', '-') }}</span>
+                        </div>
+                    </details>
+                </td>
+            </tr>
+            {% endfor %}
+            </table>
+        </details>
+    </div>
+
+    <div class="card">
+        <details>
+            <summary>Agrupamento por Voo</summary>
+            <table>
+            <tr>
+                <th>Voo</th>
+                <th>Imagens</th>
+                <th>Score Medio</th>
+                <th>Inicio do voo</th>
+                <th>Fim do voo</th>
+                <th>Tempo de voo</th>
+                {% for col in agg.flight_level5_columns %}
+                <th>{{ col.label }}</th>
+                {% endfor %}
+            </tr>
+            {% for f in agg.per_flight %}
+            <tr>
+                <td>{{ f.flight_id }}</td>
+                <td>{{ f.images }}</td>
+                {% set flight_level = f.mean_score|round(0)|int %}
+                <td class="{{ ('level-' ~ flight_level) if (flight_level >= 1 and flight_level <= 5) else 'level-na' }}">{{ f.mean_score }}</td>
+                <td>{{ f.start }}</td>
+                <td>{{ f.end }}</td>
+                <td>{{ f.flight_time }}</td>
+                {% for col in agg.flight_level5_columns %}
+                <td>
+                    {% if f.level5_means.get(col.key) is not none %}
+                        {{ '%.2f'|format(f.level5_means.get(col.key)) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </table>
+        </details>
+    </div>
+
+    <div class="card">
+        <details>
+            <summary>Detalhes por Imagem (Top 20)</summary>
+            <table>
+            <tr><th>Arquivo</th><th>Score</th><th>GSD</th><th>Motion Blur</th><th>Shutter</th></tr>
+            {% for r in results[:20] %}
+            <tr>
+                <td>{{ r.filename }}</td>
+                {% set overall_level = r.overall_score|round(0)|int %}
+                <td class="{{ ('level-' ~ overall_level) if (overall_level >= 1 and overall_level <= 5) else 'level-na' }}">{{ r.overall_score }}</td>
+                <td class="level-{{ r.levels.get('gsd_cm', 3) }}">{{ r.levels.get('gsd_cm', '-') }}</td>
+                <td>{{ r.messages.get('motion_blur_risk', '-') }}</td>
+                <td>{{ r.messages.get('shutter_life_pct', '-') }}</td>
+            </tr>
+            {% endfor %}
+            </table>
+        </details>
+    </div>
+
+    <script>
+        const levelCfg = {{ charts.level_pie | tojson }};
+        let levelChartInstance = null;
+
+        function cssVar(name) {
+            return getComputedStyle(document.body).getPropertyValue(name).trim();
+        }
+
+        function applyChartDefaults() {
+            Chart.defaults.color = cssVar('--muted');
+            Chart.defaults.borderColor = cssVar('--border');
+        }
+
+        function renderLevelChart() {
+            const ctx = document.getElementById('levelChart');
+            if (!ctx || !levelCfg) return;
+            if (levelChartInstance) levelChartInstance.destroy();
+
+            applyChartDefaults();
+            levelChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: levelCfg.labels,
+                    datasets: [{
+                        data: levelCfg.data,
+                        backgroundColor: [cssVar('--l1'), cssVar('--l2'), cssVar('--l3'), cssVar('--l4'), cssVar('--l5')],
+                        borderColor: cssVar('--card'),
+                        borderWidth: 1
+                    }]
+                }
+            });
+        }
+
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('report_theme', theme);
+            const radio = document.querySelector(`input[name="theme_mode"][value="${theme}"]`);
+            if (radio) radio.checked = true;
+            renderLevelChart();
+        }
+
+        (function initTheme() {
+            const stored = localStorage.getItem('report_theme');
+            const theme = (stored === 'light' || stored === 'dark') ? stored : 'dark';
+            setTheme(theme);
+            document.querySelectorAll('input[name="theme_mode"]').forEach((input) => {
+                input.addEventListener('change', (e) => setTheme(e.target.value));
+            });
+        })();
+    </script>
+</body>
+</html>

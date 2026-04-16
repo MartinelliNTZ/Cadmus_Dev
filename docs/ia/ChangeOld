@@ -1,0 +1,1531 @@
+2.3.8 2026/04/11
+[2.3.8.37.7] RasterLayerProjection: implementado `reproject_raster_to_crs(...)` usando `gdal:warpreproject`, com logging padronizado por `ToolKey`, suporte a `nodata_value`, `output_data_type=0` (usar tipo do raster de entrada), saida temporaria GeoTIFF e normalizacao de CRS de origem/destino.
+[2.3.8.37.8] RasterLayerProjection: `reproject_raster_to_crs(...)` passou a usar `ResamplingMethod` (`core/enum/ResamplingMethod.py`) com padrao `CUBICO_SUAVIZADO`; `target_resolution` agora e opcional e, quando `None` ou `0`, desabilita reamostragem e nao envia `RESAMPLING` para o warp.
+[2.3.8.37.9] RasterLayerProjection: implementado `get_raster_crs(...)` com suporte a `QgsRasterLayer` e caminho de arquivo, retornando `QgsCoordinateReferenceSystem` valido quando disponivel. O helper de logger da classe tambem foi corrigido para usar `class_name="RasterLayerProjection"`.
+[2.3.8.37.10] RasterLayerProjection: `reproject_raster_to_crs(...)` expandido para aceitar `context`, `feedback` e `is_child_algorithm`, permitindo reutilizacao segura dentro de algoritmos Processing filhos sem duplicar infraestrutura de warp/reprojecao.
+[2.3.8.37.11] RasterWeightedAverage: removido o metodo legado `_resample_rasters()` e centralizada toda a preparacao de raster em `RasterLayerProjection.reproject_raster_to_crs(...)`, eliminando duplicacao de logica de `gdal:warp` no algoritmo.
+[2.3.8.37.12] RasterWeightedAverage: adicionado parametro `OUTPUT_CRS` (CRS de saida opcional). O algoritmo agora resolve explicitamente o CRS alvo antes do calculo e passa a preparar as entradas conforme combinacao de CRS/resolucao solicitada pelo usuario.
+[2.3.8.37.13] RasterWeightedAverage: novo fluxo de preparacao de rasters implementado em `_prepare_rasters_for_execution(...)`. Regras: se `OUTPUT_CRS` vazio e `OUTPUT_RESOLUTION` vazio/0, apenas alinha rasters com CRS diferente ao CRS do primeiro; se `OUTPUT_CRS` informado e `OUTPUT_RESOLUTION` vazio/0, reprojeta mantendo resolucao original; se `OUTPUT_RESOLUTION > 0`, todas as camadas sao reprojetadas antes da execucao, usando `OUTPUT_CRS` quando informado ou o CRS do primeiro raster quando vazio.
+[2.3.8.37.14] RasterWeightedAverage: validacao e logs refinados para o novo pipeline de media ponderada raster, incluindo obtencao centralizada de CRS via `RasterLayerProjection.get_raster_crs(...)`, criacao de arquivos temporarios por raster preparado e persistencia da preferencia `output_resolution` no novo fluxo.
+[2.3.8.37.15] Validacao sintatica executada com sucesso via `ast.parse` para `utils/raster/RasterLayerProjection.py` e `processing/RasterWeightedAverage.py` apos a refatoracao de reprojecao/reamostragem.
+
+2.3.8 2026/04/11
+[2.3.8.37.6] RasterWeightedAverage: CRITICAL FIX - Changed resampling from 'gdal:translate' (non-functional for resampling) to 'gdal:warp' with TARGET_RESOLUTION and RESAMPLING=3 (cubic spline). Now properly resamples rasters to target pixel size using gdalwarp engine.
+[2.3.8.37.5] RasterWeightedAverage: Changed resampling algorithm from 'qgis:rasterlayerresampler' (not available in QGIS 3.16) to 'gdal:translate'. Uses OUTSIZE parameter to specify width/height in pixels. Works reliably with QGIS 3.16.16+ and GDAL 3.4.1.
+[2.3.8.37.3] Preferences now include output_resolution parameter.
+[2.3.8.37.2] Added _resample_rasters() method: uses processing.run() with qgis:rasterlayerresampler, creates temporary GeoTIFF files, returns resampled QgsRasterLayer objects with weights preserved.
+[2.3.8.37.1] Added OUTPUT_RESOLUTION parameter and helper function for smart resampling.
+[2.3.8.37] RasterWeightedAverage: Added output resolution resampling feature. Moved Raster 3, 4, Weight 3, 4 and OUTPUT_RESOLUTION to advanced parameters. When output resolution is blank, executes normal calculation. When defined, resamples all rasters to target resolution using cubic spline interpolation (GDAL) before weighted average calculation.
+[2.3.8.36] RasterWeightedAverage: Fixed QGIS 3.16 compatibility error. Removed asRectF() method call (not available in QGIS 3.16 QgsRectangle). Now logs extent as string representation.
+[2.3.8.31.1] ReportGenerationStep.should_run() checks for valid json_path before attempting task creation.
+[2.3.8.31.2] Added logging when step is skipped due to missing json_path.
+[2.3.8.31.3] ReportGenerationStep now resolves JSON path from either json_path or photo_metadata_json_path, fixing DroneCoordinates report opening.
+[2.3.8.31.4] DroneCoordinates now passes iface through ExecutionContext so ReportGenerationStep can show warnings and open HTML using ExplorerUtils from the pipeline.
+[2.3.8.30] Report Generation Pipeline: Fixed KeyError when json_path missing in context. Added validation and error handling for missing JSON metadata file in ReportGenerationStep.
+[2.3.8.30.1] PhotoVectorizationStep.on_success() now validates json_path before setting in context and adds debug logging.
+[2.3.8.30.2] ReportGenerationStep.create_task() provides clearer error message when json_path is missing.
+[2.3.8.30.3] PhotoVectorizationTask._run() validates result structure and json_path presence with detailed error logging.
+[2.3.8.29] Report Generation: Moved report generation from UI thread to background TASK to prevent UI freezing. Created ReportGenerationStep and ReportGenerationTask following AsyncPipelineEngine pattern.
+[2.3.8.29.1] Added ReportGenerationStep class that creates ReportGenerationTask and handles HTML report opening.
+[2.3.8.29.2] Added ReportGenerationTask class that wraps ReportGenerationService.generate_from_json() in cancellable background TASK.
+[2.3.8.29.3] DroneCoordinates now includes ReportGenerationStep in pipeline when generate_report=True, removing UI-blocking report generation from _on_pipeline_finished callback.
+[2.3.8.29.4] PhotoVectorizationPlugin now includes ReportGenerationStep in pipeline when generate_report=True, with PhotoVectorizationTask modified to skip internal report generation.
+[2.3.8.29.5] PhotoVectorizationTask constructor simplified by removing generate_report parameter (always False now, report handled by separate step).
+[2.3.8.26] PhotoMetadata: Simplified field mapping logic in _extract_photo_payload. Removed complex suffix-based normalization workaround and replaced with direct enum value lookup: {enum.value: enum.key} mapping. Now canonicalizes raw field names (e.g., "GPSMapDatum") to MetadataFieldKey enums directly.
+[2.3.8.26.1] PhotoMetadata._extract_photo_payload now imports MetadataFieldKey locally and builds a value-to-key map on first use, avoiding unnecessary iterating over field specs.
+[2.3.8.26.2] Syntax validation passed for PhotoMetadata.py.
+
+[2.3.8.28] PhotoVectorizationPlugin: Refactored to use TASK system instead of direct service calls. Created PhotoVectorizationStep and PhotoVectorizationTask to leverage AsyncPipelineEngine infrastructure from DroneCoordinates, eliminating code duplication and improving consistency.
+[2.3.8.28.1] Added PhotoVectorizationStep class that creates PhotoVectorizationTask and handles success/error callbacks.
+[2.3.8.28.2] Added PhotoVectorizationTask class that wraps PhotoFolderVectorizationService.generate_from_folder() in a cancellable TASK.
+[2.3.8.28.3] PhotoVectorizationPlugin now uses AsyncPipelineEngine with PhotoVectorizationStep, maintaining same UI but with TASK-based execution for better error handling and progress reporting.
+[2.3.8.27] ReportMetadataPlugin refactor: removed photo folder vectorization UI from the report tool and created a dedicated PhotoVectorizationPlugin for image-to-vector generation.
+[2.3.8.27.1] Added ToolKey.PHOTO_VECTORIZATION and registered a new agriculture tool in ToolRegistry.
+[2.3.8.27.2] PhotoVectorizationPlugin now persists folder path and options separately from report metadata preferences.
+[2.3.8.25] MetadataFields: Removed all direct REQUIRED_FIELDS usage patterns. Methods all_fields() and required_keys() now build data from EXIF_FIELDS and DJI_XMP_FIELDS instead of the union.
+[2.3.8.25.1] PhotoMetadata._extract_photo_payload now maps EXIF and DJI_XMP fields separately in suffix lookup, avoiding deprecated REQUIRED_FIELDS iteration.
+[2.3.8.25.2] REQUIRED_FIELDS union preserved as {**EXIF_FIELDS, **DJI_XMP_FIELDS} for backward compatibility only; internal code uses explicit dictionaries.
+[2.3.8.25.3] Syntax validation passed for MetadataFields.py and PhotoMetadata.py.
+
+[2.3.8.24] DroneCoordinates UI refactored: split single "Required Fields" collapsible into two separate sections "EXIF Fields" and "DJI Fields" (XMP) for better field organization and user clarity.
+[2.3.8.24.1] MetadataFields now exposes exif_keys() and xmp_keys() methods for UI and pipeline usage.
+[2.3.8.24.2] DroneCoordinates stores EXIF and XMP field selections in separate preferences (exif_fields_selected, xmp_fields_selected) with dedicated collapsible state tracking.
+[2.3.8.24.3] Execute pipeline combines EXIF + XMP selections into selected_required_fields for backward compatibility with downstream PhotoMetadataTask.
+[2.3.8.24.4] Syntax validation passed for MetadataFields.py and DroneCoordinates.py.
+
+[2.3.8.23] MetadataFields: separated required field catalog into EXIF_FIELDS and XMP_FIELDS, preserving REQUIRED_FIELDS as a compatibility union.
+[2.3.8.23.1] PhotoMetadata._dump_allowed_keys now uses EXIF_FIELDS/XMP_FIELDS explicitly instead of the legacy single REQUIRED_FIELDS dictionary.
+
+[2.3.8.1]#comeÃƒÂ§e aqui
+
+
+
+
+
+
+
+
+
+
+#antigo exemplo de como deve ser
+2.3.6.1 2026/04/05
+[2.3.6.1] SettingsPlugin: Added "Pasta de projetos" path selector (mode=folder) with save/load from preferences (projects_folder key).
+2.3.6.1.1 2026/04/06
+[2.3.6.1.1] SettingsPlugin/WidgetFactory: Added an exclusive DatumSelectorWidget with descriptive metadata, integrated into SettingsPlugin and persisted via the default_datum preference.
+[2.3.8.2] Planejamento inicial da reimplementacao completa do DroneCoordinates: criado plano tecnico detalhado em docs/ia/PLANO_REIMPLEMENTACAO_DRONE_COORDINATES_V4.md com fases, riscos, contratos e criterios de aceite.
+[2.3.8.2.1] Criado docs/ia/todo.txt com backlog operacional por etapas (E01-E09), checklist incremental e rastreabilidade da execucao.
+[2.3.8.2.2] Consolidado no plano o escopo de refatoracao: PhotoMetadata como manager, absorcao de OBSOLETManager, nova UI com 3 grids de campos (REQUIRED/CUSTOM/MRK), filtros persistidos e integracao do Runner por preferencias.
+2.3.8.3 2026/04/07
+[2.3.8.3] Etapa E02 concluida: padronizacao tecnica das classes de metadata em utils/mrk (ExifUtil, XmpUtil, CustomPhotosFieldsUtil, OBSOLETManager) com imports de pacote Cadmus e preparacao para integracao no PhotoMetadata.
+[2.3.8.3.1] ExifUtil e XmpUtil migrados para usar LogUtils/ToolKey, removidos prints de erro, mantido retorno estruturado para falhas de leitura sem interromper pipeline.
+[2.3.8.3.2] CustomPhotosFieldsUtil ajustado para remover dependencia de Strings legado, adotando MetadataFields para LIGHT_SOURCE_VALUES, adicionando logging base e removendo bloco de execucao direta (__main__).
+[2.3.8.3.3] OBSOLETManager reescrito em padrao de utilitario legaciado com imports relativos corretos, logging unificado, e acoplamento explicito com ExifUtil/XmpUtil/CustomPhotosFieldsUtil para compatibilidade transicional.
+[2.3.8.3.4] Validacao sintatica executada com sucesso via py_compile para os quatro modulos alterados.
+2.3.8.4 2026/04/07
+[2.3.8.4] Etapa E03 concluida: MetadataFields recebeu novo bloco MRK_FIELDS padronizado e expansao de CUSTOM_FIELDS com campos solicitados (FileType, dt_full, dt_date, dt_time, FlightNumber, FlightName, FolderLevel1, FolderLevel2).
+[2.3.8.4.1] Padrao de schema preservado em todos os novos campos: normalized/core/label/attribute/description.
+
+2.3.8.5 2026/04/07
+[2.3.8.5] Etapa E05 concluida: CheckboxGridWidget reimplementado com retrocompatibilidade de formatos (dict legado, dict expandido e lista key/label/description), suporte a tooltip por description e novos metodos de estado (checked/unchecked/state_map).
+[2.3.8.5.1] WidgetFactory.create_checkbox_grid atualizado para novo contrato sem quebrar chamadas antigas com options_dict, e com opcao return_widget=True para uso avanÃ§ado.
+
+2.3.8.6 2026/04/07
+[2.3.8.6] Etapa E06 concluida: DroneCoordinates UI atualizada com 3 collapsibles de campos (Required, Custom, MRK), grids via StringAdapter e persistencia completa de selecao/expansao em preferencias.
+[2.3.8.6.1] Execute_tool passou a enviar listas selecionadas no ExecutionContext (selected_required_fields, selected_custom_fields, selected_mrk_fields).
+
+2.3.8.7 2026/04/07
+[2.3.8.7] Avanco E07/E08: cadeia de filtros propagada para PhotoMetadataStep/PhotoMetadataTask e DroneCoordinatesRunner, incluindo leitura de preferencias no runner.
+[2.3.8.7.1] PhotoMetadata.enrich passou a aceitar parametros de selecao de campos (ainda em modo preparatorio para etapa de filtro final).
+[2.3.8.7.2] Ajuste de robustez em PhotoMetadataStep: removido uso de self.logger inexistente, substituido por LogUtils contextual.
+[2.3.8.7.3] Validacao sintatica executada com sucesso via py_compile nos modulos alterados.
+2.3.8.8 2026/04/07
+[2.3.8.8] Etapa E04 concluida: PhotoMetadata reestruturado para papel de manager/orquestrador usando ExifUtil, XmpUtil, CustomPhotosFieldsUtil e contexto MRK, removendo responsabilidade de extracao antiga acoplada.
+[2.3.8.8.1] Implementado fluxo full-dump: todos os dados de fotos sao coletados sem filtro e persistidos em JSON temporario via ExplorerUtils.create_temp_json(...).
+[2.3.8.8.2] Implementado filtro final por selecao de campos (required/custom/mrk) antes de aplicar atributos nos pontos.
+[2.3.8.8.3] Introduzido mapeamento de contexto de voo em ingles (FlightNumber/FlightName/FolderLevel1/FolderLevel2) mantendo chaves legadas MRK para compatibilidade.
+
+2.3.8.9 2026/04/07
+[2.3.8.9] Etapas E07/E08 finalizadas: listas selecionadas de campos agora percorrem UI -> ExecutionContext -> PhotoMetadataTask -> PhotoMetadata.enrich e tambem o DroneCoordinatesRunner via preferencias persistidas.
+[2.3.8.9.1] DroneCoordinates e Runner passaram a usar extra_fields=None no parse inicial, deixando a criacao de atributos 100% dirigida pelo filtro aplicado no Step de metadata.
+
+2.3.8.10 2026/04/07
+[2.3.8.10] ExplorerUtils recebeu helper create_temp_json(...) para persistencia de arquivos temporarios de diagnostico/metadata com logging padronizado.
+[2.3.8.10.1] Validacao sintatica ampliada executada com sucesso via py_compile nos modulos alterados desta rodada.
+2.3.8.11 2026/04/07
+[2.3.8.11] Analise de log em runtime: identificado warning de falha no calculo de CUSTOM_FIELDS por ausencia de chave esperada ('AbsoluteAltitude') e erro de aplicacao de atributo no layer por tipo nao normalizado (PyQt_PyObject).
+[2.3.8.11.1] PhotoMetadata recebeu instrumentacao adicional de diagnostico (selected_keys_sample, resumo por grupo, campos ausentes pre-custom, pontos sem campos filtrados) para rastreabilidade fina da filtragem.
+[2.3.8.11.2] PhotoMetadata passou a mapear aliases criticos de chaves XMP (drone-dji:*) para nomes esperados pelo pipeline/custom calculators.
+[2.3.8.11.3] PhotoMetadataStep agora normaliza valores para string antes de changeAttributeValue e loga tipo/valor em caso de erro, reduzindo falhas de conversao do QGIS.
+[2.3.8.11.4] PhotoMetadataTask ganhou logs extras de selecao de campos e amostra de field_names retornados para facilitar auditoria do que entrou/ficou de fora.
+2.3.8.12 2026/04/07
+[2.3.8.12] Correcao de consistencia de campos no fluxo DroneCoordinates: PhotoMetadataTask passou a carregar todos os atributos da feicao MRK (nao apenas foto/mrk_folder), preservando lat/lon/alt/mrk_*/flight_number/flight_name/pastas para enriquecimento e filtro final.
+[2.3.8.12.1] Garantia de schema completo: PhotoMetadataTask agora inclui todas as chaves selecionadas no field_names mesmo quando o valor estiver ausente, evitando perda de colunas no output.
+[2.3.8.12.2] Correcao de data custom: dt_full/dt_date/dt_time agora priorizam DateTimeOriginal e usam os_date apenas como fallback.
+[2.3.8.12.3] Expansao de normalizacao de metadados: PhotoMetadata recebeu novos aliases XMP/EXIF (AltitudeType, CaptureUUID, UTCAtExposure, PictureQuality, SensorFPS, LensPosition, LRFStatus, LRFTargetAbsAlt, GpsStatus e correlatos) e mapeamento dinamico por sufixo de normalized.
+[2.3.8.12.4] ExifUtil passou a expandir GPSInfo em chaves individuais (GPSLatitude, GPSLongitude, GPSMapDatum, GPSStatus etc.) para aumentar cobertura dos REQUIRED_FIELDS.
+[2.3.8.12.5] Validacao sintatica executada via py_compile para PhotoMetadata.py, PhotoMetadataTask.py e ExifUtil.py.
+2.3.8.13 2026/04/07
+[2.3.8.13] PhotoMetadataStep atualizado para suporte a tipagem String/Double: campos novos agora sao criados com inferencia por conteudo (numerico => QVariant.Double, textual => QVariant.String), removendo padrao anterior de tudo String.
+[2.3.8.13.1] Normalizacao de valor agora respeita tipo do campo no layer (Double recebe float real; String preserva texto), mantendo datas como string e evitando tipos Date/DateTime.
+[2.3.8.13.2] Inferencia ignora vazios/None para nao desclassificar campos numericos por causa de linhas em branco.
+[2.3.8.13.3] Validacao sintatica executada via py_compile para core/engine_tasks/PhotoMetadataStep.py.
+2.3.8.14 2026/04/07
+[2.3.8.14] PhotoMetadataTask agora recebe source_points do ExecutionContext (pontos originais do MRK) e usa essa fonte para completar atributos ausentes do layer antes do enrich, reduzindo null em lat/lon/mrk_* quando a camada nao materializa todos os campos.
+[2.3.8.14.1] PhotoMetadata.enrich ganhou opcao return_report=True e passou a expor json_dump_path/matched/not_found sem quebrar compatibilidade do retorno legado.
+[2.3.8.14.2] Novo log explicito no PhotoMetadataTask com code=PHOTO_METADATA_JSON_PATH para mostrar o caminho do JSON temporario no mesmo contexto da task.
+[2.3.8.14.3] PhotoMetadataStep passou source_points=context.get('points') para a task.
+[2.3.8.14.4] Validacao sintatica executada via py_compile para PhotoMetadata.py, PhotoMetadataTask.py e PhotoMetadataStep.py.
+2.3.8.15 2026/04/08
+[2.3.8.15] Refatoracao estrutural de metacampos: criado core/model/Field.py com dataclass Field(normalized, core, label, attribute, description, level).
+[2.3.8.15.1] MetadataFields.py migrado para dict de objetos Field em REQUIRED_FIELDS/CUSTOM_FIELDS/MRK_FIELDS, com level=3 para REQUIRED e level=5 para CUSTOM/MRK.
+[2.3.8.15.2] LIGHT_SOURCE_VALUES removido de MetadataFields e convertido para enum em core/enum/LightSourceEnum.py (com get_label/get_description).
+[2.3.8.15.3] Sistema adaptado ao novo formato: StringAdapter (dataclass-aware), PhotoMetadata (normalized via atributo), OBSOLETManager (normalized via atributo), CustomPhotosFieldsUtil (label de luz via LightSourceEnum).
+[2.3.8.15.4] core/enum/__init__.py atualizado para exportar LightSourceEnum.
+[2.3.8.15.5] Validacao sintatica executada via py_compile para modulos alterados.
+2.3.8.16 2026/04/08
+[2.3.8.16] Centralizacao reforcada no MetadataFields: adicionados resolvedores e utilitarios (all_fields, key_to_attribute_map, attribute_to_key_map, resolve_key, resolve_output_name, resolve_output_names, normalize_selected_keys, map_record_to_output_attributes, default_track_attribute_keys).
+[2.3.8.16.1] Fluxo de aplicacao alinhado para usar MetadataFields como fonte de verdade de nomes de saida (attribute): PhotoMetadataTask, PhotoMetadataStep, DroneCoordinatesRunner e plugin DroneCoordinates.
+[2.3.8.16.2] Selecao de campos em preferencias/UI passou por normalizacao canonica (aceitando entrada antiga e convertendo para chave valida do metadata).
+2.3.8.17 2026/04/08
+[2.3.8.17] Refatoracao de responsabilidade: VectorLayerGeometry.create_point_layer_from_dicts deixou de ser especifico de MRK e passou a receber schema do chamador (field_specs + geometry_keys), reduzindo acoplamento de dominio.
+[2.3.8.17.1] MrkParseStep e MrkParser.to_point_layer agora montam e injetam schema MRK explicitamente no caller.
+2.3.8.18 2026/04/08
+[2.3.8.18] Dump JSON temporario de fotos reformatado para raw_records no formato por arquivo (\"<ARQUIVO>.JPG\": {...}).
+[2.3.8.18.1] Dump passou a aplicar whitelist catalogada no MetadataFields (REQUIRED + CUSTOM + MRK), mantendo campos ausentes como null.
+[2.3.8.18.2] Correcao de preenchimento MRK no dump: merge por sequencia da foto (DJI ... _0001_ ...) com contexto dos pontos MRK do grupo, evitando null indevido em foto/lat/lon/alt/mrk_*.
+2.3.8.19 2026/04/08
+[2.3.8.19] Padronizacao de nomenclatura no MetadataFields: chaves e normalized migrados para formato sem snake_case (PascalCase), incluindo exemplos como Path e SizeMb.
+2.3.8.20 2026/04/09
+[2.3.8.20] MetadataFields: Criado enum MetadataFieldKey em core/enum com todas as chaves dos dicionarios REQUIRED_FIELDS, CUSTOM_FIELDS e MRK_FIELDS. Substituido as chaves dos dicionarios por objetos enum. Ajustados metodos all_fields(), required_keys(), etc., para retornar strings conforme esperado pelo codigo legado. Adicionado import no __init__.py de core/enum.
+[2.3.8.19.1] Compatibilidade retroativa mantida via resolve_key com conversao automatica de nomes antigos (snake_case -> PascalCase) para evitar quebra de fluxos legados.
+[2.3.8.19.2] Ajuste de padrao de atributos: todos os attribute validados com limite maximo de 9 caracteres e descriptions sincronizadas com o codigo entre colchetes.
+
+2.3.8.20 2026/04/08
+[2.3.8.20] Inicio da implementacao do sistema de report (E03): ExplorerUtils ganhou infraestrutura de diretorios temporarios dedicados (`%TEMP%/cadmus/reports/json` e `%TEMP%/cadmus/reports/html`) com helpers de criacao e resolucao de caminhos.
+[2.3.8.20.1] ExplorerUtils.create_temp_json foi expandido com `subfolder` e `file_stem_hint`, mantendo retrocompatibilidade e permitindo nomes de JSON mais amigaveis ao usuario.
+[2.3.8.20.2] Adicionados helpers de naming para report (`build_report_json_stem`, `build_report_html_stem`, `build_temp_report_html_path`) preparando a etapa de geracao HTML.
+[2.3.8.20.3] PhotoMetadata passou a salvar dump JSON no diretorio temporario dedicado de reports/json com naming sugestivo baseado em pasta de entrada e total de pontos.
+[2.3.8.20.4] StringManager recebeu `_normalize_key` centralizado para normalizacao consistente de chaves (snake_case), conforme requisito do plano.
+[2.3.8.20.5] Todo atualizado: etapa E03 marcada como concluida e item E05.2 concluido.
+2.3.8.21 2026/04/08
+[2.3.8.21] Etapa E04 concluida: sistema de report migrado para estrutura oficial do plugin com novos modulos em `utils/report` (JSONUtil, RangeMetadataManager, IMGMetadata, AggregateAnalyzer, RenderEngine) e recursos em `resources/reports` (template.html, config.yaml).
+[2.3.8.21.1] Criado `core/services/ReportGenerationService.py` para orquestracao de geracao de relatorio HTML a partir de JSON temporario, usando pipeline JSONUtil -> IMGMetadata -> AggregateAnalyzer -> RenderEngine.
+[2.3.8.21.2] Integracao inicial no DroneCoordinates (E06 parcial): quando `generate_report` esta marcado, o plugin consome `photo_metadata_json_path` do contexto e dispara a geracao de HTML sem interromper o fluxo vetorial em caso de erro.
+[2.3.8.21.3] Integracao inicial no DroneCoordinatesRunner (E07 parcial): runner passou a ler `generate_report` nas preferencias e acionar ReportGenerationService ao final, retornando `report_payload` no callback `on_finished`.
+[2.3.8.21.4] PhotoMetadataStep passou a propagar `json_dump_path` para o ExecutionContext (`photo_metadata_json_path`) para uso direto pela camada de servico de report.
+[2.3.8.21.5] Validacao sintatica executada com sucesso via `py_compile` para todos os modulos alterados nesta rodada.
+2.3.8.22 2026/04/08
+[2.3.8.22] Etapa E08 concluida: criada nova ferramenta `Report Metadata` (categoria Agriculture, tipo Dialog) com plugin dedicado `plugins/ReportMetadataPlugin.py` para listar JSONs temporarios e regerar HTML sob demanda.
+[2.3.8.22.1] ToolRegistry atualizado com novo item de menu/toolbar e executor `run_report_metadata`; ToolKey novo adicionado em `utils/ToolKeys.py` (`REPORT_METADATA`).
+[2.3.8.22.2] i18n expandido (pt_BR/en/es/de) com strings da nova ferramenta: titulo, tooltip, seletor JSON, atualizar lista, gerar relatorio e abrir pasta de relatorios.
+[2.3.8.22.3] WidgetFactory recebeu helper `create_open_reports_button(...)`, integrado ao plugin de report para navegacao rapida da pasta de HTMLs gerados.
+[2.3.8.22.4] Integracao de report no fluxo principal refinada: DroneCoordinates e DroneCoordinatesRunner usam `ReportGenerationService`, com contexto `photo_metadata_json_path` vindo do PhotoMetadataStep.
+[2.3.8.22.5] Validacao sintatica executada com sucesso via `py_compile` para todos os arquivos alterados nesta rodada.
+2.3.8.23 2026/04/09
+[2.3.8.23] Finalizacao da fase de implementacao do plano: consolidada centralizacao de metadata para report com `MetadataFields.resolve_candidates`, garantindo lookup consistente por key/attribute/prefixos (EXIF/XMP/MRK) em consumidores de analytics.
+[2.3.8.23.1] Correcao de runtime em `IMGMetadata` (import `re`) para derivacao de `flight_id` e compatibilidade completa com analise agregada.
+[2.3.8.23.2] Corrigida hierarquia de subpastas temporarias em `ExplorerUtils.ensure_temp_subfolder` (suporte real a `reports/json` e `reports/html` em vez de pasta unica sanitizada).
+[2.3.8.23.3] `ReportMetadataPlugin` expandido com fluxo "fotos sem MRK": selecao de pasta, opcao recursiva, opcao de gerar report e acao de vetorizacao usando `PhotoFolderVectorizationService`.
+[2.3.8.23.4] Novo fluxo gera camada vetorial (quando houver coordenadas), JSON de diagnostico em `%TEMP%/cadmus/reports/json` e HTML opcional em `%TEMP%/cadmus/reports/html`, com feedback na UI e atualizacao da lista de JSON.
+[2.3.8.23.5] i18n atualizado (pt_BR/en/es/de) para os novos controles de report metadata (pasta JSON, bloco sem MRK, opcoes e mensagens de fallback).
+[2.3.8.23.6] Documentacao adicionada: `docs/ia/GUIA_REPORT_METADATA_RAPIDO.md` e `docs/ia/CHECKLIST_REMOCAO_PHOTO_REPORT.md`.
+[2.3.8.23.7] Validacao sintatica executada com sucesso via `py_compile` para modulos alterados desta rodada.
+2.3.8.24 2026/04/09
+[2.3.8.24] Correcao critica: Refactoring de enum MetadataFieldKey para evitar erros de comparacao nativa em operacoes sorted() e set(). PROBLEMA: PhotoMetadata.py tentava comparar diretamente enums (MetadataFieldKey objects) em sorted(), causando "'<' not supported between instances of 'MetadataFieldKey' and 'MetadataFieldKey'" durante PhotoMetadataTask. SOLUCAO: Padronizado uso de `.value` para converter enum -> string em todas as operacoes de iteracao/comparacao, garantindo que dictionaries, sets e sorted() trabalhem com strings, nao enums.
+[2.3.8.24.1] PhotoMetadata.py: Alteradas linhas 54-56 para retornar strings `[k.value for k in MetadataFields.REQUIRED_FIELDS.keys()]` em lugar de enum keys. Mesmo padrao aplicado nas linhas 92 e 115 para MRK_FIELDS.
+[2.3.8.24.2] PhotoMetadata.py linha 184: Alterado set comprehension de `set(MetadataFields.all_fields().keys())` para `set(k.value for k in MetadataFields.all_fields().keys())` para garantir operacoes sobre strings.
+[2.3.8.24.3] PhotoMetadata.py linhas 391 e 431: Adicionado `key=lambda x: x.value if hasattr(x, 'value') else str(x)` ao sorted() para permitir comparacao transitoria de enums antes de conversao.
+[2.3.8.24.4] PhotoFolderVectorizationService.py linha 64-67: Adicionado `key_str = key.value if hasattr(key, 'value') else str(key)` e uso em `resolve_output_name(key_str)` e `canonical.get(key_str)` para garantir operacoes com strings.
+[2.3.8.24.5] IMGMetadata.py linha 22: Alterado `all_keys = list(MetadataFields.all_fields().keys())` para `all_keys = [k.value if hasattr(k, 'value') else str(k) for k in MetadataFields.all_fields().keys()]` para inicializar dicionario com chaves string.
+[2.3.8.24.6] Validacao sintatica executada com sucesso via `py_compile` para PhotoMetadata.py, PhotoFolderVectorizationService.py e IMGMetadata.py.
+[2.3.8.24.7] Padroes de conversao enum->string consolidados: Use `[k.value for k in ...]` para iteracoes; use `key.value if hasattr(key, 'value') else str(key)` quando transicoes sao necessarias; ensure dictionarios/sets recebem sempre strings, nunca enums.
+2.3.8.25 2026/04/09
+[2.3.8.25] Correcao critica: CheckboxGridWidget nao estava convertendo chaves enum para strings corretamente. PROBLEMA: Quando MetadataFields.REQUIRED_FIELDS tinha chaves enum, StringAdapter.to_key_label_description passava enums como "key", CheckboxGridWidget fazia str(enum) resultando em "MetadataFieldKey.FILE" em vez de "File", causando falha na normalizacao dos campos selecionados. SOLUCAO: CheckboxGridWidget._normalize_options agora usa `key.value if hasattr(key, 'value') else str(key)` para extrair o valor string dos enums, garantindo que get_checked_keys() retorne strings validas como "File" em vez de "MetadataFieldKey.FILE".
+[2.3.8.25.1] Aplicado para ambos os formatos aceitos: dicionario (caso MetadataFields) e lista (caso StringAdapter).
+[2.3.8.25.2] Validacao sintatica executada via py_compile para CheckboxGridWidget.py.
+2.3.8.26 2026/04/09
+[2.3.8.26] Correcao critica: bug em PhotoMetadata._build_selected_keys() tentando chamar .value em strings. PROBLEMA: known_keys = set(k.value for k in MetadataFields.all_fields().keys()), mas all_fields().keys() ja retorna strings (valores .value dos enums), causando "'str' object has no attribute 'value'". SOLUCAO: Alterado para known_keys = set(MetadataFields.all_fields().keys()), pois as chaves ja sao strings.
+[2.3.8.26.1] Validacao sintatica executada via py_compile para PhotoMetadata.py.
+
+2.3.8.27 2026/04/09
+[2.3.8.27] Correcao critica: erro de comparacao entre MetadataFieldKey enum e str em PhotoMetadataTask. PROBLEMA: map_record_to_output_attributes recebia dicionario com chaves enum de PhotoMetadata.enrich, causando "'<' not supported between instances of 'MetadataFieldKey' and 'str'" ao tentar ordenar field_names. SOLUCAO: Conversao de chaves enum para string usando {k.value if hasattr(k, 'value') else str(k): v for k, v in item.items()} antes de passar para map_record_to_output_attributes.
+
+2.3.8.28 2026/04/09
+[2.3.8.28] Correcao de atributos duplicados em MetadataFields.py. PROBLEMA: FlightNum e FlightNam apareciam 2x (uma em CUSTOM_FIELDS derivado do MRK, outra em MRK_FIELDS original). Isso violava unicidade de atributos para shapefiles. SOLUCAO: Renomeou CUSTOM_FIELDS FlightNumber para DrvFNum (Derived Flight Number) e FlightName para DrvFNam (Derived Flight Name), preservando MRK_FIELDS originais com FlightNum e FlightNam. Total atributos unicos: 118, compatibilidade DBF (max 9 caracteres).
+[2.3.8.28.1] Validacao sintatica executada com sucesso em MetadataFields.py via py_compile.
+
+2.3.8.29 2026/04/09
+[2.3.8.29] Governanca centralizada de metadados: aplicacao da "LAI (Lei de Atributos Ilegalizados)" em XmpUtil, ExifUtil e PhotoMetadata. PROBLEMA: 84 campos ilegais sendo gerados (arquivo, caminho, tamanho_mb, data_criacao, xmp:*, drone-dji:*, etc.) sem validacao contra MetadataFields, corrompendo schema de shapefiles. SOLUCAO: Tres camadas de sanitizacao implementadas:
+[2.3.8.29.1] MetadataFieldKey.py: Adicionados 5 novos enums de EXIF faltantes (EXIF_SHARPNESS, EXIF_CONTRAST, EXIF_SATURATION, EXIF_FLASH_PIX_VERSION, EXIF_COLOR_SPACE).
+[2.3.8.29.2] MetadataFields.py: Adicionadas definicoes de Field para os 5 novos campos EXIF em REQUIRED_FIELDS (nivel 3). Novo metodo classmethod sanitize_field_name(raw_field_name) que mapeia nomes brutos/ilegais para nomes canonicos em MetadataFields. Novo metodo is_authorized_field(field_name) para validar se campo e legalizaado.
+[2.3.8.29.3] XmpUtil.py: Refatoracao completa para garantir apenas campos autorizados. _extract_file_metadata() retorna nomes canonicos (File, Path, SizeMb, DateTime em vez de arquivo, caminho, tamanho_mb, data_criacao). Novo metodo _sanitize_metadata() filtra output XMP contra MetadataFields.sanitize_field_name(). extract_metadata() aplica sanitizacao automatica antes de retornar, descartando campos nao autorizados com log DEBUG.
+[2.3.8.29.4] ExifUtil.py: Refatoracao para compatibilidade com XmpUtil. extract_metadata_os() retorna nomes canonicos (File, Path, SizeMb, DateTime, DPIWidth, DPIHeight). extract_metadata_image() retorna nomes canonicos (ExifImageWidth, ExifImageHeight, Format, DPIWidth, DPIHeight). Novo extract_metadata_exif() sanitiza campos EXIF contra MetadataFields, rejeitando campo nao autorizado sob log DEBUG.
+[2.3.8.29.5] PhotoMetadata.py: Ajuste de fallback dt_* para usar "DateTime" (canonizado) em vez de "os_date" (antigo).
+[2.3.8.29.6] Impacto: 194 campos shapefile reduzidos para ~118+ campos auotrizados. Todas as 84 violacoes sao escaladas para rejecao silenciosa com auditoria em DEBUG. Resultado esperado: schemas consistentes, sem garbage fields, compatibilidade maxima com DBF (9 char limit).
+[2.3.8.29.7] Validacao sintatica executada com sucesso via py_compile para MetadataFieldKey.py, MetadataFields.py, XmpUtil.py, ExifUtil.py e PhotoMetadata.py.
+[2.3.8.29.8] PhotoFolderVectorizationService: filtro "sem MRK" aplicado no registro de saida e no JSON de raw_records. PROBLEMA: o modo sem MRK ainda incluia campos MRK no catalogo final, gerando lixo e nulos desnecessarios. SOLUCAO: removidos campos de MetadataFields.MRK_FIELDS do output_record e dos raw_records antes de gerar camada e relatorio.
+
+[2.3.8.33] Created comprehensive expert documentation for the full Report system in docs/skills/report_system.md...
+
+[2.3.8.34] Created comprehensive expert documentation for the full Processing Provider system (MTLProvider) in docs/skills/processing_provider.md, analyzing ALL 6 algorithms (RasterMassSampler/Clipper, DifferenceFields, AttributeStatistics, GeometryLineFromPoints, RasterDifferenceStatiscs) + BaseProcessingAlgorithm. Includes architecture (Mermaid), per-algo params/logic/code key, usage/customization/troubleshooting. Self-contained specialist guide.
+
+
+2.3.6.1 2026/04/05
+[2.3.6.1] SettingsPlugin: Added "Pasta de projetos" path selector (mode=folder) with save/load from preferences (projects_folder key).
+2.3.6.1.1 2026/04/06
+[2.3.6.1.1] SettingsPlugin/WidgetFactory: Added an exclusive DatumSelectorWidget with descriptive metadata, integrated into SettingsPlugin and persisted via the default_datum preference.
+2.3.6.1.2 2026/04/06
+[2.3.6.1.2] SettingsPlugin/WidgetFactory: Replaced the Datum selector with a QGIS-standard CRS selector using QgsProjectionSelectionWidget, persisting the selected CRS in default_crs_authid.
+2.3.6.1.3 2026/04/06
+[2.3.6.1.3] ToolRegistry/CreateProjectPlugin: Added a new INSTANT tool in the FOLDER group to create project structures, prompting for a default projects folder in SYSTEM prefs when missing and generating a .qgz project with vectors/rasters subfolders.
+2.3.6.1.4 2026/04/06
+[2.3.6.1.4] CreateProjectPlugin: When the current project is unsaved, it is now saved with its current layers into the new project folder; when already saved, the new blank project is created and opened in a separate QGIS window, preserving the current window unchanged.
+2.3.6.1.5 2026/04/06
+[2.3.6.1.5] ToolRegistry/SettingsPlugin: Replaced local hard-coded UI strings with TranslationManager STR keys and added the required entries only in Strings_pt_BR.
+2.3.6.1.6 2026/04/06
+[2.3.6.1.6] SettingsPlugin/CreateProjectPlugin: Removed the duplicate default CRS label string by reusing DEFAULT_CRS directly and migrated CreateProjectPlugin user-facing texts to TranslationManager keys added only in Strings_pt_BR.
+2.3.6.1.7 2026/04/07
+[2.3.6.1.7] CreateProjectPlugin: Added automatic Google Satellite XYZ basemap insertion in newly created projects (both unsaved current project flow and new-window flow), with safe fallback when tile layer creation is invalid.
+2.3.6.1.8 2026/04/07
+[2.3.6.1.8] CreateProjectPlugin: Fixed Google Satellite XYZ source URI by percent-encoding nested URL parameters (`x/y/z`) to prevent tile source parsing issues that caused empty basemap layers.
+2.3.6.1.9 2026/04/07
+[2.3.6.1.9] CreateProjectPlugin: Applied default project CRS from SYSTEM preferences (`default_crs_authid`) during project creation, with validation and fallback to `EPSG:4326` when missing or invalid.
+2.3.6.1.10 2026/04/07
+[2.3.6.1.10] CreateProjectPlugin/ProjectUtils: Switched basemap to Google Hybrid (XYZ), added conditional auto-load of `line.gpkg` only for scenarios 2 and 3, and introduced file-extent canvas centering utility in ProjectUtils for automatic focus on the reference line.
+2.3.6.1.11 2026/04/07
+[2.3.6.1.11] CreateProjectPlugin/ExplorerUtils/VectorLayerSource: line.gpkg is now copied into each new project's `vectors` folder before loading, and the loaded reference layer now uses the copied file path via VectorLayerSource; extent centering also targets the copied file.
+2.3.6.1.12 2026/04/07
+[2.3.6.1.12] CreateProjectPlugin/core.ui.dialogs: Extracted default-folder and project-name dialogs into dedicated dialog classes under `core/ui/dialogs`, and refactored `execute()` into focused steps (resolve folder, resolve name, create structure) to reduce mixed responsibilities without changing creation behavior.
+2.3.6.1.13 2026/04/07
+[2.3.6.1.13] CreateProjectPlugin/Utils refactor: moved generic folder/name preparation to ExplorerUtils, moved project/window orchestration helpers to ProjectUtils, removed direct `QgsProject` dependency from CreateProjectPlugin and VectorLayerSource, and added remote raster loading implementation in RasterLayerSource for basemap creation.
+2.3.6.1.14 2026/04/07
+[2.3.6.1.14] ProjectUtils/CreateProjectPlugin cleanup: consolidated layer insertion responsibility into `ProjectUtils.add_layer(...)` (now accepts optional `project`), removed duplicated `add_layer_to_project` usage, and kept project-layer helpers reusable with optional project context.
+2.3.6.1.15 2026/04/07
+[2.3.6.1.15] ProjectUtils/RasterLayerSource/CreateProjectPlugin: moved generic CRS validation/resolution to `ProjectUtils.resolve_valid_crs(...)` and transferred Google Hybrid basemap creation/insert logic to `RasterLayerSource.add_google_hybrid_basemap(...)`, simplifying CreateProjectPlugin responsibilities.
+2.3.6.1.16 2026/04/07
+[2.3.6.1.16] RasterLayerSource/CreateProjectPlugin: generalized Google basemap insertion via `add_google_basemap(...)` with style parameter (`hybrid`, `satellite`, `road`), kept backward-compatible `add_google_hybrid_basemap(...)` wrapper, and updated CreateProjectPlugin to call the generic API.
+
+2.2.1.6
+
+- Reorganizada interface do SettingsPlugin: adicionados dois widgets colapsaveis - "Geral" (botao de preferencias, idioma, precisao de campos vetoriais, limiar assincrono) e "Plugin de Calculos Vetoriais" (metodo de calculo vetorial) para melhor organizacao da UI.
+
+2.2.5.1
+
+- Corrigido bug de inicializacao de log em `LogUtils`: anteriormente usava `Path.cwd()` (ex: `C:\Windows\system32`) quando nao inicializado, causando `PermissionError` ao criar pasta `log`.
+- Implementado fallback seguro para `plugin_root` via `Path(__file__).resolve().parents[3]` e, se necessario, `Path.home()/Cadmus/log`.
+- Ajustado `LogUtils._write_event` para continuar sem arquivo de log e enviar mensagem por `QgsMessageLog`/stderr em casos de falha de criacao de arquivo.
+
+2.2.5.2
+
+- Adicionados no `SettingsPlugin`, dentro de `calc_collapsable`, dois campos configuraveis inicialmente para nomes de area cartesiana e elipsoidal com `WidgetFactory.create_input_fields_widget`.
+- As preferencias desses campos passaram a ser carregadas e salvas em `ToolKey.VECTOR_FIELDS`.
+- Incluida validacao para impedir salvamento quando os dois valores configurados forem iguais, exibindo alerta com `QgisMessageUtil`.
+
+2.2.5.3
+
+- Ajustados os dois campos do `SettingsPlugin` para representar sufixos, nao nomes completos de campo: `Sulfixo Cartesiano` com padrao `""` e `Sulfixo Elipsoidal` com padrao `"_eli"`.
+- As preferencias em `ToolKey.VECTOR_FIELDS` passaram a usar as chaves `cartesian_suffix` e `ellipsoidal_suffix`.
+- Mantida a validacao para impedir salvamento quando os dois sufixos forem iguais, agora com mensagem alinhada ao novo comportamento.
+
+2.2.5.4
+
+- Implementada a leitura dos sufixos configurados em `ToolKey.VECTOR_FIELDS` no `VectorFieldsCalculationPlugin`.
+- Os calculos de `length` para linhas e `area` para poligonos agora usam os sufixos configuraveis ao resolver os nomes dos campos.
+- O comportamento de pontos (`x` e `y`) foi mantido sem alteracoes.
+
+2.2.5.5
+
+- Corrigida chamada de leitura dos sufixos no `SettingsPlugin` para compatibilidade com `InputFieldsWidget.get_value`, evitando erro em runtime ao salvar as preferencias.
+
+2.2.5.6
+
+- Adicionada nova ferramenta de dialogo `VectorToSvgPlugin` na categoria `FOLDER`, registrada no `ToolRegistry` com `cadmus_icon` e exibicao em toolbar e menus.
+- Implementada a UI inicial do `VectorToSvgPlugin` herdando de `BasePluginMTL`, composta apenas no `_build_ui()` com `WidgetFactory.create_layer_input`, tres `create_color_button` e um `create_checkbox_grid`.
+- Registrado novo `ToolKey.VECTOR_TO_SVG` para logging e identificacao da ferramenta.
+
+2.2.5.7
+
+- Corrigido import de `QgsMapLayerProxyModel` no `VectorToSvgPlugin`, trocando `qgis.gui` por `qgis.core` para compatibilidade com QGIS 3.16.
+
+2.2.5.8
+
+- Refinado o layout do `ColorButtonWidget` para melhor alinhamento horizontal entre titulo, seletor de cor, input hexadecimal e botao de copiar.
+- Removida a largura fixa pequena do titulo na `WidgetFactory.create_color_button`, reduzida a altura visual do input hexadecimal e ajustado o botao de copiar para respeitar melhor os tamanhos configurados.
+- Simplificado o estilo de `Styles.color_button_widget()` para evitar que o QSS force alturas e tamanhos minimos conflitantes com a configuracao aplicada pela factory.
+
+2.2.5.9
+
+- Padronizados novos métodos de `QgisMessageUtil`: `ask_overwrite`, `show_styled_message_bar`, `show_progress_message_bar`, `update_progress`, `clear_message_bar`, `show_level_message_bar` e `show_message_bar_with_button` foram convertidos em métodos estáticos.
+2.2.5.10
+
+- Implementada a execucao completa do `VectorToSvgPlugin`, com exportacao de SVG unico ou um SVG por feicao, respeitando `somente feicoes selecionadas`, fundo transparente, exibicao opcional de borda e rotulo, e abertura do resultado na pasta de saida.
+- A exportacao agora usa `ProjectUtils` para resolver pasta do projeto e validar a camada, `VectorLayerGeometry.get_selected_features()` para materializar apenas a selecao quando o checkbox estiver ativo e mantem o renderer da camada original para desenhar as geometrias no SVG.
+- Adicionada a regra de nomeacao para multiplos SVGs: usa o campo `Name` quando existir e tiver valor; caso contrario, usa o nome da camada do QGIS com sufixo incremental `_1`, `_2`, `_3`...
+- Incluida persistencia da opcao `Gerar SVG para cada feicao` e ajuste do plugin para salvar os arquivos na pasta escolhida com nomes sanitizados e sem sobrescrever arquivos existentes.
+
+2.2.5.11
+
+- Criado o utilitario generico `SVGUtils` em `utils/SVGUtils.py` para concentrar responsabilidades reutilizaveis de SVG: preparacao de feicoes, montagem do documento SVG, conversao de geometrias em elementos SVG, extracao de estilo do renderer, sanitizacao de nomes e escrita de arquivos.
+- Refatorado o `VectorToSvgPlugin` para manter apenas a orquestracao da ferramenta e delegar ao `SVGUtils` as responsabilidades genericas de geracao de SVG.
+- Mantido o comportamento funcional da exportacao anterior, reduzindo acoplamento do plugin e facilitando reutilizacao futura por outras ferramentas do projeto.
+
+2.2.5.12
+
+- Corrigida a semantica de `Mostrar Borda` na exportacao SVG: a opcao agora controla o contorno real das geometrias vetoriais e nao mais um retangulo ao redor da dimensao total do SVG.
+- Implementado suporte a rotulos reais da camada no `SVGUtils`: quando a camada tiver rotulagem habilitada no QGIS e `Mostrar Rotulo` estiver marcado, os textos das feicoes passam a ser desenhados no SVG nas respectivas geometrias.
+- Mantido o comportamento de ocultar completamente os rotulos quando o checkbox correspondente estiver desmarcado.
+
+2.2.5.13
+
+- Reimplementada a abordagem de borda e rotulo no `SVGUtils` com base na API de labeling do QGIS: os rotulos agora sao lidos a partir de `layer.labeling().settings()` e avaliados por expressao/campo com `QgsExpression`.
+- Ajustado `Mostrar Borda` para controlar diretamente o stroke das geometrias exportadas, usando a cor de borda configurada na ferramenta em vez de desenhar moldura externa.
+- Removidos do SVG o retangulo de contorno global e o rotulo de rodape generico, substituindo-os por rotulos posicionados nas proprias feicoes quando a camada tiver labeling ativo.
+
+2.2.5.14
+
+- Tornada mais robusta a exportacao de borda no `SVGUtils`: a largura do contorno agora e definida explicitamente por tipo de geometria, evitando depender de propriedades de `symbolLayer` que variam entre simbolizadores.
+- Adicionado fallback de rotulos por `customProperty` da camada (`labeling/fieldName`, `labeling/isExpression`, `labeling/fontFamily`, `labeling/fontSize`) para aumentar compatibilidade entre versoes e implementacoes de labeling do QGIS.
+- Implementado fallback de leitura de settings de labeling para assinaturas diferentes de `settings(...)`, cobrindo cenarios em que a API exige apenas `providerId` ou `layer, providerId`.
+
+2.2.5.15
+
+- Adicionado ao `VectorToSvgPlugin` um controle de `Espessura Borda` via `WidgetFactory.create_double_spin_input`, com persistencia nas preferencias da ferramenta.
+- Conectada a espessura configurada pelo usuario ao `stroke-width` final das geometrias no `SVGUtils`.
+- Expandido o fallback de rotulos no `SVGUtils` para tentar `displayExpression()` e, por ultimo, o campo `Name`, com logs de debug para facilitar diagnostico quando o rotulo continuar vazio.
+
+2.2.5.16
+
+- Adicionado ao `VectorToSvgPlugin` um controle de `Tamanho Rotulo` na interface, com persistencia nas preferencias da ferramenta.
+- Ajustado o `SVGUtils` para priorizar o tamanho de rotulo configurado pelo usuario no plugin sobre o tamanho vindo da configuracao de labeling da camada.
+
+2.2.5.17
+
+- Substituidas no `VectorToSvgPlugin` as principais strings hardcoded por `STR`, reaproveitando termos existentes quando o significado era equivalente.
+- Adicionadas ao `Strings_pt_BR.py` apenas as chaves especificas do `VectorToSvgPlugin` que nao possuíam equivalente claro no catalogo atual.
+
+2.2.5.18
+
+- Generalizadas as mensagens de exportacao do `VectorToSvgPlugin`, reaproveitando ao maximo strings ja existentes do catalogo `STR`.
+- Removidas do `Strings_pt_BR.py` as chaves especificas de erro/sucesso de SVG que podiam ser substituidas por termos mais amplos como `ERROR`, `EXPORT` e `LAYER_HAS_NO_FEATURES`.
+
+2.2.5.19
+
+- Criados os arquivos de instrucoes do `VectorToSvgPlugin` seguindo o padrao do `ToolKey.VECTOR_TO_SVG`: `resources/instructions/pt_BR/vector_to_svg_help.md`, `resources/instructions/en/vector_to_svg_help.md` e `resources/instructions/es/vector_to_svg_help.md`.
+- Criado o documento de analise de cenario `docs/analise_de_cenario/vector_to_svg_analise_cenario.MD`, alinhado ao comportamento atual da ferramenta.
+
+2.2.5.20
+
+- Adicionados os arquivos faltantes de instrucoes para `ja` e `de`, mantendo o padrao `vector_to_svg_help.md` alinhado ao `ToolKey.VECTOR_TO_SVG`.
+
+2.2.5.21
+
+- Corrigido o arquivo `resources/instructions/ja/vector_to_svg_help.md`, que estava em ingles, substituindo o conteudo por uma versao efetivamente traduzida para japones.
+
+2.2.5.22
+
+- Refatorado o `SelectorWidget` para encapsular o botao "Usar pasta do projeto", agora habilitado via parametro generico `path_button` em `WidgetFactory.create_path_selector`.
+- Atualizado o `VectorToSvgPlugin` para usar `create_path_selector(..., path_button="svgs")`, removendo o botao manual e o metodo local que montavam a pasta do projeto fora do widget.
+
+2.2.5.23
+
+- Aplicada a mesma refatoracao no `ExportAllLayouts`, agora usando `create_path_selector(..., path_button="exports")` em vez de manter um botao manual e um metodo local para preencher a pasta do projeto.
+
+2.2.5.24
+
+- Adicionado suporte ao parametro `path_button` em `WidgetFactory.create_save_file_selector`, reutilizando o botao encapsulado do `SelectorWidget` tambem para seletores de salvamento.
+- Atualizado o `GenerateTrailPlugin` para preencher automaticamente `vetores/Rastro_implemento.gpkg` na pasta do projeto ao usar o botao do seletor de saida.
+
+2.2.5.25
+
+- Investigado e ajustado o `ColorButtonWidget` para o botao de copiar permanecer realmente quadrado, evitando disputa entre tamanho via codigo e estilos globais de `QPushButton`.
+- Centralizados no tema visual (`CoffeTheme`/`Styles`) os tamanhos padrao do controle de cor: altura do campo hexadecimal, altura do seletor de cor, tamanho do botao de copiar e tamanho do icone.
+- Atualizado o `WidgetFactory.create_color_button` para consumir esses valores centralizados por padrao, mantendo override explicito quando necessario.
+
+2.2.5.26
+
+- Analisado o fluxo entre provider de processamento, `ToolRegistry` e toolbar, e adicionado um atalho para o `RasterMassClipper` no grupo `RASTER` com `ToolTypeEnum.PROCESSING`.
+- O novo botao da toolbar abre o dialogo nativo do algoritmo do provider via `cadmus:raster_mass_clipper`, funcionando apenas como atalho para o sistema normal do Processing.
+
+2.2.5.27
+
+- Aplicado o mesmo padrao de atalho de provider para o `RasterMassSampler`, adicionando-o ao grupo `RASTER` com `ToolTypeEnum.PROCESSING` no `ToolRegistry`.
+- O atalho abre o dialogo nativo do algoritmo do provider via `cadmus:raster_mass_sampler`, sem duplicar interface nem alterar o fluxo normal do Processing.
+
+2.2.5.28
+
+- Adicionados em `Strings_pt_BR.py` tooltips descritivos para `RasterMassClipper` e `RasterMassSampler`, seguindo o padrao das demais ferramentas.
+- Atualizado o `ToolRegistry` para usar as novas chaves `RASTER_MASS_CLIPPER_TOOLTIP` e `RASTER_MASS_SAMPLER_TOOLTIP` na toolbar e nos menus.
+
+2.2.5.29
+
+- Realizada auditoria completa das classes de traducao em `i18n`, comparando `pt_BR`, `en`, `es` e `de` para identificar chaves ausentes.
+- Adicionadas e traduzidas corretamente nas classes `Strings_en.py`, `Strings_es.py` e `Strings_de.py` todas as variaveis que existiam apenas em `Strings_pt_BR.py`, incluindo textos do `VectorToSvg` e os tooltips de raster.
+- Validada a cobertura final: os quatro arquivos de strings agora possuem exatamente o mesmo conjunto de 342 chaves.
+
+2.2.1.4
+
+- Corrigido erro em finish_stats: adicionado método FormatUtils.pretty para formatar velocidades de feições e arquivos.
+- Corrigida lógica de cálculo de campos vetoriais: para CRS geográfico, calcula ambos os modos (elipsoidal e cartesiano) por padrão; para CRS projetado, respeita o modo selecionado nas preferências.
+
+2.2.1.3
+
+- Adicionada ferramenta vetorial instantanea `RemoveKmlFieldsPlugin` para remover os campos listados em `StringManager.KML_FIELDS` da camada ativa.
+- A ferramenta valida camada vetorial ativa, exige modo de edicao e nunca salva nem encerra a edicao da camada.
+- Camadas `.kml` e `.kmz` passaram a ser bloqueadas nesse fluxo com validacao por extensao do source.
+- A resolucao de extensao foi centralizada em `VectorLayerSource.get_extension(path, tool_key)`.
+- Removida de `ProjectUtils` a responsabilidade indevida de identificar extensao/tipo de source vetorial.
+- Registrada nova entrada da ferramenta na categoria `VECTOR` do `ToolRegistry` e nova `ToolKey` dedicada.
+
+2.2.1.2
+
+- DroneCoordinatesRunner agora atribui nomes de camadas baseados no arquivo MRK (ex: `<base>_points`, `<base>_track`).
+- Corrigido para que camadas carregadas de `.gpkg` existentes também herdem o nome correto.
+
+2.2.1.1
+
+- DroneCoordinatesRunner agora lê preferências do plugin DroneCoordinates automaticamente.
+- Se "photos": true nas prefs, o Runner adiciona PhotoMetadataStep ao pipeline (mesmo que plugin).
+- Se "apply_style_points": true e qml_path_points é válido, estilo QML é aplicado aos pontos automaticamente.
+- Se "apply_style_track": true e qml_path_track é válido, estilo QML é aplicado à trilha automaticamente.
+- Runner e Plugin agora compartilham a mesma orquestração de steps e fluxo de estilos QML.
+
+2.2.1
+
+- Implementado fluxo inicial de drag and drop/importacao de arquivos `.mrk` via `QgsCustomDropHandler`.
+- Adicionado `DroneCoordinatesRunner` para executar a cadeia de conversao de MRK fora do dialog da ferramenta.
+- `MrkParseTask` agora suporta arquivo `.mrk` unico sem expandir automaticamente para toda a pasta.
+- `MrkParser` agora expõe `parse_file(file_path, ...)` e passou a reutilizar esse fluxo no parse por pasta.
+- Saidas `.gpkg` do drag and drop usam nomes localizados com `STR.POINTS` e `STR.TRACK`.
+- Quando os `.gpkg` de saida ja existem, o sistema carrega as saidas existentes em vez de sobrescrever.
+- Ajustada a nomenclatura das mensagens para reaproveitar strings genericas:
+  - `CONVERT_FILE_SUCCESS`
+  - `LOADED_EXISTING_GPKG`
+  - `CONVERT_FILE_ERROR`
+- Arquitetura simplificada para duas classes centrais:
+  - `core/services/MrkDropHandler.py`
+  - `core/services/DroneCoordinatesRunner.py`
+- Eliminado `MrkDropUtils`; helpers pequenos de extensao e path foram movidos para `utils/ExplorerUtils.py`.
+
+
+
+2.2.0
+
+- Internacionalização ampliada com centralização de strings visíveis ao usuário em `STR.*` para os plugins `VectorMultipartPlugin`, `VectorFieldsCalculationPlugin`, `SettingsPlugin`, `ReplaceInLayouts`, `LoadFolderLayers`, `GenerateTrailPlugin`, `CopyAttributesPlugin`, `ExportAllLayouts` e `coord_result_dialog`.
+- Internacionalização ampliada para widgets base e `WidgetFactory`, removendo hardcodes de UI em `resources/widgets/*` e `core/ui/WidgetFactory.py`.
+- Reorganização do catálogo de strings com reaproveitamento de chaves genéricas em `Strings_pt_BR.py` e sincronização das novas chaves em `Strings_en.py` e `Strings_es.py`.
+- Criação do guia `docs/GUIA_INTERNACIONALIZACAO.md` documentando o padrão de uso de `STR.*`, reaproveitamento de chaves e fluxo para continuidade.
+- Criação do widget `DropdownSelectorWidget` em `resources/widgets/DropdownSelectorWidget.py`, integração em `WidgetFactory.py` e uso prático em `SettingsPlugin.py`.
+- Refatoração dos algoritmos de processing para usar `STR.*` e persistência de preferências, incluindo `RasterMassSampler`, `RasterMassClipper`, `RasterDifferenceStatiscs`, `GeometryLineFromPoints`, `AttributeStatistics` e `DifferenceFields`.
+- Adição do checkbox `Abrir pasta de saída` com persistência em preferências nos algoritmos `RasterMassSampler`, `RasterMassClipper`, `RasterDifferenceStatiscs` e `AttributeStatistics`.
+- Criação do método utilitário `open_folder_in_explorer()` em `processing/BaseProcessingAlgorithm.py` para abertura da pasta de saída no explorador.
+- Refatoração do sistema de instruções HTML com separação por idioma em `resources/instructions/html/HtmlInstructions_pt_BR.py`, `HtmlInstructions_en.py` e `HtmlInstructions_es.py`.
+- Atualização de `resources/HtmlInstructionsProvider.py` para selecionar dinamicamente o provedor HTML conforme o locale definido em `i18n/TranslationManager.py`, mantendo fallback para `pt_BR`.
+
+
+2.0.9.1 #aq
+- `AttributeStatisticsAlgorithm` agora estende `BaseProcessingAlgorithm`.
+- Removido uso de `PreferencesManager` e substituído por `self.load_preferences()` e `self.save_preferences(...)`.
+- Inicialização de parâmetros usando valores padrão de `self.prefs`.
+- `save_preferences` implementado no algoritmo para persistência via `Preferences.save_tool_prefs`.
+- Mantido o fluxo de `processAlgorithm` com escrita de CSV e carga opcional de camada.
+
+2.0.9.2 #aq
+- `BaseProcessingAlgorithm.save_preferences` reforçado para evitar `None` em TOOL_KEY e auto-inicializar prefs.
+- `DifferenceFieldsAlgorithm` agora usa `self.prefs.update({...})` + `self.save_preferences()` (sem método de save próprio).
+- `GeometryLineFromPoints` agora usa `self.prefs.update({...})` + `self.save_preferences()` (sem _save_prefs interno).
+- `AttributeStatisticsAlgorithm` passa a persistir via `self.prefs.update({...})` + `self.save_preferences()` (sem handler customizado).
+
+2.0.9.3 #aq
+- Novo algoritmo `FolderLayerProcessor` adicionado em `processing/FolderLayerProcessor.py`.
+  - herda `BaseProcessingAlgorithm`.
+  - parâmetros:
+    - pasta de entrada (`INPUT_FOLDER`)
+    - camadas de entrada (`INPUT_LAYERS`)
+    - exibir ajuda (`DISPLAY_HELP`)
+    - arquivo CSV de saída (`OUTPUT_FILE`)
+  - processa rasters de pasta e/ou camadas selecionadas e gera relatório CSV.
+- `provider.py` atualizado para registrar `FolderLayerProcessor`.
+- Mantida persistência de `display_help` em prefs para novos algoritmos.
+
+2.0.8.10 #aq
+- `RasterMassClipper` migrado para `self.prefs.update(...)` + `self.save_preferences()` em `processAlgorithm`.
+- `RasterMassSampler` migrado para `self.prefs.update(...)` + `self.save_preferences()` em `write_sink`.
+- removidos métodos `save_prefs/_save_prefs` locais nas classes de raster para unificação de padrão.
+
+2.0.9.4 #aq
+- Ajustado `FolderLayerProcessor`:
+  - corrigido cálculo de fórmula `QgsRasterCalculator` para evitar escapes inválidos.
+  - adicionado verificação de sobreposição e grade entre pares de raster.
+  - tratamento de exceções em `QgsRasterCalculator` com logs detalhados para cada falha.
+  - preserva output em pasta temporária quando `OUTPUT_FOLDER` não indicado ou placeholder `TEMPORARY_OUTPUT`.
+  - mantém persistência `output_folder` e `display_help` via `self.save_preferences()`.
+
+2.0.9.5 #aq
+- `RasterDifferenceStatiscs`: gera arquivo de estatísticas HTML por raster de diferença utilizando `native:rasterlayerstatistics`.
+  - output em `OUTPUT_FOLDER` com sufixo `_stats.html`.
+  - loga `MIN`, `MAX`, `MEAN`, `STD_DEV` e trata exceções sem abortar processamento total.
+
+2.0.9.6 #aq
+- `RasterDifferenceStatiscs`: adiciona `raster_difference_stats_summary.html` contendo todas as estatísticas em tabela única.
+  - inclui link para cada `_stats.html` individual.
+  - salva variável de saída `SUMMARY_HTML` no dicionário retornado.
+  - mantém compatibilidade com runs que geram pares de diferente grade/sem sobreposição.
+
+2.0.9.7 #aq
+- `RasterDifferenceStatiscs`: leitura de raster em pasta alterada para recursiva (`os.walk`) e suporte a subpastas.
+  - feedback e logs claros quando nenhum raster é encontrado.
+  - log de quantos rasters foram carregados antes do processo de pares.
+
+2.0.9.8 #aq
+- `RasterDifferenceStatiscs`: remove o skip de pares por diferença de resolução (Width/Height).
+  - mantém skip apenas se não houver sobreposição, conforme script original `ferramenta.py`.
+  - passo de cálculo continua protegido com try/catch para evitar crash em operação de raster mismatch.
+
+2.0.9.10 #aq
+- Adicionada internacionalização (i18n) ao plugin Cadmus.
+  - Strings hard-coded no AboutDialog substituídas por self.tr() para suporte a traduções.
+  - Criado arquivo de tradução cadmus_pt_BR.ts e compilado para .qm.
+  - Carregamento automático de traduções no __init__.py baseado no locale do sistema usando QLocale.system().name().
+  - Suporte inicial para português brasileiro (pt_BR).
+  - Corrigido erro de AttributeError ao carregar traduções, substituindo QCoreApplication.instance().locale() por QLocale.system().name().
+
+2.0.9.9 #aq
+- `RasterDifferenceStatiscs`: tabela final de resumo agora remove colunas `Par`, `HTML` e `Erro`, e adiciona `INTERVALO`.
+  - intervalo calculado como `MAX - MIN` (quando disponível).
+
+2.0.8.1 #aq
+- Adicionada nova ferramenta de processamento: "Linha de Diferença entre Pontos por Atributo".
+  - Modo 1: camada de pontos única, agrupa por campo e cria linhas sequenciais entre features com mesmo valor.
+  - Modo 2: duas camadas de pontos, mapa de campo A/B com pares e criação de linha por cada par de correspondência.
+
+2.0.8.2 #aq
+- Ajustado `GeometryLineFromPointsAlgorithm` para herdar `BaseProcessingAlgorithm`.
+- Adicionado `LogUtils` (`self.logger`) em pontos-chave (inicialização, processAlgorithm, append_line_features).
+- Adicionado persistência de checkbox `use_second_layer` usando `Preferences` (`load_tool_prefs`/`save_tool_prefs`).
+
+2.0.8.3 #aq
+- Refatorado `BaseProcessingAlgorithm` para oferecer API padrão: `load_preferences`, `save_preferences`, `ALGORITHM_NAME`, `ALGORITHM_DISPLAY_NAME`, `ALGORITHM_GROUP`, e icon padrão.
+- Atualizado `RasterMassSampler`, `RasterMassClipper` e `GeometryLineFromPoints` para usar `save_preferences` / `load_preferences` e evitar repetição de `load_tool_prefs` / `save_tool_prefs`.
+- Simplificado definição de name/displayName/group/groupId nas subclasses via atributos de classe padrão.
+
+2.0.8.4 #aq
+- Ajustado `RasterMassSampler` para remover overrides redundantes de `group()` e `groupId()`.
+- Ajustado `RasterMassClipper` para remover overrides redundantes de `name()` e `displayName()` (já definidos em base por ALGORITHM_*).
+
+2.0.8.5 #aq
+- `RasterMassSampler` e `RasterMassClipper` agora implementam método específico `save_prefs(...)` (filho), e `load_prefs()` em `initAlgorithm`.
+- O `save_prefs` salva com `Preferences.save_tool_prefs(...)` usando parâmetros explícitos.
+- Removida dependência de `load_preferences()/save_preferences()` do base nestas classes.
+
+2.0.8.6 #aq
+- Atualizado `DifferenceFieldsAlgorithm` para mesmo padrão:
+  - `_load_prefs` em `initAlgorithm`
+  - `save_prefs(prefix, precision)` ao final de `processAlgorithm`
+  - persistência específica por ferramenta usando `Preferences`
+  - `self.prefs` mantido na instância
+
+2.0.8.7 #aq
+- Ajustada `QgisMessageUtil` para compatibilidade Qt5/Qt6:
+  - adicionado helper `_exec_dialog` que chama `exec_()` quando disponível e `exec()` caso contrário
+  - todos os usos de `QMessageBox.exec`/`exec_` migrados para `_exec_dialog` (`modal_result_with_folder`, `ask_field_conflict`, `ask_overwrite`, `confirm_destructive`)
+  - mantém caminho mínimo e sem quebra de API  
+2.0.7.1
+
+- Refactor: `plugins/about_dialog.py` -> `AboutDialog` herda de `BaseDialog`
+  - Usa `WidgetFactory.create_image_widget` para logo
+  - Usa `WidgetFactory.create_label` + RichText + links externos + alinhamento
+  - Botão fechar agora via `WidgetFactory.create_simple_button`
+  - Parâmetros de info (version, updated, created, creator, location, email, site, github) via args nomeados
+
+2.0.7.2
+
+- Fix: corrigida a lógica de mapeamento de metadados de foto para suportar voos múltiplos com mesmo número de foto:
+  - `PhotoMetadataTask`: usa chave composta `(mrk_folder, foto)` em `updates`
+  - `PhotoMetadataStep`: mapeia e aplica atualizações via `(mrk_folder, foto)` e fallback por `foto`
+  - Evita sobrescrever metadados entre voos diferentes com foto-id duplicado
+
+2.0.7.3
+
+- Refactor: removida opção "merge" (Unir todos os MRKs) do plugin Drone Coordinates
+  - `MrkParseTask` remove parâmetro `merge`
+  - `MrkParseStep` não exige mais `merge` no contexto
+  - UI: checkbox `merge` removido e preferências ajustadas
+- Feature: `VectorLayerGeometry.create_line_layer_from_points(..., group_by_fields=...)`
+  - gera uma linha por grupo de atributos definidos
+  - adiciona atributos genéricos via `attribute_fields`
+  - fallback único traço mantido se nenhum grupo válido
+- DroneCoordinates: _on_pipeline_finished chama create_line_layer_from_points com grupos MRK
+
+2.0.7.4
+
+- Fix: `MrkParser` `folder` agora é basename do diretório de voos (`DJI_...`) e novo campo `folder_path` guarda caminho completo
+- Fix: `MrkParseTask` define `mrk_folder` como `folder_path` absoluto para PhotoMetadata
+- Fix: `PhotoMetadata.enrich` resolve paths relativos para absolute usando `base_folder` e fallback 
+- Fix: chama `VectorLayerGeometry.create_line_layer_from_points` genérico com `group_by_fields` e `attribute_fields` para garantir responsabilidade de camada genérica
+
+  
+  
+  1.7.1 2026 03 12
+  -1.7.1.1  
+    - #começa aqui
+    -1.7.1.2
+      - Propagate plugin `icon_path` into AppBarWidget and render icon
+      - Add `WidgetFactory.create_text_browser` helper
+      - Use `WidgetFactory.create_simple_button` in `InfoDialog`
+1.7.1.3
+  - Rename plugin mentions from `MTL_Tools`/`mtl_tools` to `Cadmus`/`cadmus`
+    - Updated: `processing/provider.py`, `core/config/LogUtils.py`, `resources/__init__.py`, docs and IDE metadata
+1.7.1.4
+  - Fix import cycle causing ImportError on startup
+    - Removed `ExplorerUtils` import from `utils/__init__.py` to avoid circular import between `core.config.LogUtils` and `utils` package
+    - This prevents `ImportError: cannot import name 'LogUtils'` during plugin load
+  1.7.1.5
+    - Security: validar esquema de URL antes de abrir conexões
+      - `core/task/altimetry_task.py`: validar `urlparse(url).scheme` aceita apenas `http/https` antes de `urlopen`
+      - `core/task/reverse_geocoding_task.py`: validar `urlparse(url).scheme` aceita apenas `http/https` antes de `Request`/`urlopen`
+      - Previne uso acidental de esquemas inseguros (ex.: `file://`, `ftp://`)
+  1.7.1.6
+    - Replace silent exception handlers with structured logging
+      - `core/task/altimetry_task.py`: log exceptions in `finished()` using `LogUtils` instead of silent `pass`
+      - `core/task/reverse_geocoding_task.py`: log exceptions in `finished()` using `LogUtils` instead of silent `pass`
+      - Ensures errors are captured in plugin JSONL logs and QGIS message log when critical
+  1.7.1.7
+    - Security: avoid Bandit B310 by replacing `urllib.request.urlopen` with `http.client` requests
+      - `core/task/altimetry_task.py`: use `http.client.HTTPSConnection`/`HTTPConnection` with validated scheme
+      - `core/task/reverse_geocoding_task.py`: same replacement and validation
+      - Adds explicit `User-Agent`, checks HTTP status and returns descriptive errors
+  1.7.1.8
+    - ReverseGeocode: follow HTTP 3xx redirects (max 5)
+      - `core/task/reverse_geocoding_task.py`: follow `Location` headers, resolve relative redirects, validate redirect schemes
+      - Log redirect locations and errors via `LogUtils`
+  1.7.1.9
+    - Fix restart subprocess security (avoid shell=True)
+      - `plugins/RestartQgis.py`: do not create .bat or call subprocess with `shell=True`
+      - Prepare command list and execute with `subprocess.Popen(cmd, shell=False)` on `aboutToQuit`
+      - Logs command and errors via `LogUtils`; removes shell injection risk (B602/B404)
+1.7.1.10
+
+FIX: TRATAMENTO DE EXCEPTS EM MainLayout.py
+
+- Substitui blocos `except` corrompidos por `logger.error` em widgets de borda
+- Evita exceções silenciosas durante eventos de UI (`resizeEvent`, `enterEvent`, `leaveEvent`, `mouse*Event`)
+- Melhora observabilidade: erros agora aparecem no JSONL do plugin e no log do QGIS
+1.7.1.11
+
+FIX: CORREÇÕES NO LOGCAT (IO E UI)
+
+- Adicionado logger local em `plugins/logcat/core/io/log_file_watcher.py` para evitar
+  NameError em handlers de exceção durante monitoramento de arquivos.
+- Ajustado import de `LOG_FILE_LOCK` em `plugins/logcat/core/io/log_loader.py` para
+  tentar import absoluto e usar fallback seguro (`threading.Lock`) em caso de falha.
+- Corrigida a indentação e métodos em `plugins/logcat/ui/log_table_model.py` (mover
+  `append_entries` para dentro da classe, tooltips seguros, tratamento de cores),
+  prevenindo erros/syntax issues que podiam travar o diálogo do Logcat.
+1.7.1.12
+
+FIX: CORREÇÃO EM cadmus_plugin.py - _logger_global
+
+- Adiciona declaração `global _logger_global` dentro de `handle_exception` em
+  `cadmus_plugin.py` para evitar erro F823 (variável definida no escopo externo
+  referenciada antes da atribuição) e garantir logging consistente de exceções
+  não tratadas.
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  1.6.8.21 2026/03/12
+  - AJUSTE DE CONTRATO: utilitários desacoplados da UI
+    - Métodos em ProjectUtils e VectorLayerAttributes não acessam mais iface nem exibem mensagens.
+    - Plugins agora são responsáveis por mostrar mensagens ao usuário (QgisMessageUtil).
+    - Refatoração aplicada em CopyAttributesPlugin, VectorFieldsCalculationPlugin, VectorMultipartPlugin.
+    - Risco: Baixo — separação clara de responsabilidades, arquitetura mais robusta.
+  1.6.8.20 2026/03/12
+  - REFATORAÇÃO: utilitários centralizados e atualizados
+    - get_active_vector_layer e ensure_editable movidos de BasePluginMTL para utils/ProjectUtils.py
+    - ensure_has_features movido de BasePluginMTL para utils/vector/VectorLayerAttributes.py
+    - Todos os plugins que usavam esses métodos atualizados para importar e chamar dos novos locais.
+    - Plugins afetados: CopyAttributesPlugin, VectorFieldsCalculationPlugin, VectorMultipartPlugin.
+    - Risco: Baixo — mudanças localizadas, comportamento preservado.
+  1.6.8.18 2026/03/12
+  - DOCUMENTAÇÃO: plugins_arquitetura.md e TIPOS_FERRAMENTAS_ATUALIZADO.md
+    - Criado docs/plugins_arquitetura.md: arquitetura, contratos, padrões, regras, armadilhas, boas práticas e tabela detalhada dos plugins.
+    - Criado docs/arquitetura/TIPOS_FERRAMENTAS_ATUALIZADO.md: contratos técnicos, padrões, riscos e recomendações para tipos de ferramentas.
+    - Documentação profunda e concisa, seguindo padrão de LOGGING_SYSTEM.md e PIPELINE_ENGINE.md.
+
+changelog=
+1.6.8 2026/03/09
+      1.6.8.01
+      - PADRONIZAÇÃO: `load_folder_layers` UI com BasePluginMTL + WidgetFactory
+        - Substituída UI manual por `_build_ui()` padronizada usando:
+          - `WidgetFactory.create_path_selector` para seleção de pasta (modo folder)
+          - `WidgetFactory.create_collapsible_parameters` + `WidgetFactory.create_checkbox_grid` (2 colunas) para tipos de arquivo
+          - `WidgetFactory.create_checkbox_grid` (1 coluna) para opções: carregar apenas não carregados, preservar estrutura, criar backup
+          - `WidgetFactory.create_bottom_action_buttons` para botões padrão (Carregar / Fechar / Info)
+        - Preferências (`_load_prefs` / `_save_prefs`) adaptadas para usar API dos widgets
+        - Lógica de execução (`run_tool`) preservada; comportamento inalterado
+        - Risco: Baixíssimo (apenas padronização da camada UI)
+        ✓ Apenas adiciona persistência, sem lógica adicional
+
+      1.6.8.02
+      - LOG / PREFS / GPKG / EXPLORER
+
+      1.6.8.15 2026/03/12
+  - EXPORT: reexportar utilitários em `utils.__init__`
+    - Adicionadas importações públicas em `utils/__init__.py` para facilitar
+      o acesso às classes principais das subpastas:
+      - `vector`: VectorLayerSource, VectorLayerGeometry, VectorLayerProjection,
+        VectorLayerMetrics, VectorLayerAttributes
+      - `raster`: RasterLayerSource, RasterLayerProcessing, RasterLayerProjection,
+        RasterLayerRendering, RasterLayerMetrics, RasterVectorBridge
+      - `mrk`: MrkParser, PhotoMetadata
+    - Risco: Muito Baixo — apenas re-exporta classes já existentes para
+      conveniência; comportamento inalterado.
+
+1.6.8.19 2026/03/12
+- DOCUMENTAÇÃO: instrucoes_ia.md
+  - Criado ou atualizado docs/ia/INSTRUCOES_IA.md: síntese arquitetural completa para IA, cobrindo módulos, contratos, padrões, regras, fluxo, padronização e integração.
+  - Documento serve como fonte única para compreensão e extensão por agentes IA.
+    1.6.5.8
+    - APLICAÇÃO DE ESTILOS: InputFieldsWidget + SimpleButtonWidget
+      - Renomeado FullScreenButtonWidget → SimpleButtonWidget (nome mais apropriado)
+        ✓ Arquivo: resources/widgets/SimpleButtonWidget.py
+      - Criado Styles.input_fields_widget(): estilo completo para InputFieldsWidget
+        ✓ QLabel: rótulos padronizados
+        ✓ QLineEdit: entrada de texto com borders, focus e disabled states
+        ✓ QSpinBox: número inteiro com botões up/down de tamanho reduzido
+        ✓ QDoubleSpinBox: número decimal com botões up/down de tamanho reduzido
+        ✓ Todos com hover, focus e disabled states
+      - Criado Styles.simple_button_widget(): estilo para SimpleButtonWidget
+        ✓ Degradado primário, hover e pressed states
+        ✓ Padrão: mesmo estilo dos botões de ação (Run, Close, etc)
+      - CORREÇÃO: Bug de botões spinbox muito grandes em Styles.main_application()
+        ✓ QDoubleSpinBox::up-button/down-button: 16px → 14px width, height: 8px
+        ✓ Adicionado: padding: 0px; margin: 0px (antes faltava)
+      - Integração WidgetFactory:
+        ✓ create_input_fields_widget(): adiciona estilo input_fields_widget()
+        ✓ create_full_screen_button() → create_simple_button(): adiciona estilo simple_button_widget()
+      - Atualizado DroneCoordinates._build_ui():
+        ✓ Referência renomeada: self.full_button → self.simple_button
+        ✓ Comentário: "FullScreenButtonWidget" → "SimpleButtonWidget"
+      - Benefícios:
+        ✓ Estilos centralizados em Styles.py (manutenibilidade)
+        ✓ Botões spinbox menores (visual melhorado)
+        ✓ Consistência visual com tema do software
+        ✓ Fácil customização via Styles
+
+
+  1.6.8.17 2026/03/12
+  - DOCUMENTAÇÃO: plugins.md
+    - Criado arquivo `docs/plugins.md` com tabela detalhada dos plugins, análise individual e atualização dos tipos de ferramentas.
+    - Inclui: tipo, classe, uso de task, entrada, saída, risco.
+    - Plugins de Processing não incluídos.
+
+      1.6.8.03
+      - ESTATÍSTICAS: métricas por arquivos/feições/tamanho
+        - `start_stats()` agora aceita `total_files` e escolhe automaticamente entre métricas por arquivos, por feições ou por bytes
+        - `finish_stats()` grava agregados e calcula `avg_speed_files`, `avg_speed_features` e `avg_speed` (bytes/s)
+        - Mensagens resumidas exibidas via `QgisMessageUtil`; preferências atualizadas e salvas
+        - Risco: Baixo (compatível com chaves de prefs anteriores)
+
+      1.6.8.04
+      - BUG FIX: Camadas não apareciam e QGIS travava após carregar pasta
+        - Remove bloqueio de sinais da árvore de camadas em `LoadFilesStep`.
+        - As camadas passam a aparecer imediatamente sem exigir ação do usuário.
+        - Evita crashes ao interagir com a árvore de camadas durante carregamento.
+
+      1.6.8.05
+      - BUG FIX: "Carregar apenas arquivos ainda NÃO carregados" (modo assíncrono)
+        - `missing_only` agora filtra corretamente registros antes de adicionar ao projeto.
+        - Evita recarregar camadas já presentes no projeto (reduz memória/tempo).
+
+      1.6.8.06
+      - FEATURE: opção "Não agrupar a última pasta" (modo preserve)
+        - Ao ativar, o plugin não cria grupo para a última pasta que contém o arquivo.
+        - Checkbox é automaticamente desabilitado quando "Preservar estrutura" está desligado.
+
+
+
+      1.6.8.07
+      - PADRONIZAÇÃO: tamanho padrão para componentes UI
+        - Adicionado `STANDARD_SIZE` em `Styles.py` e usado para input/button/checkbox/radio.
+        - Substituídos hardcoded `12px` e `min-height: 12px` por constantes (`Styles.INPUT_HEIGHT`, `Styles.BUTTON_HEIGHT`, `Styles.CHECKBOX_SIZE`).
+        - Removido código morto em `Styles.label()` (retorno duplicado).
+
+
+      1.6.8.08
+      - ESTILOS: centralização de botões/inputs e remoção de cores hardcode
+        - Criado Styles.base_button(), Styles.base_input(), Styles.base_checkbox()
+        - Refatorado Styles.file_selector(), Styles.attribute_selector(), Styles.path_selector_widget(), Styles.bottom_action_buttons_widget() para usar estilos base
+        - Unificado Styles.simple_button_widget() para usar Styles.base_button() e removida definição duplicada
+        - Eliminado `#ffffff` hardcoded em botões; agora usa `Styles.COLOR_BUTTON_TEXT`
+        - Removidos blocos hover/pressed/disabled repetidos em múltiplos estilos
+
+        1.6.8.09
+        - BUG FIX: Compatibilidade Python 3.7 (QGIS 3.16)
+          - Corrigido uso de anotações que utilizavam tipos embutidos subscriptáveis (ex.: `list[QCheckBox]`) que causavam o erro `TypeError: 'type' object is not subscriptable` em ambientes Python <3.9.
+          - Arquivo modificado: resources/widgets/CheckboxGridWidget.py — substituído `list[QCheckBox]` por `List[QCheckBox]` e adicionado `from typing import List`.
+          - Risco: Muito Baixo
+            - Mudança localizada no widget; funcionalidade preservada.
+            
+  1.6.8.11
+  - UI: botão "Copiar Localização (Completo)" via WidgetFactory
+    - Substituído o botão direto no diálogo por `WidgetFactory.create_simple_button()` em `plugins/coord_result_dialog.py`.
+    - Implementado `CoordResultDialog.copy_all_info()` que agrega WGS, UTM, altitude e endereço e copia para a área de transferência usando `ProjectUtils.set_clipboard_text()`.
+    - Removidos métodos auxiliares não usados: `_line()` e `_copy_button()` do diálogo.
+    - Risco: Muito Baixo — alteração localizada na UI do diálogo; comportamento de cópia preservado e centralizado.
+
+  1.6.8.12
+  - PADRONIZAÇÃO: CoordResultDialog herda BasePluginMTL e usa logger
+    - `plugins/coord_result_dialog.py` agora herda `BasePluginMTL` e chama `self.init(...)` para inicializar `self.logger` e preferências.
+    - Adicionados logs (`self.logger.debug/info/warning`) em pontos chave: `update_info`, `set_altitude`, `set_address`, `copy_all_info`, `copy_address`.
+    - Notificação ao usuário: `QgisMessageUtil.bar_success()` é chamada quando a cópia para a área de transferência ocorre com sucesso.
+    - Persistência: restauração e persistência do último tamanho da janela agora reuse a implementação de `BasePlugin` (`_restore_window_size` / `_persist_window_size`).
+    - Risco: Muito Baixo — padronização da construção do diálogo e adição de logging/feedback visual.
+
+  1.6.8.13
+  - CORREÇÕES: Robustez de diálogo de coordenadas e criação de MainLayout
+    - BasePlugin._build_ui: garante criação incondicional de `MainLayout` (evita `None` em `self.layout._frame`), prevenindo AttributeError durante construção de diálogos.
+    - CoordClickTool: protege a criação/mostra do `CoordResultDialog` e evita agendar tarefas assíncronas se o diálogo não foi criado corretamente (previne callbacks que acessam `self.dialog` = None).
+    - CoordResultDialog:
+      - Adicionado `_build_ui`, `_load_prefs` e `_save_prefs` seguindo padrão `GenerateTrailPlugin` para garantir ordem correta de criação de `self.layout` e widgets.
+      - Moved UI composition to `_build_contents()` and removed direct duplicate construction in `__init__`.
+      - Adicionado botão `Copiar Localização (Completo)` via `WidgetFactory.create_simple_button()` posicionado entre os labels de endereço e os botões inferiores; botão conectado a `copy_all_info()`.
+      - Melhorias de logging e tratamento de erros em pontos críticos de atualização e callbacks.
+    - Risco: Muito Baixo — correções de ordem de inicialização e proteção contra estados parcialmente construídos; comportamento do diálogo preservado.
+
+  1.6.8.14
+  - SESSÃO: Padronização, robustez e correções (resumo da sessão de desenvolvimento)
+    - Compatibilidade e tipagens: finalizada a correção de anotações PEP585 (Python <3.9) em widgets críticos para evitar TypeError em QGIS 3.16.
+    - Novo widget e Factory: `ReadOnlyFieldWidget` adicionado e integrado via `WidgetFactory.create_readonly_field()` para campos somente-leitura com botões de cópia individuais e opcional "copiar tudo".
+    - Clipboard centralizado: `ProjectUtils.set_clipboard_text()` criado/uso consolidado para operações de copiar (endereço, localização completa).
+    - `CoordResultDialog`:
+      - Refatorado para herdar `BasePluginMTL` e usar `MainLayout` através de `_build_ui()` → `_build_contents()` (garante ordem correta de criação dos widgets).
+      - Adicionados métodos `_load_prefs()` e `_save_prefs()` consistentes com outras ferramentas (persistência de tamanho/estado).
+      - Botão `Copiar Localização (Completo)` adicionado via `WidgetFactory.create_simple_button()` e conectado a `copy_all_info()`.
+      - Logs e tratamento de erros reforçados em `update_info`, `set_altitude`, `set_address`, `copy_all_info` e `copy_address`.
+    - `BasePlugin`:
+      - `_build_ui()` alterado para garantir criação incondicional de `MainLayout` (evita `None` em `self.layout._frame`).
+    - `CoordClickTool`:
+      - Protegida a criação/mostra do diálogo; evita agendar tarefas assíncronas quando o diálogo não foi criado corretamente (previne callbacks que acessam `self.dialog` = None).
+      - Garante `raise_()`/`activateWindow()` ao mostrar o diálogo quando possível.
+    - Ajustes menores: `GenerateTrailPlugin` e outros plugins verificados para seguir o padrão `_build_ui` + `self.layout.add_items()` (consistência arquitetural).
+    - Risco: Muito Baixo — foco em ordem de inicialização, tratamento de estados parciais e padronização de UI/Prefs; mudanças localizadas e testáveis.
+
+ 
+  1.6.11
+  - FEATURE: ReadOnlyFieldWidget (widget exclusivo)
+    - Adicionado `resources/widgets/ReadOnlyFieldWidget.py` — widget para mostrar campos somente-leitura com botão de copiar individual e botão opcional "Copiar tudo".
+    - Integração: `core/ui/WidgetFactory.create_readonly_field()` criada para facilitar uso em dialogs.
+    - Parametros suportados: `title`, `fields` (dict com `title`, `value`, `value_type`, `titlebutton`), `num_columns`, `copy_all_button_title`.
+    - Risco: Muito Baixo — widget novo e localizado, sem impacto em código existente até ser utilizado.
+
+
+
+  1.6.7 2026/03/09
+      1.6.7.10
+    - REFATORAÇÃO: CheckboxGridWidget e uso de dicionário chave→label
+      - WidgetFactory.create_checkbox_grid agora utiliza widget exclusivo CheckboxGridWidget
+      - Interface alterada: recebe dicionário {chave: label} ao invés de lista
+      - Plugins atualizados: export_all_layouts.py, DroneCoordinates.py, replace_in_layouts.py
+      - Preferências e acessos agora usam as chaves, evitando bugs de duplicidade de label
+      - Compatibilidade e integração mantidas
+      - Risco: Baixíssimo (interface padronizada, plugins migrados)
+    1.6.7.9
+    - BUG FIX: PDFUtils logging crash (PNG merge silencioso)
+      - Problema: "Unindo 3 PNGs em PDF" era logado, mas depois silêncio total (5s)
+        ✓ Logs não aparecem: NENHUM log de PDFUtils.merge_pngs_to_pdf()
+        ✓ Causa: LogUtilsNew.get_logger() não existe - deve instanciar diretamente
+        ✓ Erro foi: `LogUtilsNew.get_logger()` → não é método estático
+      
+      1.6.8.10
+      - FIX: restaurado padrão `(layout, widget)` em `create_simple_button`
+        - Revertida mudança que retornava `QWidget` container para preservar
+          a API consistente da `WidgetFactory` (sempre retorna container+widget)
+        - Adicionado `layout.addSpacing(6)` antes do separador quando
+          `separator_bottom=True` para evitar que o botão "encave" visualmente
+          com itens abaixo (corrige perda parcial de altura observada)
+        - Risco: Baixíssimo (ajuste de espaçamento; compatibilidade preservada)
+      - Solução implementada:
+        ✓ Alterar: LogUtilsNew.get_logger() → LogUtilsNew(...) instância
+        ✓ Adicionar try/except robustuem _get_logger() com fallback SimpleLogger
+        ✓ Adicionar try/except outer em merge_pdfs() e merge_pngs_to_pdf()
+        ✓ Adicionar traceback completo em logger.error()
+        ✓ Adicionar ImportError específica para PIL e PyPDF2
+      
+      - Impacto:
+        ✓ PNG merge agora loga todas etapas (ou erros precisos)
+        ✓ Fallback SimpleLogger se LogUtilsNew falhar
+        ✓ Traceback completo para diagnóstico de erros
+        ✓ Zero chance de crash silencioso
+      
+      - Risco: Muito Baixo
+        ✓ Apenas correção de logging
+        ✓ Lógica core idêntica
+
+    1.6.7.8
+    - REFATORAÇÃO: PDFUtils + DependenciesManager (arquitetura melhorada)
+      - Problema identificado: PNG merge crashava silenciosamente (sem logs)
+        ✓ Root cause: merge_pngs_to_pdf sem tratamento de erros/logging
+      - Solução: Separação de responsabilidades e logging assertivo
+        
+      [1] Classe PDFUtils - Merge de PDFs/PNGs com logs detalhados
+        ✓ merge_pdfs(): Mescla PDFs com validação e logging
+        ✓ merge_pngs_to_pdf(): Mescla PNGs com redimensionamento e logging detalhado
+        ✓ Logs em cada etapa: verificação deps, arquivo processado, redimensionamento, output
+        ✓ Tratamento completo de exceções
+        ✓ Usa LogUtilsNew para logging estruturado
+      
+      [2] Classe DependenciesManager - Gerencia dependências externas
+        ✓ check_dependency(nome): Valida se módulo está instalado
+        ✓ get_dependency_info(nome): Retorna info sobre dependência
+        ✓ get_install_script_path(nome): Localiza script .cmd/.bat
+        ✓ install_dependency(nome): Executa instalação via script
+        ✓ validate_dependencies(lista): Valida múltiplas deps
+      
+      [3] Refatoração export_all_layouts.py
+        ✓ Imports otimizados: PDFUtils, DependenciesManager
+        ✓ Validação: merge_utils.HAS_PYPDF2 → DependenciesManager.check_dependency()
+        ✓ Instalação: merge_utils.install_pypdf2() → DependenciesManager.install_dependency()
+        ✓ Merge: merge_utils.merge_pdfs() → PDFUtils.merge_pdfs()
+        ✓ Log detalhado de max_width na chamada de PNG merge
+      
+      [4] Backward compatibility em pdf_png_merge_utils.py
+        ✓ Mantido como wrapper deprecated
+        ✓ Redireciona para novas classes (sem breaking changes)
+        ✓ Aviso DeprecationWarning para código legado
+      
+      - Impacto:
+        ✓ Logs completos de todas operações de merge
+        ✓ Melhor diagnóstico de falhas (onde e por quê)
+        ✓ Arquitetura escalável para futuras dependências
+        ✓ Zero breaking changes para código existente
+      
+      - Risco: Muito Baixo
+        ✓ Apenas reorganização de código
+        ✓ Lógica core idêntica à anterior
+        ✓ Backward compatibility garantida
+
+    1.6.7.7
+    - AJUSTE VISUAL: CheckboxGrid altura de linha refinada
+      - Problema: Checkbox 12px estava sendo cortada nas extremidades superior/inferior
+      - Causa: Altura da linha = 12px (mesmo tamanho do checkbox), sem padding
+      - Solução em create_checkbox_grid():
+        ✓ chk.setFixedHeight(14) aumentado de 12px para 14px
+        ✓ Fornece 1px de padding acima e 1px abaixo do checkbox
+        ✓ v_spacing mantido em 2px entre items
+      - Espaçamento preservado:
+        ✓ addSpacing(6) após título
+        ✓ addSpacing(6) antes de separador_bottom
+      - Resultado: Checkbox totalmente visível, sem cortes
+      - Impacto: Visual refinado, melhor usabilidade
+      - Risco: Muito Baixo (apenas ajuste de altura)
+
+    1.6.7.6
+    - BUG FIX: ExportAllLayoutsDialog - PNG merge silencioso e checkbox grid spacing
+      - Problema 1: "Unir PNGs em PDF final" não unia e não exibia sucesso
+        ✓ Causa: merge_pngs_to_pdf() bem sucedido não mostrava mensagem final
+        ✓ Lógica anterior: só exibia erro (if not ok), silenciava sucesso
+        ✓ Solução: Adicionado flag merge_png_success para tracking
+          - Se ok=True: log "✓ PNGs unidos com sucesso" + flag=True
+          - Se ok=False: log warning + erro adicionado à lista
+        ✓ Resultado: Exibição clara de sucesso/falha no diálogo final
+      - Problema 2: Checkboxes no grid muito apertadas (falta espaço)
+        ✓ Causa: Spacing vertical = 2px + sem espaço após título
+        ✓ Solução em create_checkbox_grid():
+          - Aumentado v_spacing de 2px para 6px entre items
+          - Adicionado addSpacing(6) após título
+          - Adicionado addSpacing(6) antes de separador_bottom
+        ✓ Resultado: Grid visualmente mais arejado e legível
+      - Melhorias:
+        ✓ PDF merge também agora com flag merge_pdf_success
+        ✓ Mensagem final mostra resumo: layouts exportados + merges bem-sucedidos
+        ✓ Log detalhado com status de cada merge
+      - Impacto: 
+        ✓ Usuário vê claramente resultado de merge PNG/PDF
+        ✓ UI mais confortável visualmente
+      - Risco: Muito Baixo
+        ✓ Apenas logging e spacing (visual)
+        ✓ Lógica de merge intacta
+
+    1.6.7.5
+    - BUG FIX: ExportAllLayoutsDialog - erro de atributo QgsLayoutExporter e tamanho do botão
+      - Problema 1: QgsLayoutExporter.PrinterResolution não existe
+        ✓ Erro: "type object 'QgsLayoutExporter' has no attribute 'PrinterResolution'"
+        ✓ Causado: ao refatorar para WidgetFactory, usei atributo inválido
+        ✓ Solução: Voltar ao padrão original
+          - PDF: `exporter.exportToPdf(path, QgsLayoutExporter.PdfExportSettings())`
+          - PNG: `exporter.exportToImage(path, QgsLayoutExporter.ImageExportSettings())`
+      - Problema 2: SimpleButtonWidget ("Usar pasta do projeto") muito grande
+        ✓ Causa: setSizePolicy(Expanding, Expanding) ocupava altura total
+        ✓ Solução: setSizePolicy(Expanding, Fixed) + setFixedHeight(Styles.BUTTON_HEIGHT)
+        ✓ Resultado: Largura expande (preenche), altura fixa 12px
+      - Impacto: ExportAllLayoutsDialog funciona corretamente
+        ✓ Botão de pasta com tamanho correto
+        ✓ Exportação de PDFs/PNGs normalizado
+      - Risco: Muito Baixo
+        ✓ Apenas correção de atributos/dimensões
+        ✓ Lógica intacta
+
+    1.6.7.4
+    - REFATORAÇÃO: ExportAllLayoutsDialog padronização com BasePluginMTL + WidgetFactory
+      - Antes: Herança de QDialog com UI manual (QCheckBox, QLineEdit, QPushButton espalhados)
+        ✓ Código duplicado para load/save preferências
+        ✓ Sem padronização visual com plugins
+        ✓ Sem AppBar, sem MainLayout encapsulado
+      - Depois: Herança de BasePluginMTL com WidgetFactory
+        ✓ Checkboxes: 5 itens em grid 2 colunas via create_checkbox_grid()
+        ✓ Max Width: InputFieldsWidget com um campo int via create_input_fields_widget()
+        ✓ Pasta Saída: PathSelector (modo folder) via create_path_selector()
+        ✓ Botão Projeto: SimpleButton com callback _set_folder_to_project()
+        ✓ Botões Ação: create_bottom_action_buttons() (Exportar, Fechar, Info)
+        ✓ AppBar integrada automaticamente via _build_ui()
+        ✓ MainLayout sem scroll (enable_scroll=False, simples)
+      - Persistência automática:
+        ✓ _load_prefs() carrega checkboxes, max_width, pasta_saida, tamanho_janela
+        ✓ _save_prefs() salva tudo automaticamente
+        ✓ BasePlugin.closeEvent() chama _save_prefs() automaticamente
+        ✓ Remove: carregar_preferencias(), salvar_preferencias(), métodos manual
+      - Lógica de negócio mantida:
+        ✓ execute_tool() exporta PDFs/PNGs com mesma lógica
+        ✓ Validação de dependências (PyPDF2, Pillow) oferece instalação
+        ✓ Unão de PDFs/PNGs funciona igual
+        ✓ Modal final com resultado idêntico
+      - Métodos novos:
+        ✓ _set_folder_to_project(): callback do SimpleButton
+        ✓ Antes: definir_pasta_projeto(), selecionar_pasta() - agora não precisa
+      - Compatibilidade:
+        ✓ Função run_export_all_layouts() continua igual
+        ✓ TOOL_KEY.EXPORT_ALL_LAYOUTS continua mesmo
+        ✓ Preferências migram automaticamente (load_tool_prefs usa mesma chave)
+      - Benefícios:
+        ✓ Interface padronizada com outros plugins (SettingsPlugin, GenerateTrailPlugin)
+        ✓ 100+ linhas removidas (sem UI manual)
+        ✓ Código mais limpo e manutenível
+        ✓ Autocompletar AppBar, resize, tamanho janela persistido
+        ✓ Logging automático via BasePluginMTL
+      - Risco: Baixo
+        ✓ Lógica de negócio intacta
+        ✓ Preferências continuam funcionando
+        ✓ Widgets WidgetFactory já testados em outros plugins
+        ✓ Reversível se houver problema
+
+    1.6.7.3
+    - BUG FIX: Separador visual em create_double_spin_input ficava na mesma linha do widget
+      - Problema: função usava QHBoxLayout (horizontal) para tudo
+        ✓ Separador_top era adicionado horizontalmente à esquerda do label
+        ✓ Separador_bottom era adicionado horizontalmente à direita do spinbox
+        ✓ Layout permanecia na mesma linha: [separador] [label] [spin] [separador]
+      - Solução: estrutura de layout aninhado
+        ✓ QVBoxLayout externo (main_layout) → contém separadores em linhas distintas
+        ✓ QHBoxLayout interno (h_layout) → contém apenas label + spin na mesma linha
+        ✓ Retorno agora é (main_layout, spin) com separadores em posição correta
+      - Impacto: Separadores visuais agora aparecem em linhas distintas (UI correta)
+        ✓ SettingsPlugin (precision, threshold) agora renderizam corretamente
+        ✓ GenerateTrailPlugin (tamanho implemento) também beneficiado
+        ✓ Qualquer widget que use create_double_spin_input terá UI consistente
+      - Risco: Muito Baixo
+        ✓ Apenas reorganização de layout, sem mudança lógica
+        ✓ Retorno continua sendo (layout, widget)
+        ✓ Compatível com código existente em SettingsPlugin, GenerateTrailPlugin
+
+    1.6.7.2
+    - BUG FIX: SettingsPlugin crash com erro "wrapped C/C++ object of type QRadioButton has been deleted"
+      - Problema: múltiplas chamadas a self.layout.add_items() causavam reparentings repetidos
+        ✓ Cada chamada a add_items() reconstruía layouts, deletando widgets internos prematurely
+        ✓ RadioButtonGridWidget perdia referência aos QRadioButton filhos
+        ✓ _load_prefs() tentava acessar widget deletado → segmentation fault C++
+      - Solução: consolidar em chamada ÚNICA a add_items()
+        ✓ Acumular todos os items: prefs_label, pref_link, calc_layout, prec_layout, thresh_layout, buttons_layout
+        ✓ Chamar self.layout.add_items([...lista completa...]) uma só vez ao final
+        ✓ Evita reparentings repetidos e garante integridade de widget lifecycle
+      - Impacto: SettingsPlugin agora funciona corretamente
+        ✓ Preferences carregam e salvam sem crash
+        ✓ RadioButtonGridWidget mantém referências válidas
+        ✓ Layout é construído uma vez com estabilidade
+      - Risco: Muito Baixo
+        ✓ Apenas reorganization de chamadas existentes
+        ✓ Zero lógica de negócio alterada
+        ✓ Pattern agora alinhado com best practices Qt (minimal reparenting)
+      - Aprendizado: MainLayout.add_items() espera execução ÚNICA
+        ✓ Implementar de forma idêntica em outros plugins que o usem (GenerateTrailPlugin, etc)
+
+    1.6.7.1
+    - DOCUMENTAÇÃO: Análises de Cenário para GenerateTrailPlugin, VectorFieldsCalculationPlugin e ReplaceInLayouts
+      - Criadas: 3 novos arquivos de análise de cenário seguindo padrão arquitetônico
+        ✓ docs/analise_de_cenario/06_gerar_rastro_generalizado_analise_cenario.MD
+          - Visão geral, objetivo, fluxo do GenerateTrailPlugin
+          - Cenários de uso: memória, GeoPackage, assíncrono larga escala, seleção, CRS em graus
+          - Tipos de geometria, impactos nos dados, riscos e controles
+          - Observações sobre classes-chave: VectorLayerProjection, ExplodeStep, BufferStep, SaveVectorStep
+          - Evoluções recomendadas: reprojeção automática, dissolução, feedback granular
+        ✓ docs/analise_de_cenario/07_calcular_campos_vetoriais_analise_cenario.MD
+          - Visão geral, objetivo, fluxo de VectorFieldsCalculationPlugin
+          - Validações críticas: KML bloqueante, CRS geográfico automático, colisão de campos
+          - Cenários de uso: polígonos métrico, WGS84 com fallback, larga escala, pontos com altimetria
+          - Conflito de nomes, modo "Ambos", bloqueio KML, altimetria assíncrona
+          - Observações: is_geographic_crs(), generate_field_name_with_suffix(), AltimetriaTask thread-safety
+          - Evoluções: seleção de subset, reprojeção transparente, cache SRTM, progresso granular
+        ✓ docs/analise_de_cenario/10_replace_in_layouts_analise_cenario.MD
+          - Visão geral, objetivo, fluxo de ReplaceInLayoutsDialog
+          - Backup automático timestamped + log detalhado em /backup/
+          - Cenários: atualização simples, case sensitive, modo chave, sem backup, zero resultados
+          - Múltiplos layouts, caracteres especiais, botão swap, troca rápida
+          - Tipos de layout, impactos, riscos: texto em branco, sobrescrita desejada, sem backup
+          - Observações: InputFieldsWidget, LayoutsUtils, ProjectUtils, LogUtilsNew
+          - Evoluções: preview pré-execução, undo integrado, regex, filtro layouts, CSV batch
+      - Atualizada: resources/instructions/replace_in_layouts_help.MD
+        ✓ Título traduzido: "Replace Text in Layouts" → "Substituir Texto em Layouts"
+        ✓ Adicionada seção detalhada de backup com exemplos de paths e estrutura de log
+        ✓ Documentação de ⇅ Botão Inverter com casos de uso
+        ✓ Nova seção "Desfazendo uma Substituição" com 3 opções práticas:
+          - Opção 1: Botão Inverter (rápido, undo manual)
+          - Opção 2: Restauração de backup (arquivo anterior)
+          - Opção 3: Edição manual em último caso
+        ✓ Adicionada seção "Preferências e Memória de Estado":
+          - Texto buscado/substituição lembrados
+          - Estado de checkboxes persistido
+          - Tamanho de janela restaurado
+          - Local de armazenamento documentado (~/.qgis3/)
+        ✓ Aprimorada seção "Boas práticas" com avisos alarmantes
+        ✓ Exemplo detalhado de arquivo de log com formatação real
+      - Benefícios:
+        ✓ Documentação arquitetônica completa para manutenção futura
+        ✓ Cenários reais mapeados (ajuda na detecção de bugs)
+        ✓ Help de usuário expandido e mais intuitivo
+        ✓ Referências cruzadas entre análises facilitam compreensão sistêmica
+      - Risco: Muito Baixo
+        ✓ Documentação pura, zero impacto em código executável
+        ✓ Padrão seguido (compatível com análises existentes v1.6.5, 1.6.6)
+    1.6.7.1# COMEÇA AQUI
+
+
+
+
+  1.6.6 2026/03/09
+    1.6.6.4
+    - PERSISTÊNCIA: Tamanho de Janela em ReplaceInLayouts
+      - Adicionado: window_width e window_height em _save_prefs()
+        ✓ Arquivo: plugins/replace_in_layouts.py (_save_prefs method)
+        ✓ Padrão: Consistente com DroneCoordinates e outros plugins
+      - Benefício: ReplaceInLayouts agora abre com tamanho anterior
+      - Implementação:
+        ✓ Linha ~109: "window_width": self.width()
+        ✓ Linha ~110: "window_height": self.height()
+      - Funcionamento: BasePlugin.closeEvent() chama _save_prefs() automaticamente
+      - Risco: Baixo
+    1.6.6.3
+    - FEATURE: Botão de Troca (Swap) em ReplaceInLayouts
+      - Novo: Botão "⇅ Inverter" entre campos old_text/new_text
+        ✓ Inverte o conteúdo dos campos ao clicar
+        ✓ old_text ↔ new_text (troca de posição)
+      - Implementação:
+        ✓ Arquivo: plugins/replace_in_layouts.py
+        ✓ Método: _swap_fields() - inverte valores dos campos
+        ✓ Widget: SimpleButtonWidget via WidgetFactory.create_simple_button()
+      - Layout:
+        ✓ Posição: entre input_fields_widget e checkbox_grid
+        ✓ Separator: top=False (conecta ao input), bottom=True (separa das opções)
+      - Benefícios:
+        ✓ UX melhorada: usuário pode rapidly testar ambas as direções
+        ✓ Integração com InputFieldsWidget.set_values/get_values()
+        ✓ Sem estado: apenas alterna valores, não persiste
+      - Risco: Baixo
+        ✓ Ação não-destrutiva, simples reversão
+        ✓ Sem persistência (não salva estado do botão)
+    1.6.6.2
+    - CORREÇÃO PROFUNDA: Gap Entre AppBar e Itens (enable_scroll=False/True)
+      - Problema Raiz Identificado: Falta de stretch ao final do _inner_layout
+        ✓ Com scroll: ScrollWidget + itens não preenchiam espaço, deixava gap
+        ✓ Sem scroll: Itens diretos no layout sem stretch = espaço vazio abaixo
+      - Arquitetura do Problema:
+        ✓ Com scroll:
+          - _inner_layout contém: AppBar + ScrollWidget
+          - Itens dentro do ScrollWidget via container_layout
+          - SEM stretch: ScrollWidget fica pequeno (tamanho do conteúdo)
+        ✓ Sem scroll:
+          - _inner_layout contém: AppBar + item1 + item2 + item3
+          - SEM stretch: Espaço vazio abaixo dos itens
+      - Solução: Adicionar addStretch() ao final em AMBOS os casos
+        ✓ Com scroll: self._inner_layout.addStretch() após add_layout_as_content()
+        ✓ Sem scroll: self._inner_layout.addStretch() após adicionar itens
+        ✓ Resultado: Itens compactos no topo, stretch preenche resto
+      - Arquivos Modificados:
+        ✓ resources/widgets/MainLayout.py (método add_items())
+          - Linha ~144: Added addStretch() para caso com scroll
+          - Linha ~155: Added addStretch() para caso sem scroll
+      - Plugins Afetados:
+        ✓ ReplaceInLayouts (enable_scroll=False): GAP ELIMINADO ✓
+        ✓ DroneCoordinates (enable_scroll=True): Layout mais robusto ✓
+        ✓ GenerateTrailPlugin (enable_scroll=True): Layout mais robusto ✓
+      - Como Funciona:
+        ✓ Stretch é um spacer invisível com sizePolicy Expanding
+        ✓ Mantém itens compactos no topo, preenchendo espaço vertical restante
+        ✓ Consistente com ou sem scroll: mesma estrutura visual
+      - Benefícios:
+        ✓ Gap entre AppBar e itens eliminado completamente
+        ✓ Layouts mais previsíveis: itens sempre no topo mesmo com resize
+        ✓ UX consistente: mesmo comportamento em todos plugins
+        ✓ Robustos: funciona com qualquer quantidade de itens
+      - Risco: Muito Baixo
+        ✓ addStretch() é pattern standard em Qt
+        ✓ Não afeta componentes existentes (apenas melhora spacing)
+        ✓ Reversível se houver comportamento indesejado
+    1.6.6.1
+    - CORREÇÃO: Espaçamento Inconsistente Entre AppBar e Itens (enable_scroll=False)
+      - Problema: ReplaceInLayouts exibia gap grande entre AppBar e primeiro item
+        ✓ Causa: _inner_layout não tinha setSpacing() quando enable_scroll=False
+        ✓ Com scroll: container_layout.setSpacing(Styles.LAYOUT_V_SPACING) definido
+        ✓ Sem scroll: _inner_layout.setSpacing() nunca era chamado
+      - Solução: Adicionar setSpacing() em MainLayout.__init__() SEMPRE
+        ✓ Linha 51: self._inner_layout.setSpacing(Styles.LAYOUT_V_SPACING)
+        ✓ Agora consistent: spacing=2px com ou sem scroll
+      - Arquivos Modificados:
+        ✓ resources/widgets/MainLayout.py
+      - Plugins Afetados (Corrigidos):
+        ✓ ReplaceInLayoutsDialog: enable_scroll=False (agora com espaçamento correto)
+      - Benefícios:
+        ✓ Espaçamento visual consistente em todos os plugins
+        ✓ Melhor UX: gaps uniformes entre componentes
+      - Risco: Baixo
+        ✓ change é minimal e isolada (apenas 1 linha adicionada)
+        ✓ Não afeta lógica, apenas espaçamento visual
+
+
+  1.6.5 2026/03/08
+    1.6.5.9
+    - ENCAPSULAMENTO DE SCROLL: MainLayout gerencia ScrollWidget internamente
+      - Objetivo: Separação de responsabilidades - plugins NÃO tocam em scroll
+      - ARQUITETURA NOVA:
+        ✓ MainLayout.__init__(enable_scroll=True/False) cria ScrollWidget internamente
+        ✓ Plugin NÃO importa ScrollWidget (encapsulado)
+        ✓ Plugin NÃO usa self.scroll_container (não existe mais)
+        ✓ add_items() roteia automaticamente:
+          - Se scroll habilitado: itens adicionados ao scroll
+          - Se scroll desabilitado: itens adicionados ao inner_layout
+      - MODIFICAÇÕES:
+        ✓ MainLayout.py: Added enable_scroll parameter, internal _scroll creation, auto-routing in add_items()
+          - Added import ScrollWidget
+          - Modified __init__ to accept enable_scroll parameter
+          - Modified add_items() to decide routing based on self._scroll
+          - Updated addWidget/addLayout methods for scroll support
+        ✓ WidgetFactory.py: create_main_layout() passes enable_scroll, returns MainLayout only
+          - Removed tuple unpacking (no longer returns (layout, scroll))
+          - Removed ScrollWidget import (no longer needed)
+        ✓ BasePlugin.py: Removed tuple unpacking, simplified assignment
+          - Removed self.scroll_container attribute
+          - Changed: self.layout, self.scroll_container = result → self.layout = result
+        ✓ DroneCoordinates.py: Uses add_items() instead of manual content_layout
+          - Removed QVBoxLayout import
+          - Removed content_layout creation
+          - Replaced with: self.layout.add_items([folder_layout, opts_layout, ...])
+        ✓ GenerateTrailPlugin.py: Uses add_items() instead of manual content_layout
+          - Removed QVBoxLayout import
+          - Replaced manual scroll_container.add_layout_as_content() call
+        ✓ CopyAttributesPlugin.py: Uses add_items() instead of manual content_layout
+          - Removed QVBoxLayout import
+          - Replaced manual scroll_container.add_layout_as_content() call
+      - BENEFÍCIOS:
+        ✓ Separação de responsabilidades: MainLayout gerencia scroll, plugins apenas adicionam itens
+        ✓ Encapsulamento: scroll é detalhe interno não visível ao plugin
+        ✓ Simplificação de código: plugins removem 10+ linhas de setup de scroll
+        ✓ Reutilizabilidade: MainLayout funciona com ou sem scroll transparentemente
+        ✓ Testabilidade: lógica de scroll concentrada em um lugar
+        ✓ Manutenibilidade: mudanças no scroll não afetam plugins
+      - RISCO: Baixo
+        ✓ Behavior mantido: items ainda vão para scroll ou layout dependendo de enable_scroll
+        ✓ Tests: DroneCoordinates, GenerateTrailPlugin, CopyAttributesPlugin funcionando
+
+        
+
+    1.6.5.7
+    - TESTE: Novos widgets para DroneCoordinates
+      - Criado InputFieldsWidget: widget com múltiplos campos de input (text/int/float) via dicionário
+        ✓ Arquivo: resources/widgets/InputFieldsWidget.py
+        ✓ Recebe dict com configurações de campos: {'chave': {'title': ..., 'type': ..., 'default': ...}}
+        ✓ Métodos: get_values(), set_values(), get_value(key), set_value(key, value)
+        ✓ Sinal: valuesChanged emite dict com valores atualizados
+      - Criado FullScreenButtonWidget: botão que ocupa toda a tela
+        ✓ Arquivo: resources/widgets/FullScreenButtonWidget.py
+        ✓ Simples e reutilizável
+      - Integrado WidgetFactory com métodos:
+        ✓ create_input_fields_widget(fields_dict, ...) → retorna (layout, widget)
+        ✓ create_full_screen_button(text, ...) → retorna (layout, widget)
+      - Adicionado ao DroneCoordinates._build_ui() para teste
+        ✓ InputFieldsWidget com 3 campos exemplo: nome (text), idade (int), altura (float)
+        ✓ FullScreenButtonWidget com callback que loga ao clicar
+        ✓ Ambos adicionados ao content_layout (dentro do scroll)
+      - Status: TESTE (pode ser removido facilmente)
+    1.6.5.6
+    - CENTRALIZAÇÃO DE PERSISTÊNCIA: Todas as preferências via BasePlugin.closeEvent()
+      - Objetivo: Evitar duplicação de _save_prefs() espalhadas em pipelines
+      - Mudanças em BasePlugin.closeEvent():
+        ✓ JÁ chama _persist_window_size() antes de _save_prefs()
+        ✓ JÁ é a ÚNICA place onde preferências são salvas ao fechar a janela
+      - Removido de DroneCoordinates._on_pipeline_finished():
+        ✓ Linha que chamava self._save_prefs() após processamento
+        ✓ Agora preferências só salvam em closeEvent (ao fechar a janela)
+      - Removido de GenerateTrailPlugin._on_pipeline_finished():
+        ✓ Linha que chamava self._save_prefs() após processamento
+      - Removido de CopyAttributesPlugin.execute_tool():
+        ✓ Chamada desnecessária de _save_prefs() antes da execução
+      - Atualizado em GenerateTrailPlugin._save_prefs():
+        ✓ Adicionado: self.preferences['window_width'] = self.width()
+        ✓ Adicionado: self.preferences['window_height'] = self.height()
+      - Atualizado em CopyAttributesPlugin._save_prefs():
+        ✓ Adicionado: data['window_width'] = self.width()
+        ✓ Adicionado: data['window_height'] = self.height()
+      - DroneCoordinates já tinha window_width/height em _save_prefs() ✓
+      - Padrão final:
+        ✓ closeEvent() → _persist_window_size() → _save_prefs()
+        ✓ Cada plugin implementa _save_prefs() com window_width/height
+        ✓ Sem duplicação: salva uma única vez ao fechar a janela
+        ✓ Consistente: todos plugins salvam tamanho em _save_prefs()
+      - Benefícios:
+        ✓ Single responsibility: closeEvent() é o ÚNICO lugar de persistência
+        ✓ Sem race conditions: não há múltiplos saves simultâneos
+        ✓ Dados sincronizados: tamanho da janela sempre incluído
+        ✓ Mais limpeza de código: sem _save_prefs() espalhadas
+    1.6.5.5
+    - CONSOLIDAÇÃO UNIVERSAL: FileSelectorWidget → SelectorWidget
+      - Objetivo: Eliminar duplicação, unificar toda seleção de paths (pastas/arquivos/salvamento)
+      - Renomeação: PathSelectorWidget → SelectorWidget (mais apropriado para universalidade)
+      - Mudanças:
+        ✓ FileSelectorWidget.py: ELIMINADO (redundante)
+        ✓ PathSelectorWidget.py: RENOMEADO para SelectorWidget.py
+        ✓ SelectorWidget.py: Modos folder, folders, file, files, save todos integrados
+        ✓ WidgetFactory.create_save_file_selector(): usa SelectorWidget em vez de FileSelectorWidget
+        ✓ Todos métodos create_*_selector() agora retornam SelectorWidget
+      - Compatibilidade retrógrada:
+        ✓ PathSelectorWidget = SelectorWidget (alias em SelectorWidget.py)
+        ✓ Código antigo usando PathSelectorWidget continua funcionando
+        ✓ Mode constants: SelectorWidget.MODE_FOLDER, MODE_FILE, MODE_SAVE, etc
+      - Remoção em Styles.py:
+        ✓ file_selector_widget(): ELIMINADO (merged com path_selector_widget)
+        ✓ Ambos usam agora: Styles.path_selector_widget()
+      - Benefícios:
+        ✓ Single responsibility: 1 widget universal para tudo
+        ✓ Menos código duplicado: sem dois widgets quasi-idênticos
+        ✓ UX consistente: mesmo padrão visual/comportamento em todos selectors
+        ✓ Manutenibilidade: mudanças em 1 único widget
+        ✓ Menos imports: plugins precisam de 1 menos dependência
+      - Integração com plugins:
+        ✓ DroneCoordinates: cria_path_selector() → retorna SelectorWidget
+        ✓ GenerateTrailPlugin: create_save_file_selector() → retorna SelectorWidget
+        ✓ APIs compatíveis: get_paths(), get_file_path(), set_file_path(), is_enabled()
+    1.6.5.4
+    - SIMPLIFICAÇÃO: REMOÇÃO DE OBRIGATORIEDADE DE TAMANHOS EM PLUGINS
+      - Objetivo: Aproveitar persistência de tamanho para remover parâmetros repetitivos
+      - Mudanças em BasePlugin.init():
+        ✓ Removidos parâmetros: min_width, min_height
+        ✓ Padrão fixo: 300x300 para todas as ferramentas (persistido em prefs)
+        ✓ Assinatura simplificada: init(tool_key, class_name, load_settings_prefs, build_ui)
+      - Mudanças em BasePlugin._build_ui():
+        ✓ Removidos parâmetros: min_width, min_height
+        ✓ Agora: setMinimumSize(300, 300) fixado em BasePlugin
+        ✓ Tamanho persistido: cada ferramenta abre com seu tamanho anterior
+      - Mudanças em BasePlugin._restore_window_size():
+        ✓ Removidos parâmetros: default_width, default_height
+        ✓ Padrão fixo: 300x300 se não houver preferência salva
+      - Refatoração de plugins:
+        ✓ DroneCoordinates: removidos min_width=250, min_height=250
+        ✓ CopyAttributesPlugin: removidos min_width=320, min_height=450
+        ✓ SettingsPlugin: não tinha parâmetros (mantém o padrão)
+      - Benefícios:
+        ✓ Menos parâmetros por plugin: interface simplificada
+        ✓ Consistência global: todos plugins 300x300 mínimo
+        ✓ Persistência automática: usuário define tamanho, é restaurado sempre
+        ✓ Menos duplicação: padrão centralizado em BasePlugin
+      - Padrão emergente:
+        ✓ 300x300: tamanho mínimo consistente e persistido
+        ✓ Cada ferramenta redimensiona e salva sua preferência
+        ✓ NoNeed pra plugins definirem tamanhos customizados
+    1.6.5.3
+    - REFATORAÇÃO DE ARQUITETURA: SCROLL COMO RESPONSABILIDADE DO WIDGETFACTORY
+      - Objetivo: Separação clara de responsabilidades entre WidgetFactory e plugins
+      - Padrão anterior: Plugins criavam ScrollWidget diretamente em _build_ui()
+      - Padrão novo: WidgetFactory.create_main_layout() gerencia scroll como parâmetro
+      - Mudanças em WidgetFactory.create_main_layout():
+        ✓ Novo parâmetro: enable_scroll: bool = False
+        ✓ Se enable_scroll=False: retorna MainLayout (comportamento original)
+        ✓ Se enable_scroll=True: retorna tuple (MainLayout, ScrollWidget)
+        ✓ Adicionado import: ScrollWidget
+      - Mudanças em BasePlugin._build_ui():
+        ✓ Novo parâmetro: enable_scroll: bool = False
+        ✓ Passa enable_scroll para create_main_layout()
+        ✓ Se scroll habilitado: atribui (self.layout, self.scroll_container)
+        ✓ Se sem scroll: atribui self.layout (compatível com plugins antigos)
+      - Refatoração de DroneCoordinates:
+        ✓ Chamada: super()._build_ui(..., enable_scroll=True)
+        ✓ Removido: lógica manual de ScrollWidget
+        ✓ Removido import: ScrollWidget (agora via WidgetFactory)
+        ✓ Simplificação: scroll_container recebido via herança, apenas add_layout_as_content()
+      - Benefícios:
+        ✓ Single Responsibility: WidgetFactory responsável por scroll
+        ✓ Reutilização: enable_scroll=True funciona em qualquer plugin
+        ✓ Manutenibilidade: mudanças em scroll só precisam de 1 lugar
+        ✓ Testabilidade: WidgetFactory encapsula lógica de scroll
+      - Compatibilidade: Plugins sem enable_scroll continuam funcionando (padrão False)
+    1.6.5.2
+    - PADRONIZAÇÃO CENTRALIZADA DE ESTILOS (Styles.py)
+      - Adicionadas constantes de altura:
+        ✓ INPUT_HEIGHT = 24px (QLineEdit, QComboBox, etc)
+        ✓ BUTTON_HEIGHT = 24px (QPushButton padrão)
+        ✓ CHECKBOX_SIZE = 12px (checkbox size)
+        ✓ RADIO_SIZE = 12px (radio button size)
+      - Novos métodos de estilo por WIDGET (não por item QGIS):
+        ✓ path_selector_widget() - PathSelectorWidget com radios internos
+        ✓ file_selector_widget() - FileSelectorWidget com checkbox
+        ✓ layer_input_widget() - LayerInputWidget com combo + checkbox
+        ✓ radio_button_grid_widget() - RadioButtonGridWidget grid exclusivo
+        ✓ bottom_action_buttons_widget() - BottomActionButtonsWidget botões inferiores
+      - Atualizado WidgetFactory:
+        ✓ create_qml_selector() → Styles.file_selector_widget()
+        ✓ create_save_file_selector() → Styles.file_selector_widget()
+        ✓ create_layer_input() → Styles.layer_input_widget()
+        ✓ create_radio_button_grid() → Styles.radio_button_grid_widget()
+        ✓ create_path_selector() → Styles.path_selector_widget()
+        ✓ create_bottom_action_buttons() → Styles.bottom_action_buttons_widget()
+      - Removido setStyleSheet() manual em BottomActionButtonsWidget
+      - Centralização completa: todos widgets recebem estilos via WidgetFactory
+      - Paleta de cores com 5 estados: normal, hover, pressed, disabled, focused
+      - Estrutura reutilizável para novos widgets
+    1.6.5.1
+    - PERSISTÊNCIA DE TAMANHO DE JANELA AUTOMÁTICA
+      - BasePlugin.closeEvent() override: salva window_width/window_height automaticamente
+      - BasePlugin._restore_window_size(): restaura tamanho ao abrir cada ferramenta
+      - Cada ferramenta abre com seu próprio tamanho específico
+      - Padrão: min_width/min_height usado como fallback se não houver preferências
+      - Benefícios:
+        ✓ Separação de responsabilidades: BasePlugin gerencia persistência
+        ✓ Reutilização de código: todos plugins herdam automaticamente
+        ✓ UX melhorada: janela abre no tamanho que o usuário deixou
+        ✓ Sem necessidade de override em cada plugin (implementado via herança)
+      - Integração com plugins:
+        ✓ DroneCoordinates: inclui window_width/height em _save_prefs()
+        ✓ GenerateTrailPlugin, CopyAttributes, SettingsPlugin: funcionam via herança
+        ✓ Padrão reutilizável para novos plugins
+
+    1.6.5.0
+    - REFATORAÇÃO COMPLETA DE LAYOUT E SPACING
+      - Variáveis globais em Styles.py:
+        ✓ ITEM_HEIGHT = 12px (altura padrão de cada elemento)
+        ✓ ITEM_SPACING = 1px (espaçamento entre itens)
+        ✓ CONTENT_PADDING = 2px (padding do conteúdo)
+        ✓ LAYOUT_V_SPACING = 2px (spacing vertical padrão)
+        ✓ LAYOUT_H_SPACING = 0px (spacing horizontal)
+        ✓ calc_checkbox_grid_height() - calcula altura dinâmica de grids
+      - Correção de widgets:
+        ✓ CollapsibleParametersWidget: margins/spacing padronizados
+        ✓ create_checkbox_grid(): setFixedHeight(12px) em cada checkbox
+        ✓ create_save_file_selector/create_qml_selector: spacing=2px (não 10px)
+      - ScrollWidget customizada criada:
+        ✓ QScrollArea com estilo integrado ao tema
+        ✓ Scrollbars animadas (cor primária com hover/pressed)
+        ✓ Implementação limpa e reutilizável
+      - DroneCoordinates refatorada:
+        ✓ Scroll integrado para conteúdo principal
+        ✓ Botões de ação fixos na base (fora do scroll)
+        ✓ Layout sem lacunas: apenas 2px entre seções
+      - MainLayout melhorado:
+        ✓ Métodos get_size() / set_size(width, height) para gerenciar dimensões
+        ✓ Spacing interno = LAYOUT_V_SPACING (2px)
+      - Resultado: Layout compacto, consistente e sem "jumping"
+
+
+  1.6.4 2026/03/06
+    1.6.4.4
+    - REFATORAÇÃO DroneCoordinates UI
+      - PathSelectorWidget: altura reduzida 24px, margins 0,0,0,0, spacing 2
+      - 3 CollapsibleParametersWidget groups com estado persistido:
+        ✓ "Opções" (expandido por padrão): 3 checkboxes (recursive, merge, photos)
+        ✓ "Salvamento" (colapsado): 2 path selectors (save_points, save_track)
+        ✓ "Estilos" (colapsado): 2 QML selectors (style_track, apply_style)
+      - Preferências: opts_expanded, save_expanded, styles_expanded persistidas em load_tool_prefs/save_tool_prefs
+    1.6.4.3
+    - CORREÇÃO CollapsibleParametersWidget refresh() bug
+      - Problema: sizeHint() calculado antes de layout eventos finalizarem → conteúdo invisível ao expandir de prefs
+      - Solução: QTimer.singleShot(0, _do_refresh) adia cálculo para próximo ciclo de eventos
+      - Implementação: refresh() chamado após adicionar conteúdo em cada collapsible
+      - Resultado: collapsibles expandem com conteúdo visível (sem glitch)
+    1.6.4.2
+    - PERSISTÊNCIA DE GEOMETRIA DA JANELA
+      - BasePlugin._load_window_geometry(): restora width/height de preferências via self.resize()
+      - BasePlugin._save_window_geometry(): persiste width/height em preferências via save_tool_prefs()
+      - BasePlugin.closeEvent(): override salva geometria + prefs automaticamente ao fechar
+      - Integração init(): _load_prefs() → _load_window_geometry() → showEvent()
+      - Padrão: Todos plugins que herdam BasePluginMTL ganham persistência automática
+      - Keys: window_width, window_height salvos em load_tool_prefs(TOOL_KEY)
+    1.6.4.1
+    - REFATORAÇÃO DE CLASSES para CamelCase
+      - Classes renomeadas seguindo padrão Python: nomes descritivos em PascalCase
+      - Movimentação de classes para melhor organização arquitetônica
+      - Preservada retrocompatibilidade em imports críticos

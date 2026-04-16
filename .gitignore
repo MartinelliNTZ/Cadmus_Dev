@@ -1,0 +1,29 @@
+# Logs
+/log
+*.log
+
+# IDE
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# QGIS build/cache
+*.pyc
+*.pyd
+
+# OS
+.DS_Store
+Thumbs.db
+
+#gis
+*.csv
+*.kml
+*.kmz
+*.gpkg
+*.dbf
+*.shp
+*.shx

@@ -1,0 +1,35 @@
+# Example OpenStreetMap JSON Response
+https: //nominatim.openstreetmap.org/reverse?lat=-8.8130&lon=-45.0235&format=json
+{
+    "place_id": 12147703,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 433064832,
+    "lat": "-12.4852500",
+    "lon": "-49.1195741",
+    "class": "highway",
+    "type": "residential",
+    "place_rank": 26,
+    "importance": 0.053373566033417225,
+    "addresstype": "road",
+    "name": "Avenida Adelino Pinheiro de Queiros",
+    "display_name": "Avenida Adelino Pinheiro de Queiros, Alvorada, Região Geográfica Imediata de Gurupi, Região Geográfica Intermediária de Gurupi, Tocantins, Região Norte, 77480-000, Brasil",
+    "address": {
+        "road": "Avenida Adelino Pinheiro de Queiros",
+        "village": "Alvorada",
+        "municipality": "Região Geográfica Imediata de Gurupi",
+        "state_district": "Região Geográfica Intermediária de Gurupi",
+        "state": "Tocantins",
+        "ISO3166-2-lvl4": "BR-TO",
+        "region": "Região Norte",
+        "postcode": "77480-000",
+        "country": "Brasil",
+        "country_code": "br"
+    },
+    "boundingbox": [
+        "-12.4860679",
+        "-12.4753461",
+        "-49.1249860",
+        "-49.1190888"
+    ]
+}

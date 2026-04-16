@@ -1,0 +1,171 @@
+a TranslationManager precisa ter T.APP_NAME E NAO T.get("APP_NAME") para facilitar uso e evitar erros de digitação. O método get() é útil para casos dinâmicos, mas para strings fixas é melhor acesso direto.
+
+PASSO A PASSO — IMPLEMENTAÇÃO COMPLETA DO TranslationManager (QGIS)
+
+==================================================
+1. CRIAR AS CLASSES DE STRINGS (UM ARQUIVO POR IDIOMA)
+==================================================
+
+# strings_br.py
+class StringsBR:
+    """Português (pt-BR)"""
+
+    # GENERAL
+    APP_NAME = "Gerenciador de Senhas"
+
+    # UI
+    BTN_CLOSE = "Fechar"
+
+    # MESSAGES
+    MSG_SUCCESS = "Operação realizada com sucesso"
+
+
+# strings_en.py
+class StringsEN:
+    """English (en)"""
+
+    # GENERAL
+    APP_NAME = "Password Manager"
+
+    # UI
+    BTN_CLOSE = "Close"
+
+    # MESSAGES
+    MSG_SUCCESS = "Operation completed successfully"
+
+
+==================================================
+2. CRIAR O TranslationManager
+==================================================
+
+# translation_manager.py
+from qgis.PyQt.QtCore import QLocale
+from .strings_br import StringsBR
+from .strings_en import StringsEN
+
+
+class TranslationManager:
+    _strings = None
+
+    @classmethod
+    def load(cls):
+        lang = QLocale.system().name()[:2]
+
+        if lang == "pt":
+            cls._strings = StringsBR
+        else:
+            cls._strings = StringsEN
+
+    @classmethod
+    def get(cls, key):
+        if cls._strings is None:
+            raise RuntimeError("TranslationManager não foi carregado")
+
+        if not hasattr(cls._strings, key):
+            raise AttributeError(f"Chave de tradução não encontrada: {key}")
+
+        return getattr(cls._strings, key)
+
+
+==================================================
+3. CRIAR UM ALIAS GLOBAL (FACILITA USO)
+==================================================
+
+# i18n.py (ou __init__.py do módulo)
+from .translation_manager import TranslationManager
+
+T = TranslationManager
+
+
+==================================================
+4. INICIALIZAR NO START DO PLUGIN
+==================================================
+
+# no __init__ do plugin ou classe principal
+from .i18n import T
+
+def initGui(self):
+    T.load()
+
+
+==================================================
+5. USO NO CÓDIGO (PADRÃO)
+==================================================
+
+from .i18n import T
+
+print(T.get("APP_NAME"))
+print(T.get("BTN_CLOSE"))
+print(T.get("MSG_SUCCESS"))
+
+
+==================================================
+6. (OPCIONAL) MELHORAR DX — ACESSO DIRETO
+==================================================
+
+# se quiser evitar T.get("APP_NAME"), use isso:
+
+class TranslationManager:
+    _strings = None
+
+    @classmethod
+    def load(cls):
+        from qgis.PyQt.QtCore import QLocale
+        lang = QLocale.system().name()[:2]
+        cls._strings = StringsBR if lang == "pt" else StringsEN
+
+    def __getattr__(self, item):
+        return getattr(self._strings, item)
+
+
+# uso:
+
+T = TranslationManager()
+T.load()
+
+print(T.APP_NAME)
+print(T.BTN_CLOSE)
+
+
+==================================================
+7. REGRA DE OURO (IMPORTANTE)
+==================================================
+
+- NUNCA usar string hardcoded:
+  ERRADO:
+    label.setText("Fechar")
+
+  CERTO:
+    label.setText(T.BTN_CLOSE)
+
+- TODAS as classes (BR/EN) devem ter os mesmos atributos
+
+- nomes das chaves devem ser consistentes
+
+
+==================================================
+8. DEBUG RÁPIDO
+==================================================
+
+print(QLocale.system().name())  # ex: pt_BR, en_US
+print(T.get("APP_NAME"))
+
+
+==================================================
+9. ESTRUTURA FINAL SUGERIDA
+==================================================
+
+your_plugin/
+│
+├── i18n/
+│   ├── strings_br.py
+│   ├── strings_en.py
+│   ├── translation_manager.py
+│   └── i18n.py
+│
+├── main.py
+
+
+==================================================
+FIM — PRONTO PRA PRODUÇÃO
+==================================================

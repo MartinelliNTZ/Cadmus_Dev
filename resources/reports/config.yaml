@@ -1,0 +1,256 @@
+﻿thresholds:
+  gsd_cm:
+    type: lower_better
+    levels: [15.0, 10.0, 7.0, 5.0, inf]
+    messages:
+      - "GSD critico"
+      - "GSD alto"
+      - "GSD aceitavel"
+      - "GSD bom"
+      - "GSD excelente"
+
+  motion_blur_risk:
+    type: lower_better
+    levels: [1.2, 0.8, 0.5, 0.3, inf]
+    messages:
+      - "Motion blur critico"
+      - "Motion blur alto"
+      - "Motion blur moderado"
+      - "Motion blur baixo"
+      - "Motion blur minimo"
+
+  photogrammetry_quality_index:
+    type: higher_better
+    levels: [45, 60, 75, 85, 95]
+    messages:
+      - "Qualidade critica"
+      - "Qualidade baixa"
+      - "Qualidade OK"
+      - "Qualidade boa"
+      - "Qualidade excelente"
+
+  orthorectification_potential:
+    type: higher_better
+    levels: [35, 45, 55, 65, 72]
+    messages:
+      - "Potencial muito baixo"
+      - "Potencial baixo"
+      - "Potencial OK"
+      - "Potencial bom"
+      - "Potencial excelente"
+
+  rtk_std_lon:
+    type: lower_better
+    levels: [0.012, 0.010, 0.007, 0.0045, inf]
+    messages:
+      - "RTK lon critico"
+      - "RTK lon ruim"
+      - "RTK lon OK"
+      - "RTK lon bom"
+      - "RTK lon excelente"
+
+  rtk_std_lat:
+    type: lower_better
+    levels: [0.011, 0.009, 0.007, 0.0045, inf]
+    messages:
+      - "RTK lat critico"
+      - "RTK lat ruim"
+      - "RTK lat OK"
+      - "RTK lat bom"
+      - "RTK lat excelente"
+
+  rtk_std_hgt:
+    type: lower_better
+    levels: [0.026, 0.020, 0.015, 0.010, inf]
+    messages:
+      - "RTK hgt critico"
+      - "RTK hgt ruim"
+      - "RTK hgt OK"
+      - "RTK hgt bom"
+      - "RTK hgt excelente"
+
+  shutter_life_pct:
+    type: lower_better
+    levels: [60, 35, 20, 10, inf]
+    messages:
+      - "Desgaste muito alto"
+      - "Desgaste alto"
+      - "Desgaste moderado"
+      - "Desgaste baixo"
+      - "Desgaste minimo"
+
+  speed_3d_ms:
+    type: range_best
+    levels:
+      - [0.0, 2.0]
+      - [2.0, 4.0]
+      - [4.0, 10.0]
+      - [10.0, 15.0]
+      - [16.0, inf]
+    messages:
+      - "Velocidade muito baixa"
+      - "Velocidade baixa"
+      - "Velocidade OK"
+      - "Velocidade boa"
+      - "Velocidade alta estavel"
+
+  incidence_angle:
+    type: range_best
+    levels:
+      - [0.0, 80.0]
+      - [80.0, 90.0]
+      - [90.0, 98.0]
+      - [98.0, 108.0]
+      - [108.0, 120.0]
+    messages:
+      - "Angulo critico"
+      - "Angulo abaixo do ideal"
+      - "Angulo OK"
+      - "Angulo bom"
+      - "Angulo excelente"
+
+  sensor_temp_c:
+    type: lower_better
+    levels: [48, 45, 43, 40, inf]
+    messages:
+      - "Temperatura critica"
+      - "Temperatura alta"
+      - "Temperatura moderada"
+      - "Temperatura baixa"
+      - "Temperatura ideal"
+
+  light_consistency:
+    type: categorical
+    mapping:
+      Unknown: 1
+      Inconsistent: 2
+      Consistent: 5
+    messages:
+      - "Iluminacao desconhecida"
+      - "Iluminacao inconsistente"
+      - "Iluminacao OK"
+      - "Iluminacao boa"
+      - "Iluminacao consistente"
+
+  predicted_overlap:
+    type: higher_better
+    levels: [20, 50, 75, 90, 97]
+    messages:
+      - "Sobreposicao critica"
+      - "Sobreposicao baixa"
+      - "Sobreposicao OK"
+      - "Sobreposicao boa"
+      - "Sobreposicao excelente"
+
+  vertical_stability:
+    type: lower_better
+    levels: [2.0, 0.8, 0.3, 0.1, inf]
+    messages:
+      - "Estabilidade vertical critica"
+      - "Estabilidade vertical baixa"
+      - "Estabilidade vertical OK"
+      - "Estabilidade vertical boa"
+      - "Estabilidade vertical excelente"
+
+  speed_variation_index:
+    type: lower_better
+    levels: [0.8, 0.4, 0.2, 0.05, inf]
+    messages:
+      - "Variacao de velocidade critica"
+      - "Variacao de velocidade alta"
+      - "Variacao de velocidade OK"
+      - "Variacao de velocidade baixa"
+      - "Velocidade muito estavel"
+
+  gimbal_angular_velocity:
+    type: lower_better
+    levels: [80, 40, 20, 5, inf]
+    messages:
+      - "Movimento angular critico"
+      - "Movimento angular alto"
+      - "Movimento angular moderado"
+      - "Movimento angular baixo"
+      - "Movimento angular minimo"
+
+  trajectory_smoothness:
+    type: lower_better
+    levels: [100, 50, 20, 5, inf]
+    messages:
+      - "Trajetoria muito irregular"
+      - "Trajetoria irregular"
+      - "Trajetoria OK"
+      - "Trajetoria suave"
+      - "Trajetoria muito suave"
+
+  capture_efficiency:
+    type: higher_better
+    levels: [0.05, 0.15, 0.30, 0.45, 0.55]
+    messages:
+      - "Eficiencia critica"
+      - "Eficiencia baixa"
+      - "Eficiencia OK"
+      - "Eficiencia boa"
+      - "Eficiencia excelente"
+
+  is_valid_sequence_prev:
+    type: categorical
+    mapping:
+      0: 1
+      1: 5
+    messages:
+      - "Sequencia previa invalida"
+      - "Sequencia previa ruim"
+      - "Sequencia previa OK"
+      - "Sequencia previa boa"
+      - "Sequencia previa valida"
+
+  is_valid_sequence_next:
+    type: categorical
+    mapping:
+      0: 1
+      1: 5
+    messages:
+      - "Sequencia seguinte invalida"
+      - "Sequencia seguinte ruim"
+      - "Sequencia seguinte OK"
+      - "Sequencia seguinte boa"
+      - "Sequencia seguinte valida"
+
+  abrupt_change_flag:
+    type: categorical
+    mapping:
+      1: 1
+      0: 5
+    messages:
+      - "Mudanca abrupta detectada"
+      - "Mudanca alta"
+      - "Mudanca moderada"
+      - "Mudanca baixa"
+      - "Sem mudanca abrupta"
+
+  rtk_stability_score:
+    type: higher_better
+    levels: [90.0, 95.0, 98.0, 99.0, 99.9]
+    messages:
+      - "RTK estabilidade critica"
+      - "RTK estabilidade baixa"
+      - "RTK estabilidade OK"
+      - "RTK estabilidade boa"
+      - "RTK estabilidade excelente"
+
+  light_source_classification:
+    type: categorical
+    mapping:
+      Unknown: 1
+      Fluorescent: 3
+      Daylight: 5
+    messages:
+      - "Fonte de luz desconhecida"
+      - "Fonte de luz ruim"
+      - "Fonte de luz OK"
+      - "Fonte de luz boa"
+      - "Fonte de luz ideal"
+
+templates:
+  template_path: core/template.html
+  output: relatorio.html

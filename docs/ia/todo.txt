@@ -1,0 +1,99 @@
+﻿[x] E01 - Descoberta tecnica e inventario (6 itens)
+[x] E01.1 - Inventariar todos os arquivos em `photo_report` e classificar por tipo (dominio, util, recurso, script).
+[x] E01.2 - Mapear duplicidades entre `photo_report` e codigo oficial (`utils`, `core`, `plugins`).
+[x] E01.3 - Catalogar diferencas comportamentais entre classes duplicadas (metodos, assinaturas, regras).
+[x] E01.4 - Validar pontos de entrada atuais do DroneCoordinates (dialog e runner).
+[x] E01.5 - Levantar dependencias de i18n, ToolKey e WidgetFactory para novas telas.
+[x] E01.6 - Registrar matriz de risco inicial para regressao de pipeline.
+
+[x] E02 - Desenho de arquitetura de report (6 itens)
+[x] E02.1 - Definir API do `ReportGenerationService` (input/output/erros).
+[x] E02.2 - Definir estrutura de pastas `utils/report` e convencoes de import.
+[x] E02.3 - Definir local oficial de recursos HTML/config em `resources/reports`.
+[x] E02.4 - Definir contrato do JSON esperado (versao, campos minimos, fallbacks).
+[x] E02.5 - Definir estrategia de normalizacao de chaves via StringManager.
+[x] E02.6 - Definir criterios de observabilidade (codes de log por etapa).
+
+[x] E03 - Infra de armazenamento temporario (6 itens)
+[x] E03.1 - Criar helpers em ExplorerUtils para pasta base de reports no temp.
+[x] E03.2 - Criar helper para subpasta de JSON (`.../reports/json`).
+[x] E03.3 - Criar helper para subpasta de HTML (`.../reports/html`).
+[x] E03.4 - Ajustar naming dos JSON para nome amigavel ao usuario.
+[x] E03.5 - Ajustar naming dos HTML com referencia ao JSON/execucao.
+[x] E03.6 - Garantir logs de caminho final de JSON e HTML em sucesso/erro.
+
+[x] E04 - Migracao de recursos e nucleo de report (6 itens)
+[x] E04.1 - Migrar `template.html` para `resources/reports/template.html`.
+[x] E04.2 - Migrar `config.yaml` para `resources/reports/config.yaml`.
+[x] E04.3 - Migrar/adaptar `JSONUtil` para `utils/report/JSONUtil.py`.
+[x] E04.4 - Migrar/adaptar `RangeMetadataManager` para `utils/report/RangeMetadataManager.py`.
+[x] E04.5 - Migrar/adaptar `IMGMetadata` para `utils/report/IMGMetadata.py`.
+[x] E04.6 - Migrar/adaptar `AggregateAnalyzer` e `RenderEngine` para `utils/report`.
+
+[x] E05 - Integracao com metadata central e normalizacao (6 itens)
+[x] E05.1 - Garantir que filtros e nomes de campo consultam somente `MetadataFields`.
+[x] E05.2 - Implementar `_normalize_key` em `utils/StringManager.py`.
+[x] E05.3 - Refatorar consumidores para usar normalizador central (sem duplicar regex local).
+[x] E05.4 - Validar compatibilidade entre nomes do JSON temp e atributos oficiais.
+[x] E05.5 - Ajustar mapeamento de campos MRK, required e custom no gerador de report.
+[x] E05.6 - Revisar `StringAdapter` para filtros/listagens de campos no contexto de report.
+
+[x] E06 - Integracao report no DroneCoordinates (6 itens)
+[x] E06.1 - Revisar preferencia `generate_report` na abertura/salvamento do dialog.
+[x] E06.2 - Garantir que pipeline salva caminho do JSON no contexto final.
+[x] E06.3 - Chamar `ReportGenerationService` ao fim da pipeline quando checkbox ativo.
+[x] E06.4 - Tratar erro de report sem abortar adicao de camada vetorial.
+[x] E06.5 - Exibir feedback de report gerado com caminho de saida.
+[x] E06.6 - Registrar logs detalhados por etapa (json->analise->html).
+
+[x] E07 - Integracao no DroneCoordinatesRunner (6 itens)
+[x] E07.1 - Ler preferencia `generate_report` no runner.
+[x] E07.2 - Propagar flags e caminhos de JSON para o runner.
+[x] E07.3 - Acionar `ReportGenerationService` ao final do runner (quando habilitado).
+[x] E07.4 - Garantir que callback `on_finished` receba caminho do HTML gerado.
+[x] E07.5 - Garantir comportamento identico entre dialog e runner.
+[x] E07.6 - Adicionar logs de telemetria funcional no runner.
+
+[x] E08 - Nova ferramenta de regeracao de report (Agricultura) (6 itens)
+[x] E08.1 - Criar novo `ToolKey` para ferramenta de report metadata.
+[x] E08.2 - Adicionar strings i18n (titulo, tooltip, labels, mensagens).
+[x] E08.3 - Registrar nova ferramenta no `ToolRegistry` (categoria Agriculture, tipo dialog).
+[x] E08.4 - Implementar plugin `ReportMetadataPlugin` com listagem de JSON disponivel.
+[x] E08.5 - Implementar acao de selecionar JSON e gerar HTML novamente.
+[x] E08.6 - Aplicar padrao de UI similar ao `SettingsPlugin` para listagem/selecao.
+
+[x] E09 - WidgetFactory e navegacao de relatorios (6 itens)
+[x] E09.1 - Criar helper dedicado no WidgetFactory para botao de abrir pasta de relatorios.
+[x] E09.2 - Integrar novo botao no plugin de report metadata.
+[x] E09.3 - Integrar abertura segura de pasta via ExplorerUtils.
+[x] E09.4 - Validar comportamento no Windows/QGIS 3.16+.
+[x] E09.5 - Revisar estilo visual e consistencia com widgets existentes.
+[x] E09.6 - Garantir fallback amigavel quando pasta estiver vazia/inexistente.
+
+[x] E10 - Vetorial sem MRK (fotos puras) (6 itens)
+[x] E10.1 - Desenhar fluxo de entrada (pasta de fotos) para nova ferramenta.
+[x] E10.2 - Extrair coordenadas EXIF sem dependencia de MRK.
+[x] E10.3 - Tentar extracao XMP opcional sem falha hard se ausente.
+[x] E10.4 - Gerar camada vetorial com campos possiveis e marcadores de qualidade.
+[x] E10.5 - Gerar report mesmo com dados parciais, com alertas de confiabilidade.
+[x] E10.6 - Definir regras minimas para bloqueio/aviso quando dado for insuficiente.
+
+[x] E11 - Desacoplamento EXIF, XMP e custom (6 itens)
+[x] E11.1 - Separar responsabilidades por adaptadores/servicos (Exif, Xmp, Custom).
+[x] E11.2 - Remover suposicoes DJI onde for possivel no fluxo comum.
+[x] E11.3 - Criar contrato de merge de metadados com precedencia clara.
+[x] E11.4 - Garantir que custom fields dependentes tenham fallback controlado.
+[x] E11.5 - Logar origem do valor (EXIF/XMP/MRK/CUSTOM) para diagnostico.
+[x] E11.6 - Preparar pontos de extensao para novos fabricantes no futuro.
+
+[x] E12 - Validacao final, documentacao e limpeza (6 itens)
+[x] E12.1 - Executar smoke test sintatico nos modulos alterados.
+[ ] E12.2 - Rodar teste manual end-to-end dos fluxos A/B/C do plano.
+[x] E12.3 - Validar listagem de JSON e regeracao de HTML com multiplos arquivos.
+[x] E12.4 - Atualizar changelog com todos os blocos implementados.
+[x] E12.5 - Documentar guia rapido de uso da nova ferramenta.
+[x] E12.6 - Preparar checklist para remocao segura da pasta `photo_report`.
+
+Observacao:
+- Total de itens planejados: 72 (12 etapas x 6 itens).
+- Status atual: implementacao em fase final; pendente apenas validacao manual end-to-end (E12.2).

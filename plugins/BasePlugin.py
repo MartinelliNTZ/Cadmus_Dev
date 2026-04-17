@@ -473,24 +473,6 @@ class BasePluginMTL(BaseDialog):
 
         QgisMessageUtil.modal_error(self.iface, f"Erro durante processamento:\n{exc}")
 
-    def create_action(self, icon_rel_path, text, callback):
-        """Cria e registra uma ação no menu do plugin.
-
-        Recebe: icon_rel_path (str), text (str), callback (callable).
-        Retorna: QAction criado.
-        Faz: cria a QAction, conecta o callback e adiciona ao menu.
-        """
-        self.logger.debug(f"Criando ação: {text}")
-        icon_path = os.path.join(
-            os.path.dirname(self.__class__.__module__.replace(".", os.sep)),
-            icon_rel_path,
-        )
-
-        action = QAction(icon_path, text, self.iface.mainWindow())
-        action.triggered.connect(callback)
-
-        self.iface.addPluginToMenu(self.MENU_NAME, action)
-        self.actions.append(action)
 
     def show_info_dialog(self, title=f"📘 {STR.INSTRUCTIONS}"):
         """Mostra diálogo de instruções do plugin.

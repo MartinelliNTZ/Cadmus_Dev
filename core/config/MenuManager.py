@@ -229,7 +229,7 @@ class MenuManager:
             try:
                 tool_prefs = Preferences.load_tool_prefs(tool.tool_key)
                 old_main_action = tool.main_action
-                new_main_action = tool_prefs.get("main_action") is True
+                new_main_action = tool_prefs.get("main_action", False)
                 
                 if old_main_action != new_main_action:
                     tool.main_action = new_main_action

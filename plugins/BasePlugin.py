@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 from .BaseDialog import BaseDialog
-from qgis.PyQt.QtWidgets import QAction
-from qgis.PyQt.QtCore import pyqtSignal
 from qgis.core import QgsVectorLayer
 import os
 from typing import Optional
@@ -9,7 +7,6 @@ import time
 from ..utils.FormatUtils import FormatUtils
 from ..core.config.LogUtils import LogUtils
 from ..core.config.MenuManager import MenuManager
-from ..core.config.PyQtSignalManager import get_plugin_signal_hub
 from ..core.ui.info_dialog import InfoDialog
 from ..utils.Preferences import Preferences
 from ..utils.ToolKeys import ToolKey
@@ -23,7 +20,7 @@ from ..i18n.TranslationManager import STR
 #  PLUGIN BasePluginMTL
 # -------------------------------------------------------------
 class BasePluginMTL(BaseDialog):
-    plugin_instantiated = pyqtSignal(dict)
+
     APP_NAME = STR.APP_NAME
     TOOL_KEY = "base_plugin"  # Identificador padrão
     PLUGIN_NAME = ""
@@ -36,13 +33,7 @@ class BasePluginMTL(BaseDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._plugin_signal_emitted = False
-        self._plugin_signal_context = {
-            "tool_key": self.TOOL_KEY,
-            "class_name": self.__class__.__name__,
-            "plugin_name": self.PLUGIN_NAME or self.__class__.__name__,
-            "build_ui": False,
-        }
+
 
     def init(
         self,
@@ -99,33 +90,7 @@ class BasePluginMTL(BaseDialog):
         else:
             self.logger.debug("Construção de UI desabilitada")
 
-    def showEvent(self, event):
-        """Emite o sinal uma Ãºnica vez quando a janela Ã© realmente aberta."""
-        super().showEvent(event)
-
-        if self._plugin_signal_emitted:
-            return
-
-        self._emit_plugin_instantiated_signal()
-        self._plugin_signal_emitted = True
-
-    def _emit_plugin_instantiated_signal(self):
-        """Emite sinal quando uma instÃ¢ncia filha do BasePlugin Ã© iniciada."""
-        payload = dict(self._plugin_signal_context)
-        payload["tool_key"] = self.TOOL_KEY
-        payload["plugin_name"] = self.PLUGIN_NAME or payload.get("class_name")
-
-        try:
-            self.plugin_instantiated.emit(payload)
-            get_plugin_signal_hub().plugin_instantiated.emit(payload)
-            self.logger.debug(
-                f"[plugin_instantiated] Sinal emitido com payload: {payload}"
-            )
-        except Exception as e:
-            self.logger.error(
-                f"[plugin_instantiated] Erro ao emitir sinal de instanciaÃ§Ã£o: {e}"
-            )
-
+ 
     """
     Classe base para plugins do Cadmus.
 
@@ -472,6 +437,7 @@ class BasePluginMTL(BaseDialog):
         exc = errors[0] if errors else Exception("Erro desconhecido")
 
         QgisMessageUtil.modal_error(self.iface, f"Erro durante processamento:\n{exc}")
+
 
 
     def show_info_dialog(self, title=f"📘 {STR.INSTRUCTIONS}"):

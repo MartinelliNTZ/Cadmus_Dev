@@ -7,7 +7,7 @@ from .i18n.TranslationManager import STR
 from .core.config.PluginBootstrap import PluginBootstrap
 from .core.config.ToolRegistry import ToolRegistry
 from .core.config.MenuManager import MenuManager
-from .core.config.PyQtSignalManager import PyQtSignalManager
+
 from .core.services.MrkDropHandler import MrkDropHandler
 
 
@@ -42,8 +42,6 @@ class CadmusPlugin:
         self.logger.info("Plugin inicializado")
         self.logger.info(f"Locale: {locale}. TM.STR: {STR.APP_NAME}")
 
-        self.pyqt_signal_manager = PyQtSignalManager(tool_key=self.TOOL_KEY)
-        self.pyqt_signal_manager.start()
 
         self.mrk_drop_handler = MrkDropHandler(self.iface)
         self.iface.registerCustomDropHandler(self.mrk_drop_handler)

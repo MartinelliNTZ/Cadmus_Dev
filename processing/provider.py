@@ -9,7 +9,7 @@ from .AttributeStatistics import AttributeStatistics
 from .GeometryLineFromPoints import GeometryLineFromPoints
 from .RasterDifferenceStatiscs import RasterDifferenceStatiscs
 from .RasterWeightedAverage import RasterWeightedAverage
-from .CriarGradeV1 import GridGenerator
+from .GridGenerator import GridGenerator
 from ..i18n.TranslationManager import STR
 
 

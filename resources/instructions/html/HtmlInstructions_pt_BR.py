@@ -93,10 +93,10 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
-    def get_create_grid_v1_help(self):
+    def get_grid_generator_help(self):
         return f"""
             {self.provider.logo}
-            Ferramenta do pacote Cadmus para criar uma grade de pontos, linhas ou polígonos dentro de uma área poligonal.
+            Ferramenta do pacote Cadmus para gerar uma grade de pontos, linhas ou polígonos dentro de uma área poligonal.
             {self.provider.transform_h('Objetivo')}
             Gerar uma grade regular usando a extensão de uma camada de entrada.
             Extrair a grade somente onde ela intersecta a camada de entrada.

@@ -39,7 +39,7 @@ class ToolKey:
     GEOMETRY_LINE_FROM_POINTS = "geometry_line_from_points"
     RASTER_DIFERENCE_STATISTICS = "raster_diference_statistics"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average"
-    CREATE_GRID_V1 = "create_grid_v1"
+    GRID_GENERATOR = "grid_generator"
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {
@@ -68,5 +68,6 @@ class ToolKey:
         MY_ALGORITHM: "#98D8C8",  # verde agua -> generico
         PROVIDER: "#BFC9CA",  # cinza -> infraestrutura
         RASTER_MASS_SAMPLER: "#F1948A",  # coral -> raster pesado
+        GRID_GENERATOR: "#F39C12",  # laranja forte -> gerador de grade
         ELEVATION_ANALISYS: "#5DADE2",  # azul medio -> relevo
     }

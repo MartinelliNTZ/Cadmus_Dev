@@ -92,10 +92,10 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
-    def get_create_grid_v1_help(self):
+    def get_grid_generator_help(self):
         return f"""
             {self.provider.logo}
-            Cadmus tool for creating a point, line or polygon grid inside a polygon input area.
+            Cadmus tool for generating a point, line or polygon grid inside a polygon input area.
             {self.provider.transform_h('Objective')}
             Generate a regular grid using the extent of an input layer.
             Extract only the cells that intersect the input polygon.

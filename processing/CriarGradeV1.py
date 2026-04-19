@@ -16,13 +16,12 @@ from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
-class CriarGradeV1(BaseProcessingAlgorithm):
-    TOOL_KEY = ToolKey.CREATE_GRID_V1
-    ALGORITHM_NAME = "create_grid_v1"
-    ALGORITHM_DISPLAY_NAME = STR.CREATE_GRID_V1_TITLE
+class GridGenerator(BaseProcessingAlgorithm):
+    TOOL_KEY = ToolKey.GRID_GENERATOR
+    ALGORITHM_NAME = "grid_generator"
+    ALGORITHM_DISPLAY_NAME = STR.GRID_GENERATOR_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_VETORIAL
     ICON = "cadmus_icon.ico"
-    INSTRUCTIONS_FILE = "create_grid_v1.html"
     INPUT_LAYER = "INPUT_LAYER"
     HORIZONTAL_SPACING = "HORIZONTAL_SPACING"
     VERTICAL_SPACING = "VERTICAL_SPACING"
@@ -31,14 +30,17 @@ class CriarGradeV1(BaseProcessingAlgorithm):
     VERBOSE_LOG = "VERBOSE_LOG"
     DISPLAY_HELP = "DISPLAY_HELP"
 
-    logger = LogUtils(tool=TOOL_KEY, class_name="CriarGradeV1", level=LogUtils.DEBUG)
+    logger = LogUtils(tool=TOOL_KEY, class_name="GridGenerator", level=LogUtils.DEBUG)
 
     def initAlgorithm(self, config=None):
+        self.logger.debug("Inicializando algoritmo GridGenerator…")
         self.load_preferences()
         self.logger.debug(f"Preferências carregadas: {self.prefs}")
         self.addParameter(
             QgsProcessingParameterFeatureSource(
-                self.INPUT_LAYER, STR.CREATE_GRID_INPUT_LAYER, [QgsProcessing.TypeVectorPolygon]
+                self.INPUT_LAYER,
+                STR.GRID_GENERATOR_INPUT_LAYER,
+                [QgsProcessing.TypeVectorPolygon],
             )
         )
         self.addParameter(
@@ -76,6 +78,7 @@ class CriarGradeV1(BaseProcessingAlgorithm):
         )
 
     def processAlgorithm(self, parameters, context, feedback):
+        self.logger.info("Executando GridGenerator")
         input_layer = self.parameterAsSource(parameters, self.INPUT_LAYER, context)
         if input_layer is None:
             raise QgsProcessingException("Camada de entrada inválida")
@@ -86,8 +89,14 @@ class CriarGradeV1(BaseProcessingAlgorithm):
         verbose = self.parameterAsBool(parameters, self.VERBOSE_LOG, context)
         display_help = self.parameterAsBool(parameters, self.DISPLAY_HELP, context)
 
+        input_name = input_layer.name() if hasattr(input_layer, "name") else "<sem nome>"
+        self.logger.debug(
+            f"GridGenerator parâmetros: layer={input_name}, h_spacing={h_spacing}, v_spacing={v_spacing}, type={grid_type}, verbose={verbose}"
+        )
         if verbose:
-            self.logger.info(f"Criando grade com extent: {extent}, h_spacing: {h_spacing}, v_spacing: {v_spacing}, type: {grid_type}")
+            self.logger.info(
+                f"Criando grade com extent: {extent}, h_spacing: {h_spacing}, v_spacing: {v_spacing}, type: {grid_type}"
+            )
 
         # Criar grade usando native:creategrid
         alg_params = {

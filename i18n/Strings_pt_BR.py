@@ -299,8 +299,8 @@ class Strings_pt_BR:
     PROCESS_COMPLETED_LINES_GENERATED_SUCCESS = (
         "Processo concluído: linhas geradas com sucesso."
     )
-    CREATE_GRID_V1_TITLE = "Criar Grade V1"
-    CREATE_GRID_INPUT_LAYER = "Camada de Entrada (Polígono)"
+    GRID_GENERATOR_TITLE = "Gerador de Grade"
+    GRID_GENERATOR_INPUT_LAYER = "Camada de Entrada (Polígono)"
     HORIZONTAL_SPACING = "Espaçamento Horizontal"
     VERTICAL_SPACING = "Espaçamento Vertical"
     GRID_TYPE = "Tipo de Grade"

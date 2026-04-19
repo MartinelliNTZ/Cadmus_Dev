@@ -92,10 +92,10 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
-    def get_create_grid_v1_help(self):
+    def get_grid_generator_help(self):
         return f"""
             {self.provider.logo}
-            Herramienta de Cadmus para crear una cuadrícula de puntos, líneas o polígonos dentro de un área poligonal.
+            Herramienta de Cadmus para generar una cuadrícula de puntos, líneas o polígonos dentro de un área poligonal.
             {self.provider.transform_h('Objetivo')}
             Generar una cuadrícula regular usando la extensión de una capa de entrada.
             Extraer solo las celdas que intersectan la capa de entrada.

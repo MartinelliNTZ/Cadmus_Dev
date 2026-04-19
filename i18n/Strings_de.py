@@ -301,8 +301,8 @@ class Strings_de(Strings_pt_BR):
     PROCESS_COMPLETED_LINES_GENERATED_SUCCESS = (
         "Vorgang abgeschlossen: Linien erfolgreich generiert."
     )
-    CREATE_GRID_V1_TITLE = "Gitter Erstellen V1"
-    CREATE_GRID_INPUT_LAYER = "Eingabelayer (Polygon)"
+    GRID_GENERATOR_TITLE = "Grid-Generator"
+    GRID_GENERATOR_INPUT_LAYER = "Eingabelayer (Polygon)"
     HORIZONTAL_SPACING = "Horizontaler Abstand"
     VERTICAL_SPACING = "Vertikaler Abstand"
     GRID_TYPE = "Gittertyp"

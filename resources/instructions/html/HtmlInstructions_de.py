@@ -92,10 +92,10 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
-    def get_create_grid_v1_help(self):
+    def get_grid_generator_help(self):
         return f"""
             {self.provider.logo}
-            Cadmus-Werkzeug zum Erstellen eines Punkt-, Linien- oder Polygonrasters innerhalb eines Polygon-Eingabebereichs.
+            Cadmus-Werkzeug zum Generieren eines Punkt-, Linien- oder Polygonrasters innerhalb eines Polygon-Eingabebereichs.
             {self.provider.transform_h('Ziel')}
             Erstellen Sie ein regelmäßiges Raster basierend auf der Ausdehnung einer Eingabeebene.
             Extrahieren Sie nur die Zellen, die die Eingabeebene schneiden.

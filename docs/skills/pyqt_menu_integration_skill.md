@@ -1,26 +1,20 @@
-# SKILL: PyQtSignalManager Neutro e Reconstrução de Toolbar no BasePlugin
+# SKILL: Ciclo de Vida PyQtSignalManager, BasePluginMTL e Separação de Responsabilidade
 
-Especialista: `PyQtSignalManager` | `BasePluginMTL` | `MenuManager` | sinais PyQt e reconstrução de UI
-Versao: 1.0 | Abril 2026
+Especialista: `PyQtSignalManager` | `BasePluginMTL` | `MenuManager` | sinais PyQt | ciclo de vida
+Versao: 2.0 | Abril 2026
 Status: Pronto para uso
 
 ---
 
 ## TL;DR
 
-`PyQtSignalManager` é neutro, recém-criado, sem funções específicas além de escutar sinais globais. `BasePluginMTL` emite sinais de instanciação e usa `MenuManager.get_instance()` para reconstruir apenas a toolbar ao fechar plugins, mudando a ordem dos itens.
+**Separação de responsabilidade clara:**
 
-Padrao base:
-
-```python
-# Em BasePluginMTL.__init__
-hub = get_plugin_signal_hub()
-hub.plugin_instantiated.emit(self._plugin_signal_context)
-
-# Em BasePluginMTL.on_finish_plugin
-menu_manager = MenuManager.get_instance()
-menu_manager.reconstruct_toolbar()
-```
+1. **BasePluginMTL.\_\_init\_\_** → apenas emite sinal "fui aberto"
+2. **BasePluginMTL.init()** → emite novamente via hub global (com contexto)
+3. **BasePluginMTL.on_finish_plugin()** → atualiza preferences (main_action por categoria)
+4. **PyQtSignalManager** → neutro, escuta e loga sinais (preparado para orquestração futura)
+5. **MenuManager** → criado em `cadmus_plugin.py`, reconstruído via `get_instance()` (fora do BasePlugin)
 
 ---
 
@@ -28,73 +22,130 @@ menu_manager.reconstruct_toolbar()
 
 Use `PyQtSignalManager` para:
 
-- Escutar sinais globais de instanciação de plugins sem interferir na lógica
+- Escutar sinais globais de instanciação sem interferir na lógica
 - Logar eventos de plugins de forma centralizada
 - Manter um hub neutro para futuros sinais PyQt
 
-Use reconstrução de toolbar em `BasePluginMTL` para:
+Use `BasePluginMTL` para:
 
-- Atualizar a ordem dos botões na toolbar após fechar um plugin
-- Garantir que o main_action seja resetado e setado corretamente por categoria
-- Manter a UI sincronizada com as preferências atualizadas
+- Emitir sinais de instanciação (lógica de UI)
+- Atualizar preferences ao fechar (lógica de estado)
 
 Nao use para:
 
-- Criar menus ou toolbars (isso é feito em `cadmus_plugin.py`)
-- Modificar lógica de instanciação de plugins
+- Criar menus ou toolbars (responsabilidade de `cadmus_plugin.py`)
+- Instanciar MenuManager (já é singleton em `cadmus_plugin.py`)
+- Reconstruir toolbar (será feito por callback/sinal futuramente)
 
 ---
 
 ## Regras praticas
 
-1. `PyQtSignalManager` permanece neutro: apenas escuta e loga sinais.
-2. Em `BasePluginMTL.__init__`, emita `plugin_instantiated` via hub global.
-3. Em `BasePluginMTL.on_finish_plugin`, use `MenuManager.get_instance().reconstruct_toolbar()` para atualizar apenas a toolbar.
-4. Não instancie novo `MenuManager` em `BasePluginMTL`; use o singleton.
-5. A reconstrução afeta apenas a ordem dos itens na toolbar, não cria novos menus.
+1. `BasePluginMTL.__init__()`: super().__init__() simples, sem lógica
+2. `BasePluginMTL.init()`: emita sinal com contexto completo; inicialize logger após ativar sinal
+3. `BasePluginMTL.on_finish_plugin()`: apenas preferences logic, sem MenuManager
+4. `PyQtSignalManager`: neutro, apenas `.start()` e `.stop()`, loga eventos
+5. **NÃO** instancie MenuManager em BasePluginMTL; use singleton via `MenuManager.get_instance()` se necessário (futuramente via sinal)
 
 ---
 
-## Padrao: Emissão de sinal e reconstrução de toolbar
+## Padrao: Ciclo de vida correto
 
-### 1. Em BasePluginMTL.__init__
+### 1. CadmusPlugin.initGui() - Criar UI uma vez
+
+```python
+def initGui(self):
+    # ... bootstrap ...
+    
+    # Inicializar PyQtSignalManager para escutar
+    self.pyqt_signal_manager = PyQtSignalManager(tool_key=self.TOOL_KEY)
+    self.pyqt_signal_manager.start()
+    
+    # Criar ToolRegistry
+    self.tool_registry = ToolRegistry(self.iface)
+    
+    # Criar MenuManager e UI (UMA VEZ)
+    self.menu_manager = MenuManager(self.iface, self.tool_registry.tools, self.logger)
+    self.menu_manager.create_menu()
+    self.menu_manager.create_toolbar()
+    self.menu_manager.populate_menus()
+```
+
+### 2. BasePluginMTL.__init__() - Vazio
 
 ```python
 def __init__(self, parent=None):
     super().__init__(parent)
-    # Emitir sinal de instanciação (neutro, apenas para logging)
+    # Sem lógica; tudo vai para init()
+```
+
+### 3. BasePluginMTL.init() - Emitir sinal "fui aberto"
+
+```python
+def init(self, tool_key="base_plugin", class_name="BasePluginMTL", ...):
+    self.TOOL_KEY = tool_key
+    self.logger = LogUtils(tool=self.TOOL_KEY, class_name=class_name)
+    self.preferences = Preferences.load_tool_prefs(self.TOOL_KEY)
+    self._plugin_signal_context = {
+        "tool_key": self.TOOL_KEY,
+        "class_name": class_name,
+        "plugin_name": self.PLUGIN_NAME or class_name,
+        "build_ui": bool(build_ui),
+    }
+    
+    # Emitir sinal: "fui aberto"
     try:
         from ..core.config.PyQtSignalManager import get_plugin_signal_hub
         hub = get_plugin_signal_hub()
         hub.plugin_instantiated.emit(self._plugin_signal_context)
+        self.logger.debug(f"[Plugin aberto] {self._plugin_signal_context['plugin_name']}")
     except Exception as e:
-        pass
+        self.logger.warning(f"Falha ao emitir sinal: {e}")
+    
+    # ... resto do init (build_ui, etc) ...
 ```
 
-### 2. Em BasePluginMTL.on_finish_plugin
+### 4. BasePluginMTL.on_finish_plugin() - Atualizar preferences
 
 ```python
 def on_finish_plugin(self):
-    # ... lógica de preferences ...
-    
-    # Reconstruir apenas a toolbar para mudar ordem dos itens
-    menu_manager = MenuManager.get_instance()
-    mgr = MenuManager.get_instance()
-    if mgr:
-        mgr.reconstruct_toolbar()
-    if menu_manager is not None:
-        menu_manager.reconstruct_toolbar()
+    try:
+        # 1. Incrementar uso
+        self.preferences["usages"] = self.preferences.get("usages", 0) + 1
+        
+        # 2. Obter categoria
+        tool_category = self.preferences.get("category")
+        if not tool_category:
+            return
+        
+        # 3. Resetar main_action na categoria
+        Preferences.set_value_for_all_tools("main_action", False, filter_by={"category": tool_category})
+        
+        # 4. Setar este tool como main_action=True
+        self.preferences["main_action"] = True
+        
+        # 5. Salvar preferences
+        Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
+        self.logger.info("[on_finish_plugin] Preferences salvas")
+        
+    except Exception as e:
+        self.logger.error(f"[on_finish_plugin] Erro: {e}")
 ```
 
-### 3. Em PyQtSignalManager (neutro)
+### 5. PyQtSignalManager - Neutro
 
 ```python
 class PyQtSignalManager(QObject):
     def start(self):
         self._signal_hub.plugin_instantiated.connect(self._on_plugin_instantiated)
+        self.logger.info("[start] Escutando sinais")
+    
+    def stop(self):
+        self._signal_hub.plugin_instantiated.disconnect(self._on_plugin_instantiated)
+        self.logger.info("[stop] Desconectado")
     
     def _on_plugin_instantiated(self, payload):
-        # Apenas loga, sem interferir
+        # Apenas loga: "fui aberto"
         self.logger.info(f"[plugin_instantiated] {payload}")
 ```
 
@@ -102,24 +153,44 @@ class PyQtSignalManager(QObject):
 
 ## Benefícios
 
-- **Neutralidade**: `PyQtSignalManager` não interfere na lógica existente
-- **Centralização de sinais**: Todos os sinais passam por um hub global
-- **Reconstrução eficiente**: Apenas a toolbar é recriada, não menus inteiros
-- **Ordem dinâmica**: Itens da toolbar mudam conforme main_action por categoria
+- **Separação clara**: Cada classe tem responsabilidade única
+- **Sem acoplamento**: BasePlugin não conhece MenuManager
+- **Escalável**: Sinais podem ser processados por múltiplos listeners
+- **Testável**: PyQtSignalManager pode ser mockado
 
 ---
 
 ## Dependências
 
-- `qgis.PyQt.QtCore.QObject`
-- `qgis.PyQt.QtCore.pyqtSignal`
-- `MenuManager` com método `get_instance()` e `reconstruct_toolbar()`
-- `Preferences` para atualizar main_action
+- `qgis.PyQt.QtCore.QObject`, `pyqtSignal`
+- `MenuManager` com singleton `get_instance()`
+- `Preferences` para gerenciar main_action
+- `LogUtils` para logging
 
 ---
 
-## Exemplo de uso
+## Ciclo de vida completo
 
-1. Plugin é instanciado: sinal `plugin_instantiated` é emitido e logado por `PyQtSignalManager`
-2. Plugin fecha: `on_finish_plugin` reseta main_action por categoria e chama `reconstruct_toolbar()`
-3. Toolbar é recriada com nova ordem de itens, refletindo as mudanças de main_action
+```
+cadmus_plugin.initGui()
+  ↓
+  PyQtSignalManager.start() [escutando]
+  ↓
+  MenuManager criado [singleton]
+  ↓
+Plugin específico chamado
+  ↓
+  BasePluginMTL.init()
+    ↓
+    hub.plugin_instantiated.emit()
+    ↓
+    PyQtSignalManager._on_plugin_instantiated() [apenas loga]
+  ↓
+  Plugin executa
+  ↓
+Plugin fecha (closeEvent)
+  ↓
+  BasePluginMTL.on_finish_plugin() [atualiza preferences]
+  ↓
+  UI pode ser reconstruída via callback futuro
+```

@@ -46,19 +46,19 @@ class GridGenerator(BaseProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.HORIZONTAL_SPACING, STR.HORIZONTAL_SPACING,
-                type=QgsProcessingParameterNumber.Double, minValue=0.000001, defaultValue=15
+                type=QgsProcessingParameterNumber.Double, minValue=0.000001, defaultValue=self.prefs.get("horizontal_spacing", 15)
             )
         )
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.VERTICAL_SPACING, STR.VERTICAL_SPACING,
-                type=QgsProcessingParameterNumber.Double, minValue=0.000001, defaultValue=15
+                type=QgsProcessingParameterNumber.Double, minValue=0.000001, defaultValue=self.prefs.get("vertical_spacing", 15)
             )
         )
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.GRID_TYPE, STR.GRID_TYPE,
-                options=['Ponto', 'Linha', 'Retângulo (Polígono)'], defaultValue=0
+                options=['Ponto', 'Linha', 'Retângulo (Polígono)'], defaultValue=self.prefs.get("grid_type", 0)
             )
         )
         self.addParameter(
@@ -120,6 +120,12 @@ class GridGenerator(BaseProcessingAlgorithm):
         }
         extract_result = processing.run('native:extractbylocation', extract_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        self.prefs.update({"verbose_log": verbose, "display_help": display_help})
+        self.prefs.update({
+            "verbose_log": verbose,
+            "display_help": display_help,
+            "horizontal_spacing": h_spacing,
+            "vertical_spacing": v_spacing,
+            "grid_type": grid_type,
+        })
         self.save_preferences()
         return {self.OUTPUT_GRID: extract_result['OUTPUT']}

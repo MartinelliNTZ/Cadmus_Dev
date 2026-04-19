@@ -24,7 +24,7 @@ class ToolRegistry:
         self._main_action_prefs = {}  # Inicializar primeiro (vazio, será carregado depois)
         self.tools = self._create_tool_list()
         self._save_tool_metadata()
-        self._main_action_prefs = self._load_and_validate_main_actions()
+        self._main_action_prefs = self._load_and_validate_main_actions_strict()
         # Recarregar tools com main_actions validadas
         self.tools = self._create_tool_list()
 
@@ -44,17 +44,96 @@ class ToolRegistry:
                     f"Erro ao salvar metadata do tool '{tool.tool_key}': {e}"
                 )
 
+    def _load_and_validate_main_actions_strict(self):
+        """
+        Valida `main_action` usando a lista canÃ´nica do registry.
+
+        Para cada categoria, garante exatamente uma ferramenta com `True` e
+        todas as demais com `False`. Qualquer valor salvo fora desse padrÃ£o
+        tambÃ©m Ã© normalizado para booleano estrito.
+        """
+        all_prefs = Preferences.load_prefs()
+        main_action_prefs = {}
+        tools_by_category = {}
+
+        self.logger.info(
+            f"[_load_and_validate_main_actions_strict] Iniciando validaÃ§Ã£o. "
+            f"Total de ferramentas do registry: {len(self.tools)}"
+        )
+
+        for tool in sorted(self.tools, key=lambda t: (t.category, t.order, t.tool_key)):
+            tool_prefs = all_prefs.get(tool.tool_key, {})
+            if not isinstance(tool_prefs, dict):
+                tool_prefs = {}
+
+            raw_main_action = tool_prefs.get("main_action", tool.main_action)
+            normalized_main_action = raw_main_action is True
+
+            main_action_prefs[tool.tool_key] = normalized_main_action
+            tools_by_category.setdefault(tool.category, []).append(tool)
+
+            self.logger.debug(
+                f"[_load_and_validate_main_actions_strict] Tool '{tool.tool_key}': "
+                f"category={tool.category}, raw_main_action={raw_main_action}, "
+                f"normalized_main_action={normalized_main_action}"
+            )
+
+        for category, category_tools in tools_by_category.items():
+            true_tools = [
+                tool
+                for tool in category_tools
+                if main_action_prefs.get(tool.tool_key) is True
+            ]
+
+            if len(true_tools) == 1:
+                selected_tool = true_tools[0]
+            elif len(true_tools) > 1:
+                selected_tool = true_tools[0]
+                self.logger.warning(
+                    f"[_load_and_validate_main_actions_strict] Categoria '{category}': "
+                    f"{len(true_tools)} ferramentas com main_action=True. "
+                    f"Mantendo apenas '{selected_tool.tool_key}'."
+                )
+            else:
+                selected_tool = next(
+                    (tool for tool in category_tools if tool.main_action is True),
+                    category_tools[0],
+                )
+                self.logger.warning(
+                    f"[_load_and_validate_main_actions_strict] Categoria '{category}': "
+                    f"nenhuma com main_action=True. ForÃ§ando '{selected_tool.tool_key}'."
+                )
+
+            for tool in category_tools:
+                validated_value = tool.tool_key == selected_tool.tool_key
+                main_action_prefs[tool.tool_key] = validated_value
+                self.logger.debug(
+                    f"[_load_and_validate_main_actions_strict] Corrigido '{tool.tool_key}': "
+                    f"main_action={validated_value}"
+                )
+
+        for tool_key, is_main in main_action_prefs.items():
+            prefs = Preferences.load_tool_prefs(tool_key)
+            prefs["main_action"] = is_main
+            Preferences.save_tool_prefs(tool_key, prefs)
+
+        self.logger.info(
+            f"[_load_and_validate_main_actions_strict] ValidaÃ§Ã£o concluÃ­da: "
+            f"{main_action_prefs}"
+        )
+        return main_action_prefs
+
     def _load_and_validate_main_actions(self):
         """
         Carrega as preferências de main_action de todas as ferramentas,
-        valida que exista apenas uma com True POR CATEGORIA, e retorna dict {tool_key: bool}.
+        garante que exista exatamente uma com True POR CATEGORIA, e retorna dict {tool_key: bool}.
         
         Regras por categoria:
         - Se 2+ têm True, mantém apenas a primeira e reseta o resto
-        - Se nenhuma tem True, retorna False para todas (padrões em _create_tool_list usam True)
+        - Se nenhuma tem True, força a primeira ferramenta da categoria para True
         - Se exatamente 1 é True, retorna normalmente
         """
-        main_action_prefs = Preferences.load_pref_key_by_tool("main_action")
+        return self._load_and_validate_main_actions_strict()
         categories = StringManager.MENU_CATEGORIES.keys()
         
         self.logger.info(
@@ -66,7 +145,6 @@ class ToolRegistry:
         # Validar por CATEGORIA
         for category in categories:
             self.logger.debug(f"[_load_and_validate_main_actions] Validando categoria '{category}'")
-            
             # Filtrar apenas ferramentas desta categoria
             tools_in_category = {}
             for k, v in main_action_prefs.items():
@@ -77,19 +155,16 @@ class ToolRegistry:
                 )
                 if tool_cat == category:
                     tools_in_category[k] = v
-            
             self.logger.debug(
                 f"[_load_and_validate_main_actions] Categoria '{category}': "
                 f"{len(tools_in_category)} ferramentas. "
                 f"Tools: {tools_in_category}"
-            )
-            
+            )##19debug--
             true_count = sum(1 for v in tools_in_category.values() if v is True)
             self.logger.debug(
                 f"[_load_and_validate_main_actions] Categoria '{category}': "
                 f"{true_count} com main_action=True"
             )
-            
             if true_count > 1:
                 # Caso 2+: pega a primeira ocorrência e reseta o resto
                 self.logger.warning(
@@ -104,13 +179,19 @@ class ToolRegistry:
                         f"[_load_and_validate_main_actions] Corrigido '{k}': "
                         f"main_action={(k == first_key)}"
                     )
-            elif true_count == 0:
-                # Caso 0: nenhuma true nesta categoria - deixar como está
-                self.logger.debug(
+            elif true_count == 0 and tools_in_category:
+                # Caso 0: nenhuma true nesta categoria - força a primeira para True
+                self.logger.warning(
                     f"[_load_and_validate_main_actions] Categoria '{category}': "
-                    f"nenhuma com main_action=True. Usando padrão."
+                    f"nenhuma com main_action=True. Forçando a primeira para True."
                 )
-        
+                first_key = next(iter(tools_in_category.keys()))
+                for k in tools_in_category:
+                    main_action_prefs[k] = (k == first_key)
+                    self.logger.debug(
+                        f"[_load_and_validate_main_actions] Corrigido '{k}': "
+                        f"main_action={(k == first_key)}"
+                    )
         # Salvar correções se necessário
         self.logger.info(
             f"[_load_and_validate_main_actions] Salvando preferências validadas"
@@ -123,7 +204,6 @@ class ToolRegistry:
                 f"[_load_and_validate_main_actions] Salvo '{tool_key}': "
                 f"main_action={is_main}"
             )
-        
         self.logger.info(
             f"[_load_and_validate_main_actions] ✓ Validação concluída. "
             f"Result: {main_action_prefs}"

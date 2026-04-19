@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from .BaseDialog import BaseDialog
-from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsVectorLayer
 import os
 from typing import Optional
@@ -21,6 +20,7 @@ from ..i18n.TranslationManager import STR
 #  PLUGIN BasePluginMTL
 # -------------------------------------------------------------
 class BasePluginMTL(BaseDialog):
+
     APP_NAME = STR.APP_NAME
     TOOL_KEY = "base_plugin"  # Identificador padrão
     PLUGIN_NAME = ""
@@ -30,6 +30,10 @@ class BasePluginMTL(BaseDialog):
     system_preferences = {}
     AUTO_SAVE_PREFS_ON_CLOSE = True  # Define se as preferências devem ser salvas automaticamente ao fechar o plugin
     """Preferências globais do aplicativo (Cadmus Settings)"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
 
     def init(
         self,
@@ -59,6 +63,12 @@ class BasePluginMTL(BaseDialog):
         self.preferences = {}
         self.preferences.clear()
         self.preferences = Preferences.load_tool_prefs(self.TOOL_KEY)
+        self._plugin_signal_context = {
+            "tool_key": self.TOOL_KEY,
+            "class_name": class_name,
+            "plugin_name": self.PLUGIN_NAME or class_name,
+            "build_ui": bool(build_ui),
+        }
 
         # Carregar preferências globais do Settings se solicitado
         if load_system_prefs:
@@ -80,6 +90,7 @@ class BasePluginMTL(BaseDialog):
         else:
             self.logger.debug("Construção de UI desabilitada")
 
+ 
     """
     Classe base para plugins do Cadmus.
 
@@ -189,7 +200,7 @@ class BasePluginMTL(BaseDialog):
             )
             modified = Preferences.set_value_for_all_tools(
                 "main_action", 
-                False, 
+                False,
                 filter_by={"category": tool_category}
             )
             self.logger.info(
@@ -427,24 +438,7 @@ class BasePluginMTL(BaseDialog):
 
         QgisMessageUtil.modal_error(self.iface, f"Erro durante processamento:\n{exc}")
 
-    def create_action(self, icon_rel_path, text, callback):
-        """Cria e registra uma ação no menu do plugin.
 
-        Recebe: icon_rel_path (str), text (str), callback (callable).
-        Retorna: QAction criado.
-        Faz: cria a QAction, conecta o callback e adiciona ao menu.
-        """
-        self.logger.debug(f"Criando ação: {text}")
-        icon_path = os.path.join(
-            os.path.dirname(self.__class__.__module__.replace(".", os.sep)),
-            icon_rel_path,
-        )
-
-        action = QAction(icon_path, text, self.iface.mainWindow())
-        action.triggered.connect(callback)
-
-        self.iface.addPluginToMenu(self.MENU_NAME, action)
-        self.actions.append(action)
 
     def show_info_dialog(self, title=f"📘 {STR.INSTRUCTIONS}"):
         """Mostra diálogo de instruções do plugin.

@@ -10,3 +10,6 @@
 [2.3.14.8][14/04/2026] FIX CRÍTICO - MenuManager.reconstruct_toolbar() estava usando Tool objects ANTIGOS: criado método _refresh_tool_main_actions() que recarrega os valores de main_action das tools a partir das prefs atualizadas. Agora reconstruct_toolbar() sincroniza os estados antes de recriar a toolbar. Adicionados logs detalhados [_refresh_tool_main_actions] e [reconstruct_toolbar].
 2.3.16 15/04/2026
 [2.3.16.1][15/04/2026] comece aqui
+[2.3.16.2][15/04/2026] Adicionado evento global de instanciação de plugins filhos do BasePlugin via pyqtSignal, criado PyQtSignalManager para escutar o sinal e registrar a abertura no log, e integrado o manager ao ciclo de vida do CadmusPlugin.
+[2.3.16.3][15/04/2026] Movida a emissão do sinal de abertura de plugins do BasePluginMTL para o showEvent com trava de emissão única, removendo a dependência do método init para disparar o evento.
+[2.3.16.4][15/04/2026] Criado guia interno docs/skills/PYQT_SIGNAL_SKILL.md com padroes de uso de pyqtSignal no Cadmus, incluindo sinal local, hub global, manager observador, showEvent e erros comuns.

@@ -167,6 +167,96 @@ class Preferences:
         
         return modified_count
 
+    @staticmethod
+    def delete_value_for_all_tools(pref_key, filter_by=None):
+        """
+        Deleta um valor de chave específica em ferramentas, com filtro opcional.
+        GENÉRICO: filtra por QUALQUER chave-valor no dict de prefs.
+        
+        Exemplos:
+            - delete_value_for_all_tools("width")  
+              → deleta a chave "width" de TODOS os tools
+            - delete_value_for_all_tools("width", filter_by={"category": "VECTOR"})
+              → deleta "width" apenas de tools onde prefs["category"]=="VECTOR"
+            - delete_value_for_all_tools("enabled", filter_by={"tool_type": "DIALOG"})
+              → deleta "enabled" apenas de tools onde prefs["tool_type"]=="DIALOG"
+        
+        Args:
+            pref_key (str): Chave de preferência a ser deletada (ex: "main_action", "width")
+            filter_by (dict): Filtro opcional. Se fornecido, apenas ferramentas que
+                            atendem TODAS as condições são modificadas.
+                            Ex: {"category": "VECTOR", "tool_type": "DIALOG"}
+        
+        Retorna:
+            int: Número de ferramentas onde a chave foi deletada
+        """
+        if filter_by is None:
+            filter_by = {}
+        
+        prefs = Preferences.load_prefs()
+        deleted_count = 0
+        
+        logger.debug(
+            f"[delete_value_for_all_tools] Iniciando. pref_key='{pref_key}', "
+            f"filter_by={filter_by}, total_tools={len(prefs)}"
+        )
+        
+        # DEBUG: Log todas as ferramentas e suas categorias/tipos
+        if filter_by:
+            logger.debug(f"[delete_value_for_all_tools] Ferramentas disponíveis:")
+            for tool_key, tool_prefs in prefs.items():
+                if isinstance(tool_prefs, dict):
+                    cat = tool_prefs.get("category", "UNDEFINED")
+                    ttype = tool_prefs.get("tool_type", "UNDEFINED")
+                    logger.debug(f"[delete_value_for_all_tools]   '{tool_key}': category={cat}, tool_type={ttype}")
+        
+        for tool_key in list(prefs.keys()):
+            if not isinstance(prefs[tool_key], dict):
+                logger.debug(
+                    f"[delete_value_for_all_tools] Tool '{tool_key}' não é dict, pulando"
+                )
+                continue
+            
+            tool_prefs = prefs[tool_key]
+            
+            # Aplicar filtro: verificar se TODAS as condições do filter_by são atendidas
+            skip_this_tool = False
+            if filter_by:
+                for filter_key, filter_value in filter_by.items():
+                    tool_filter_value = tool_prefs.get(filter_key, "UNDEFINED")
+                    if tool_filter_value != filter_value:
+                        logger.debug(
+                            f"[delete_value_for_all_tools] Tool '{tool_key}' "
+                            f"'{filter_key}'={tool_filter_value}, filtro '{filter_key}'={filter_value}, PULANDO"
+                        )
+                        skip_this_tool = True
+                        break
+            
+            if skip_this_tool:
+                continue
+            
+            # Se passou no filtro (ou não há filtro), deleta a chave se existir
+            if pref_key in tool_prefs:
+                old_value = tool_prefs.pop(pref_key)
+                deleted_count += 1
+                logger.debug(
+                    f"[delete_value_for_all_tools] Tool '{tool_key}': "
+                    f"'{pref_key}' (valor: {old_value}) deletado ✓"
+                )
+            else:
+                logger.debug(
+                    f"[delete_value_for_all_tools] Tool '{tool_key}': "
+                    f"'{pref_key}' não encontrada, pulando"
+                )
+        
+        Preferences.save_prefs(prefs)
+        logger.info(
+            f"[delete_value_for_all_tools] ✓ Concluído: {deleted_count} ferramentas "
+            f"modificadas. pref_key='{pref_key}', filtro={filter_by}"
+        )
+        
+        return deleted_count
+
 
 # DEPRECATED - manter funções abaixo para compatibilidade, mas usar as versões da classe Preferences acima.
 PREF_FOLDER = os.path.join(_resolve_app_data_path(), "MTLTools")

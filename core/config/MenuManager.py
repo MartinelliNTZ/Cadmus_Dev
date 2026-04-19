@@ -219,17 +219,35 @@ class MenuManager:
 
     def _refresh_tool_main_actions(self):
         """
-        Recarrega os valores de main_action das tools a partir das preferências.
-        Essencial antes de reconstruir a toolbar para garantir que os estados
-        estejam sincronizados com as prefs atualizadas.
-        """
-        self.logger.debug("[_refresh_tool_main_actions] Recarregando main_action das tools")
+        Recarrega os valores de main_action das tools a partir da ToolRegistry.
+        (NÃO consulta preferences, apenas sincroniza com ToolRegistry)
         
+        Essencial antes de reconstruir a toolbar para garantir que os estados
+        estejam sincronizados com a ToolList do ToolRegistry.
+        """
+        self.logger.debug(
+            "[_refresh_tool_main_actions] Recarregando main_action das tools a partir de ToolRegistry"
+        )
+        
+        from .ToolRegistry import ToolRegistry
+        tool_registry = ToolRegistry.get_instance()
+        
+        if tool_registry is None:
+            self.logger.error(
+                "[_refresh_tool_main_actions] ToolRegistry não está inicializado!"
+            )
+            return
+        
+        # Requisitar ToolList atualizada do ToolRegistry
+        updated_tools = tool_registry.get_tools()
+        updated_tools_dict = {t.tool_key: t for t in updated_tools}
+        
+        # Sincronizar main_action em self.tools com base na ToolList
         for tool in self.tools:
-            try:
-                tool_prefs = Preferences.load_tool_prefs(tool.tool_key)
+            updated_tool = updated_tools_dict.get(tool.tool_key)
+            if updated_tool:
                 old_main_action = tool.main_action
-                new_main_action = tool_prefs.get("main_action") is True
+                new_main_action = updated_tool.main_action
                 
                 if old_main_action != new_main_action:
                     tool.main_action = new_main_action
@@ -242,9 +260,9 @@ class MenuManager:
                         f"[_refresh_tool_main_actions] Tool '{tool.tool_key}': "
                         f"main_action sem mudança ({old_main_action})"
                     )
-            except Exception as e:
-                self.logger.error(
-                    f"[_refresh_tool_main_actions] Erro ao recarregar '{tool.tool_key}': {e}"
+            else:
+                self.logger.warning(
+                    f"[_refresh_tool_main_actions] Tool '{tool.tool_key}' não encontrada em ToolRegistry"
                 )
         
         self.logger.info("[_refresh_tool_main_actions] ✓ Recarregamento concluído")

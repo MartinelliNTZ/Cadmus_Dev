@@ -17,16 +17,48 @@ class ToolRegistry:
     SYSTEM, LAYOUTS, FOLDER, VECTOR, AGRICULTURE, RASTER = (
         StringManager.MENU_CATEGORIES.keys()
     )
+    
+    _instance = None  # Singleton instance
+
+    @classmethod
+    def get_instance(cls):
+        """Retorna a instância singleton do ToolRegistry."""
+        return cls._instance
 
     def __init__(self, iface):
         self.iface = iface
         self.logger = LogUtils(tool=ToolKey.SYSTEM, class_name="ToolRegistry")
-        self._main_action_prefs = {}  # Inicializar primeiro (vazio, será carregado depois)
+        
+        self.logger.info(
+            "[ToolRegistry.__init__] Inicializando ToolRegistry (singleton)"
+        )
+        
+        # Inicializar primeiro (vazio, será carregado depois)
+        self._main_action_prefs = {}
+        
+        # Criar ToolList LENDO PREFERENCES UMA ÚNICA VEZ
         self.tools = self._create_tool_list()
+        self.logger.debug(
+            f"[ToolRegistry.__init__] ToolList criada com {len(self.tools)} ferramentas"
+        )
+        
+        # Salvar metadata (category, tool_type) nas preferences
         self._save_tool_metadata()
+        
+        # Validar e atualizar main_actions
         self._main_action_prefs = self._load_and_validate_main_actions_strict()
-        # Recarregar tools com main_actions validadas
+        self.logger.debug(
+            f"[ToolRegistry.__init__] main_action_prefs validadas: {self._main_action_prefs}"
+        )
+        
+        # Recriar tools com main_actions validadas (APENAS UMA VEZ)
         self.tools = self._create_tool_list()
+        self.logger.info(
+            f"[ToolRegistry.__init__] ✓ ToolRegistry inicializado com {len(self.tools)} ferramentas"
+        )
+        
+        # Armazenar como singleton
+        ToolRegistry._instance = self
 
     def _save_tool_metadata(self):
         """
@@ -535,6 +567,98 @@ class ToolRegistry:
 
     def get_tools(self):
         return list(self.tools)
+
+    def update_tool_main_action(self, tool_key, category=None):
+        """
+        Atualiza main_action de uma ferramenta quando ela é aberta/fechada.
+        
+        Fluxo:
+        1. Encontrar ferramenta por tool_key
+        2. Resetar main_action em todas as ferramentas da mesma categoria
+        3. Setar main_action=True para esta ferramenta
+        4. Atualizar preferences para persistência
+        5. Retornar categoria para MenuManager reconstruir
+        
+        Args:
+            tool_key (str): Identificador da ferramenta
+            category (str, optional): Categoria (se não informada, busca na ferramenta)
+        
+        Returns:
+            str or None: Categoria da ferramenta (para reconstrução de toolbar)
+        """
+        try:
+            self.logger.info(
+                f"[update_tool_main_action] Atualizando main_action para {tool_key}"
+            )
+            
+            # 1. Encontrar a ferramenta e sua categoria
+            tool_found = None
+            for tool in self.tools:
+                if tool.tool_key == tool_key:
+                    tool_found = tool
+                    category = tool.category
+                    break
+            
+            if tool_found is None:
+                self.logger.warning(
+                    f"[update_tool_main_action] Ferramenta '{tool_key}' NÃO encontrada na ToolList"
+                )
+                return None
+            
+            self.logger.debug(
+                f"[update_tool_main_action] Ferramenta encontrada: {tool_key} "
+                f"(categoria: {category})"
+            )
+            
+            # 2. Resetar main_action em todas as ferramentas da mesma categoria
+            reset_count = 0
+            for tool in self.tools:
+                if tool.category == category and tool.tool_key != tool_key:
+                    tool.main_action = False
+                    reset_count += 1
+                    self.logger.debug(
+                        f"[update_tool_main_action] Resetado main_action=False: {tool.tool_key}"
+                    )
+            
+            self.logger.info(
+                f"[update_tool_main_action] {reset_count} ferramentas resetadas na categoria '{category}'"
+            )
+            
+            # 3. Setar main_action=True para esta ferramenta
+            tool_found.main_action = True
+            self.logger.info(
+                f"[update_tool_main_action] Configurado main_action=True: {tool_key}"
+            )
+            
+            # 4. Atualizar preferences para persistência
+            # 4a. Resetar em preferences
+            Preferences.set_value_for_all_tools(
+                "main_action",
+                False,
+                filter_by={"category": category}
+            )
+            
+            # 4b. Setar True para esta ferramenta
+            tool_prefs = Preferences.load_tool_prefs(tool_key)
+            tool_prefs["main_action"] = True
+            Preferences.save_tool_prefs(tool_key, tool_prefs)
+            self.logger.info(
+                f"[update_tool_main_action] ✓ Preferências de '{tool_key}' salvas"
+            )
+            
+            # 5. Retornar categoria para MenuManager
+            self.logger.info(
+                f"[update_tool_main_action] ✓ Atualização concluída. "
+                f"Categoria: {category}"
+            )
+            return category
+            
+        except Exception as e:
+            self.logger.error(
+                f"[update_tool_main_action] Erro ao atualizar main_action: {e}",
+                exc_info=True
+            )
+            return None
 
     # =======FERRAMENTAS INSTANTANEAS DE SISTEMA=======
     # =================================================

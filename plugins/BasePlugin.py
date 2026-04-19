@@ -181,7 +181,7 @@ class BasePluginMTL(BaseDialog):
     def on_finish_plugin(self):
         """
         Callback executado ao fechar o plugin.
-        Atualiza main_action para a ferramenta atual e reconstrói a toolbar.
+        Emite um sinal para PyQtSignalManager atualizar main_action e reconstruir toolbar.
         """
         try:
             # 1. Incrementar contador de uso
@@ -189,64 +189,25 @@ class BasePluginMTL(BaseDialog):
             self.preferences["usages"] = valor_atual + 1
             self.logger.debug(f"Usages incrementado: {valor_atual} → {valor_atual + 1}")
 
-            # 2. Obter a categoria desta ferramenta da preferences
-            tool_category = self.preferences.get("category")
+            # 2. Emitir sinal para PyQtSignalManager processar atualização de toolbar
             self.logger.info(
-                f"[on_finish_plugin] Tool={self.TOOL_KEY}, category={tool_category}"
+                f"[on_finish_plugin] Emitindo sinal plugin_finished para {self.TOOL_KEY}"
             )
-            
-            if not tool_category:
-                self.logger.warning(
-                    f"[on_finish_plugin] ✗ Categoria NÃO encontrada nas prefs de "
-                    f"{self.TOOL_KEY}. Prefs keys: {list(self.preferences.keys())}. "
-                    f"NÃO atualizando main_action."
-                )
-                return
-
-            # 3. Reseta main_action para False SOMENTE na categoria desta ferramenta
-            self.logger.info(
-                f"[on_finish_plugin] Chamando set_value_for_all_tools para resetar "
-                f"main_action=False na categoria '{tool_category}'"
-            )
-            modified = Preferences.set_value_for_all_tools(
-                "main_action", 
-                False,
-                filter_by={"category": tool_category}
-            )
-            self.logger.info(
-                f"[on_finish_plugin] ✓ set_value_for_all_tools retornou: "
-                f"{modified} ferramentas modificadas"
-            )
-
-            # 4. Seta esta ferramenta como main_action=True
-            self.preferences["main_action"] = True
-            self.logger.info(
-                f"[on_finish_plugin] Configurando {self.TOOL_KEY} main_action=True "
-                f"(categoria: {tool_category})"
-            )
-
-            # 5. Salva as preferências desta ferramenta
-            Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
-            self.logger.info(
-                f"[on_finish_plugin] ✓ Preferências de {self.TOOL_KEY} salvas"
-            )
-
-            # 6. Reconstrói a toolbar com a nova configuração
-            menu_manager = MenuManager.get_instance()
-            mgr = MenuManager.get_instance()
-            if mgr:
-                mgr.reconstruct_toolbar()
-            if menu_manager is not None:
+            try:
+                from ..core.config.PyQtSignalManager import get_plugin_signal_hub
+                hub = get_plugin_signal_hub()
+                plugin_finished_context = {
+                    "tool_key": self.TOOL_KEY,
+                    "preferences": self.preferences,
+                }
+                hub.plugin_finished.emit(plugin_finished_context)
                 self.logger.info(
-                    f"[on_finish_plugin] MenuManager obtido, reconstruindo toolbar..."
+                    f"[on_finish_plugin] ✓ Sinal plugin_finished emitido com sucesso"
                 )
-                menu_manager.reconstruct_toolbar()
-                self.logger.info(
-                    f"[on_finish_plugin] ✓ Toolbar reconstruída com sucesso"
-                )
-            else:
+            except Exception as e:
                 self.logger.error(
-                    f"[on_finish_plugin] ✗ MenuManager é None! Toolbar NÃO será reconstruída."
+                    f"[on_finish_plugin] ✗ Erro ao emitir sinal plugin_finished: {e}",
+                    exc_info=True
                 )
 
         except Exception as e:

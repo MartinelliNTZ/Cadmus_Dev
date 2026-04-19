@@ -219,83 +219,50 @@ class MenuManager:
 
     def _refresh_tool_main_actions(self):
         """
-        Recarrega os valores de main_action das tools a partir da ToolRegistry.
-        (NÃO consulta preferences, apenas sincroniza com ToolRegistry)
-        
-        Essencial antes de reconstruir a toolbar para garantir que os estados
-        estejam sincronizados com a ToolList do ToolRegistry.
+        Sincroniza main_action das tools com ToolRegistry.
+        Requisita ToolList (não Preferences).
         """
-        self.logger.debug(
-            "[_refresh_tool_main_actions] Recarregando main_action das tools a partir de ToolRegistry"
-        )
-        
         from .ToolRegistry import ToolRegistry
-        tool_registry = ToolRegistry.get_instance()
         
+        tool_registry = ToolRegistry.get_instance()
         if tool_registry is None:
-            self.logger.error(
-                "[_refresh_tool_main_actions] ToolRegistry não está inicializado!"
-            )
+            self.logger.error("[_refresh_tool_main_actions] ToolRegistry não inicializado!")
             return
         
-        # Requisitar ToolList atualizada do ToolRegistry
+        # Requisitar ToolList atualizada
         updated_tools = tool_registry.get_tools()
         updated_tools_dict = {t.tool_key: t for t in updated_tools}
         
-        # Sincronizar main_action em self.tools com base na ToolList
+        # Sincronizar main_action
         for tool in self.tools:
             updated_tool = updated_tools_dict.get(tool.tool_key)
             if updated_tool:
-                old_main_action = tool.main_action
-                new_main_action = updated_tool.main_action
-                
-                if old_main_action != new_main_action:
-                    tool.main_action = new_main_action
-                    self.logger.debug(
-                        f"[_refresh_tool_main_actions] Tool '{tool.tool_key}': "
-                        f"main_action {old_main_action} → {new_main_action}"
-                    )
-                else:
-                    self.logger.debug(
-                        f"[_refresh_tool_main_actions] Tool '{tool.tool_key}': "
-                        f"main_action sem mudança ({old_main_action})"
-                    )
-            else:
-                self.logger.warning(
-                    f"[_refresh_tool_main_actions] Tool '{tool.tool_key}' não encontrada em ToolRegistry"
-                )
+                tool.main_action = updated_tool.main_action
         
-        self.logger.info("[_refresh_tool_main_actions] ✓ Recarregamento concluído")
+        self.logger.debug("[_refresh_tool_main_actions] ✓ Main_actions sincronizados")
 
     def reconstruct_toolbar(self):
-        """Remove a toolbar atual e reconstrói com base nas novas preferências."""
-        self.logger.info("[reconstruct_toolbar] Iniciando reconstrução da toolbar")
+        """Remove e reconstrói toolbar com estados atualizados."""
+        self.logger.debug("[reconstruct_toolbar] Reconstruindo toolbar")
 
-        # 1. Remover toolbar existente da interface se ela existir
+        # Remover toolbar anterior se existe
         if self.toolbar:
-            self.logger.debug(f"[reconstruct_toolbar] Limpando toolbar anterior: {self.toolbar.objectName()}")
             self.iface.mainWindow().removeToolBar(self.toolbar)
             self.toolbar.deleteLater()
             self.toolbar = None
 
-        # 2. Recarregar as preferências de visibilidade (já salvas em ToolKey.SYSTEM)
+        # Recarregar visibilidade de categorias
         self.prefs = Preferences.load_tool_prefs(self.TOOLKEY)
         self.toolbar_category_visibility = self.normalize_toolbar_category_visibility(
             self.prefs.get(self.TOOLBAR_VISIBILITY_PREF_KEY)
         )
-        self.logger.debug(
-            f"[reconstruct_toolbar] Novas configurações de visibilidade: "
-            f"{self.toolbar_category_visibility}"
-        )
 
-        # 3. CRÍTICO: Recarregar os valores de main_action das tools
-        self.logger.info("[reconstruct_toolbar] Atualizando estados das tools...")
+        # Sincronizar states das tools com ToolRegistry
         self._refresh_tool_main_actions()
 
-        # 4. Recriar a toolbar
-        self.logger.info("[reconstruct_toolbar] Recriando toolbar com estados atualizados")
+        # Recriar toolbar
         self.create_toolbar()
-        self.logger.info("[reconstruct_toolbar] ✓ Toolbar reconstruída com sucesso")
+        self.logger.info("[reconstruct_toolbar] ✓ Toolbar reconstruída")
 
     def unload(self):
         # Remover ações do menu

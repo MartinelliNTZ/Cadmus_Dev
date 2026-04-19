@@ -1,107 +1,69 @@
 # SKILL: PyQt Signal no Cadmus
 
-Especialista: `pyqtSignal` | `QObject` | eventos entre widgets e managers
-Versao: 1.0 | Abril 2026
-Status: Pronto para uso
+Especialista: `pyqtSignal` | `QObject` | eventos entre componentes
+Versão: 2.0 | Abril 2026 (Refatorado pós-limpeza)
+Status: Pronto para produção
 
 ---
 
 ## TL;DR
 
-Use `pyqtSignal` quando um objeto precisa avisar outro sem acoplamento direto.
-
-Padrao base:
+Use `pyqtSignal` para avisar componentes sem acoplamento direto. Padrão Cadmus:
 
 ```python
 from qgis.PyQt.QtCore import QObject, pyqtSignal
-
-
-class MyEmitter(QObject):
-    finished = pyqtSignal(dict)
-
-    def run(self):
-        self.finished.emit({"status": "ok"})
-```
-
-Escuta:
-
-```python
-emitter = MyEmitter()
-emitter.finished.connect(self._on_finished)
-```
-
----
-
-## Quando usar
-
-Use `pyqtSignal` para:
-
-- avisar que um dialogo abriu, fechou ou terminou processamento
-- comunicar widget com manager sem importar a classe consumidora
-- disparar eventos globais via hub singleton
-- reduzir acoplamento entre plugins, dialogs e servicos de UI
-
-Nao use `pyqtSignal` para:
-
-- passar dependencias obrigatorias de construcao
-- substituir retorno simples de funcao
-- esconder fluxo critico que deveria ser explicito
-
----
-
-## Regras praticas
-
-1. Declarar o sinal como atributo de classe, nunca dentro de metodo.
-2. Herdar de `QObject` ou de uma classe Qt que ja herda de `QObject`.
-3. Conectar com `.connect(...)` e emitir com `.emit(...)`.
-4. Preferir payload pequeno e estavel, geralmente `dict`, `str`, `bool` ou `object`.
-5. Se o evento so pode acontecer uma vez por janela, usar uma trava booleana.
-6. Em utilitarios sem contexto de plugin, logar com `ToolKey.UNTRACEABLE`.
-
----
-
-## Padrao 1: sinal local de um widget
-
-Use quando um widget ou dialogo precisa notificar quem o criou.
-
-```python
-from qgis.PyQt.QtCore import pyqtSignal
-from qgis.PyQt.QtWidgets import QDialog
-
-
-class MyDialog(QDialog):
-    accepted_payload = pyqtSignal(dict)
-
-    def _on_ok_clicked(self):
-        self.accepted_payload.emit({"name": "cadmus"})
-```
-
-Quem cria:
-
-```python
-self.dialog = MyDialog(self.iface.mainWindow())
-self.dialog.accepted_payload.connect(self._on_dialog_payload)
-self.dialog.show()
-```
-
----
-
-## Padrao 2: hub global de sinais
-
-Use quando varias instancias diferentes precisam publicar e ouvir o mesmo evento.
-
-Exemplo do Cadmus:
-
-```python
-from qgis.PyQt.QtCore import QObject, pyqtSignal
-
 
 class _PluginSignalHub(QObject):
-    plugin_instantiated = pyqtSignal(dict)
+    plugin_instantiated = pyqtSignal(dict)  # {tool_key, class_name, plugin_name, build_ui}
+    plugin_finished = pyqtSignal(dict)      # {tool_key, preferences}
 
+hub = get_plugin_signal_hub()
+hub.plugin_instantiated.emit(payload)  # Emitir
+hub.plugin_instantiated.connect(handler)  # Escutar
+```
+
+---
+
+## Arquitetura Cadmus: Fluxo de Sinais
+
+### Ciclo de Vida do Plugin
+
+```
+1. PLUGIN ABRE (init())
+   └─ BasePlugin.init() → emite plugin_instantiated
+      └─ PyQtSignalManager._on_plugin_instantiated()
+         └─ ToolRegistry.update_tool_main_action() [atualiza ToolList + Preferences]
+            └─ MenuManager.reconstruct_toolbar() [reconstrói com ToolList nova]
+
+2. PLUGIN FECHA (on_finish_plugin())
+   └─ BasePlugin.on_finish_plugin() → emite plugin_finished
+      └─ PyQtSignalManager._on_plugin_finished()
+         └─ ToolRegistry.update_tool_main_action() [atualiza ToolList + Preferences]
+            └─ SEM reconstruir toolbar (próximo aberto faz isso)
+```
+
+### Responsabilidades
+
+| Componente | Responsabilidade | Log | Delegações |
+|-----------|------------------|-----|-----------|
+| **BasePlugin** | Emitir sinais nos eventos certos | debug/info | - |
+| **PyQtSignalManager** | Coordenar sinais com componentes | info/warn | ToolRegistry, MenuManager |
+| **ToolRegistry** | Gerenciar ToolList + Preferences | debug/info | Preferences (só init + mudança) |
+| **MenuManager** | Reconstruir UI baseado em ToolList | debug/info | ToolRegistry |
+| **Preferences** | Persistência JSON | debug | - |
+
+---
+
+## Padrão: Signal Hub Global
+
+Implementado em `PyQtSignalManager.py`:
+
+```python
+class _PluginSignalHub(QObject):
+    plugin_instantiated = pyqtSignal(dict)
+    plugin_finished = pyqtSignal(dict)
 
 _plugin_signal_hub = None
-
 
 def get_plugin_signal_hub():
     global _plugin_signal_hub
@@ -110,150 +72,231 @@ def get_plugin_signal_hub():
     return _plugin_signal_hub
 ```
 
-Publicacao:
-
-```python
-payload = {
-    "tool_key": self.TOOL_KEY,
-    "class_name": self.__class__.__name__,
-}
-get_plugin_signal_hub().plugin_instantiated.emit(payload)
-```
-
-Consumo:
-
-```python
-self._signal_hub = get_plugin_signal_hub()
-self._signal_hub.plugin_instantiated.connect(self._on_plugin_instantiated)
-```
+**Vantagens:**
+- Desacoplamento: emissores não conhecem receptores
+- Centralizado: um ponto de verdade para eventos
+- Testável: fácil mockar sinais
 
 ---
 
-## Padrao 3: manager que observa e loga
+## Padrão: Manager que Observa
 
-Use quando o evento precisa ser centralizado em um unico ponto.
-
-Exemplo:
+`PyQtSignalManager` conecta-se ao hub e coordena:
 
 ```python
 class PyQtSignalManager(QObject):
-    def __init__(self, tool_key=ToolKey.UNTRACEABLE, parent=None):
-        super().__init__(parent)
-        self.logger = LogUtils(
-            tool=tool_key,
-            class_name="PyQtSignalManager",
-            level=LogUtils.DEBUG,
-        )
+    def __init__(self, tool_key=ToolKey.UNTRACEABLE):
+        super().__init__()
+        self.logger = LogUtils(tool=tool_key, class_name="PyQtSignalManager")
         self._signal_hub = get_plugin_signal_hub()
         self._is_connected = False
 
     def start(self):
+        """Conecta handlers."""
         if self._is_connected:
             return
-        self._signal_hub.plugin_instantiated.connect(
-            self._on_plugin_instantiated
-        )
+        self._signal_hub.plugin_instantiated.connect(self._on_plugin_instantiated)
+        self._signal_hub.plugin_finished.connect(self._on_plugin_finished)
         self._is_connected = True
+
+    def stop(self):
+        """Desconecta handlers."""
+        if not self._is_connected:
+            return
+        try:
+            self._signal_hub.plugin_instantiated.disconnect(self._on_plugin_instantiated)
+            self._signal_hub.plugin_finished.disconnect(self._on_plugin_finished)
+        except Exception as e:
+            self.logger.error(f"Erro ao desconectar: {e}")
+        finally:
+            self._is_connected = False
 ```
-
-Boas praticas:
-
-- ter `start()` e `stop()`
-- evitar conectar duas vezes
-- envolver `disconnect()` com `try/except Exception as e`
-- manter o manager vivo durante o ciclo de vida do plugin principal
 
 ---
 
-## Melhor ponto para emitir
+## Implementação no BasePlugin
 
-No Cadmus, para eventos de "abriu a janela", prefira `showEvent()` em vez de um metodo manual de inicializacao.
-
-Exemplo:
+Emitir sinais nos pontos certos:
 
 ```python
-def showEvent(self, event):
-    super().showEvent(event)
+class BasePluginMTL(BaseDialog):
+    def init(self, tool_key, class_name, ...):
+        # Setup completo...
+        self._plugin_signal_context = {
+            "tool_key": self.TOOL_KEY,
+            "class_name": class_name,
+            "plugin_name": self.PLUGIN_NAME,
+            "build_ui": build_ui,
+        }
+        # Emitir APÓS todo setup pronto
+        hub = get_plugin_signal_hub()
+        hub.plugin_instantiated.emit(self._plugin_signal_context)
 
-    if self._plugin_signal_emitted:
-        return
-
-    self._emit_plugin_instantiated_signal()
-    self._plugin_signal_emitted = True
+    def on_finish_plugin(self):
+        # Incrementar uso
+        self.preferences["usages"] = self.preferences.get("usages", 0) + 1
+        # Emitir
+        context = {"tool_key": self.TOOL_KEY, "preferences": self.preferences}
+        hub = get_plugin_signal_hub()
+        hub.plugin_finished.emit(context)
 ```
-
-Por que isso e melhor:
-
-- dispara no evento real de abertura
-- nao depende de lembrar de chamar um metodo auxiliar
-- reduz chance de falso positivo durante construcao da instancia
 
 ---
 
-## Erros comuns
-
-### 1. Declarar sinal dentro do `__init__`
-
-Errado:
+## Fluxo Detalhado: Plugin Abre
 
 ```python
-def __init__(self):
-    self.changed = pyqtSignal(dict)
-```
-
-Correto:
-
-```python
-class MyWidget(QWidget):
-    changed = pyqtSignal(dict)
-```
-
-### 2. Esquecer `super().__init__(...)`
-
-Sem isso, o objeto Qt pode nao inicializar corretamente.
-
-### 3. Conectar repetidamente
-
-Se `start()` for chamado varias vezes, o slot pode executar duplicado.
-
-### 4. Emitir cedo demais
-
-Se o evento e "janela aberta", emitir no `init` pode ser cedo demais.
-
-### 5. Payload instavel
-
-Se cada emissao usa chaves diferentes, o consumidor fica fragil.
-
-Padronize o contrato:
-
-```python
-{
-    "tool_key": "...",
-    "class_name": "...",
-    "plugin_name": "...",
+# 1. BasePlugin.init() - após UI completa
+hub.plugin_instantiated.emit({
+    "tool_key": "my_plugin",
+    "class_name": "MyDialog",
+    "plugin_name": "Meu Plugin",
     "build_ui": True,
-}
+})
+
+# 2. PyQtSignalManager._on_plugin_instantiated(payload)
+tool_registry = ToolRegistry.get_instance()
+category = tool_registry.update_tool_main_action("my_plugin")
+# ToolRegistry.update_tool_main_action():
+#   - Encontra tool em ToolList
+#   - Reseta main_action em categoria
+#   - Seta main_action=True para tool
+#   - Persiste em Preferences
+#   - Retorna categoria
+
+# 3. MenuManager.reconstruct_toolbar()
+menu_manager.reconstruct_toolbar()
+# MenuManager.reconstruct_toolbar():
+#   - Remove toolbar anterior
+#   - Recarrega visibilidade de categorias
+#   - Chama _refresh_tool_main_actions()
+#   - Reconstrói toolbar com novos estados
+
+# 4. MenuManager._refresh_tool_main_actions()
+# Sincroniza main_action com ToolRegistry (NÃO Preferences)
+updated_tools = tool_registry.get_tools()
+for tool in self.tools:
+    tool.main_action = updated_tools_dict[tool.tool_key].main_action
 ```
 
 ---
 
-## Checklist rapido
+## Fluxo Detalhado: Plugin Fecha
 
-- a classe herda de `QObject` ou derivada Qt?
-- o sinal foi declarado no nivel da classe?
-- existe `.connect(...)` em um ponto controlado?
-- existe `.emit(...)` no evento correto?
-- o payload e pequeno e previsivel?
-- ha protecao contra emissao ou conexao duplicada?
+```python
+# 1. BasePlugin.on_finish_plugin()
+hub.plugin_finished.emit({
+    "tool_key": "my_plugin",
+    "preferences": {...}
+})
+
+# 2. PyQtSignalManager._on_plugin_finished(payload)
+tool_registry = ToolRegistry.get_instance()
+category = tool_registry.update_tool_main_action("my_plugin")
+# ToolRegistry ATUALIZA ToolList + Preferences
+# MAS: MenuManager NÃO reconstrói toolbar
+
+# Próximo plugin aberto é que reconstrói (economiza ciclos)
+```
 
 ---
 
-## Referencia no projeto
+## Princípios Implementados
 
-Arquivos atuais relacionados:
+### 1. ToolList como Fonte de Verdade
+- Lida em memória durante sessão QGIS
+- Preferences **APENAS** para persistência entre sessões
+- Nenhuma re-leitura de Preferences após init
 
-- `plugins/BasePlugin.py`
-- `core/config/PyQtSignalManager.py`
-- `cadmus_plugin.py`
+### 2. Separação de Responsabilidades
+| Quem | O quê | Não faz |
+|-----|-------|---------|
+| ToolRegistry | Gerencia ToolList + Preferences | UI |
+| MenuManager | Constrói UI | Gerenciar estado |
+| PyQtSignalManager | Coordena | Lógica de negócio |
 
-Use esses arquivos como referencia viva para o padrao adotado no Cadmus.
+### 3. Logging Limpo
+- `info`: Marcos importantes (plugin aberto, toolbar reconstruída)
+- `debug`: Operações internas (sincronização de states)
+- Sem `print()` ou logs redundantes
+
+---
+
+## Checklist de Implementação
+
+- ✓ Classe herda de `QObject` ou derivada Qt
+- ✓ Sinais declarados no nível da classe
+- ✓ `get_plugin_signal_hub()` retorna singleton
+- ✓ `PyQtSignalManager.start()` e `.stop()` bem definidos
+- ✓ Handlers com try/except Exception
+- ✓ Logging em níveis apropriados (info/debug)
+- ✓ Emissão APÓS setup completo (não no __init__)
+- ✓ Payload é dict pequeno e estável
+
+---
+
+## Arquivos de Referência
+
+| Arquivo | Propósito | Status |
+|---------|----------|--------|
+| [PyQtSignalManager.py](../../core/config/PyQtSignalManager.py) | Hub + Manager | ✓ Limpo |
+| [BasePlugin.py](../../plugins/BasePlugin.py) | Emissores de sinal | ✓ Limpo |
+| [ToolRegistry.py](../../core/config/ToolRegistry.py) | Gerencia ToolList | ✓ Limpo |
+| [MenuManager.py](../../core/config/MenuManager.py) | Reconstrói UI | ✓ Limpo |
+| [Preferences.py](../../utils/Preferences.py) | Persistência | ✓ Limpo |
+
+---
+
+## Troubleshooting
+
+### Sinal não dispara
+- ✗ Emissão no `__init__` (muito cedo)
+- ✓ Emissão após setup completo em `init()` ou `showEvent()`
+
+### Conexão duplicada
+- ✗ `start()` chamado múltiplas vezes sem `_is_connected`
+- ✓ Usar flag `_is_connected` para prevenir duplicação
+
+### Erro no disconnect
+- ✗ Não usar try/except Exception
+- ✓ Sempre usar try/except em `stop()`
+
+### Log poluído
+- ✗ `logger.debug()` para cada passo
+- ✓ `logger.debug()` só para sincronizações; `logger.info()` para marcos
+
+---
+
+## Referência Rápida
+
+```python
+# Emitir
+hub = get_plugin_signal_hub()
+hub.plugin_instantiated.emit({"tool_key": "...", "class_name": "..."})
+
+# Escutar
+hub.plugin_instantiated.connect(self._on_plugin_instantiated)
+
+# Desconectar
+try:
+    hub.plugin_instantiated.disconnect(self._on_plugin_instantiated)
+except Exception as e:
+    logger.error(f"Erro: {e}")
+
+# Usar manager
+signal_manager = PyQtSignalManager(tool_key)
+signal_manager.start()  # Quando sistema inicia
+signal_manager.stop()   # Quando sistema encerra
+```
+
+---
+
+## Evolução Recente (v2.0)
+
+- ✓ Limpeza de logs excessivos (debug removidos, info mantidos)
+- ✓ Simplificação de métodos (menos linhas, mesma lógica)
+- ✓ Clareza de responsabilidades (quem faz o quê)
+- ✓ Documentação atualizada refletindo implementação real
+
+**Próximo:** Monitoramento em produção para validar assumções.
+

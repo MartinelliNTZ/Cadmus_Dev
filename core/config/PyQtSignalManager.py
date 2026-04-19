@@ -82,120 +82,54 @@ class PyQtSignalManager(QObject):
     def _on_plugin_instantiated(self, payload):
         """
         Executado quando um plugin é instanciado (aberto).
-        Coordena a atualização de main_action e reconstrução de toolbar.
+        Coordena atualização de main_action e reconstrução de toolbar.
         """
         try:
             event_tool_key = payload.get("tool_key", ToolKey.UNTRACEABLE)
-            class_name = payload.get("class_name", "UnknownPlugin")
-            plugin_name = payload.get("plugin_name", class_name)
-            build_ui = payload.get("build_ui", False)
 
-            self.logger.info(
-                "[_on_plugin_instantiated] Plugin aberto: "
-                f"tool_key={event_tool_key}, class_name={class_name}, "
-                f"plugin_name={plugin_name}, build_ui={build_ui}"
-            )
-
-            # ✅ Delegar atualização de main_action para ToolRegistry
-            # (que também atualiza preferences)
+            # Delegar para ToolRegistry (gerencia ToolList + Preferences)
             from .ToolRegistry import ToolRegistry
 
             tool_registry = ToolRegistry.get_instance()
             if tool_registry is None:
-                self.logger.error(
-                    f"[_on_plugin_instantiated] ToolRegistry não está inicializado!"
-                )
+                self.logger.error("[_on_plugin_instantiated] ToolRegistry não inicializado!")
                 return
 
-            self.logger.debug(
-                f"[_on_plugin_instantiated] Chamando ToolRegistry.update_tool_main_action()"
-            )
             category = tool_registry.update_tool_main_action(event_tool_key)
-
             if category is None:
-                self.logger.warning(
-                    f"[_on_plugin_instantiated] Falha ao atualizar main_action. "
-                    f"Toolbar NÃO será reconstruída."
-                )
                 return
 
-            self.logger.info(
-                f"[_on_plugin_instantiated] ToolList atualizada (categoria: {category})"
-            )
-
-            # ✅ Notificar MenuManager para reconstruir toolbar
-            # MenuManager requisitará ToolList atualizada do ToolRegistry
+            # Notificar MenuManager para reconstruir toolbar
             from .MenuManager import MenuManager
-
             menu_manager = MenuManager.get_instance()
             if menu_manager is not None:
-                self.logger.info(
-                    f"[_on_plugin_instantiated] Notificando MenuManager para reconstruir toolbar"
-                )
                 menu_manager.reconstruct_toolbar()
-                self.logger.info(
-                    f"[_on_plugin_instantiated] ✓ Toolbar reconstruída com sucesso"
-                )
+                self.logger.info(f"[_on_plugin_instantiated] Plugin '{event_tool_key}' aberto, toolbar reconstruída")
             else:
-                self.logger.warning(
-                    f"[_on_plugin_instantiated] MenuManager é None, toolbar NÃO "
-                    f"será reconstruída."
-                )
+                self.logger.warning("[_on_plugin_instantiated] MenuManager não disponível")
 
         except Exception as e:
-            self.logger.error(
-                f"[_on_plugin_instantiated] Erro ao processar sinal: {e}",
-                exc_info=True
-            )
+            self.logger.error(f"[_on_plugin_instantiated] Erro: {e}", exc_info=True)
 
     def _on_plugin_finished(self, payload):
         """
         Executado quando um plugin é finalizado (fechado).
-        Apenas notifica ToolRegistry para atualizar main_action (sem reconstruir toolbar).
+        Atualiza main_action apenas (sem reconstruir toolbar).
         """
         try:
             tool_key = payload.get("tool_key", ToolKey.UNTRACEABLE)
-            preferences = payload.get("preferences", {})
 
-            self.logger.info(
-                f"[_on_plugin_finished] Plugin fechado: {tool_key}"
-            )
-
-            # ✅ Delegar atualização de main_action para ToolRegistry
-            # (que também atualiza preferences)
+            # Delegar para ToolRegistry
             from .ToolRegistry import ToolRegistry
 
             tool_registry = ToolRegistry.get_instance()
             if tool_registry is None:
-                self.logger.error(
-                    f"[_on_plugin_finished] ToolRegistry não está inicializado!"
-                )
+                self.logger.error("[_on_plugin_finished] ToolRegistry não inicializado!")
                 return
 
-            self.logger.debug(
-                f"[_on_plugin_finished] Chamando ToolRegistry.update_tool_main_action()"
-            )
             category = tool_registry.update_tool_main_action(tool_key)
-
-            if category is None:
-                self.logger.warning(
-                    f"[_on_plugin_finished] Falha ao atualizar main_action no ToolRegistry"
-                )
-                return
-
-            self.logger.info(
-                f"[_on_plugin_finished] ToolList atualizada (categoria: {category})"
-            )
-
-            # ✅ IMPORTANTE: NÃO reconstruir toolbar aqui!
-            # A toolbar será reconstruída quando outro plugin for aberto
-            self.logger.info(
-                f"[_on_plugin_finished] ⓘ Toolbar NÃO será reconstruída ao fechar. "
-                f"Será reconstruída quando próximo plugin abrir."
-            )
+            if category is not None:
+                self.logger.debug(f"[_on_plugin_finished] Plugin '{tool_key}' fechado")
 
         except Exception as e:
-            self.logger.error(
-                f"[_on_plugin_finished] Erro ao processar finalização de plugin: {e}",
-                exc_info=True
-            )
+            self.logger.error(f"[_on_plugin_finished] Erro: {e}", exc_info=True)

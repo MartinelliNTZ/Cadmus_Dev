@@ -46,74 +46,41 @@ class BasePluginMTL(BaseDialog):
         load_system_prefs=False,
         build_ui=True,
     ):
-        """Inicializa o plugin base.
-
-        Parameters
-        ----------
-        tool_key : str
-            Identificador único da ferramenta (padrão: base_plugin)
-        class_name : str
-            Nome da classe para logging (padrão: BasePluginMTL)
-        load_settings_prefs : bool
-            Se True, carrega preferências globais do Cadmus Settings (padrão: False)
-        build_ui : bool
-            Se True, constrói a interface de usuário (padrão: True)
-        """
+        """Inicializa o plugin base."""
         self.TOOL_KEY = tool_key
         self.logger = LogUtils(
             tool=self.TOOL_KEY, class_name=class_name, level=LogUtils.DEBUG
         )
-        self.logger.info(f"[init] Iniciando plugin: {class_name} (tool_key={tool_key})")
-
-        self.preferences = {}
-        self.preferences.clear()
+        
         self.preferences = Preferences.load_tool_prefs(self.TOOL_KEY)
-        self.logger.debug(f"[init] Preferências carregadas: {len(self.preferences)} chaves")
-
-        # Criar contexto COMPLETO para sinal (será emitido após tudo pronto)
+        
+        # Criar contexto para sinal (emitido após setup completo)
         self._plugin_signal_context = {
             "tool_key": self.TOOL_KEY,
             "class_name": class_name,
             "plugin_name": self.PLUGIN_NAME or class_name,
             "build_ui": bool(build_ui),
         }
-        self.logger.debug(f"[init] Contexto de sinal criado: {self._plugin_signal_context}")
 
-        # Carregar preferências globais do Settings se solicitado
+        # Carregar preferências globais se solicitado
         if load_system_prefs:
-            self.logger.debug("[init] Carregando preferências globais do Cadmus Settings")
             self.system_preferences = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-            self.logger.debug(
-                f"[init] Preferências globais carregadas: {list(self.system_preferences.keys())}"
-            )
         else:
             self.system_preferences = {}
 
-        # Construir UI apenas se solicitado
+        # Construir UI
         if build_ui:
-            self.logger.debug("[init] Construindo interface de usuário")
             self._build_ui()
-            self.logger.debug("[init] Carregando preferências do usuário")
             self._load_prefs()
-            self.logger.info("[init] Plugin inicializado com sucesso")
-        else:
-            self.logger.debug("[init] Construção de UI desabilitada")
 
-        # ✅ EMITIR SINAL APÓS TODO SETUP ESTAR COMPLETO
-        # A reconstrução de toolbar acontecerá em PyQtSignalManager._on_plugin_instantiated()
-        self.logger.info(
-            f"[init] Emitindo sinal plugin_instantiated para {self.TOOL_KEY}"
-        )
+        # Emitir sinal após setup completo
+        self.logger.debug(f"[init] Emitindo sinal plugin_instantiated ({self.TOOL_KEY})")
         try:
             from ..core.config.PyQtSignalManager import get_plugin_signal_hub
             hub = get_plugin_signal_hub()
             hub.plugin_instantiated.emit(self._plugin_signal_context)
-            self.logger.info(f"[init] ✓ Sinal plugin_instantiated emitido com sucesso")
         except Exception as e:
-            self.logger.error(
-                f"[init] ✗ Erro ao emitir sinal plugin_instantiated: {e}",
-                exc_info=True
-            )
+            self.logger.error(f"[init] Erro ao emitir sinal: {e}", exc_info=True)
 
  
     """
@@ -196,19 +163,14 @@ class BasePluginMTL(BaseDialog):
     def on_finish_plugin(self):
         """
         Callback executado ao fechar o plugin.
-        Apenas incrementa contador de uso e emite sinal.
-        A reconstrução de toolbar NÃO acontece aqui.
+        Incrementa contador de uso e emite sinal.
         """
         try:
-            # 1. Incrementar contador de uso
+            # Incrementar contador de uso
             valor_atual = self.preferences.get("usages", 0)
             self.preferences["usages"] = valor_atual + 1
-            self.logger.debug(f"[on_finish_plugin] Usages incrementado: {valor_atual} → {valor_atual + 1}")
 
-            # 2. Emitir sinal para PyQtSignalManager processar
-            self.logger.info(
-                f"[on_finish_plugin] Emitindo sinal plugin_finished para {self.TOOL_KEY}"
-            )
+            # Emitir sinal
             try:
                 from ..core.config.PyQtSignalManager import get_plugin_signal_hub
                 hub = get_plugin_signal_hub()
@@ -217,20 +179,12 @@ class BasePluginMTL(BaseDialog):
                     "preferences": self.preferences,
                 }
                 hub.plugin_finished.emit(plugin_finished_context)
-                self.logger.info(
-                    f"[on_finish_plugin] ✓ Sinal plugin_finished emitido com sucesso"
-                )
+                self.logger.debug(f"[on_finish_plugin] Plugin finalizado ({self.TOOL_KEY})")
             except Exception as e:
-                self.logger.error(
-                    f"[on_finish_plugin] ✗ Erro ao emitir sinal plugin_finished: {e}",
-                    exc_info=True
-                )
+                self.logger.error(f"[on_finish_plugin] Erro ao emitir sinal: {e}")
 
         except Exception as e:
-            self.logger.error(
-                f"[on_finish_plugin] ✗ Erro: {e}",
-                exc_info=True
-            )
+            self.logger.error(f"[on_finish_plugin] Erro: {e}", exc_info=True)
 
     def _save_prefs(self):
         """Salva preferências."""

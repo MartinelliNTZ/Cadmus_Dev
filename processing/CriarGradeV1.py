@@ -44,13 +44,13 @@ class CriarGradeV1(BaseProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.HORIZONTAL_SPACING, STR.HORIZONTAL_SPACING,
-                type=QgsProcessingParameterNumber.Double, minValue=0.001, defaultValue=15
+                type=QgsProcessingParameterNumber.Double, minValue=0.000001, defaultValue=15
             )
         )
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.VERTICAL_SPACING, STR.VERTICAL_SPACING,
-                type=QgsProcessingParameterNumber.Double, minValue=0.001, defaultValue=15
+                type=QgsProcessingParameterNumber.Double, minValue=0.000001, defaultValue=15
             )
         )
         self.addParameter(

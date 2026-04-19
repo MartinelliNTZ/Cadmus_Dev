@@ -16,10 +16,12 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 class _PluginSignalHub(QObject):
     plugin_instantiated = pyqtSignal(dict)  # {tool_key, class_name, plugin_name, build_ui}
     plugin_finished = pyqtSignal(dict)      # {tool_key, preferences}
+    toolbar_category_visibility_changed = pyqtSignal(dict)  # {visibility_state}
 
 hub = get_plugin_signal_hub()
 hub.plugin_instantiated.emit(payload)  # Emitir
 hub.plugin_instantiated.connect(handler)  # Escutar
+hub.toolbar_category_visibility_changed.connect(handler)  # Escutar evento abstrato de UI
 ```
 
 ---
@@ -34,6 +36,7 @@ hub.plugin_instantiated.connect(handler)  # Escutar
       └─ PyQtSignalManager._on_plugin_instantiated()
          └─ ToolRegistry.update_tool_main_action() [atualiza ToolList + Preferences]
             └─ MenuManager.reconstruct_toolbar() [reconstrói com ToolList nova]
+            └─ sinal abstrato toolbar_category_visibility_changed emitido para UI
 
 2. PLUGIN FECHA (on_finish_plugin())
    └─ BasePlugin.on_finish_plugin() → emite plugin_finished
@@ -97,6 +100,9 @@ class PyQtSignalManager(QObject):
             return
         self._signal_hub.plugin_instantiated.connect(self._on_plugin_instantiated)
         self._signal_hub.plugin_finished.connect(self._on_plugin_finished)
+        self._signal_hub.toolbar_category_visibility_changed.connect(
+            self._on_toolbar_category_visibility_changed
+        )
         self._is_connected = True
 
     def stop(self):
@@ -106,6 +112,9 @@ class PyQtSignalManager(QObject):
         try:
             self._signal_hub.plugin_instantiated.disconnect(self._on_plugin_instantiated)
             self._signal_hub.plugin_finished.disconnect(self._on_plugin_finished)
+            self._signal_hub.toolbar_category_visibility_changed.disconnect(
+                self._on_toolbar_category_visibility_changed
+            )
         except Exception as e:
             self.logger.error(f"Erro ao desconectar: {e}")
         finally:

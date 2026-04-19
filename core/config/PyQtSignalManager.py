@@ -9,6 +9,7 @@ class _PluginSignalHub(QObject):
 
     plugin_instantiated = pyqtSignal(dict)
     plugin_finished = pyqtSignal(dict)
+    toolbar_category_visibility_changed = pyqtSignal(dict)
 
 
 _plugin_signal_hub = None
@@ -56,6 +57,9 @@ class PyQtSignalManager(QObject):
 
         self._signal_hub.plugin_instantiated.connect(self._on_plugin_instantiated)
         self._signal_hub.plugin_finished.connect(self._on_plugin_finished)
+        self._signal_hub.toolbar_category_visibility_changed.connect(
+            self._on_toolbar_category_visibility_changed
+        )
         self._is_connected = True
         self.logger.info("[start] PyQtSignalManager conectado ao hub de sinais")
 
@@ -70,6 +74,9 @@ class PyQtSignalManager(QObject):
             )
             self._signal_hub.plugin_finished.disconnect(
                 self._on_plugin_finished
+            )
+            self._signal_hub.toolbar_category_visibility_changed.disconnect(
+                self._on_toolbar_category_visibility_changed
             )
             self.logger.info("[stop] PyQtSignalManager desconectado do hub de sinais")
         except Exception as e:
@@ -99,17 +106,35 @@ class PyQtSignalManager(QObject):
             if category is None:
                 return
 
-            # Notificar MenuManager para reconstruir toolbar
-            from .MenuManager import MenuManager
-            menu_manager = MenuManager.get_instance()
-            if menu_manager is not None:
-                menu_manager.reconstruct_toolbar()
-                self.logger.info(f"[_on_plugin_instantiated] Plugin '{event_tool_key}' aberto, toolbar reconstruída")
-            else:
-                self.logger.warning("[_on_plugin_instantiated] MenuManager não disponível")
+            # Disparar sinal de alteração de visibilidade da toolbar se houver um plugin ativo
+            self._signal_hub.toolbar_category_visibility_changed.emit({})
+            self.logger.info(
+                f"[_on_plugin_instantiated] Plugin iniciado: {event_tool_key}"
+            )
 
         except Exception as e:
             self.logger.error(f"[_on_plugin_instantiated] Erro: {e}", exc_info=True)
+
+    def _on_toolbar_category_visibility_changed(self, payload):
+        """Manipula alterações na visibilidade das categorias da toolbar."""
+        try:
+            from .MenuManager import MenuManager
+
+            menu_manager = MenuManager.get_instance()
+            if menu_manager is not None:
+                menu_manager.reconstruct_toolbar()
+                self.logger.info(
+                    "[_on_toolbar_category_visibility_changed] Toolbar reconstruída"
+                )
+            else:
+                self.logger.warning(
+                    "[_on_toolbar_category_visibility_changed] MenuManager não disponível"
+                )
+        except Exception as e:
+            self.logger.error(
+                f"[_on_toolbar_category_visibility_changed] Erro ao reconstruir toolbar: {e}",
+                exc_info=True,
+            )
 
     def _on_plugin_finished(self, payload):
         """

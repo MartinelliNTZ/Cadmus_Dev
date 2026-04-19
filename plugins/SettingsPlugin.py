@@ -368,11 +368,20 @@ class SettingsPlugin(BasePluginMTL):
             f"Preferências salvas:{self.system_preferences}==={self.preferences}"
         )
 
-        # Se a visibilidade mudou, solicita ao MenuManager que reconstrua a toolbar imediatamente
+        # Se a visibilidade mudou, emite um evento abstrato para ajustes de toolbar
         if needs_toolbar_refresh:
-            mgr = MenuManager.get_instance()
-            if mgr:
-                mgr.reconstruct_toolbar()
+            try:
+                from ..core.config.PyQtSignalManager import get_plugin_signal_hub
+
+                hub = get_plugin_signal_hub()
+                hub.toolbar_category_visibility_changed.emit(toolbar_visibility)
+                self.logger.debug(
+                    "Sinal de alteração de visibilidade da toolbar emitido pelo SettingsPlugin"
+                )
+            except Exception as e:
+                self.logger.error(
+                    f"Erro ao emitir sinal de alteração de visibilidade da toolbar: {e}"
+                )
 
         return True
 

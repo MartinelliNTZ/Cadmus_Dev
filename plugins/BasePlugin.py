@@ -32,16 +32,11 @@ class BasePluginMTL(BaseDialog):
     """Preferências globais do aplicativo (Cadmus Settings)"""
 
     def __init__(self, parent=None):
+        # Inicializar contexto de sinal ANTES de chamar super().__init__
+        # Será preenchido completamente no método init()
+        self._plugin_signal_context = {}
+        
         super().__init__(parent)
-                # Emitir sinal PyQt de plugin instanciado
-        try:
-            from ..core.config.PyQtSignalManager import get_plugin_signal_hub
-            hub = get_plugin_signal_hub()
-            hub.plugin_instantiated.emit(self._plugin_signal_context)
-            #self.logger.debug(f"Sinal plugin_instantiated emitido: {self._plugin_signal_context}")
-        except Exception as e:
-            #self.logger.warning(f"Falha ao emitir sinal plugin_instantiated: {e}")
-            pass
 
 
     def init(
@@ -68,37 +63,57 @@ class BasePluginMTL(BaseDialog):
         self.logger = LogUtils(
             tool=self.TOOL_KEY, class_name=class_name, level=LogUtils.DEBUG
         )
+        self.logger.info(f"[init] Iniciando plugin: {class_name} (tool_key={tool_key})")
 
         self.preferences = {}
         self.preferences.clear()
         self.preferences = Preferences.load_tool_prefs(self.TOOL_KEY)
+        self.logger.debug(f"[init] Preferências carregadas: {len(self.preferences)} chaves")
+
+        # Criar contexto COMPLETO para sinal (será emitido após tudo pronto)
         self._plugin_signal_context = {
             "tool_key": self.TOOL_KEY,
             "class_name": class_name,
             "plugin_name": self.PLUGIN_NAME or class_name,
             "build_ui": bool(build_ui),
         }
-
+        self.logger.debug(f"[init] Contexto de sinal criado: {self._plugin_signal_context}")
 
         # Carregar preferências globais do Settings se solicitado
         if load_system_prefs:
-            self.logger.debug("Carregando preferências globais do Cadmus Settings")
+            self.logger.debug("[init] Carregando preferências globais do Cadmus Settings")
             self.system_preferences = Preferences.load_tool_prefs(ToolKey.SYSTEM)
             self.logger.debug(
-                f"Preferências globais carregadas: {list(self.system_preferences.keys())}"
+                f"[init] Preferências globais carregadas: {list(self.system_preferences.keys())}"
             )
         else:
             self.system_preferences = {}
 
         # Construir UI apenas se solicitado
         if build_ui:
-            self.logger.debug("Construindo interface de usuário")
+            self.logger.debug("[init] Construindo interface de usuário")
             self._build_ui()
-            self.logger.debug("Carregando preferências do usuário")
+            self.logger.debug("[init] Carregando preferências do usuário")
             self._load_prefs()
-            self.logger.info("Plugin inicializado com sucesso")
+            self.logger.info("[init] Plugin inicializado com sucesso")
         else:
-            self.logger.debug("Construção de UI desabilitada")
+            self.logger.debug("[init] Construção de UI desabilitada")
+
+        # ✅ EMITIR SINAL APÓS TODO SETUP ESTAR COMPLETO
+        # A reconstrução de toolbar acontecerá em PyQtSignalManager._on_plugin_instantiated()
+        self.logger.info(
+            f"[init] Emitindo sinal plugin_instantiated para {self.TOOL_KEY}"
+        )
+        try:
+            from ..core.config.PyQtSignalManager import get_plugin_signal_hub
+            hub = get_plugin_signal_hub()
+            hub.plugin_instantiated.emit(self._plugin_signal_context)
+            self.logger.info(f"[init] ✓ Sinal plugin_instantiated emitido com sucesso")
+        except Exception as e:
+            self.logger.error(
+                f"[init] ✗ Erro ao emitir sinal plugin_instantiated: {e}",
+                exc_info=True
+            )
 
  
     """
@@ -181,15 +196,16 @@ class BasePluginMTL(BaseDialog):
     def on_finish_plugin(self):
         """
         Callback executado ao fechar o plugin.
-        Emite um sinal para PyQtSignalManager atualizar main_action e reconstruir toolbar.
+        Apenas incrementa contador de uso e emite sinal.
+        A reconstrução de toolbar NÃO acontece aqui.
         """
         try:
             # 1. Incrementar contador de uso
             valor_atual = self.preferences.get("usages", 0)
             self.preferences["usages"] = valor_atual + 1
-            self.logger.debug(f"Usages incrementado: {valor_atual} → {valor_atual + 1}")
+            self.logger.debug(f"[on_finish_plugin] Usages incrementado: {valor_atual} → {valor_atual + 1}")
 
-            # 2. Emitir sinal para PyQtSignalManager processar atualização de toolbar
+            # 2. Emitir sinal para PyQtSignalManager processar
             self.logger.info(
                 f"[on_finish_plugin] Emitindo sinal plugin_finished para {self.TOOL_KEY}"
             )

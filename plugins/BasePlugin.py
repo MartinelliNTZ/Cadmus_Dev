@@ -33,6 +33,15 @@ class BasePluginMTL(BaseDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+                # Emitir sinal PyQt de plugin instanciado
+        try:
+            from ..core.config.PyQtSignalManager import get_plugin_signal_hub
+            hub = get_plugin_signal_hub()
+            hub.plugin_instantiated.emit(self._plugin_signal_context)
+            #self.logger.debug(f"Sinal plugin_instantiated emitido: {self._plugin_signal_context}")
+        except Exception as e:
+            #self.logger.warning(f"Falha ao emitir sinal plugin_instantiated: {e}")
+            pass
 
 
     def init(
@@ -69,6 +78,7 @@ class BasePluginMTL(BaseDialog):
             "plugin_name": self.PLUGIN_NAME or class_name,
             "build_ui": bool(build_ui),
         }
+
 
         # Carregar preferências globais do Settings se solicitado
         if load_system_prefs:

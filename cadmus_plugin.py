@@ -47,6 +47,16 @@ class CadmusPlugin:
         self.iface.registerCustomDropHandler(self.mrk_drop_handler)
         self.logger.info("MRK drop handler registrado com sucesso")
 
+        # Inicializar PyQtSignalManager para escutar sinais
+        try:
+            from .core.config.PyQtSignalManager import PyQtSignalManager
+            self.pyqt_signal_manager = PyQtSignalManager(tool_key=self.TOOL_KEY)
+            self.pyqt_signal_manager.start()
+            self.logger.info("PyQtSignalManager inicializado e escutando sinais")
+        except Exception as e:
+            self.logger.error(f"Erro ao inicializar PyQtSignalManager: {str(e)}")
+            self.pyqt_signal_manager = None
+
         # -------------------------------
         # INTEGRAÇÃO COM NOVA ARQUITETURA
         # -------------------------------

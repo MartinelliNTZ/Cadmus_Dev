@@ -24,6 +24,18 @@ def get_plugin_signal_hub():
 class PyQtSignalManager(QObject):
     """Escuta sinais globais do plugin e registra eventos relevantes no log."""
 
+
+    def create_menu_manager(self, iface, tools, logger):
+        """Cria e retorna uma instância de MenuManager, menus e toolbar."""
+        from .MenuManager import MenuManager
+        menu_manager = MenuManager(iface, tools, logger)
+        menu_manager.create_menu()
+        logger.debug("Criando toolbar para o plugin via PyQtSignalManager")
+        menu_manager.create_toolbar()
+        menu_manager.populate_menus()
+        logger.info(f"MenuManager criado e menus/toolbars populados via PyQtSignalManager: {menu_manager}.")
+        return menu_manager
+
     def __init__(self, tool_key=ToolKey.UNTRACEABLE, parent=None):
         super().__init__(parent)
         self.tool_key = tool_key or ToolKey.UNTRACEABLE

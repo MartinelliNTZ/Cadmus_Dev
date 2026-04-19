@@ -92,6 +92,28 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
+    def get_create_grid_v1_help(self):
+        return f"""
+            {self.provider.logo}
+            Cadmus-Werkzeug zum Erstellen eines Punkt-, Linien- oder Polygonrasters innerhalb eines Polygon-Eingabebereichs.
+            {self.provider.transform_h('Ziel')}
+            Erstellen Sie ein regelmäßiges Raster basierend auf der Ausdehnung einer Eingabeebene.
+            Extrahieren Sie nur die Zellen, die die Eingabeebene schneiden.
+            {self.provider.transform_h('Verwendung')}
+            1. Öffnen Sie das Werkzeug.
+            2. Wählen Sie die Polygon-Eingabeebene.
+            3. Legen Sie den horizontalen und vertikalen Abstand fest.
+            4. Wählen Sie den Rastertyp.
+            5. Aktivieren Sie das detaillierte Protokoll, wenn Sie Ausführungsdetails wünschen.
+            6. Führen Sie es aus.
+            {self.provider.transform_h('Ausgaben')}
+            Rasterebene mit Punkt-, Linien- oder Polygongeometrie.
+            {self.provider.transform_h('Hinweise')}
+            Der Abstand steuert die Rasterdichte.
+            Ungültige Geometrien können die Ausgabeabdeckung verringern.
+            {self.provider.author_info}
+        """
+
     def get_raster_mass_sampler_help(self):
         return f"""
             {self.provider.logo}

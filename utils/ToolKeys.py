@@ -39,6 +39,7 @@ class ToolKey:
     GEOMETRY_LINE_FROM_POINTS = "geometry_line_from_points"
     RASTER_DIFERENCE_STATISTICS = "raster_diference_statistics"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average"
+    CREATE_GRID_V1 = "create_grid_v1"
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {

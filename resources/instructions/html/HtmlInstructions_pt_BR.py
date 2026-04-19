@@ -93,6 +93,28 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
+    def get_create_grid_v1_help(self):
+        return f"""
+            {self.provider.logo}
+            Ferramenta do pacote Cadmus para criar uma grade de pontos, linhas ou polígonos dentro de uma área poligonal.
+            {self.provider.transform_h('Objetivo')}
+            Gerar uma grade regular usando a extensão de uma camada de entrada.
+            Extrair a grade somente onde ela intersecta a camada de entrada.
+            {self.provider.transform_h('Como usar')}
+            1. Abra a ferramenta.
+            2. Selecione a camada de entrada de polígonos.
+            3. Defina o espaçamento horizontal e vertical.
+            4. Selecione o tipo de grade.
+            5. Ative o log detalhado se desejar acompanhar a execução.
+            6. Execute.
+            {self.provider.transform_h('Saídas')}
+            Camada de grade com geometria de ponto, linha ou polígono.
+            {self.provider.transform_h('Atenções')}
+            O espaçamento define a densidade da grade.
+            Se a camada de entrada tiver geometrias inválidas, a extração pode produzir uma grade menor.
+            {self.provider.author_info}
+        """
+
     def get_raster_mass_sampler_help(self):
         return f"""
             {self.provider.logo}

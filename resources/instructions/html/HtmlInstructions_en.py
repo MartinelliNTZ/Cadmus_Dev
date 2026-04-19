@@ -92,6 +92,28 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
+    def get_create_grid_v1_help(self):
+        return f"""
+            {self.provider.logo}
+            Cadmus tool for creating a point, line or polygon grid inside a polygon input area.
+            {self.provider.transform_h('Objective')}
+            Generate a regular grid using the extent of an input layer.
+            Extract only the cells that intersect the input polygon.
+            {self.provider.transform_h('How to use')}
+            1. Open the tool.
+            2. Select the polygon input layer.
+            3. Set horizontal and vertical spacing.
+            4. Choose the grid type.
+            5. Enable verbose log if you want execution details.
+            6. Run.
+            {self.provider.transform_h('Outputs')}
+            Grid layer with point, line or polygon geometry.
+            {self.provider.transform_h('Warnings')}
+            Spacing controls the grid density.
+            Invalid geometries may reduce output coverage.
+            {self.provider.author_info}
+        """
+
     def get_raster_mass_sampler_help(self):
         return f"""
             {self.provider.logo}

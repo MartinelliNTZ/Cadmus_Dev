@@ -92,6 +92,28 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
+    def get_create_grid_v1_help(self):
+        return f"""
+            {self.provider.logo}
+            Herramienta de Cadmus para crear una cuadrícula de puntos, líneas o polígonos dentro de un área poligonal.
+            {self.provider.transform_h('Objetivo')}
+            Generar una cuadrícula regular usando la extensión de una capa de entrada.
+            Extraer solo las celdas que intersectan la capa de entrada.
+            {self.provider.transform_h('Cómo usar')}
+            1. Abra la herramienta.
+            2. Seleccione la capa de entrada poligonal.
+            3. Defina el espaciamiento horizontal y vertical.
+            4. Elija el tipo de cuadrícula.
+            5. Active el registro detallado si desea detalles de ejecución.
+            6. Ejecute.
+            {self.provider.transform_h('Salidas')}
+            Capa de cuadrícula con geometría de punto, línea o polígono.
+            {self.provider.transform_h('Atención')}
+            El espaciamiento controla la densidad de la cuadrícula.
+            Las geometrías inválidas pueden reducir la cobertura de salida.
+            {self.provider.author_info}
+        """
+
     def get_raster_mass_sampler_help(self):
         return f"""
             {self.provider.logo}

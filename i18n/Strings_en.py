@@ -308,6 +308,13 @@ class Strings_en(Strings_pt_BR):
     PROCESS_COMPLETED_LINES_GENERATED_SUCCESS = (
         "Process completed: lines generated successfully."
     )
+    CREATE_GRID_V1_TITLE = "Create Grid V1"
+    CREATE_GRID_INPUT_LAYER = "Input Layer (Polygon)"
+    HORIZONTAL_SPACING = "Horizontal Spacing"
+    VERTICAL_SPACING = "Vertical Spacing"
+    GRID_TYPE = "Grid Type"
+    OUTPUT_GRID = "Output Grid"
+    VERBOSE_LOG = "Verbose Log"
     ATTRIBUTE_STATISTICS_TITLE = "Attribute Statistics"
     INPUT_LAYER = "Input layer"
     EXCLUDE_FIELDS_OPTIONAL = "Fields to exclude (optional)"

@@ -303,6 +303,13 @@ class Strings_es(Strings_pt_BR):
     PROCESS_COMPLETED_LINES_GENERATED_SUCCESS = (
         "Proceso completado: líneas generadas correctamente."
     )
+    CREATE_GRID_V1_TITLE = "Crear Cuadrícula V1"
+    CREATE_GRID_INPUT_LAYER = "Capa de Entrada (Polígono)"
+    HORIZONTAL_SPACING = "Espaciado Horizontal"
+    VERTICAL_SPACING = "Espaciado Vertical"
+    GRID_TYPE = "Tipo de Cuadrícula"
+    OUTPUT_GRID = "Cuadrícula de Salida"
+    VERBOSE_LOG = "Registro Detallado"
     ATTRIBUTE_STATISTICS_TITLE = "Estadísticas de Atributos"
     INPUT_LAYER = "Capa de entrada"
     EXCLUDE_FIELDS_OPTIONAL = "Campos a excluir (opcional)"

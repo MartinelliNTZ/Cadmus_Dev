@@ -102,3 +102,30 @@ Help hardcoded em código é impossível traduzir, mistura lógica com documenta
 Logs servem auditoria/debug de desenvolvedores. STR é para UI do usuário. Logs traduzidos quebram rastreamento e dificultam busca. Sempre em pt_BR.
 
 ---
+---
+
+## 12. Processing — Algoritmos e Preferências
+
+❌ Criar algoritmo de processamento sem herdar de `BaseProcessingAlgorithm`
+✅ Toda ferramenta de processing deve ser filha de `BaseProcessingAlgorithm` para garantir padrão de preferências, ícone, instruções e integração Cadmus.
+
+---
+
+## 13. Logger e ToolKey — Rastreamento e Logs
+
+✅ Qualquer classe pode criar um logger próprio (`LogUtils(tool=..., class_name=...)`) para rastreabilidade, mas nem todas precisam. O importante é que as classes principais de ferramentas (algoritmos, plugins, dialogs) tenham tool_key rastreável para logs e preferências. Classes auxiliares podem receber tool_key como argumento se precisarem logar, mas não é obrigatório logar tudo. O foco é garantir que as ações relevantes sejam rastreadas com contexto completo.
+✅ Apenas classes de ferramenta (algoritmos, plugins, dialogs principais) podem definir um `TOOL_KEY` próprio.
+✅ Classes auxiliares (não ferramentas) devem receber a `tool_key` como argumento em métodos estáticos ou no construtor, se precisarem logar.
+❌ Nunca criar logs sem tool_key rastreável (exceto casos de utilitários genéricos).
+✅ A `tool_key` é a credencial mestra de rastreio de logs e preferências.
+❌ Widgets exclusivos e helpers não precisam logar criação, mas devem logar exceções e erros relevantes se houver tratamento, oque muitas vezes nao ha.
+
+---
+
+## 14. Preferences — Padrão para Processing
+
+✅ Toda ferramenta de processing deve carregar preferências via `self.load_preferences()` no início de `initAlgorithm`.
+✅ Preferências devem ser lidas/salvas apenas via `Preferences.load_tool_prefs` e `Preferences.save_tool_prefs`.
+✅ Parâmetros padrão dos algoritmos devem usar `self.prefs.get("chave", valor_padrao)`.
+✅ Sempre incluir checkboxes padrão: `OPEN_OUTPUT_FOLDER` e `DISPLAY_HELP`, ambos usando prefs.
+❌ Nunca salvar preferências fora dos métodos padrão.

@@ -93,18 +93,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         operational_layout, self.operational_fields = (
             WidgetFactory.create_input_fields_widget(
-                fields_dict={
-                    "frequencia_pontos": {
-                        "title": STR.EXPECTED_POINT_FREQUENCY_SECONDS,
-                        "type": "int",
-                        "default": 1,
-                    },
-                    "largura_tiro": {
-                        "title": STR.EXPECTED_LATERAL_WIDTH_METERS,
-                        "type": "float",
-                        "default": 20.0,
-                    },
-                },
+                fields_dict=StringManager.DIVIDE_POINTS_OPERATIONAL_FIELDS,
                 parent=self,
                 separator_top=False,
                 separator_bottom=False,
@@ -116,50 +105,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         sensitivity_layout, self.sensitivity_fields = (
             WidgetFactory.create_input_fields_widget(
-                fields_dict={
-                    "janela_azimute": {
-                        "title": STR.AZIMUTH_MOVING_WINDOW,
-                        "description": "Número de pontos usados para calcular a direção média antes de detectar mudança de rumo.",
-                        "type": "int",
-                        "default": 10,
-                    },
-                    "threshold_azimute_leve": {
-                        "title": STR.LIGHT_AZIMUTH_DEVIATION_THRESHOLD,
-                        "description": "Desvio leve de azimute que inicia a identificação de uma possível quebra.",
-                        "type": "float",
-                        "default": 20.0,
-                    },
-                    "threshold_azimute_grave": {
-                        "title": STR.SEVERE_AZIMUTH_DEVIATION_THRESHOLD,
-                        "description": "Desvio alto de azimute que indica uma mudança de direção clara.",
-                        "type": "float",
-                        "default": 45.0,
-                    },
-                    "score_minimo_quebra": {
-                        "title": STR.MINIMUM_BREAK_SCORE,
-                        "description": "Pontos necessários para que o desvio seja considerado uma quebra real.",
-                        "type": "int",
-                        "default": 3,
-                    },
-                    "n_minimo_pontos": {
-                        "title": STR.MINIMUM_POINT_COUNT,
-                        "description": "Menor quantidade de pontos que um trecho precisa para ser aceito.",
-                        "type": "int",
-                        "default": 20,
-                    },
-                    "tolerancia_tempo": {
-                        "title": STR.TIME_TOLERANCE_MULTIPLIER,
-                        "description": "Multiplica a diferença de tempo permitida entre fotos para evitar quebra por pequenas variações.",
-                        "type": "float",
-                        "default": 3.0,
-                    },
-                    "max_desvio": {
-                        "title": "Número máx de pontos desvio",
-                        "description": "Máximo de pontos fora do padrão que serão ignorados antes de confirmar a quebra.",
-                        "type": "int",
-                        "default": 5,
-                    },
-                },
+                fields_dict=StringManager.DIVIDE_POINTS_SENSITIVITY_FIELDS,
                 parent=self,
                 separator_top=False,
                 separator_bottom=False,
@@ -330,14 +276,34 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             or field_name_map.get(str(key_value))
         )
 
+    @staticmethod
+    def _normalize_field_name_map(field_name_map):
+        normalized = {}
+        if not isinstance(field_name_map, dict):
+            return normalized
+        for key, value in field_name_map.items():
+            if not value:
+                continue
+            key_value = key.value if hasattr(key, "value") else key
+            normalized[str(key_value)] = str(value)
+        return normalized
+
     def _build_filtered_result_layer(
         self, layer, selected_output_fields, field_name_map
     ):
-        """Cria um layer temporário com apenas os campos selecionados para salvar."""
+        """Cria um layer temporario com apenas os campos selecionados para salvar."""
         if not layer or not layer.isValid():
             return layer
 
-        if not selected_output_fields or not field_name_map:
+        normalized_map = self._normalize_field_name_map(field_name_map)
+        if not selected_output_fields or not normalized_map:
+            self.logger.info(
+                "Filtro de campos nao aplicado por falta de selecao ou field map",
+                selected_output_fields=selected_output_fields,
+                field_name_map_keys=list((field_name_map or {}).keys())
+                if isinstance(field_name_map, dict)
+                else [],
+            )
             return layer
 
         normalized_selected = set(
@@ -350,24 +316,41 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         ]
 
         selected_field_names = [
-            self._resolve_field_name_from_map(field_name_map, key)
+            self._resolve_field_name_from_map(normalized_map, key)
             for key in selected_keys
-            if self._resolve_field_name_from_map(field_name_map, key)
+            if self._resolve_field_name_from_map(normalized_map, key)
         ]
 
         if not selected_field_names:
+            self.logger.warning(
+                "Nenhum campo resolvido para filtro de saida",
+                selected_output_fields=sorted(list(normalized_selected)),
+                normalized_map=normalized_map,
+            )
             return layer
+
+        self.logger.info(
+            "Aplicando filtro de atributos no layer final",
+            selected_output_fields=sorted(list(normalized_selected)),
+            selected_field_names=selected_field_names,
+            source_layer=layer.name(),
+        )
 
         uri = f"Point?crs={layer.crs().authid()}"
         filtered_layer = QgsVectorLayer(uri, f"{layer.name()}_filtered", "memory")
         if not filtered_layer.isValid():
+            self.logger.error("Falha ao criar camada temporaria filtrada")
             return layer
 
         fields = []
         for logical_key in selected_keys:
             field_spec = SequentialPointBreakJudge.OUTPUT_FIELDS.get(logical_key)
-            field_name = self._resolve_field_name_from_map(field_name_map, logical_key)
+            field_name = self._resolve_field_name_from_map(normalized_map, logical_key)
             if field_spec and field_name:
+                source_index = layer.fields().lookupField(field_name)
+                if source_index >= 0:
+                    fields.append(layer.fields().field(source_index))
+                    continue
                 fields.append(
                     QgsField(
                         field_name,
@@ -386,7 +369,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             new_feature.setGeometry(feature.geometry())
             for logical_key in selected_keys:
                 resolved_name = self._resolve_field_name_from_map(
-                    field_name_map, logical_key
+                    normalized_map, logical_key
                 )
                 if not resolved_name:
                     continue
@@ -400,6 +383,12 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             filtered_layer.addFeature(new_feature)
         filtered_layer.commitChanges()
         filtered_layer.updateFields()
+        self.logger.info(
+            "Filtro de atributos concluido",
+            filtered_layer=filtered_layer.name(),
+            filtered_field_names=[f.name() for f in filtered_layer.fields()],
+            filtered_feature_count=filtered_layer.featureCount(),
+        )
         return filtered_layer
 
     def _refresh_field_selectors(self):
@@ -437,7 +426,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         sensitivity_values = self.sensitivity_fields.get_values()
 
         self.logger.info(
-            "Executando segmentação de tiros em camada de pontos",
+            "Executando segmentacao de tiros em camada de pontos",
             layer=layer.name(),
             source_path=layer.source(),
             id_field=field_id,
@@ -449,7 +438,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         import time
 
         start_time = time.time()
-        self.logger.info("Iniciando processamento síncrono da segmentação")
+        self.logger.info("Iniciando processamento sincrono da segmentacao")
 
         try:
             summary = SequentialPointBreakJudge(
@@ -493,21 +482,43 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 ),
             )
             processing_time = time.time() - start_time
+            selected_fields = self._get_selected_output_fields()
+            field_name_map = self._normalize_field_name_map(
+                summary.get("field_name_map", {})
+            )
+            safe_summary = {
+                "total_points": summary.get("total_points"),
+                "total_shots": summary.get("total_shots"),
+                "valid_shots": summary.get("valid_shots"),
+                "invalid_shots": summary.get("invalid_shots"),
+                "source_path": summary.get("source_path"),
+            }
             self.logger.info(
-                "Segmentação concluída com sucesso",
+                "Segmentacao concluida com sucesso",
                 processing_time_seconds=round(processing_time, 2),
-                summary=summary,
+                summary=safe_summary,
+            )
+            self.logger.info(
+                "Configuracao de filtro de atributos de saida",
+                selected_output_fields=selected_fields,
+                required_output_field=self.REQUIRED_OUTPUT_FIELD,
+                field_name_map=field_name_map,
             )
 
-            # Adicionar nova camada ao projeto
-            result_layer = summary.get("result_layer")
+            raw_result_layer = summary.get("result_layer")
+            result_layer = self._build_filtered_result_layer(
+                raw_result_layer,
+                selected_fields,
+                field_name_map,
+            )
+
             if result_layer and result_layer.isValid():
                 QgsProject.instance().addMapLayer(result_layer)
                 self.logger.info(
                     "Nova camada adicionada ao projeto", layer_name=result_layer.name()
                 )
             else:
-                self.logger.warning("Camada de resultado inválida ou não encontrada")
+                self.logger.warning("Camada de resultado invalida ou nao encontrada")
 
             if (
                 hasattr(self, "save_points_selector")
@@ -516,14 +527,15 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             ):
                 out_path = self.save_points_selector.get_file_path().strip()
                 if out_path:
-                    selected_fields = self._get_selected_output_fields()
-                    filtered_layer = self._build_filtered_result_layer(
-                        result_layer,
-                        selected_fields,
-                        summary.get("field_name_map", {}),
-                    )
+                    if result_layer and result_layer.isValid():
+                        self.logger.info(
+                            "Schema da camada preparada para salvar",
+                            out_path=out_path,
+                            field_names=[f.name() for f in result_layer.fields()],
+                            feature_count=result_layer.featureCount(),
+                        )
                     saved_layer = VectorLayerSource.save_and_load_layer(
-                        filtered_layer,
+                        result_layer,
                         out_path,
                         tool_key=self.TOOL_KEY,
                         decision="rename",
@@ -538,10 +550,18 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                         self.logger.warning(
                             "Falha ao salvar camada de resultado selecionada"
                         )
+                else:
+                    self.logger.warning(
+                        "Salvamento habilitado, mas caminho de saida esta vazio"
+                    )
+            else:
+                self.logger.info(
+                    "Salvamento em arquivo desabilitado; resultado filtrado mantido apenas no projeto"
+                )
         except Exception as e:
             processing_time = time.time() - start_time
             self.logger.error(
-                f"Erro na segmentação de tiros após {processing_time:.2f}s: {e}",
+                f"Erro na segmentacao de tiros apos {processing_time:.2f}s: {e}",
                 exception_details=str(e),
             )
             self.logger.exception(e)
@@ -552,7 +572,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             layer.triggerRepaint()
         except Exception as e:
             self.logger.warning(
-                f"Falha ao atualizar camada original após julgamento: {e}"
+                f"Falha ao atualizar camada original apos julgamento: {e}"
             )
 
         QgisMessageUtil.bar_success(
@@ -565,7 +585,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             ),
             duration=8,
         )
-
 
 def run(iface):
     dlg = DividePointsByStripsPlugin(iface)

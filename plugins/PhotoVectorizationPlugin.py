@@ -8,6 +8,7 @@ from ..core.engine_tasks.PhotoVectorizationStep import PhotoVectorizationStep
 from ..core.engine_tasks.ReportGenerationStep import ReportGenerationStep
 from ..i18n.TranslationManager import STR
 from ..plugins.BasePlugin import BasePluginMTL
+from ..resources.IconManager import IconManager as im
 from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.ToolKeys import ToolKey
@@ -29,7 +30,7 @@ class PhotoVectorizationPlugin(BasePluginMTL):
     def _build_ui(self, **kwargs):
         super()._build_ui(
             title=STR.PHOTO_VECTORIZATION_TITLE,
-            icon_path="coord.ico",
+            icon_path=im.PHOTO_VECTORIZATION,
             enable_scroll=True,
         )
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from ..i18n.TranslationManager import STR
+from ..resources.IconManager import IconManager as im
 from ..utils.ProjectUtils import ProjectUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.StringManager import StringManager
@@ -22,7 +23,7 @@ class RemoveKmlFieldsPlugin(BasePluginMTL):
 
     def initGui(self):
         self.create_action(
-            "../resources/icons/vector_field.ico",
+            im.icon_path(im.REMOVE_KML_FIELDS),
             STR.REMOVE_KML_FIELDS_TITLE,
             self.run_remove_kml_fields,
         )

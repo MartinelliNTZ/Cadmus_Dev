@@ -8,6 +8,7 @@ from qgis.PyQt.QtWidgets import QComboBox, QSizePolicy
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..core.services.ReportGenerationService import ReportGenerationService
 from ..i18n.TranslationManager import STR
+from ..resources.IconManager import IconManager as im
 from ..plugins.BasePlugin import BasePluginMTL
 from ..utils.ExplorerUtils import ExplorerUtils
 from ..utils.Preferences import Preferences
@@ -30,7 +31,7 @@ class ReportMetadataPlugin(BasePluginMTL):
     def _build_ui(self, **kwargs):
         super()._build_ui(
             title=STR.REPORT_METADATA_TITLE,
-            icon_path="coord.ico",
+            icon_path=im.REPORT_METADATA,
             enable_scroll=True,
         )
 

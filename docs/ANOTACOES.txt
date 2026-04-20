@@ -29,6 +29,7 @@ ferramentas = name                              tipo                            
     - 24: Relatorio de fotos 
     - 25: Media Ponderada de Raster
     - 26: Separacao de faixas
+    - 27: Gerador de Grade
 
 
 Documentação de cenarios: 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13

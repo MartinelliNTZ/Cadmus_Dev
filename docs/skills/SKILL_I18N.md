@@ -10,6 +10,10 @@
 
 **Princípio cardinal:** `pt_BR` é a **lingua-pai**. Tudo inicia em pt_BR. Tradução é processo futuro e **semântico, não literal**.
 
+**Logs são sempre em pt_BR e nunca traduzidos.**
+
+**Instruções só geradas quando solicitadas (não durante desenvolvimento).**
+
 ---
 
 ## 🎯 OBJETIVO
@@ -88,7 +92,7 @@ class Strings:
 **Localização:** [resources/InstructionsManager.py](../../resources/InstructionsManager.py)
 
 **Responsabilidades:**
-- Carregar arquivos `.md` por locale
+- Carregar arquivos `.md` por locale usando ToolKey diretamente
 - Resolver caminho: `instructions/<locale>/<tool_key>_help.md`
 - Fallback pt_BR → standard.md
 - Cache de caminhos
@@ -98,7 +102,7 @@ class Strings:
 from resources.InstructionsManager import InstructionsManager as IM
 from utils.ToolKeys import ToolKey
 
-# Obter caminho do arquivo de instruções
+# Obter caminho do arquivo de instruções (usa ToolKey diretamente)
 help_path = IM.get(tool_key=ToolKey.VECTOR_FIELD)
 # Resultado: ".../instructions/pt_BR/vector_field_help.md"
 
@@ -106,6 +110,8 @@ help_path = IM.get(tool_key=ToolKey.VECTOR_FIELD)
 with open(help_path, "r", encoding="utf-8") as f:
     markdown_text = f.read()
 ```
+
+**InstructionsManager é extensão do TranslationManager para instruções de plugins.**
 
 **Estrutura de arquivos esperada:**
 ```
@@ -131,7 +137,7 @@ resources/
 **Localização:** [resources/HtmlInstructionsProvider.py](../../resources/HtmlInstructionsProvider.py)
 
 **Responsabilidades:**
-- Carregar módulo `HtmlInstructions_<locale>.py` dinamicamente
+- Carregar módulo `HtmlInstructions_<locale>.py` dinamicamente usando ToolKey
 - Interpolar logo, autor, strings traduzidas
 - Cache de instruções em memória
 - Métodos auxiliares para HTML (headings, alerts)
@@ -141,12 +147,14 @@ resources/
 from resources.HtmlInstructionsProvider import HtmlInstructionsProvider
 from utils.ToolKeys import ToolKey
 
-# Inicializar para uma ferramenta
+# Inicializar para uma ferramenta (usa ToolKey)
 provider = HtmlInstructionsProvider(tool_key=ToolKey.VECTOR_FIELD)
 
-# Obter HTML de um algoritmo
-html_content = provider.get_instructions(algorithm_name="grid_generator")
+# Obter HTML de um algoritmo (usa ToolKey para algoritmo, não string hardcoded)
+html_content = provider.get_instructions(algorithm_name=ToolKey.GRID_GENERATOR)
 ```
+
+**HtmlInstructionsProvider é extensão do TranslationManager para instruções HTML.**
 
 **Estrutura de arquivos esperada:**
 ```
@@ -196,9 +204,9 @@ class HtmlInstructions:
   label = STR.WIDTH  # NUNCA hardcode strings
   ```
 
-- **Usar chaves de string UPPERCASE_WITH_UNDERSCORES**
+- **Usar chaves de string UPPERCASE_WITH_UNDERSCORES (padrão inglês)**
   - Facilita busca e refatoração
-  - Exemplo: `TITLE_VECTOR_FIELD`, `DESC_PROCESSING_ASYNC`
+  - Exemplo: `TITLE_VECTOR_FIELD = "Campos Vetoriais"` (chave em inglês, valor em pt_BR)
 
 - **Estruturar Strings_*.py por categoria**
   ```python
@@ -409,15 +417,15 @@ class DroneCoordinatesWidget:
         self.init_ui()
     
     def init_ui(self):
-        # Usar widget factory para criar labels, inputs, etc
-        self.title_label = self.factory.create_label(STR.TITLE_DRONE_COORDINATES)
-        self.lat_label = self.factory.create_label(f"{STR.LATITUDE}:")
-        self.lon_label = self.factory.create_label(f"{STR.LONGITUDE}:")
-        self.alt_label = self.factory.create_label(f"{STR.ALTITUDE}:")
+        # WidgetFactory tem métodos estáticos para criar widgets
+        self.title_label = WidgetFactory.create_label(STR.TITLE_DRONE_COORDINATES)
+        self.lat_label = WidgetFactory.create_label(f"{STR.LATITUDE}:")
+        self.lon_label = WidgetFactory.create_label(f"{STR.LONGITUDE}:")
+        self.alt_label = WidgetFactory.create_label(f"{STR.ALTITUDE}:")
         
-        self.lat_input = self.factory.create_line_edit()
-        self.lon_input = self.factory.create_line_edit()
-        self.alt_input = self.factory.create_line_edit()
+        self.lat_input = WidgetFactory.create_line_edit()
+        self.lon_input = WidgetFactory.create_line_edit()
+        self.alt_input = WidgetFactory.create_line_edit()
         
         # ... layout usando factory
 ```
@@ -526,5 +534,5 @@ MSG_GRID_FEATURES = "Total de feições criadas: {count}"
 4. ⏸️ Tradução = **processo futuro separado**
 5. 🌍 Tradução = **semântica, não literal**
 
-**Nunca** misturar idiomas, hardcode strings ou traduzir durante codificação.
+**Nunca** misturar idiomas, hardcode strings ou traduzir durante codificação. **Logs sempre em pt_BR.**
 

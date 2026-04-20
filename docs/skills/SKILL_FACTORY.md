@@ -157,7 +157,7 @@ Nada mais. Sem explicações. Sem repetir o conteúdo da skill no chat.
 | ❌ Nunca pedir confirmação para gravar | Gravar diretamente |
 | ❌ Nunca inventar comportamentos do sistema | Marcar como `[A DEFINIR]` |
 | ❌ Nunca criar campos extras não previstos no template | Seguir o template exatamente |
-| ✅ Sempre usar kebab-case no nome do arquivo | `sistema-de-preferencias.md` |
+| ✅ Sempre usar MAIUSCULO | `MAIUSCULO.md` |
 | ✅ Sempre preencher a data real em Histórico de mudanças | |
 | ✅ Sempre ler `docs/skills/PLUGIN_CONTRACT.md` se existir | Para identificar contratos do sistema |
 
@@ -167,22 +167,24 @@ Nada mais. Sem explicações. Sem repetir o conteúdo da skill no chat.
 
 Se o arquivo já existe em `docs/skills/`, **não sobrescrever** — perguntar:
 
-> "Já existe uma skill para esse sistema. Deseja atualizar ou criar uma versão nova?"
-
 - **Atualizar:** editar o arquivo existente e incrementar a versão
 - **Nova versão:** criar `<nome>-v2.md`
 
 ---
 
-## Compatibilidade de modelos
 
-Esta skill foi escrita para funcionar com:
-- Claude (Sonnet / Opus)
-- GPT-4.1
-- Minimax M2.5
-- Qualquer modelo com acesso a ferramenta de escrita de arquivo
+## 📏 REGRAS GLOBAIS
 
-**Para garantir compatibilidade:**
-- Instruções são imperativas e diretas ("gravar o arquivo", não "você pode gravar")
-- Nenhuma etapa depende de memória entre sessões
-- O template é autoexplicativo — o modelo preenche sem precisar inferir estrutura
+* Respostas curtas e estruturadas
+* Sem explicações desnecessárias
+* Sem “pensamento em voz alta”
+* Foco total na etapa atual
+* Não invente regras
+* Não pule etapas
+* Alucine menos
+* Não invente classes.
+* Leia sempre docs/skills/PLUGIN_CONTRACT.md para entender o contrato exclusivo do plugin de implementação.
+* Sempre que identificar um contrato, incremente em docs/skills/PLUGIN_CONTRACT.md, seguindo o formato:
+* Não é necessario criar uma skill para cada contrato identificado, mas é obrigatório registrar o contrato em docs/skills/PLUGIN_CONTRACT.md, mesmo que seja apenas um nome e descrição breve.
+* Não é necessario solicitar confirmação do usuário para registrar um contrato, nem para criar o .md da skill solicitada. 
+---

@@ -26,6 +26,8 @@ class ToolKey:
     ABOUT_DIALOG = "about_dialog"
     VECTOR_TO_SVG = "vector_to_svg"
     CREATE_PROJECT = "create_project"
+    DIFFERENCE_BETWEEN_LINES= "difference_between_lines"
+    SAVE_TEMPORARY_LAYER = "save_temporary_layer"
 
     # model3 / panel tool
     # processing/

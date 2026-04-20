@@ -309,15 +309,17 @@ Se qualquer item for ❌ → reler os arquivos e corrigir antes de gravar.
 
 ---
 
-## Compatibilidade de modelos
+## 📏 REGRAS GLOBAIS
 
-Esta skill funciona com:
-- Claude (Sonnet / Opus) — via bash + create_file
-- GPT-4.1 — via code_interpreter file write
-- Minimax M2.5 — via tool de escrita de arquivo
-
-**Para garantir compatibilidade entre modelos:**
-- Todas as instruções são imperativas ("ler o arquivo", "gravar o arquivo")
-- Nenhuma etapa depende de memória entre sessões
-- O protocolo de rastreamento é explícito e determinístico
-- O template é autoexplicativo sem contexto externo
+* Respostas curtas e estruturadas
+* Sem explicações desnecessárias
+* Sem “pensamento em voz alta”
+* Foco total na etapa atual
+* Não invente regras
+* Não pule etapas
+* Alucine menos
+* Não invente classes.
+* Leia sempre docs/skills/PLUGIN_CONTRACT.md para entender o contrato exclusivo do plugin de implementação.
+* Sempre que identificar um contrato, incremente em docs/skills/PLUGIN_CONTRACT.md, seguindo o formato:
+* Não é necessario criar uma skill para cada contrato identificado, mas é obrigatório registrar o contrato em docs/skills/PLUGIN_CONTRACT.md, mesmo que seja apenas um nome e descrição breve.
+* Não é necessario solicitar confirmação do usuário para registrar um contrato, nem para criar o .md da skill solicitada. 

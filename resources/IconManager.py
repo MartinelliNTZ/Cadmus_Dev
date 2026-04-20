@@ -38,9 +38,14 @@ class IconManager:
     DRONE_COORDINATES = "drone_cordinates.ico"
     VECTOR_MULTPART = "vector_multpart.ico"
     COPY_ATTRIBUTES = "copy_attributes.ico"
-    DIVIDE_POINTS_BY_STRIPS = "vector.ico"
+    DIVIDE_POINTS_BY_STRIPS = "divide_points_by_strips.ico"
     CREATE_PROJECT = "create_project.ico"
     VECTOR_TO_SVG = "vector_to_svg.ico"
+    PHOTO_VECTORIZATION = "photo_vectorization.ico"
+    REPORT_METADATA = "report_metadata.ico"
+    REMOVE_KML_FIELDS = "remove_kml_fields.ico"
+    DIFFERENCE_BETWEEN_LINES = "difference_between_lines.ico"
+    SAVE_TEMPORARY_LAYER = "save_temporary_layer.ico"
 
     # processing
     ATTRIBUTE_STATS = "attribute_stats.ico"
@@ -48,6 +53,8 @@ class IconManager:
     GEOMETRY_LINE_DIFFERENCE = "line_difference.ico"
     RASTER_MASS_SAMPLER = "raster_mass_sampler.ico"
     RASTER_MASS_CLIPPER = "raster_mass_clipper.ico"
+    GRID_GENERATOR = "grid_generator.ico"
+    RASTER_WEIGHTED_AVERAGE = "raster_weighted_average.ico"
 
     @classmethod
     def icon(cls, name: str) -> QIcon:

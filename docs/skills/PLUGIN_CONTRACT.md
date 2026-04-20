@@ -120,7 +120,6 @@ Logs servem auditoria/debug de desenvolvedores. STR é para UI do usuário. Logs
 ✅ A `tool_key` é a credencial mestra de rastreio de logs e preferências.
 ❌ Widgets exclusivos e helpers não precisam logar criação, mas devem logar exceções e erros relevantes se houver tratamento, oque muitas vezes nao ha.
 
----
 
 ## 14. Preferences — Padrão para Processing
 
@@ -129,3 +128,22 @@ Logs servem auditoria/debug de desenvolvedores. STR é para UI do usuário. Logs
 ✅ Parâmetros padrão dos algoritmos devem usar `self.prefs.get("chave", valor_padrao)`.
 ✅ Sempre incluir checkboxes padrão: `OPEN_OUTPUT_FOLDER` e `DISPLAY_HELP`, ambos usando prefs.
 ❌ Nunca salvar preferências fora dos métodos padrão.
+
+---
+
+## 15. Utils — Regras Gerais
+
+✅ Toda manipulação de arquivos/pastas deve ser feita por ExplorerUtils.
+✅ Só VectorLayerSource pode explorar arquivos vetoriais.
+✅ Só RasterLayerSource pode explorar arquivos raster.
+✅ Só ProjectUtils pode manipular QgsProject (abrir, salvar, backup, layers).
+✅ QgisMessageUtil é o único meio de emitir mensagens ao usuário (nunca usar print/qmessagebox direto para usuário).
+✅ ToolKey é obrigatório para logs/preferences de ferramentas. Utils/serviços devem receber tool_key externo.
+✅ Tudo que for possível deve ser salvo nas preferências (Preferences).
+✅ Sempre usar FormatUtils para exibir valores ao usuário (tamanho, tempo, etc).
+✅ Nome do arquivo .py deve ser exatamente igual ao nome da classe principal.
+❌ Nunca manipular QgsProject fora de ProjectUtils.
+❌ Nunca emitir mensagens ao usuário fora de QgisMessageUtil.
+❌ Nunca criar helpers duplicados já existentes em utils.
+❌ Nunca salvar preferências fora de Preferences.
+❌ Nunca explorar arquivos/camadas fora das classes autorizadas.

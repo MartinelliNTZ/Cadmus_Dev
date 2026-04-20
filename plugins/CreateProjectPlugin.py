@@ -3,13 +3,13 @@ import os
 import re
 from pathlib import Path
 
-from ..core.config.LogUtils import LogUtils
 from ..core.ui.dialogs.DefaultProjectsFolderDialog import DefaultProjectsFolderDialog
 from ..core.ui.dialogs.ProjectNameDialog import ProjectNameDialog
 from ..i18n.TranslationManager import STR
+from ..plugins.BasePlugin import BasePluginMTL
 from ..resources.OtherFilesManager import OtherFilesManager
 from ..utils.ExplorerUtils import ExplorerUtils
-from ..utils.Preferences import load_tool_prefs, save_tool_prefs
+from ..utils.Preferences import Preferences
 from ..utils.ProjectUtils import ProjectUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.raster.RasterLayerSource import RasterLayerSource
@@ -17,7 +17,7 @@ from ..utils.ToolKeys import ToolKey
 from ..utils.vector.VectorLayerSource import VectorLayerSource
 
 
-class CreateProjectPlugin:
+class CreateProjectPlugin(BasePluginMTL):
     DEFAULT_PROJECTS_FOLDER = "C:/QgisProjects"
     PROJECTS_FOLDER_PREF_KEY = "projects_folder"
     TOOL_KEY = ToolKey.CREATE_PROJECT
@@ -30,14 +30,25 @@ class CreateProjectPlugin:
     SCENARIO_UNSAVED_EMPTY_PROJECT = 3
 
     def __init__(self, iface):
+        super().__init__(iface.mainWindow())
         self.iface = iface
-        self.logger = LogUtils(
-            tool=self.TOOL_KEY, class_name="CreateProjectPlugin", level=LogUtils.DEBUG
+        self.init(
+            tool_key=self.TOOL_KEY,
+            class_name="CreateProjectPlugin",
+            load_system_prefs=False,
+            build_ui=False,
         )
 
     def execute(self):
+        """Mantem compatibilidade com chamadas legadas."""
+        return self.execute_tool()
+
+    def execute_tool(self):
+        """Executa o fluxo completo de criacao de projeto."""
+        self.on_finish_plugin()
+        Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.info("Iniciando fluxo de criacao de novo projeto")
-        system_prefs = load_tool_prefs(ToolKey.SYSTEM)
+        system_prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
         base_folder = self._resolve_base_folder(system_prefs)
         if not base_folder:
             return
@@ -82,7 +93,7 @@ class CreateProjectPlugin:
 
         base_folder = folder_dialog.get_folder_path().strip()
         system_prefs[self.PROJECTS_FOLDER_PREF_KEY] = base_folder
-        save_tool_prefs(ToolKey.SYSTEM, system_prefs)
+        Preferences.save_tool_prefs(ToolKey.SYSTEM, system_prefs)
         self.logger.info(f"Pasta padrao salva nas system prefs: {base_folder}")
         return base_folder
 
@@ -325,6 +336,7 @@ class CreateProjectPlugin:
 
 
 def run(iface):
+    """Ponto de entrada do plugin instantaneo de criacao de projeto."""
     plugin = CreateProjectPlugin(iface)
-    plugin.execute()
+    plugin.execute_tool()
     return plugin

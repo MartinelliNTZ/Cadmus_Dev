@@ -147,3 +147,10 @@ Logs servem auditoria/debug de desenvolvedores. STR é para UI do usuário. Logs
 ❌ Nunca criar helpers duplicados já existentes em utils.
 ❌ Nunca salvar preferências fora de Preferences.
 ❌ Nunca explorar arquivos/camadas fora das classes autorizadas.
+---
+
+## 16. Plugins Instantaneos - BasePlugin
+
+- Plugins do tipo INSTANT devem herdar de `BasePluginMTL` e inicializar com `build_ui=False`.
+- O ponto de entrada deve executar `execute_tool()` e manter logger/preferences via `BasePluginMTL`.
+- Nao criar plugin instantaneo fora do ciclo de vida padrao (sem `init(...)` da classe base).

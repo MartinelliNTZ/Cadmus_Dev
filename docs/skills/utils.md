@@ -219,3 +219,7 @@ if saved:
 | Data | Versão | Descrição |
 |------|--------|-----------|
 | 2026-04-20 | 1.0.0 | Criação via SKILL_FACTORY — lidos: utils/ExplorerUtils.py, utils/vector/VectorLayerSource.py, utils/raster/RasterLayerSource.py, utils/ProjectUtils.py, utils/QgisMessageUtil.py, utils/ToolKeys.py, utils/Preferences.py, utils/FormatUtils.py, utils/StringManager.py, utils/DependenciesManager.py |
+
+
+CONTINUAR
+otimo otimo, porem vc so excreveu oque eu disse nochat, vc precisa de contexto, enriqueca esse .md com dados direto das classes, leia os arquivos da pasyta crie um campo com todas as classes disponiveies e suas responsabilidades definidas

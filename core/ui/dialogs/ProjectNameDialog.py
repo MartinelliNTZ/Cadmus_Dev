@@ -9,14 +9,15 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ....i18n.TranslationManager import STR
+from ....plugins.BaseDialog import BaseDialog
 
 
-class ProjectNameDialog(QDialog):
+class ProjectNameDialog(BaseDialog):
     def __init__(self, suggested_name: str, parent=None):
         super().__init__(parent)
         self._suggested_name = suggested_name
         self.setWindowTitle(STR.PROJECT_NAME_TITLE)
-        self.setModal(True)
+        self.setModal(False)
         self.resize(460, 110)
         self._build_ui()
 

@@ -289,22 +289,24 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return normalized
 
     def _build_filtered_result_layer(
-        self, layer, selected_output_fields, field_name_map
+        self, 
+        result_layer,      # camada de resultado (já com todos os campos)
+        original_layer,    # camada de entrada original (para obter os campos originais)
+        selected_output_fields, 
+        field_name_map
     ):
-        """Cria um layer temporario com apenas os campos selecionados para salvar."""
-        if not layer or not layer.isValid():
-            return layer
+        """Cria um layer com todos os atributos originais + apenas os campos calculados selecionados."""
+        if not result_layer or not result_layer.isValid():
+            return result_layer
+        if not original_layer or not original_layer.isValid():
+            self.logger.warning("Camada original inválida, usando apenas campos selecionados")
+            # fallback para o comportamento antigo? melhor retornar a result_layer sem filtro
+            return result_layer
 
         normalized_map = self._normalize_field_name_map(field_name_map)
         if not selected_output_fields or not normalized_map:
-            self.logger.info(
-                "Filtro de campos nao aplicado por falta de selecao ou field map",
-                selected_output_fields=selected_output_fields,
-                field_name_map_keys=list((field_name_map or {}).keys())
-                if isinstance(field_name_map, dict)
-                else [],
-            )
-            return layer
+            self.logger.info("Filtro de campos não aplicado")
+            return result_layer
 
         normalized_selected = set(
             self._normalize_selected_output_fields(selected_output_fields)
@@ -315,43 +317,18 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             if key.value in normalized_selected
         ]
 
-        selected_field_names = [
-            self._resolve_field_name_from_map(normalized_map, key)
-            for key in selected_keys
-            if self._resolve_field_name_from_map(normalized_map, key)
-        ]
+        # 1. Obtém todos os campos da camada ORIGINAL (mantém todos)
+        original_fields = [original_layer.fields().field(i) for i in range(original_layer.fields().count())]
 
-        if not selected_field_names:
-            self.logger.warning(
-                "Nenhum campo resolvido para filtro de saida",
-                selected_output_fields=sorted(list(normalized_selected)),
-                normalized_map=normalized_map,
-            )
-            return layer
-
-        self.logger.info(
-            "Aplicando filtro de atributos no layer final",
-            selected_output_fields=sorted(list(normalized_selected)),
-            selected_field_names=selected_field_names,
-            source_layer=layer.name(),
-        )
-
-        uri = f"Point?crs={layer.crs().authid()}"
-        filtered_layer = QgsVectorLayer(uri, f"{layer.name()}_filtered", "memory")
-        if not filtered_layer.isValid():
-            self.logger.error("Falha ao criar camada temporaria filtrada")
-            return layer
-
-        fields = []
+        # 2. Adiciona apenas os campos calculados que foram selecionados (se não existirem nos originais)
+        extra_fields = []
         for logical_key in selected_keys:
             field_spec = SequentialPointBreakJudge.OUTPUT_FIELDS.get(logical_key)
             field_name = self._resolve_field_name_from_map(normalized_map, logical_key)
             if field_spec and field_name:
-                source_index = layer.fields().lookupField(field_name)
-                if source_index >= 0:
-                    fields.append(layer.fields().field(source_index))
-                    continue
-                fields.append(
+                if any(f.name() == field_name for f in original_fields):
+                    continue  # não duplicar
+                extra_fields.append(
                     QgsField(
                         field_name,
                         field_spec.type,
@@ -360,34 +337,54 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     )
                 )
 
-        filtered_layer.dataProvider().addAttributes(fields)
+        # Cria a nova camada
+        uri = f"Point?crs={result_layer.crs().authid()}"
+        filtered_layer = QgsVectorLayer(uri, f"{original_layer.name()}_filtered", "memory")
+        if not filtered_layer.isValid():
+            self.logger.error("Falha ao criar camada temporária filtrada")
+            return result_layer
+
+        # Adiciona todos os campos originais + os extras selecionados
+        all_fields = original_fields + extra_fields
+        filtered_layer.dataProvider().addAttributes(all_fields)
         filtered_layer.updateFields()
 
         filtered_layer.startEditing()
-        for feature in layer.getFeatures():
+
+        # Para cada feição da camada de resultado, copiamos:
+        # - geometria
+        # - todos os atributos originais (buscando da result_layer, que os possui)
+        # - apenas os atributos calculados selecionados
+        for result_feature in result_layer.getFeatures():
             new_feature = QgsFeature(filtered_layer.fields())
-            new_feature.setGeometry(feature.geometry())
+            new_feature.setGeometry(result_feature.geometry())
+
+            # Copia todos os campos originais (usando os nomes dos campos originais)
+            for orig_field in original_fields:
+                field_name = orig_field.name()
+                source_idx = result_layer.fields().lookupField(field_name)
+                target_idx = filtered_layer.fields().lookupField(field_name)
+                if source_idx >= 0 and target_idx >= 0:
+                    new_feature.setAttribute(target_idx, result_feature.attribute(source_idx))
+
+            # Copia apenas os campos calculados selecionados
             for logical_key in selected_keys:
-                resolved_name = self._resolve_field_name_from_map(
-                    normalized_map, logical_key
-                )
+                resolved_name = self._resolve_field_name_from_map(normalized_map, logical_key)
                 if not resolved_name:
                     continue
-                source_index = layer.fields().lookupField(resolved_name)
-                target_index = filtered_layer.fields().lookupField(resolved_name)
-                if source_index >= 0 and target_index >= 0:
-                    new_feature.setAttribute(
-                        target_index,
-                        feature.attribute(source_index),
-                    )
+                source_idx = result_layer.fields().lookupField(resolved_name)
+                target_idx = filtered_layer.fields().lookupField(resolved_name)
+                if source_idx >= 0 and target_idx >= 0:
+                    new_feature.setAttribute(target_idx, result_feature.attribute(source_idx))
+
             filtered_layer.addFeature(new_feature)
+
         filtered_layer.commitChanges()
         filtered_layer.updateFields()
         self.logger.info(
-            "Filtro de atributos concluido",
-            filtered_layer=filtered_layer.name(),
+            "Filtro de atributos concluído: originais + selecionados",
             filtered_field_names=[f.name() for f in filtered_layer.fields()],
-            filtered_feature_count=filtered_layer.featureCount(),
+            feature_count=filtered_layer.featureCount(),
         )
         return filtered_layer
 
@@ -508,6 +505,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             raw_result_layer = summary.get("result_layer")
             result_layer = self._build_filtered_result_layer(
                 raw_result_layer,
+                layer,  # <--- passe a camada de entrada original
                 selected_fields,
                 field_name_map,
             )

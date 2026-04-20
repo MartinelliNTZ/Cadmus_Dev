@@ -376,3 +376,70 @@ class Styles(BaseStyles):
             border-radius: 4px;
         }}
         """
+
+    @staticmethod
+    def project_name_dialog():
+        """Retorna o estilo dedicado ao dialogo de nome de projeto."""
+        return f"""
+        QDialog#project_name_dialog {{
+            background: {Styles.COLOR_BACKGROUND_SOFT};
+            border: 1px solid {Styles.COLOR_BORDER};
+            border-radius: 8px;
+        }}
+
+        QDialog#project_name_dialog QLabel#project_name_info_label {{
+            color: {Styles.COLOR_TEXT_PRIMARY};
+            font-family: {Styles.FONT_FAMILY_DEFAULT};
+            font-size: {Styles.FONT_SIZE_NORMAL};
+        }}
+
+        QDialog#project_name_dialog QLabel#project_name_field_label {{
+            color: {Styles.COLOR_TEXT_PRIMARY};
+            font-family: {Styles.FONT_FAMILY_DEFAULT};
+            font-size: {Styles.FONT_SIZE_NORMAL};
+            font-weight: bold;
+        }}
+
+        QDialog#project_name_dialog QLineEdit#project_name_input {{
+            background: {Styles.COLOR_BACKGROUND_PANEL};
+            color: {Styles.COLOR_TEXT_PRIMARY};
+            border: 1px solid {Styles.COLOR_BORDER};
+            border-radius: {Styles.INPUT_BORDER_RADIUS}px;
+            padding: {Styles.INPUT_PADDING};
+            min-height: {Styles.INPUT_HEIGHT}px;
+        }}
+
+        QDialog#project_name_dialog QLineEdit#project_name_input:focus {{
+            border: 1px solid {Styles.COLOR_PRIMARY};
+        }}
+
+        QDialog#project_name_dialog QPushButton#project_name_btn_ok,
+        QDialog#project_name_dialog QPushButton#project_name_btn_cancel {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 {Styles.COLOR_PRIMARY},
+                stop:1 {Styles.COLOR_PRIMARY_DARK});
+            color: {Styles.COLOR_BUTTON_TEXT};
+            border: 1px solid {Styles.COLOR_PRIMARY_DARK};
+            border-radius: {Styles.BUTTON_BORDER_RADIUS}px;
+            padding: {Styles.BUTTON_PADDING};
+            min-height: {Styles.BUTTON_HEIGHT}px;
+            min-width: 84px;
+            font-weight: bold;
+        }}
+
+        QDialog#project_name_dialog QPushButton#project_name_btn_ok:hover,
+        QDialog#project_name_dialog QPushButton#project_name_btn_cancel:hover {{
+            background: {Styles.COLOR_PRIMARY_LIGHT};
+        }}
+
+        QDialog#project_name_dialog QPushButton#project_name_btn_ok:pressed,
+        QDialog#project_name_dialog QPushButton#project_name_btn_cancel:pressed {{
+            background: {Styles.COLOR_PRIMARY_DARK};
+        }}
+
+        QDialog#project_name_dialog QPushButton#project_name_btn_ok:disabled,
+        QDialog#project_name_dialog QPushButton#project_name_btn_cancel:disabled {{
+            background: {Styles.COLOR_BACKGROUND_SOFT};
+            color: {Styles.COLOR_TEXT_SECONDARY};
+        }}
+        """

@@ -22,6 +22,7 @@ class Strings_pt_BR:
     LOAD_FILES = "Carregar Arquivos"
     EXPORT = "Exportar"
     CANCEL = "Cancelar"
+    OK = "OK"
     EXECUTE = "Executar"
     COPIED = "Copiado"
     COPY = "Copiar"

@@ -617,3 +617,12 @@ label.setText("Novo tÃ­tulo")  # Qt puro
 - **AdaptaÃ§Ã£o:** ParÃ¢metros opcionais, nunca novo widget idÃªntico
 
 **Contrato Ã© rÃ­gido. Sem exceÃ§Ãµes.**
+
+## Histórico de Mudanças
+
+| Data | Versão | Descrição |
+|------|--------|-----------|
+| 2026-04-20 | 1.0.1 | Adicionado padrão de estilo dedicado para diálogos simples com escopo por objectName no Styles.py (ex.: ProjectNameDialog). |
+| 2026-04-20 | 1.0.2 | Ajustado padrão para estilização confiável de botões em QDialogButtonBox usando selector dedicado + objectName dos botões, evitando override por tema nativo. |
+| 2026-04-20 | 1.0.3 | Em diálogos simples com necessidade de estilo consistente de ação, preferir `QPushButton` explícito no lugar de `QDialogButtonBox` para evitar interferência de tema nativo. |
+| 2026-04-20 | 1.0.4 | Ajustado stylesheet de ProjectNameDialog para escopo direto em `QPushButton` por `objectName`, removendo seletor legado com `QDialogButtonBox`. |

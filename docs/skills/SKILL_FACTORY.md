@@ -2,6 +2,7 @@
 
 **Objetivo:**
 Executar análise sistêmica e geração de skill **sem perder contexto**, dividindo o processo em etapas pequenas e controladas.
+Criar em ./docs/skills/**.md
 
 ---
 
@@ -216,6 +217,12 @@ AJUSTES (se necessário):
 * Sem explicações desnecessárias
 * Sem “pensamento em voz alta”
 * Foco total na etapa atual
+* Não invente regras
+* Não pule etapas
+* Alucine menos
+* Não invente classes.
+* Leia sempre docs/skills/PLUGIN_CONTRACT.md para entender o contrato exclusivo do plugin de implementação.
+* Sempre que identificar um contrato, incremente em docs/skills/PLUGIN_CONTRACT.md, seguindo o formato:
 
 ---
 

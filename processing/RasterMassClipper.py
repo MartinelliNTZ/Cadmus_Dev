@@ -17,6 +17,7 @@ from qgis.core import (
 
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
+from ..resources.IconManager import IconManager as im
 from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
@@ -29,7 +30,7 @@ class RasterMassClipper(BaseProcessingAlgorithm):
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
     INSTRUCTIONS_FILE = "raster_mass_clipper.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="RasterMassClipper", level="DEBUG")
-    ICON = "raster_mass_clipper.ico"
+    ICON = im.RASTER_MASS_CLIPPER
     INPUT_MASK = "INPUT_MASK"
     INPUT_RASTERS = "INPUT_RASTERS"
     OUTPUT_FOLDER = "OUTPUT_FOLDER"

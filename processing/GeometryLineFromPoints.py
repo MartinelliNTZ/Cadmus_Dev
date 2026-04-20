@@ -17,6 +17,7 @@ from qgis.core import (
 
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
+from ..resources.IconManager import IconManager as im
 from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
@@ -26,7 +27,7 @@ class GeometryLineFromPoints(BaseProcessingAlgorithm):
     ALGORITHM_NAME = "geometry_difference_line"
     ALGORITHM_DISPLAY_NAME = STR.GEOMETRY_LINE_FROM_POINTS_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_VETORIAL
-    ICON = "line_difference.ico"
+    ICON = im.GEOMETRY_LINE_DIFFERENCE
     INSTRUCTIONS_FILE = "geometry_difference_line.html"
     INPUT_LAYER_A = "INPUT_LAYER_A"
     INPUT_LAYER_B = "INPUT_LAYER_B"

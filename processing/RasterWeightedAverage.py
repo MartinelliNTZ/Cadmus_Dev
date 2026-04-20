@@ -17,6 +17,7 @@ from qgis.core import (
 from ..core.config.LogUtils import LogUtils
 from ..core.enum.ResamplingMethod import ResamplingMethod
 from ..i18n.TranslationManager import STR
+from ..resources.IconManager import IconManager as im
 from ..utils.ToolKeys import ToolKey
 from ..utils.raster.RasterLayerProjection import RasterLayerProjection
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
@@ -31,7 +32,7 @@ class RasterWeightedAverage(BaseProcessingAlgorithm):
     ALGORITHM_NAME = "raster_weighted_average"
     ALGORITHM_DISPLAY_NAME = STR.RASTER_WEIGHTED_AVERAGE_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "raster_mass_sampler.ico"
+    ICON = im.RASTER_WEIGHTED_AVERAGE
     INSTRUCTIONS_FILE = "raster_mass_sampler.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="RasterWeightedAverage", level="DEBUG")
 

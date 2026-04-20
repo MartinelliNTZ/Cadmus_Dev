@@ -223,6 +223,7 @@ AJUSTES (se necessário):
 * Não invente classes.
 * Leia sempre docs/skills/PLUGIN_CONTRACT.md para entender o contrato exclusivo do plugin de implementação.
 * Sempre que identificar um contrato, incremente em docs/skills/PLUGIN_CONTRACT.md, seguindo o formato:
-
+* Não é necessario criar uma skill para cada contrato identificado, mas é obrigatório registrar o contrato em docs/skills/PLUGIN_CONTRACT.md, mesmo que seja apenas um nome e descrição breve.
+* Não é necessario solicitar confirmação do usuário para registrar um contrato, nem para criar o .md da skill solicitada. 
 ---
 

@@ -447,8 +447,8 @@ class ToolRegistry:
             icon=im.icon(im.RASTER_MASS_CLIPPER),
             category=self.RASTER,
             tool_type=ToolTypeEnum.PROCESSING,
-            main_action=self._main_action_prefs.get(ToolKey.RASTER_MASS_CLIPPER, True),
-            executor=self.run_raster_mass_clipper,
+            main_action=self._main_action_prefs.get(ToolKey.RASTER_MASS_CLIPPER, True), # Alterado para False para que o Sampler seja o principal por padrão
+            executor=self._make_provider_executor("cadmus:raster_mass_clipper", STR.RASTER_MASS_CLIPPER_TITLE),
             tooltip=STR.RASTER_MASS_CLIPPER_TOOLTIP,
             order=10,
             show_in_toolbar=True,
@@ -461,8 +461,8 @@ class ToolRegistry:
             icon=im.icon(im.RASTER_MASS_SAMPLER),
             category=self.RASTER,
             tool_type=ToolTypeEnum.PROCESSING,
-            main_action=self._main_action_prefs.get(ToolKey.RASTER_MASS_SAMPLER, False),
-            executor=self.run_raster_mass_sampler,
+            main_action=self._main_action_prefs.get(ToolKey.RASTER_MASS_SAMPLER, False), # Alterado para True para ser o principal por padrão
+            executor=self._make_provider_executor("cadmus:raster_mass_sampler", STR.RASTER_MASS_SAMPLER_TITLE),
             tooltip=STR.RASTER_MASS_SAMPLER_TOOLTIP,
             order=20,
             show_in_toolbar=True,
@@ -560,6 +560,20 @@ class ToolRegistry:
 
         return executor
 
+    def _make_provider_executor(self, algorithm_id: str, log_name: str):
+        """
+        Gera um executor para ferramentas do tipo PROCESSING.
+        """
+        def executor():
+            try:
+                import processing
+                self.logger.info(f"Abrindo diálogo do Processing para algoritmo: {log_name} ({algorithm_id})")
+                processing.execAlgorithmDialog(algorithm_id, {})
+                self.logger.info(f"Diálogo do {log_name} aberto com sucesso pelo provider")
+            except Exception as e:
+                self.logger.error(f"Erro ao executar {log_name} ({algorithm_id}): {str(e)}")
+                QgisMessageUtil.bar_critical(self.iface, f"Erro ao abrir {log_name} no Processing:\n{str(e)}")
+        return executor
 
     # =====================================================
     # EXECUTAR: Obter Coordenadas ao Clicar no Mapa
@@ -567,7 +581,6 @@ class ToolRegistry:
     def run_coord_click(self):
         try:
             from ...plugins.CoordClickTool import CoordClickTool
-
             self.logger.info("Ativando ferramenta: Capturar Coordenadas")
             self.coord_click_tool = CoordClickTool(self.iface)
             self.iface.mapCanvas().setMapTool(self.coord_click_tool)
@@ -576,48 +589,4 @@ class ToolRegistry:
             self.logger.error(f"Erro ao ativar Capturar Coordenadas: {str(e)}")
             QgisMessageUtil.bar_critical(
                 self.iface, f"Erro na ferramenta Capturar Coordenadas:{str(e)}"
-            )
-
-    # =====================================================
-    # EXECUTAR: Raster Mass Clipper (Processing)
-    # =====================================================
-    def run_raster_mass_clipper(self):
-        try:
-            import processing
-
-            algorithm_id = "cadmus:raster_mass_clipper"
-            self.logger.info(
-                f"Abrindo dialogo do Processing para algoritmo: {algorithm_id}"
-            )
-            processing.execAlgorithmDialog(algorithm_id, {})
-            self.logger.info(
-                "Dialogo do Raster Mass Clipper aberto com sucesso pelo provider"
-            )
-        except Exception as e:
-            self.logger.error(f"Erro ao executar Raster Mass Clipper: {str(e)}")
-            QgisMessageUtil.bar_critical(
-                self.iface,
-                f"Erro ao abrir Raster Mass Clipper no Processing:\n{str(e)}",
-            )
-
-    # =====================================================
-    # EXECUTAR: Raster Mass Sampler (Processing)
-    # =====================================================
-    def run_raster_mass_sampler(self):
-        try:
-            import processing
-
-            algorithm_id = "cadmus:raster_mass_sampler"
-            self.logger.info(
-                f"Abrindo dialogo do Processing para algoritmo: {algorithm_id}"
-            )
-            processing.execAlgorithmDialog(algorithm_id, {})
-            self.logger.info(
-                "Dialogo do Raster Mass Sampler aberto com sucesso pelo provider"
-            )
-        except Exception as e:
-            self.logger.error(f"Erro ao executar Raster Mass Sampler: {str(e)}")
-            QgisMessageUtil.bar_critical(
-                self.iface,
-                f"Erro ao abrir Raster Mass Sampler no Processing:\n{str(e)}",
             )

@@ -190,7 +190,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self._refresh_field_selectors()
 
     def _load_prefs(self):
-        #self.preferences = load_tool_prefs(self.TOOL_KEY)
         self.id_field = self.preferences.get("id_field", "")
         self.time_field = self.preferences.get("time_field", "")
         operational_fields = self.preferences.get("operational_fields", {})
@@ -244,8 +243,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.preferences[self.PREF_SELECTED_OUTPUT_FIELDS] = (
             self._get_selected_output_fields()
         )
-        self.preferences["save_layer_enabled"] = self.save_points_selector.is_enabled()
-        self.preferences["save_layer_path"] = self.save_points_selector.get_file_path()
         self.preferences["save_to_folder"] = bool(self.save_points_selector.is_enabled())
         self.preferences["last_output_file"] = self.save_points_selector.get_file_path()
         self.preferences["window_width"] = self.width()

@@ -219,11 +219,19 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             shot_id_checkbox.setEnabled(False)
 
         self.save_points_selector.set_enabled(
-            self.preferences.get("save_layer_enabled", False)
+            self.preferences.get("save_to_folder", False)
         )
         self.save_points_selector.set_file_path(
-            self.preferences.get("save_layer_path", "")
+            self.preferences.get("last_output_file", "")
         )
+
+        # Restaurar estado de expansão dos colapsáveis
+        self.operational_params.set_expanded(self.preferences.get("expanded_operational", True))
+        self.advanced_params.set_expanded(self.preferences.get("expanded_sensitivity", True))
+        self.attributes_params.set_expanded(self.preferences.get("expanded_attributes", True))
+        if hasattr(self, "save_collapsible"):
+            self.save_collapsible.set_expanded(self.preferences.get("expanded_save", False))
+
         self._refresh_field_selectors()
 
     def _save_prefs(self):
@@ -238,8 +246,18 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         self.preferences["save_layer_enabled"] = self.save_points_selector.is_enabled()
         self.preferences["save_layer_path"] = self.save_points_selector.get_file_path()
+        self.preferences["save_to_folder"] = bool(self.save_points_selector.is_enabled())
+        self.preferences["last_output_file"] = self.save_points_selector.get_file_path()
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
+
+        # Salvar estado de expansão dos colapsáveis
+        self.preferences["expanded_operational"] = self.operational_params.is_expanded()
+        self.preferences["expanded_sensitivity"] = self.advanced_params.is_expanded()
+        self.preferences["expanded_attributes"] = self.attributes_params.is_expanded()
+        if hasattr(self, "save_collapsible"):
+            self.preferences["expanded_save"] = self.save_collapsible.is_expanded()
+
         save_tool_prefs(self.TOOL_KEY, self.preferences)
 
     def _on_layer_changed(self, _layer):

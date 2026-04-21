@@ -154,3 +154,23 @@ Logs servem auditoria/debug de desenvolvedores. STR é para UI do usuário. Logs
 - Plugins do tipo INSTANT devem herdar de `BasePluginMTL` e inicializar com `build_ui=False`.
 - O ponto de entrada deve executar `execute_tool()` e manter logger/preferences via `BasePluginMTL`.
 - Nao criar plugin instantaneo fora do ciclo de vida padrao (sem `init(...)` da classe base).
+
+---
+
+## 17. Registro de Plugins - ToolRegistry é a Fonte da Verdade
+
+- Toda ferramenta plugin de menu/toolbar deve ser registrada em `core/config/ToolRegistry.py` dentro de `_create_tool_list()`.
+- O registro deve usar `Tool(...)` com `tool_key`, `category`, `tool_type`, `main_action`, `executor`, `order` e `show_in_toolbar`.
+- `main_action` deve vir de `self._main_action_prefs.get(ToolKey.X, <default>)`, nunca hardcoded fora desse padrão.
+- Não criar ação manual de plugin novo direto em `MenuManager` ou `cadmus_plugin.py`.
+- Se a ferramenta não está no `ToolRegistry`, ela não faz parte da arquitetura oficial.
+
+---
+
+## 18. Executor do Registry - Ponto de Entrada e Referência Viva
+
+- Cada `Tool(...)` registrada no `ToolRegistry` deve ter um método executor correspondente, como `run_my_plugin(self)`.
+- O executor deve importar o ponto de entrada do plugin e manter a instância em `self.<nome>` para evitar perda de referência de dialogs/map tools.
+- Para ferramentas de diálogo, o padrão preferencial é `from ...plugins.MyPlugin import run` seguido de `self.my_plugin_dlg = run(self.iface)`.
+- Todo executor deve tratar exceções com `logger.error(...)` e feedback ao usuário via `QgisMessageUtil.bar_critical(...)`.
+- Não disparar dialogs/plugins a partir do registry sem persistir a referência na própria instância do `ToolRegistry`.

@@ -82,7 +82,6 @@ class RemoveKmlFieldsPlugin(BasePluginMTL):
         QgisMessageUtil.bar_warning(self.iface, STR.NO_KML_FIELDS_FOUND)
 
 
-def run_remove_kml_fields(iface):
+def run(iface):
     plugin = RemoveKmlFieldsPlugin(iface)
-    plugin.initGui()
-    return plugin
+    plugin.run_remove_kml_fields()

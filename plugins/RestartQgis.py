@@ -226,3 +226,7 @@ def run_restart_qgis(iface) -> None:
         duration=2,
     )
     iface.mainWindow().close()
+
+
+def run(iface):
+    run_restart_qgis(iface)

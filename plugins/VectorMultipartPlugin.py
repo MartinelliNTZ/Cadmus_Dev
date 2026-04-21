@@ -112,4 +112,7 @@ class VectorMultipartPlugin(BasePluginMTL):
                 self.iface, STR.GEOMETRIES_CONVERTED_TO_MULTIPART_NOT_SAVED
             )
             return
-        
+
+def run(iface):
+    plugin = VectorMultipartPlugin(iface)
+    plugin.run_multpart()

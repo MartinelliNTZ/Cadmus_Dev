@@ -421,8 +421,6 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
             self.logger.debug(f"Falha ao finalizar estatísticas: {e}")
 
 
-def run_vector_field(iface):
-    """Função de entrada do plugin."""
+def run(iface):
     plugin = VectorFieldsCalculationPlugin(iface)
-    plugin.initGui()
-    return plugin
+    plugin.run_vector_field()

@@ -146,92 +146,6 @@ class ToolRegistry:
         )
         return main_action_prefs
 
-    def _load_and_validate_main_actions(self):
-        """
-        Carrega as preferências de main_action de todas as ferramentas,
-        garante que exista exatamente uma com True POR CATEGORIA, e retorna dict {tool_key: bool}.
-        
-        Regras por categoria:
-        - Se 2+ têm True, mantém apenas a primeira e reseta o resto
-        - Se nenhuma tem True, força a primeira ferramenta da categoria para True
-        - Se exatamente 1 é True, retorna normalmente
-        """
-        return self._load_and_validate_main_actions_strict()
-        categories = StringManager.MENU_CATEGORIES.keys()
-        
-        self.logger.info(
-            f"[_load_and_validate_main_actions] Iniciando validação. "
-            f"Total de ferramentas carregadas: {len(main_action_prefs)}"
-        )
-        self.logger.debug(f"[_load_and_validate_main_actions] Prefs carregadas: {main_action_prefs}")
-        
-        # Validar por CATEGORIA
-        for category in categories:
-            self.logger.debug(f"[_load_and_validate_main_actions] Validando categoria '{category}'")
-            # Filtrar apenas ferramentas desta categoria
-            tools_in_category = {}
-            for k, v in main_action_prefs.items():
-                tool_cat = Preferences.load_tool_prefs(k).get("category")
-                self.logger.debug(
-                    f"[_load_and_validate_main_actions] Tool '{k}': "
-                    f"category={tool_cat}, main_action={v}"
-                )
-                if tool_cat == category:
-                    tools_in_category[k] = v
-            self.logger.debug(
-                f"[_load_and_validate_main_actions] Categoria '{category}': "
-                f"{len(tools_in_category)} ferramentas. "
-                f"Tools: {tools_in_category}"
-            )##19debug--
-            true_count = sum(1 for v in tools_in_category.values() if v is True)
-            self.logger.debug(
-                f"[_load_and_validate_main_actions] Categoria '{category}': "
-                f"{true_count} com main_action=True"
-            )
-            if true_count > 1:
-                # Caso 2+: pega a primeira ocorrência e reseta o resto
-                self.logger.warning(
-                    f"[_load_and_validate_main_actions] Categoria '{category}': "
-                    f"{true_count} ferramentas com main_action=True. "
-                    f"Mantendo apenas a primeira."
-                )
-                first_key = next(k for k, v in tools_in_category.items() if v is True)
-                for k in tools_in_category:
-                    main_action_prefs[k] = (k == first_key)
-                    self.logger.debug(
-                        f"[_load_and_validate_main_actions] Corrigido '{k}': "
-                        f"main_action={(k == first_key)}"
-                    )
-            elif true_count == 0 and tools_in_category:
-                # Caso 0: nenhuma true nesta categoria - força a primeira para True
-                self.logger.warning(
-                    f"[_load_and_validate_main_actions] Categoria '{category}': "
-                    f"nenhuma com main_action=True. Forçando a primeira para True."
-                )
-                first_key = next(iter(tools_in_category.keys()))
-                for k in tools_in_category:
-                    main_action_prefs[k] = (k == first_key)
-                    self.logger.debug(
-                        f"[_load_and_validate_main_actions] Corrigido '{k}': "
-                        f"main_action={(k == first_key)}"
-                    )
-        # Salvar correções se necessário
-        self.logger.info(
-            f"[_load_and_validate_main_actions] Salvando preferências validadas"
-        )
-        for tool_key, is_main in main_action_prefs.items():
-            prefs = Preferences.load_tool_prefs(tool_key)
-            prefs["main_action"] = is_main
-            Preferences.save_tool_prefs(tool_key, prefs)
-            self.logger.debug(
-                f"[_load_and_validate_main_actions] Salvo '{tool_key}': "
-                f"main_action={is_main}"
-            )
-        self.logger.info(
-            f"[_load_and_validate_main_actions] ✓ Validação concluída. "
-            f"Result: {main_action_prefs}"
-        )
-        return main_action_prefs
 
     def _create_tool_list(self):
         tools = []
@@ -395,7 +309,7 @@ class ToolRegistry:
         remove_kml_fields = Tool(
             tool_key=ToolKey.REMOVE_KML_FIELDS,
             name=STR.REMOVE_KML_FIELDS_TITLE,
-            icon=im.icon(im.CADMUS_ICON),
+            icon=im.icon(im.REMOVE_KML_FIELDS),
             category=self.VECTOR,
             tool_type=ToolTypeEnum.INSTANT,
             main_action=self._main_action_prefs.get(ToolKey.REMOVE_KML_FIELDS, False),
@@ -497,7 +411,7 @@ class ToolRegistry:
         photo_vectorization = Tool(
             tool_key=ToolKey.PHOTO_VECTORIZATION,
             name=STR.PHOTO_VECTORIZATION_TITLE,
-            icon=im.icon(im.DRONE_COORDINATES),
+            icon=im.icon(im.PHOTO_VECTORIZATION),
             category=self.AGRICULTURE,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.PHOTO_VECTORIZATION, False),
@@ -511,7 +425,7 @@ class ToolRegistry:
         report_metadata = Tool(
             tool_key=ToolKey.REPORT_METADATA,
             name=STR.REPORT_METADATA_TITLE,
-            icon=im.icon(im.DRONE_COORDINATES),
+            icon=im.icon(im.REPORT_METADATA),
             category=self.AGRICULTURE,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.REPORT_METADATA, False),

@@ -228,8 +228,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.operational_params.set_expanded(self.preferences.get("expanded_operational", True))
         self.advanced_params.set_expanded(self.preferences.get("expanded_sensitivity", True))
         self.attributes_params.set_expanded(self.preferences.get("expanded_attributes", True))
-        if hasattr(self, "save_collapsible"):
-            self.save_collapsible.set_expanded(self.preferences.get("expanded_save", False))
+        
+        self.save_collapsible.set_expanded(self.preferences.get("expanded_save", False))
 
         self._refresh_field_selectors()
 
@@ -252,8 +252,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.preferences["expanded_operational"] = self.operational_params.is_expanded()
         self.preferences["expanded_sensitivity"] = self.advanced_params.is_expanded()
         self.preferences["expanded_attributes"] = self.attributes_params.is_expanded()
-        if hasattr(self, "save_collapsible"):
-            self.preferences["expanded_save"] = self.save_collapsible.is_expanded()
+        
+        self.preferences["expanded_save"] = self.save_collapsible.is_expanded()
 
         save_tool_prefs(self.TOOL_KEY, self.preferences)
 

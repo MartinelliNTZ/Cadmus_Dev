@@ -37,12 +37,10 @@ Instrucoes: 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18
 Traducao: 9
   - Geral: Impedir múltiplas instâncias de plugins rodando simultaneamente
   - criar gerador de indices ndvi, ndre, e gli automaticos
-  - multpart nao ta em task e pode bugar
-  - criar 3 ico de plugins 
   - eLIMIAR TODOS OS untraceable exceptions e garantir que tudo seja logado
   - Usar iconManager para carregar ícones de forma centralizada e eficiente
  changelog=
- use def load_vector_layer_from_file( e elimine o def load_vector_layer_from_source_path( mnao e necessario novo metodo, 
+ 
 2.3.26 21/04/2026
     - Restruturada a toolregistry
     - icones adicionados

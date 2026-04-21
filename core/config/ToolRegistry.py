@@ -50,6 +50,7 @@ class ToolRegistry:
         
         # Armazenar como singleton
         ToolRegistry._instance = self
+        self._package = __package__
 
     def _save_tool_metadata(self):
         """
@@ -161,7 +162,8 @@ class ToolRegistry:
             category=self.LAYOUTS,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.EXPORT_ALL_LAYOUTS, True),
-            executor=self.run_export_layouts,
+            #executor=self.run_export_layouts,
+            executor=self._make_dialog_executor("...plugins.ExportAllLayouts"),
             tooltip=STR.EXPORT_ALL_LAYOUTS_TOOLTIP,
             order=10,
             show_in_toolbar=True,
@@ -175,7 +177,7 @@ class ToolRegistry:
             category=self.LAYOUTS,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.REPLACE_IN_LAYOUTS, False),
-            executor=self.run_replace_layouts,
+            executor=self._make_dialog_executor("...plugins.ReplaceInLayouts"),
             tooltip=STR.REPLACE_IN_LAYOUTS_TOOLTIP,
             order=20,
             show_in_toolbar=True,
@@ -221,7 +223,7 @@ class ToolRegistry:
             category=self.SYSTEM,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.SETTINGS, True),
-            executor=self.run_settings,
+            executor=self._make_dialog_executor("...plugins.SettingsPlugin"),
             tooltip=STR.SETTINGS_TOOLTIP,
             order=30,
             show_in_toolbar=True,
@@ -523,6 +525,42 @@ class ToolRegistry:
         except Exception as e:
             self.logger.error(f"[update_tool_main_action] Erro: {e}", exc_info=True)
             return None
+
+    def _make_dialog_executor(self, module_path: str, run_func: str = "run"):
+        """
+        Gera um executor para ferramentas do tipo DIALOG.
+        attr_name e log_name são inferidos automaticamente do module_path.
+        
+        Ex: '...plugins.ExportAllLayouts'
+            → attr_name = 'export_all_layouts_dlg'
+            → log_name  = 'Export All Layouts'
+        """
+        import re
+
+        module_name = module_path.split(".")[-1]  # 'ExportAllLayouts'
+        
+        # CamelCase → snake_case para attr_name
+        snake = re.sub(r'(?<!^)(?=[A-Z])', '_', module_name).lower()  # 'export_all_layouts'
+        attr_name = f"{snake}_dlg"                                      # 'export_all_layouts_dlg'
+        
+        # CamelCase → palavras separadas para log
+        log_name = re.sub(r'(?<!^)(?=[A-Z])', ' ', module_name)        # 'Export All Layouts'
+
+        def executor():
+            try:
+                import importlib
+                module = importlib.import_module(module_path, package=self._package)
+                fn = getattr(module, run_func)
+                self.logger.info(f"Abrindo diálogo: {log_name}")
+                result = fn(self.iface)
+                setattr(self, attr_name, result)
+                self.logger.info(f"Diálogo {log_name} aberto com sucesso")
+            except Exception as e:
+                self.logger.error(f"Erro ao executar {log_name}: {str(e)}")
+                QgisMessageUtil.bar_critical(self.iface, f"Erro no plugin {log_name}:\n{str(e)}")
+
+        return executor
+
 
     # =======FERRAMENTAS INSTANTANEAS DE SISTEMA=======
     # =================================================

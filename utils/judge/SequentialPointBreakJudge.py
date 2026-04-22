@@ -3,6 +3,8 @@
 SequentialPointBreakJudge — Refactored
 =======================================
 
+from ..MathUtils import MathUtils
+
 DIAGNÓSTICO DOS PROBLEMAS DO ALGORITMO ANTERIOR
 ------------------------------------------------
 Análise dos dados reais (VERDADEIRO vs shot_id) revelou três falhas estruturais:
@@ -60,60 +62,11 @@ from ..ToolKeys import ToolKey
 from ..vector.VectorLayerAttributes import VectorLayerAttributes
 from ..vector.VectorLayerGeometry import VectorLayerGeometry
 from ..vector.VectorLayerSource import VectorLayerSource
+from ..MathUtils import MathUtils
 
 import math
 
 
-# ---------------------------------------------------------------------------
-# Funções matemáticas auxiliares (puras, sem dependência de QGIS)
-# ---------------------------------------------------------------------------
-
-def _angular_diff(a: float, b: float) -> float:
-    """Diferença angular mínima em [0, 180]."""
-    d = abs(a - b) % 360.0
-    return min(d, 360.0 - d)
-
-
-def _circular_variance(angles: list[float]) -> float:
-    """
-    Variância circular (R-bar), em [0, 1].
-    0 = todos iguais (mínima variância), 1 = máxima dispersão.
-    Referência: Fisher (1993), Statistical Analysis of Circular Data.
-    """
-    if not angles:
-        return 1.0
-    n = len(angles)
-    rad = [math.radians(a) for a in angles]
-    s = sum(math.sin(r) for r in rad) / n
-    c = sum(math.cos(r) for r in rad) / n
-    r_bar = math.sqrt(s * s + c * c)
-    return 1.0 - r_bar  # 0 = concentrado, 1 = disperso
-
-
-def _circular_mean(angles: list[float]) -> float:
-    """Média circular em graus."""
-    if not angles:
-        return 0.0
-    rad = [math.radians(a) for a in angles]
-    s = sum(math.sin(r) for r in rad)
-    c = sum(math.cos(r) for r in rad)
-    return math.degrees(math.atan2(s, c)) % 360.0
-
-
-def _weighted_circular_mean(angles: list[float], weights: list[float]) -> float:
-    """
-    Média circular ponderada por velocidade.
-    Pontos lentos (curva) têm peso menor, pontos rápidos (faixa) dominam.
-    """
-    if not angles:
-        return 0.0
-    total_w = sum(weights)
-    if total_w == 0:
-        return _circular_mean(angles)
-    rad = [math.radians(a) for a in angles]
-    s = sum(math.sin(r) * w for r, w in zip(rad, weights)) / total_w
-    c = sum(math.cos(r) * w for r, w in zip(rad, weights)) / total_w
-    return math.degrees(math.atan2(s, c)) % 360.0
 
 
 def _future_stability_score(
@@ -145,8 +98,8 @@ def _future_stability_score(
     if not future_azs:
         return 0.0, 0.0
 
-    conv_az = _circular_mean(future_azs)
-    agreed = sum(1 for a in future_azs if _angular_diff(a, conv_az) <= az_threshold)
+    conv_az = MathUtils.circular_mean(future_azs)
+    agreed = sum(1 for a in future_azs if MathUtils.angular_diff(a, conv_az) <= az_threshold)
     ratio = agreed / len(future_azs)
     return ratio, conv_az
 
@@ -159,7 +112,7 @@ def _past_stability(az_history: list[float], window: int) -> float:
     recent = az_history[-window:] if az_history else []
     if len(recent) < 2:
         return 1.0
-    return _circular_variance(recent)
+    return MathUtils.circular_variance(recent)
 
 
 def _az_convergence_rate(az_history: list[float], window: int) -> float:
@@ -171,7 +124,7 @@ def _az_convergence_rate(az_history: list[float], window: int) -> float:
     recent = az_history[-window:]
     if len(recent) < 2:
         return 0.0
-    diffs = [_angular_diff(recent[i], recent[i - 1]) for i in range(1, len(recent))]
+    diffs = [MathUtils.angular_diff(recent[i], recent[i - 1]) for i in range(1, len(recent))]
     return sum(diffs) / len(diffs)
 
 
@@ -186,104 +139,8 @@ class SequentialPointBreakJudge:
     Algoritmo bidirecional com análise de estabilidade futura e passada.
     """
 
-    OUTPUT_FIELDS = {
-        OutputFieldKey.SHOT_ID: Field(
-            label="Shot ID",
-            attribute="shot_id",
-            description="Identificador único do segmento de tiro/faixa.",
-            type=QVariant.Int,
-            length=10,
-            precision=0,
-        ),
-        OutputFieldKey.SHOT_VALID: Field(
-            label="Shot Valid",
-            attribute="shot_valid",
-            description="Indica se o tiro possui pontos suficientes para ser válido.",
-            type=QVariant.Int,
-            length=1,
-            precision=0,
-        ),
-        OutputFieldKey.SCORE: Field(
-            label="Score",
-            attribute="score",
-            description="Pontuação de quebra (direção + continuidade).",
-            type=QVariant.Int,
-            length=10,
-            precision=0,
-        ),
-        OutputFieldKey.SCORE_DIRECTION: Field(
-            label="Score Direction",
-            attribute="score_direction",
-            description="Componente de quebra por mudança de direção.",
-            type=QVariant.Int,
-            length=10,
-            precision=0,
-        ),
-        OutputFieldKey.SCORE_CONTINUITY: Field(
-            label="Score Continuity",
-            attribute="score_continuity",
-            description="Componente de quebra por descontinuidade temporal/espacial.",
-            type=QVariant.Int,
-            length=10,
-            precision=0,
-        ),
-        OutputFieldKey.SEG_TYPE: Field(
-            label="Segment Type",
-            attribute="seg_type",
-            description="Tipo: 'faixa' ou 'bordadura'.",
-            type=QVariant.String,
-            length=20,
-            precision=0,
-        ),
-        OutputFieldKey.AZIMUTH_INSTANT: Field(
-            label="Azimuth Instant",
-            attribute="azimuth_instant",
-            description="Azimute instantâneo entre pontos consecutivos.",
-            type=QVariant.Double,
-            length=20,
-            precision=8,
-        ),
-        OutputFieldKey.AZIMUTH_MEAN: Field(
-            label="Azimuth Mean",
-            attribute="azimuth_mean",
-            description="Média circular ponderada por velocidade.",
-            type=QVariant.Double,
-            length=20,
-            precision=8,
-        ),
-        OutputFieldKey.DELTA_AZIMUTH: Field(
-            label="Delta Azimuth",
-            attribute="delta_azimuth",
-            description="Diferença angular entre azimute instantâneo e média.",
-            type=QVariant.Double,
-            length=20,
-            precision=8,
-        ),
-        OutputFieldKey.DELTA_TIME: Field(
-            label="Delta Time",
-            attribute="delta_time",
-            description="Diferença de tempo entre pontos consecutivos (s).",
-            type=QVariant.Double,
-            length=20,
-            precision=8,
-        ),
-        OutputFieldKey.DELTA_DISTANCE: Field(
-            label="Delta Distance",
-            attribute="delta_distance",
-            description="Distância entre pontos consecutivos (m).",
-            type=QVariant.Double,
-            length=20,
-            precision=8,
-        ),
-        OutputFieldKey.VELOCITY_INSTANT: Field(
-            label="Velocity Instant",
-            attribute="velocity_instant",
-            description="Velocidade instantânea (m/s).",
-            type=QVariant.Double,
-            length=20,
-            precision=8,
-        ),
-    }
+    from ..StringManager import StringManager
+    DIVIDE_STRIP_FIELDS = StringManager.DIVIDE_STRIP_FIELDS
 
     def __init__(
         self,
@@ -548,10 +405,10 @@ class SequentialPointBreakJudge:
             recent_az = az_history[-azimuth_window:] if az_history else []
             recent_vel = vel_history[-azimuth_window:] if vel_history else []
             mean_az = (
-                _weighted_circular_mean(recent_az, [max(min_velocity_weight, v) for v in recent_vel])
+                MathUtils.weighted_circular_mean(recent_az, [max(min_velocity_weight, v) for v in recent_vel])
                 if recent_az else instant_az
             )
-            delta_azimuth = _angular_diff(instant_az, mean_az)
+            delta_azimuth = MathUtils.angular_diff(instant_az, mean_az)
 
             # --- Métricas de estabilidade ---
             past_var = _past_stability(az_history, past_stability_window)
@@ -562,10 +419,10 @@ class SequentialPointBreakJudge:
 
             # Lookahead: estabilidade futura usando az pré-computados
             future_azs = precomputed_az[i + 1: i + 1 + future_stability_window]
-            future_az_mean = _circular_mean(future_azs) if future_azs else instant_az
+            future_az_mean = MathUtils.circular_mean(future_azs) if future_azs else instant_az
             future_stable_count = sum(
                 1 for a in future_azs
-                if _angular_diff(a, future_az_mean) <= future_az_cluster_threshold
+                if MathUtils.angular_diff(a, future_az_mean) <= future_az_cluster_threshold
             )
             future_ratio = future_stable_count / len(future_azs) if future_azs else 0.0
             future_stable = future_ratio >= future_stability_threshold
@@ -616,7 +473,7 @@ class SequentialPointBreakJudge:
                     confirmed = 0
                     for j in range(i + 1, min(i + 1 + confirmation_window, n)):
                         conf_az = precomputed_az[j]
-                        conf_delta = _angular_diff(conf_az, mean_az)
+                        conf_delta = MathUtils.angular_diff(conf_az, mean_az)
                         conf_score = 0
                         if conf_delta > light_azimuth_threshold:
                             conf_score += 1
@@ -634,7 +491,7 @@ class SequentialPointBreakJudge:
                         si = i + skip
                         if si < n:
                             skip_az = precomputed_az[si]
-                            skip_delta = _angular_diff(skip_az, mean_az)
+                            skip_delta = MathUtils.angular_diff(skip_az, mean_az)
                             skip_score_dir = 0
                             if skip_delta > light_azimuth_threshold:
                                 skip_score_dir += 1
@@ -670,7 +527,7 @@ class SequentialPointBreakJudge:
                         if back_fid not in updates:
                             break
                         back_az = precomputed_az[bi] if bi > 0 else 0.0
-                        back_diff = _angular_diff(back_az, future_az_mean)
+                        back_diff = MathUtils.angular_diff(back_az, future_az_mean)
                         # Reatribuir se o az já estava "na direção" da nova faixa
                         # (diferença aceitável e decrescente em direção ao alvo)
                         if back_diff <= future_az_cluster_threshold * 2.0:
@@ -754,7 +611,7 @@ class SequentialPointBreakJudge:
             azs = [v[OutputFieldKey.AZIMUTH_MEAN.value] for _, v in features if v[OutputFieldKey.AZIMUTH_MEAN.value] > 0]
             shot_stats[sid] = {
                 "size": len(features),
-                "mean_az": _circular_mean(azs) if azs else 0.0,
+                "mean_az": MathUtils.circular_mean(azs) if azs else 0.0,
             }
 
         sorted_ids = sorted(shot_stats)
@@ -763,7 +620,7 @@ class SequentialPointBreakJudge:
             a, b = sorted_ids[i], sorted_ids[i + 1]
             if (shot_stats[a]["size"] < minimum_point_count and
                     shot_stats[b]["size"] < minimum_point_count):
-                if _angular_diff(shot_stats[a]["mean_az"], shot_stats[b]["mean_az"]) <= fusion_azimuth_tolerance:
+                if MathUtils.angular_diff(shot_stats[a]["mean_az"], shot_stats[b]["mean_az"]) <= fusion_azimuth_tolerance:
                     fusions.append((a, b))
 
         for from_id, to_id in fusions:
@@ -829,7 +686,7 @@ class SequentialPointBreakJudge:
     def _resolve_output_fields(self, layer, *, conflict_resolver=None):
         max_length = 10 if self.source_path.lower().endswith(".shp") else 255
         resolved = {}
-        for logical_key, field_spec in self.OUTPUT_FIELDS.items():
+        for logical_key, field_spec in self.DIVIDE_STRIP_FIELDS.items():
             field_name = VectorLayerAttributes.resolve_output_field_name(
                 layer, field_spec.attribute,
                 conflict_resolver=conflict_resolver,
@@ -925,7 +782,7 @@ class SequentialPointBreakJudge:
             raise RuntimeError("Falha ao criar camada de memória.")
 
         new_fields = layer.fields()
-        for logical_key, field_spec in SequentialPointBreakJudge.OUTPUT_FIELDS.items():
+        for logical_key, field_spec in SequentialPointBreakJudge.DIVIDE_STRIP_FIELDS.items():
             field_name = field_name_map[logical_key]
             if new_fields.lookupField(field_name) == -1:
                 new_fields.append(

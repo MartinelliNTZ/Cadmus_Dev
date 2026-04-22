@@ -125,7 +125,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         output_layout, self.output_fields_grid = WidgetFactory.create_checkbox_grid(
             options_data=StringAdapter.to_key_label_description(
-                SequentialPointBreakJudge.OUTPUT_FIELDS
+                SequentialPointBreakJudge.DIVIDE_STRIP_FIELDS
             ),
             items_per_row=2,
             checked_by_default=True,
@@ -328,7 +328,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         selected_keys = [
             key
-            for key in SequentialPointBreakJudge.OUTPUT_FIELDS.keys()
+            for key in SequentialPointBreakJudge.DIVIDE_STRIP_FIELDS.keys()
             if key.value in normalized_selected
         ]
 
@@ -338,7 +338,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         # 2. Adiciona apenas os campos calculados que foram selecionados (se não existirem nos originais)
         extra_fields = []
         for logical_key in selected_keys:
-            field_spec = SequentialPointBreakJudge.OUTPUT_FIELDS.get(logical_key)
+            field_spec = SequentialPointBreakJudge.DIVIDE_STRIP_FIELDS.get(logical_key)
             field_name = self._resolve_field_name_from_map(normalized_map, logical_key)
             if field_spec and field_name:
                 if any(f.name() == field_name for f in original_fields):

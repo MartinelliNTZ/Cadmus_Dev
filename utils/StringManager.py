@@ -1,9 +1,113 @@
 # -*- coding: utf-8 -*-
+from ..core.enum.OutputFieldKey import OutputFieldKey
+from ..core.model.Field import Field
+from qgis.PyQt.QtCore import QVariant
+
+
 import re
 from ..i18n.TranslationManager import STR
 
 
 class StringManager:
+
+    DIVIDE_STRIP_FIELDS = {
+        OutputFieldKey.SHOT_ID: Field(
+            label="Shot ID",
+            attribute="shot_id",
+            description="Identificador único do segmento de tiro/faixa.",
+            type=QVariant.Int,
+            length=10,
+            precision=0,
+        ),
+        OutputFieldKey.SHOT_VALID: Field(
+            label="Shot Valid",
+            attribute="shot_valid",
+            description="Indica se o tiro possui pontos suficientes para ser válido.",
+            type=QVariant.Int,
+            length=1,
+            precision=0,
+        ),
+        OutputFieldKey.SCORE: Field(
+            label="Score",
+            attribute="score",
+            description="Pontuação de quebra (direção + continuidade).",
+            type=QVariant.Int,
+            length=10,
+            precision=0,
+        ),
+        OutputFieldKey.SCORE_DIRECTION: Field(
+            label="Score Direction",
+            attribute="score_direction",
+            description="Componente de quebra por mudança de direção.",
+            type=QVariant.Int,
+            length=10,
+            precision=0,
+        ),
+        OutputFieldKey.SCORE_CONTINUITY: Field(
+            label="Score Continuity",
+            attribute="score_continuity",
+            description="Componente de quebra por descontinuidade temporal/espacial.",
+            type=QVariant.Int,
+            length=10,
+            precision=0,
+        ),
+        OutputFieldKey.SEG_TYPE: Field(
+            label="Segment Type",
+            attribute="seg_type",
+            description="Tipo: 'faixa' ou 'bordadura'.",
+            type=QVariant.String,
+            length=20,
+            precision=0,
+        ),
+        OutputFieldKey.AZIMUTH_INSTANT: Field(
+            label="Azimuth Instant",
+            attribute="azimuth_instant",
+            description="Azimute instantâneo entre pontos consecutivos.",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        OutputFieldKey.AZIMUTH_MEAN: Field(
+            label="Azimuth Mean",
+            attribute="azimuth_mean",
+            description="Média circular ponderada por velocidade.",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        OutputFieldKey.DELTA_AZIMUTH: Field(
+            label="Delta Azimuth",
+            attribute="delta_azimuth",
+            description="Diferença angular entre azimute instantâneo e média.",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        OutputFieldKey.DELTA_TIME: Field(
+            label="Delta Time",
+            attribute="delta_time",
+            description="Diferença de tempo entre pontos consecutivos (s).",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        OutputFieldKey.DELTA_DISTANCE: Field(
+            label="Delta Distance",
+            attribute="delta_distance",
+            description="Distância entre pontos consecutivos (m).",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        OutputFieldKey.VELOCITY_INSTANT: Field(
+            label="Velocity Instant",
+            attribute="velocity_instant",
+            description="Velocidade instantânea (m/s).",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+    }
     MENU_CATEGORIES = {
         "SYSTEM": STR.MENU_SYSTEM,
         "LAYOUTS": STR.MENU_LAYOUTS,

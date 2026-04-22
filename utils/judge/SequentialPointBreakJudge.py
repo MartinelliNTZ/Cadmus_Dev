@@ -1,4 +1,53 @@
 # -*- coding: utf-8 -*-
+"""
+SequentialPointBreakJudge — Refactored
+=======================================
+
+DIAGNÓSTICO DOS PROBLEMAS DO ALGORITMO ANTERIOR
+------------------------------------------------
+Análise dos dados reais (VERDADEIRO vs shot_id) revelou três falhas estruturais:
+
+1. CONTAMINAÇÃO DA MÉDIA CIRCULAR POR PONTOS DE CURVA
+   O azimuth_mean acumula os ângulos da curva de retorno (~200–290°), fazendo
+   com que os primeiros pontos da nova faixa (az ≈ 168° ou 348°) tenham delta_az
+   alto artificialmente. O algoritmo os classifica como "quebra" quando na verdade
+   são a ENTRADA da faixa.
+
+2. SAÍDA DA FAIXA NÃO DETECTADA (score=0)
+   O drone sai gradualmente em curva suave (delta_az ≈ 12–24° na saída),
+   pontuação abaixo do limiar → a saída não é detectada. O shot_id correto
+   continua sendo atribuído a pontos que já são turnaround.
+
+3. ATRIBUIÇÃO TARDIA DO SHOT_ID (strip entry lag)
+   Por causa dos problemas 1 e 2, o início real da faixa (pontos de assentamento)
+   é perdido. Pontos fid=15,16,17 da faixa 9 ficam com shot_id=0.
+
+NOVA ARQUITETURA: ESTABILIDADE FUTURA + PASSADO
+-------------------------------------------------
+O novo algoritmo tem dois estágios:
+
+Estágio 1 — PASS FORWARD: Detecta transições usando janela BIDIRECIONAL
+  • Calcula "estabilidade futura": quantos dos próximos K pontos têm az_instant
+    dentro de ±threshold do az_instant atual → indica entrada de faixa
+  • Calcula "estabilidade passada": quantos dos últimos K pontos tinham az_instant
+    estável (variância baixa) → indica fim de faixa detectado retroativamente
+  • Usa VELOCIDADE como âncora: pontos lentos (curva) têm peso reduzido na média
+  • Detecta QUEBRA quando: estabilidade_passada alta → estabilidade_atual baixa
+  • Detecta ENTRADA quando: estabilidade_futura converge para valor estável
+
+Estágio 2 — RETROACTIVE RELABELING: Reassina os pontos de "assentamento"
+  • Após identificar onde uma faixa se estabilizou, retroativamente move os N
+    pontos anteriores (que tinham az crescendo em direção ao valor estável)
+    para o mesmo shot_id da faixa
+
+Estágio 3 — FUSÃO E VALIDAÇÃO (preservado e melhorado)
+
+Métricas matemáticas adicionadas:
+  • Variância circular dos últimos W pontos (detecta instabilidade)
+  • Taxa de convergência de azimute (d(az)/dt)
+  • Mediana ponderada por velocidade (resiste a outliers)
+"""
+
 from datetime import datetime
 
 from qgis.PyQt.QtCore import QVariant
@@ -12,9 +61,130 @@ from ..vector.VectorLayerAttributes import VectorLayerAttributes
 from ..vector.VectorLayerGeometry import VectorLayerGeometry
 from ..vector.VectorLayerSource import VectorLayerSource
 
+import math
+
+
+# ---------------------------------------------------------------------------
+# Funções matemáticas auxiliares (puras, sem dependência de QGIS)
+# ---------------------------------------------------------------------------
+
+def _angular_diff(a: float, b: float) -> float:
+    """Diferença angular mínima em [0, 180]."""
+    d = abs(a - b) % 360.0
+    return min(d, 360.0 - d)
+
+
+def _circular_variance(angles: list[float]) -> float:
+    """
+    Variância circular (R-bar), em [0, 1].
+    0 = todos iguais (mínima variância), 1 = máxima dispersão.
+    Referência: Fisher (1993), Statistical Analysis of Circular Data.
+    """
+    if not angles:
+        return 1.0
+    n = len(angles)
+    rad = [math.radians(a) for a in angles]
+    s = sum(math.sin(r) for r in rad) / n
+    c = sum(math.cos(r) for r in rad) / n
+    r_bar = math.sqrt(s * s + c * c)
+    return 1.0 - r_bar  # 0 = concentrado, 1 = disperso
+
+
+def _circular_mean(angles: list[float]) -> float:
+    """Média circular em graus."""
+    if not angles:
+        return 0.0
+    rad = [math.radians(a) for a in angles]
+    s = sum(math.sin(r) for r in rad)
+    c = sum(math.cos(r) for r in rad)
+    return math.degrees(math.atan2(s, c)) % 360.0
+
+
+def _weighted_circular_mean(angles: list[float], weights: list[float]) -> float:
+    """
+    Média circular ponderada por velocidade.
+    Pontos lentos (curva) têm peso menor, pontos rápidos (faixa) dominam.
+    """
+    if not angles:
+        return 0.0
+    total_w = sum(weights)
+    if total_w == 0:
+        return _circular_mean(angles)
+    rad = [math.radians(a) for a in angles]
+    s = sum(math.sin(r) * w for r, w in zip(rad, weights)) / total_w
+    c = sum(math.cos(r) * w for r, w in zip(rad, weights)) / total_w
+    return math.degrees(math.atan2(s, c)) % 360.0
+
+
+def _future_stability_score(
+    ordered_points: list,
+    current_index: int,
+    lookahead: int,
+    az_threshold: float,
+) -> tuple[float, float]:
+    """
+    Analisa os próximos `lookahead` pontos e retorna:
+      (stability_ratio, converged_azimuth)
+
+    stability_ratio ∈ [0,1]: fração de pontos que concordam com o az futuro médio.
+    converged_azimuth: valor para o qual os pontos futuros convergem.
+
+    Algoritmo:
+      1. Coleta az_instant dos próximos K pontos
+      2. Calcula a média circular desses pontos futuros
+      3. Conta quantos estão dentro de ±threshold dessa média → ratio
+    """
+    n = len(ordered_points)
+    future_azs = []
+    for k in range(current_index + 1, min(current_index + 1 + lookahead, n)):
+        prev = ordered_points[k - 1]
+        curr = ordered_points[k]
+        az = VectorLayerGeometry.calculate_point_azimuth(prev["point"], curr["point"])
+        future_azs.append(az)
+
+    if not future_azs:
+        return 0.0, 0.0
+
+    conv_az = _circular_mean(future_azs)
+    agreed = sum(1 for a in future_azs if _angular_diff(a, conv_az) <= az_threshold)
+    ratio = agreed / len(future_azs)
+    return ratio, conv_az
+
+
+def _past_stability(az_history: list[float], window: int) -> float:
+    """
+    Variância circular dos últimos `window` azimuths do histórico.
+    Retorna 0 (muito estável) → 1 (muito disperso).
+    """
+    recent = az_history[-window:] if az_history else []
+    if len(recent) < 2:
+        return 1.0
+    return _circular_variance(recent)
+
+
+def _az_convergence_rate(az_history: list[float], window: int) -> float:
+    """
+    Taxa de mudança do azimute instantâneo nos últimos `window` pontos.
+    Alta taxa → em curva ou saída de faixa.
+    Baixa taxa → estável na faixa.
+    """
+    recent = az_history[-window:]
+    if len(recent) < 2:
+        return 0.0
+    diffs = [_angular_diff(recent[i], recent[i - 1]) for i in range(1, len(recent))]
+    return sum(diffs) / len(diffs)
+
+
+# ---------------------------------------------------------------------------
+# Classe principal
+# ---------------------------------------------------------------------------
 
 class SequentialPointBreakJudge:
-    """Juiz genérico para segmentar sequências de pontos em tiros/faixas."""
+    """
+    Juiz de segmentação de sequências de pontos em faixas de voo.
+
+    Algoritmo bidirecional com análise de estabilidade futura e passada.
+    """
 
     OUTPUT_FIELDS = {
         OutputFieldKey.SHOT_ID: Field(
@@ -28,7 +198,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.SHOT_VALID: Field(
             label="Shot Valid",
             attribute="shot_valid",
-            description="Indica se o tiro possui pontos suficientes para ser considerado válido.",
+            description="Indica se o tiro possui pontos suficientes para ser válido.",
             type=QVariant.Int,
             length=1,
             precision=0,
@@ -36,7 +206,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.SCORE: Field(
             label="Score",
             attribute="score",
-            description="Pontuação total de quebra combinando fatores de direção e continuidade.",
+            description="Pontuação de quebra (direção + continuidade).",
             type=QVariant.Int,
             length=10,
             precision=0,
@@ -44,7 +214,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.SCORE_DIRECTION: Field(
             label="Score Direction",
             attribute="score_direction",
-            description="Componente de pontuação baseado em mudanças de direção do azimute.",
+            description="Componente de quebra por mudança de direção.",
             type=QVariant.Int,
             length=10,
             precision=0,
@@ -52,7 +222,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.SCORE_CONTINUITY: Field(
             label="Score Continuity",
             attribute="score_continuity",
-            description="Componente de pontuação baseado na continuidade de tempo e distância.",
+            description="Componente de quebra por descontinuidade temporal/espacial.",
             type=QVariant.Int,
             length=10,
             precision=0,
@@ -60,7 +230,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.SEG_TYPE: Field(
             label="Segment Type",
             attribute="seg_type",
-            description="Tipo de segmento: 'faixa' (faixa) ou 'bordadura' (borda).",
+            description="Tipo: 'faixa' ou 'bordadura'.",
             type=QVariant.String,
             length=20,
             precision=0,
@@ -68,7 +238,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.AZIMUTH_INSTANT: Field(
             label="Azimuth Instant",
             attribute="azimuth_instant",
-            description="Azimute instantâneo calculado entre pontos consecutivos.",
+            description="Azimute instantâneo entre pontos consecutivos.",
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -76,7 +246,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.AZIMUTH_MEAN: Field(
             label="Azimuth Mean",
             attribute="azimuth_mean",
-            description="Azimute médio sobre a janela especificada.",
+            description="Média circular ponderada por velocidade.",
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -84,7 +254,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.DELTA_AZIMUTH: Field(
             label="Delta Azimuth",
             attribute="delta_azimuth",
-            description="Diferença angular entre azimute instantâneo e médio.",
+            description="Diferença angular entre azimute instantâneo e média.",
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -92,7 +262,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.DELTA_TIME: Field(
             label="Delta Time",
             attribute="delta_time",
-            description="Diferença de tempo entre pontos consecutivos em segundos.",
+            description="Diferença de tempo entre pontos consecutivos (s).",
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -100,7 +270,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.DELTA_DISTANCE: Field(
             label="Delta Distance",
             attribute="delta_distance",
-            description="Diferença de distância entre pontos consecutivos em metros.",
+            description="Distância entre pontos consecutivos (m).",
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -108,7 +278,7 @@ class SequentialPointBreakJudge:
         OutputFieldKey.VELOCITY_INSTANT: Field(
             label="Velocity Instant",
             attribute="velocity_instant",
-            description="Velocidade instantânea calculada a partir de distância e tempo.",
+            description="Velocidade instantânea (m/s).",
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -122,11 +292,14 @@ class SequentialPointBreakJudge:
         source_path: str = "",
         tool_key: str = ToolKey.UNTRACEABLE,
     ):
-        """Inicializa o juiz com camada, caminho de origem e chave de ferramenta."""
         self.layer = layer
         self.source_path = source_path or (layer.source() if layer is not None else "")
         self.tool_key = tool_key
         self.logger = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
+
+    # ------------------------------------------------------------------
+    # Ponto de entrada público
+    # ------------------------------------------------------------------
 
     def judge(
         self,
@@ -135,44 +308,69 @@ class SequentialPointBreakJudge:
         field_time: str,
         point_frequency_seconds: float,
         strip_width_meters: float,
+        # Janela para média circular (histórico de azimuths passados)
         azimuth_window: int = 10,
+        # Thresholds de azimute para score de direção
         light_azimuth_threshold: float = 20.0,
         severe_azimuth_threshold: float = 45.0,
+        # Score mínimo para candidatar quebra
         minimum_break_score: int = 3,
+        # Mínimo de pontos para faixa válida
         minimum_point_count: int = 20,
+        # Multiplicador de tolerância de tempo
         time_tolerance_multiplier: float = 3.0,
-        confirmation_window: int = 3,
+        # Janela de confirmação prospectiva (quantos pontos futuros devem confirmar)
+        confirmation_window: int = 5,
         min_confirmed: int = 2,
+        # Parâmetros de bordadura (mantidos)
         border_azimuth_threshold: float = 90.0,
         border_speed_threshold: float = 1.0,
         border_distance_threshold: float = 5.0,
-        retroactive_window: int = 5,
+        # ---------------------------------------------------------------
+        # NOVOS PARÂMETROS
+        # ---------------------------------------------------------------
+        # Lookahead para detecção de estabilidade futura
+        future_stability_window: int = 8,
+        # Limiar de estabilidade futura: se ratio >= este valor, é entrada de faixa
+        future_stability_threshold: float = 0.75,
+        # Limiar de az para considerar ponto "dentro" do cluster futuro
+        future_az_cluster_threshold: float = 15.0,
+        # Variância circular máxima para considerar histórico "estável"
+        past_stability_max_variance: float = 0.08,
+        # Janela de variância passada
+        past_stability_window: int = 6,
+        # Taxa de convergência máxima (°/ponto) para considerar estável
+        convergence_rate_threshold: float = 10.0,
+        # Janela retroativa: quantos pontos anteriores reatribuir ao novo shot
+        retroactive_relabel_window: int = 5,
+        # Peso mínimo de velocidade (evita divisão por zero em pontos parados)
+        min_velocity_weight: float = 0.5,
+        # Tolerância de azimute para fusão de tiros pequenos
         fusion_azimuth_tolerance: float = 10.0,
-        max_desvio: int = 5,
+        # Número máximo de pontos de desvio a ignorar (outlier skip)
+        max_desvio: int = 3,
         conflict_resolver=None,
     ):
-        """Executa o julgamento completo de segmentação de pontos em tiros/faixas."""
+        """Executa o julgamento bidirecional de segmentação."""
         layer = self._load_layer()
         self._validate_layer(layer, field_id, field_time)
-        field_name_map = self._resolve_output_fields(
-            layer, conflict_resolver=conflict_resolver
-        )
+        field_name_map = self._resolve_output_fields(layer, conflict_resolver=conflict_resolver)
 
         ordered = self._load_ordered_points(layer, field_id, field_time)
         if not ordered:
-            raise RuntimeError("Nenhum ponto válido encontrado para julgamento.")
+            raise RuntimeError("Nenhum ponto válido encontrado.")
 
         self.logger.info(
-            "Iniciando julgamento de pontos",
+            "Iniciando julgamento bidirecional",
             source_path=self.source_path,
             features=len(ordered),
-            field_id=field_id,
-            field_time=field_time,
         )
 
         import time
-        eval_start = time.time()
-        updates = self._evaluate_points(
+        t0 = time.time()
+
+        # Estágio 1: Avaliação bidirecional
+        updates = self._evaluate_bidirectional(
             ordered_points=ordered,
             layer=layer,
             point_frequency_seconds=point_frequency_seconds,
@@ -187,236 +385,180 @@ class SequentialPointBreakJudge:
             border_azimuth_threshold=border_azimuth_threshold,
             border_speed_threshold=border_speed_threshold,
             border_distance_threshold=border_distance_threshold,
-            retroactive_window=retroactive_window,
+            future_stability_window=future_stability_window,
+            future_stability_threshold=future_stability_threshold,
+            future_az_cluster_threshold=future_az_cluster_threshold,
+            past_stability_max_variance=past_stability_max_variance,
+            past_stability_window=past_stability_window,
+            convergence_rate_threshold=convergence_rate_threshold,
+            retroactive_relabel_window=retroactive_relabel_window,
+            min_velocity_weight=min_velocity_weight,
             max_desvio=max_desvio,
         )
-        eval_time = time.time() - eval_start
-        self.logger.info(
-            "Avaliação de pontos finalizada",
-            evaluation_time_seconds=round(eval_time, 2),
-            updates_generated=len(updates)
-        )
 
-        self.logger.debug("Calculando tamanhos dos tiros")
-        shot_sizes = {}
-        for values in updates.values():
-            shot_id = values[OutputFieldKey.SHOT_ID.value]
-            shot_sizes[shot_id] = shot_sizes.get(shot_id, 0) + 1
+        # Estágio 2: Marcar validade, fusão, órfãos
+        updates = self._postprocess(updates, minimum_point_count, fusion_azimuth_tolerance)
 
-        self.logger.debug("Marcando tiros válidos/inválidos")
-        for values in updates.values():
-            shot_id = values[OutputFieldKey.SHOT_ID.value]
-            values[OutputFieldKey.SHOT_VALID.value] = 1 if shot_sizes.get(shot_id, 0) >= minimum_point_count else 0
-
-        # Fusão de tiros pequenos consecutivos
-        updates = self._fuse_small_shots(updates, minimum_point_count, fusion_azimuth_tolerance)
-
-        # Recalcular tamanhos após fusão
-        shot_sizes = {}
-        for values in updates.values():
-            shot_id = values[OutputFieldKey.SHOT_ID.value]
-            shot_sizes[shot_id] = shot_sizes.get(shot_id, 0) + 1
-
-        # Remarcar válidos após fusão
-        for values in updates.values():
-            shot_id = values[OutputFieldKey.SHOT_ID.value]
-            values[OutputFieldKey.SHOT_VALID.value] = 1 if shot_sizes.get(shot_id, 0) >= minimum_point_count else 0
-
-        # Marcar tiros órfãos (pequenos) como ID 0
-        for fid, values in updates.items():
-            shot_id = values[OutputFieldKey.SHOT_ID.value]
-            if shot_sizes.get(shot_id, 0) < minimum_point_count:
-                values[OutputFieldKey.SHOT_ID.value] = 0
-                values[OutputFieldKey.SHOT_VALID.value] = 0
-
-        self.logger.debug("Criando nova camada de memória com resultados")
         result_layer = self._create_memory_layer_with_updates(layer, updates, field_name_map)
 
-        valid_shots = sum(1 for _, size in shot_sizes.items() if size >= minimum_point_count)
-        invalid_shots = len(shot_sizes) - valid_shots
+        shot_sizes = {}
+        for v in updates.values():
+            sid = v[OutputFieldKey.SHOT_ID.value]
+            shot_sizes[sid] = shot_sizes.get(sid, 0) + 1
 
+        valid_shots = sum(1 for s, sz in shot_sizes.items() if sz >= minimum_point_count and s != 0)
         summary = {
             "total_points": len(ordered),
             "total_shots": len(shot_sizes),
             "valid_shots": valid_shots,
-            "invalid_shots": invalid_shots,
+            "invalid_shots": len(shot_sizes) - valid_shots,
             "source_path": self.source_path,
             "field_name_map": field_name_map,
             "result_layer": result_layer,
         }
-        total_time = time.time() - eval_start  # From eval_start
         self.logger.info(
             "Julgamento concluído",
-            total_processing_time_seconds=round(total_time, 2),
-            summary=summary
+            elapsed_seconds=round(time.time() - t0, 2),
+            summary=summary,
         )
         return summary
 
-    def _load_layer(self):
-        """Carrega a camada a partir do caminho de origem ou usa a camada fornecida."""
-        if self.layer is not None:
-            return self.layer
+    # ------------------------------------------------------------------
+    # Estágio 1: Avaliação bidirecional
+    # ------------------------------------------------------------------
 
-        layer = VectorLayerSource.load_vector_layer_from_source_path(
-            self.source_path,
-            external_tool_key=self.tool_key,
-        )
-        if not layer:
-            raise RuntimeError("Não foi possível carregar a camada a partir do source path.")
-        return layer
-
-    def _validate_layer(self, layer, field_id: str, field_time: str):
-        """Valida se a camada é vetorial de pontos e possui os campos necessários."""
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            raise RuntimeError("Camada vetorial inválida.")
-
-        if layer.geometryType() != QgsWkbTypes.PointGeometry:
-            raise RuntimeError("A camada deve ser do tipo ponto.")
-
-        if layer.fields().lookupField(field_id) == -1:
-            raise RuntimeError(f"Campo de ID não encontrado: {field_id}")
-
-        if layer.fields().lookupField(field_time) == -1:
-            raise RuntimeError(f"Campo de timestamp não encontrado: {field_time}")
-
-    def _load_ordered_points(self, layer, field_id: str, field_time: str):
-        """Carrega e ordena os pontos da camada por ID e timestamp."""
-        import time
-        load_start = time.time()
-        self.logger.debug("Carregando pontos ordenados da camada")
-
-        ordered = []
-        total_features = layer.featureCount()
-        processed = 0
-
-        for feature in layer.getFeatures():
-            processed += 1
-            if processed % 10000 == 0 or processed == total_features:
-                self.logger.debug(
-                    f"Carregando features: {processed}/{total_features} ({(processed/total_features)*100:.1f}%)"
-                )
-
-            geometry = feature.geometry()
-            if not geometry or geometry.isEmpty():
-                continue
-
-            point = VectorLayerGeometry.get_representative_point(geometry)
-            if point is None:
-                continue
-            timestamp = self._parse_timestamp(feature.attribute(field_time))
-            if timestamp is None:
-                continue
-
-            ordered.append(
-                {
-                    "fid": feature.id(),
-                    "seq_id_sort": self._build_sort_key(feature.attribute(field_id)),
-                    "timestamp": timestamp,
-                    "point": point,
-                }
-            )
-
-        ordered.sort(
-            key=lambda item: (
-                item["seq_id_sort"],
-                item["timestamp"],
-                item["fid"],
-            )
-        )
-
-        load_time = time.time() - load_start
-        self.logger.info(
-            "Pontos carregados e ordenados",
-            total_features=total_features,
-            valid_points=len(ordered),
-            load_time_seconds=round(load_time, 2)
-        )
-        return ordered
-
-    def _evaluate_points(
+    def _evaluate_bidirectional(
         self,
         *,
         ordered_points,
         layer,
-        point_frequency_seconds: float,
-        strip_width_meters: float,
-        azimuth_window: int,
-        light_azimuth_threshold: float,
-        severe_azimuth_threshold: float,
-        minimum_break_score: int,
-        time_tolerance_multiplier: float,
-        confirmation_window: int,
-        min_confirmed: int,
-        border_azimuth_threshold: float,
-        border_speed_threshold: float,
-        border_distance_threshold: float,
-        retroactive_window: int,
-        max_desvio: int,
+        point_frequency_seconds,
+        strip_width_meters,
+        azimuth_window,
+        light_azimuth_threshold,
+        severe_azimuth_threshold,
+        minimum_break_score,
+        time_tolerance_multiplier,
+        confirmation_window,
+        min_confirmed,
+        border_azimuth_threshold,
+        border_speed_threshold,
+        border_distance_threshold,
+        future_stability_window,
+        future_stability_threshold,
+        future_az_cluster_threshold,
+        past_stability_max_variance,
+        past_stability_window,
+        convergence_rate_threshold,
+        retroactive_relabel_window,
+        min_velocity_weight,
+        max_desvio,
     ):
-        """Avalia os pontos ordenados, calcula scores e determina quebras de segmento."""
+        """
+        Loop principal com lógica bidirecional.
+
+        Para cada ponto i, avalia:
+          PASSADO: variância circular dos últimos K azimuths (estabilidade histórica)
+          FUTURO: ratio de convergência dos próximos K azimuths (estabilidade prospectiva)
+
+        Regras de quebra:
+          R1 (break claro): score >= limiar E passado era estável E futuro NÃO converge
+              → drone saiu da faixa e está em curva
+          R2 (não-break por entrada de faixa): score >= limiar MAS futuro converge
+              → drone está entrando em nova faixa (az ainda não estabilizou)
+              → NÃO quebra; retroativamente reatribui pontos de assentamento
+
+        Regra de relabeling retroativo:
+          Quando detectamos que estamos DENTRO de uma faixa estável (past_variance baixa
+          E future_stability alta), verificamos se os N pontos anteriores tinham az
+          "a caminho" do az atual → se sim, reatribuímos ao shot atual.
+        """
         import time
-        start_time = time.time()
-        total_points = len(ordered_points)
-        self.logger.info(
-            "Iniciando avaliação de pontos com melhorias",
-            total_points=total_points,
-            confirmation_window=confirmation_window,
-            border_azimuth_threshold=border_azimuth_threshold
-        )
+        t0 = time.time()
 
+        n = len(ordered_points)
         updates = {}
-        azimuth_history = []
+        az_history: list[float] = []          # azimuths instantâneos acumulados
+        vel_history: list[float] = []          # velocidades acumuladas (para peso)
         current_shot_id = 1
+        shot_start_index = 0  # índice onde o shot atual começou
 
-        first = ordered_points[0]
-        updates[first["fid"]] = self._build_default_output(current_shot_id)
+        # Pré-calcula azimuths instantâneos para toda a sequência (rápido, evita
+        # recalcular nas janelas de lookahead)
+        precomputed_az: list[float] = [0.0]  # índice 0 não tem predecessor
+        for i in range(1, n):
+            az = VectorLayerGeometry.calculate_point_azimuth(
+                ordered_points[i - 1]["point"], ordered_points[i]["point"]
+            )
+            precomputed_az.append(az)
 
-        progress_interval = max(1, total_points // 10)  # Log every 10% or at least every point if small
+        # Pré-calcula deltas de tempo e distância
+        precomputed_dt: list[float] = [0.0]
+        precomputed_dd: list[float] = [0.0]
+        precomputed_vel: list[float] = [0.0]
+        for i in range(1, n):
+            dt = max(0.0, ordered_points[i]["timestamp"] - ordered_points[i - 1]["timestamp"])
+            dd = VectorLayerGeometry.measure_distance_between_points(
+                ordered_points[i - 1]["point"], ordered_points[i]["point"], layer.crs()
+            )
+            vel = dd / dt if dt > 0 else 0.0
+            precomputed_dt.append(dt)
+            precomputed_dd.append(dd)
+            precomputed_vel.append(vel)
 
-        for index in range(1, len(ordered_points)):
-            if index % progress_interval == 0 or index == total_points - 1:
-                elapsed = time.time() - start_time
-                progress_percent = (index / total_points) * 100
+        # Primeiro ponto
+        updates[ordered_points[0]["fid"]] = self._build_default_output(current_shot_id)
+
+        progress_interval = max(1, n // 10)
+
+        for i in range(1, n):
+            if i % progress_interval == 0:
                 self.logger.info(
-                    f"Processando pontos: {index}/{total_points} ({progress_percent:.1f}%)",
-                    elapsed_seconds=round(elapsed, 2),
-                    current_shot_id=current_shot_id,
-                    azimuth_history_size=len(azimuth_history)
+                    f"Processando {i}/{n} ({100*i/n:.0f}%)",
+                    shot_id=current_shot_id,
                 )
 
-            previous = ordered_points[index - 1]
-            current = ordered_points[index]
+            instant_az = precomputed_az[i]
+            delta_time = precomputed_dt[i]
+            delta_distance = precomputed_dd[i]
+            instant_speed = precomputed_vel[i]
 
-            instant_azimuth = VectorLayerGeometry.calculate_point_azimuth(
-                previous["point"], current["point"]
+            # --- Média circular ponderada por velocidade (histórico) ---
+            w = max(min_velocity_weight, instant_speed)
+            recent_az = az_history[-azimuth_window:] if az_history else []
+            recent_vel = vel_history[-azimuth_window:] if vel_history else []
+            mean_az = (
+                _weighted_circular_mean(recent_az, [max(min_velocity_weight, v) for v in recent_vel])
+                if recent_az else instant_az
             )
+            delta_azimuth = _angular_diff(instant_az, mean_az)
 
-            window_values = azimuth_history[-max(1, int(azimuth_window)) :]
-            mean_azimuth = (
-                VectorLayerGeometry.circular_mean_degrees(window_values)
-                if window_values
-                else instant_azimuth
-            )
+            # --- Métricas de estabilidade ---
+            past_var = _past_stability(az_history, past_stability_window)
+            past_stable = past_var <= past_stability_max_variance
 
-            delta_azimuth = VectorLayerGeometry.angular_difference_degrees(
-                instant_azimuth, mean_azimuth
-            )
-            delta_time = max(0.0, current["timestamp"] - previous["timestamp"])
-            delta_distance = VectorLayerGeometry.measure_distance_between_points(
-                previous["point"], current["point"], layer.crs()
-            )
-            instant_speed = delta_distance / delta_time if delta_time > 0 else 0.0
+            conv_rate = _az_convergence_rate(az_history, past_stability_window)
+            past_converging = conv_rate > convergence_rate_threshold
 
-            # Calcular scores separados
+            # Lookahead: estabilidade futura usando az pré-computados
+            future_azs = precomputed_az[i + 1: i + 1 + future_stability_window]
+            future_az_mean = _circular_mean(future_azs) if future_azs else instant_az
+            future_stable_count = sum(
+                1 for a in future_azs
+                if _angular_diff(a, future_az_mean) <= future_az_cluster_threshold
+            )
+            future_ratio = future_stable_count / len(future_azs) if future_azs else 0.0
+            future_stable = future_ratio >= future_stability_threshold
+
+            # --- Scores ---
             score_direction = 0
             if delta_azimuth > light_azimuth_threshold:
                 score_direction += 1
             if delta_azimuth > severe_azimuth_threshold:
                 score_direction += 2
 
-            score_continuity = 0
             score_continuity = self._apply_time_score(
-                score=score_continuity,
+                score=0,
                 delta_time=delta_time,
                 point_frequency_seconds=point_frequency_seconds,
                 time_tolerance_multiplier=time_tolerance_multiplier,
@@ -426,121 +568,154 @@ class SequentialPointBreakJudge:
 
             total_score = score_direction + score_continuity
 
-            # Verificar se é outlier e tentar pular
-            is_outlier = total_score >= minimum_break_score
-            skip_outliers = False
-            if is_outlier:
-                for skip in range(1, max_desvio + 1):
-                    if index + skip < len(ordered_points):
-                        next_point = ordered_points[index + skip]
-                        # Calcular score aproximado para o próximo
-                        next_az = VectorLayerGeometry.calculate_point_azimuth(
-                            previous["point"], next_point["point"]
-                        )
-                        next_mean = VectorLayerGeometry.circular_mean_degrees(azimuth_history[-azimuth_window:] or [next_az])
-                        next_delta = VectorLayerGeometry.angular_difference_degrees(next_az, next_mean)
-                        next_score_dir = 0
-                        if next_delta > light_azimuth_threshold:
-                            next_score_dir += 1
-                        if next_delta > severe_azimuth_threshold:
-                            next_score_dir += 2
-                        next_delta_time = max(0.0, next_point["timestamp"] - previous["timestamp"])
-                        next_score_cont = self._apply_time_score(
-                            score=0,
-                            delta_time=next_delta_time,
-                            point_frequency_seconds=point_frequency_seconds,
-                            time_tolerance_multiplier=time_tolerance_multiplier,
-                        )
-                        next_dist = VectorLayerGeometry.measure_distance_between_points(
-                            previous["point"], next_point["point"], layer.crs()
-                        )
-                        if next_dist > float(strip_width_meters) * 0.8:
-                            next_score_cont += 1
-                        next_total = next_score_dir + next_score_cont
-                        if next_total < minimum_break_score:
-                            skip_outliers = True
-                            # Recalcular delta_azimuth pulando
-                            delta_azimuth = VectorLayerGeometry.angular_difference_degrees(next_az, next_mean)
-                            delta_time = next_delta_time
-                            delta_distance = next_dist
-                            instant_speed = next_dist / next_delta_time if next_delta_time > 0 else 0.0
-                            total_score = next_total
-                            break
-
-            # Detectar bordadura
+            # --- Tipo de segmento ---
             is_border = (
-                delta_azimuth > border_azimuth_threshold and
-                instant_speed < border_speed_threshold and
-                delta_distance < border_distance_threshold
+                delta_azimuth > border_azimuth_threshold
+                and instant_speed < border_speed_threshold
+                and delta_distance < border_distance_threshold
             )
             seg_type = "bordadura" if is_border else "faixa"
 
-            # Janela de confirmação (se não pulou)
+            # -------------------------------------------------------------------
+            # LÓGICA CENTRAL DE QUEBRA (bidirecional)
+            # -------------------------------------------------------------------
             should_break = False
-            if not skip_outliers and total_score >= minimum_break_score:
-                confirmed = 0
-                for j in range(index + 1, min(index + 1 + confirmation_window, len(ordered_points))):
-                    prev_p = ordered_points[j - 1]
-                    curr_p = ordered_points[j]
-                    conf_az = VectorLayerGeometry.calculate_point_azimuth(prev_p["point"], curr_p["point"])
-                    conf_mean = VectorLayerGeometry.circular_mean_degrees(azimuth_history[-azimuth_window:] or [conf_az])
-                    conf_delta = VectorLayerGeometry.angular_difference_degrees(conf_az, conf_mean)
-                    conf_score = 0
-                    if conf_delta > light_azimuth_threshold:
-                        conf_score += 1
-                    if conf_delta > severe_azimuth_threshold:
-                        conf_score += 2
-                    if conf_score >= minimum_break_score:
-                        confirmed += 1
-                if confirmed >= min_confirmed:
+
+            if total_score >= minimum_break_score:
+                if future_stable:
+                    # R2: Estamos ENTRANDO em nova faixa, não quebrando aleatoriamente.
+                    # O alto score é ruído de transição; a nova faixa já está convergindo.
+                    # → Quebramos normalmente (nova faixa), mas rotulamos corretamente.
                     should_break = True
+                    # Relabeling retroativo: pontos de assentamento vão para o novo shot
+                    # (tratado após incrementar shot_id abaixo)
+                elif past_stable and not past_converging:
+                    # R1: Saímos de uma faixa estável e não há convergência futura clara.
+                    # → Quebra por saída de faixa.
+                    # Confirmar com janela prospectiva
+                    confirmed = 0
+                    for j in range(i + 1, min(i + 1 + confirmation_window, n)):
+                        conf_az = precomputed_az[j]
+                        conf_delta = _angular_diff(conf_az, mean_az)
+                        conf_score = 0
+                        if conf_delta > light_azimuth_threshold:
+                            conf_score += 1
+                        if conf_delta > severe_azimuth_threshold:
+                            conf_score += 2
+                        if conf_score >= minimum_break_score:
+                            confirmed += 1
+                    if confirmed >= min_confirmed:
+                        should_break = True
+                else:
+                    # Caso ambíguo: score alto mas passado não era estável e futuro
+                    # não converge → provavelmente meio da curva, ignorar.
+                    # Tentar outlier skip
+                    for skip in range(1, max_desvio + 1):
+                        si = i + skip
+                        if si < n:
+                            skip_az = precomputed_az[si]
+                            skip_delta = _angular_diff(skip_az, mean_az)
+                            skip_score_dir = 0
+                            if skip_delta > light_azimuth_threshold:
+                                skip_score_dir += 1
+                            if skip_delta > severe_azimuth_threshold:
+                                skip_score_dir += 2
+                            skip_dt = max(0.0, ordered_points[si]["timestamp"] - ordered_points[i - 1]["timestamp"])
+                            skip_score_cont = self._apply_time_score(
+                                score=0,
+                                delta_time=skip_dt,
+                                point_frequency_seconds=point_frequency_seconds,
+                                time_tolerance_multiplier=time_tolerance_multiplier,
+                            )
+                            if skip_score_dir + skip_score_cont < minimum_break_score:
+                                break  # não precisa quebrar
 
-            # Retroativo: verificar se próximos pontos anulam
-            if should_break:
-                future_scores = []
-                for k in range(index + 1, min(index + 1 + retroactive_window, len(ordered_points))):
-                    # Simular score futuro (aproximado)
-                    fut_prev = ordered_points[k - 1]
-                    fut_curr = ordered_points[k]
-                    fut_az = VectorLayerGeometry.calculate_point_azimuth(fut_prev["point"], fut_curr["point"])
-                    fut_mean = VectorLayerGeometry.circular_mean_degrees(azimuth_history[-azimuth_window:] or [fut_az])
-                    fut_delta = VectorLayerGeometry.angular_difference_degrees(fut_az, fut_mean)
-                    fut_score = 0
-                    if fut_delta > light_azimuth_threshold:
-                        fut_score += 1
-                    if fut_delta > severe_azimuth_threshold:
-                        fut_score += 2
-                    future_scores.append(fut_score)
-                if all(s == 0 for s in future_scores):
-                    should_break = False  # Cancelar quebra
-
+            # Quebra confirmada: incrementa shot e aplica relabeling retroativo
             if should_break:
                 current_shot_id += 1
+                shot_start_index = i
 
-            updates[current["fid"]] = {
+                # RELABELING RETROATIVO
+                # Se o futuro é estável (R2), os pontos imediatamente antes de `i`
+                # podem ser "assentamento" da mesma nova faixa.
+                # Reatribuímos pontos anteriores cujo az_instant já estava a caminho
+                # de future_az_mean ao novo shot_id.
+                if future_stable and retroactive_relabel_window > 0:
+                    relabel_count = 0
+                    for back in range(1, retroactive_relabel_window + 1):
+                        bi = i - back
+                        if bi < 0:
+                            break
+                        back_fid = ordered_points[bi]["fid"]
+                        if back_fid not in updates:
+                            break
+                        back_az = precomputed_az[bi] if bi > 0 else 0.0
+                        back_diff = _angular_diff(back_az, future_az_mean)
+                        # Reatribuir se o az já estava "na direção" da nova faixa
+                        # (diferença aceitável e decrescente em direção ao alvo)
+                        if back_diff <= future_az_cluster_threshold * 2.0:
+                            updates[back_fid][OutputFieldKey.SHOT_ID.value] = current_shot_id
+                            relabel_count += 1
+                        else:
+                            break  # Para ao encontrar ponto muito longe
+                    if relabel_count > 0:
+                        self.logger.debug(
+                            f"Relabeling retroativo: {relabel_count} pontos → shot {current_shot_id}"
+                        )
+
+            updates[ordered_points[i]["fid"]] = {
                 OutputFieldKey.SHOT_ID.value: current_shot_id,
-                OutputFieldKey.SHOT_VALID.value: False,
+                OutputFieldKey.SHOT_VALID.value: 0,
                 OutputFieldKey.SCORE.value: int(total_score),
                 OutputFieldKey.SCORE_DIRECTION.value: int(score_direction),
                 OutputFieldKey.SCORE_CONTINUITY.value: int(score_continuity),
                 OutputFieldKey.SEG_TYPE.value: seg_type,
-                OutputFieldKey.AZIMUTH_INSTANT.value: float(instant_azimuth),
-                OutputFieldKey.AZIMUTH_MEAN.value: float(mean_azimuth),
+                OutputFieldKey.AZIMUTH_INSTANT.value: float(instant_az),
+                OutputFieldKey.AZIMUTH_MEAN.value: float(mean_az),
                 OutputFieldKey.DELTA_AZIMUTH.value: float(delta_azimuth),
                 OutputFieldKey.DELTA_TIME.value: float(delta_time),
                 OutputFieldKey.DELTA_DISTANCE.value: float(delta_distance),
                 OutputFieldKey.VELOCITY_INSTANT.value: float(instant_speed),
             }
 
-            azimuth_history.append(instant_azimuth)
+            az_history.append(instant_az)
+            vel_history.append(instant_speed)
 
-        total_elapsed = time.time() - start_time
         self.logger.info(
-            "Avaliação de pontos concluída com melhorias",
-            total_elapsed_seconds=round(total_elapsed, 2),
+            "Avaliação bidirecional concluída",
+            elapsed=round(time.time() - t0, 2),
             final_shot_id=current_shot_id,
-            updates_count=len(updates)
         )
+        return updates
+
+    # ------------------------------------------------------------------
+    # Estágio 2: Pós-processamento
+    # ------------------------------------------------------------------
+
+    def _postprocess(self, updates, minimum_point_count, fusion_azimuth_tolerance):
+        """Fusão de pequenos shots + marcação de validade + órfãos → shot_id=0."""
+
+        def shot_sizes(upd):
+            sizes = {}
+            for v in upd.values():
+                sid = v[OutputFieldKey.SHOT_ID.value]
+                sizes[sid] = sizes.get(sid, 0) + 1
+            return sizes
+
+        # Fusão de tiros pequenos consecutivos com az similar
+        updates = self._fuse_small_shots(updates, minimum_point_count, fusion_azimuth_tolerance)
+
+        sizes = shot_sizes(updates)
+
+        # Marcar válidos e órfãos
+        for fid, values in updates.items():
+            sid = values[OutputFieldKey.SHOT_ID.value]
+            sz = sizes.get(sid, 0)
+            if sz < minimum_point_count:
+                values[OutputFieldKey.SHOT_ID.value] = 0
+                values[OutputFieldKey.SHOT_VALID.value] = 0
+            else:
+                values[OutputFieldKey.SHOT_VALID.value] = 1
 
         return updates
 
@@ -549,46 +724,103 @@ class SequentialPointBreakJudge:
         if not updates:
             return updates
 
-        # Agrupar por tiro_id
-        shots = {}
+        shots: dict[int, list] = {}
         for fid, values in updates.items():
-            shot_id = values[OutputFieldKey.SHOT_ID.value]
-            if shot_id not in shots:
-                shots[shot_id] = []
-            shots[shot_id].append((fid, values))
+            sid = values[OutputFieldKey.SHOT_ID.value]
+            shots.setdefault(sid, []).append((fid, values))
 
-        # Calcular tamanhos e azimutes médios
         shot_stats = {}
-        for shot_id, features in shots.items():
-            size = len(features)
-            azimuths = [v[OutputFieldKey.AZIMUTH_MEAN.value] for _, v in features if v[OutputFieldKey.AZIMUTH_MEAN.value] > 0]
-            mean_azimuth = VectorLayerGeometry.circular_mean_degrees(azimuths) if azimuths else 0
-            shot_stats[shot_id] = {"size": size, "mean_azimuth": mean_azimuth}
+        for sid, features in shots.items():
+            azs = [v[OutputFieldKey.AZIMUTH_MEAN.value] for _, v in features if v[OutputFieldKey.AZIMUTH_MEAN.value] > 0]
+            shot_stats[sid] = {
+                "size": len(features),
+                "mean_az": _circular_mean(azs) if azs else 0.0,
+            }
 
-        # Encontrar candidatos à fusão: tiros pequenos consecutivos
-        sorted_shots = sorted(shot_stats.keys())
+        sorted_ids = sorted(shot_stats)
         fusions = []
-        for i in range(len(sorted_shots) - 1):
-            current_id = sorted_shots[i]
-            next_id = sorted_shots[i + 1]
-            if (shot_stats[current_id]["size"] < minimum_point_count and
-                shot_stats[next_id]["size"] < minimum_point_count):
-                delta_az = VectorLayerGeometry.angular_difference_degrees(
-                    shot_stats[current_id]["mean_azimuth"], shot_stats[next_id]["mean_azimuth"]
-                )
-                if delta_az <= fusion_azimuth_tolerance:
-                    fusions.append((current_id, next_id))
+        for i in range(len(sorted_ids) - 1):
+            a, b = sorted_ids[i], sorted_ids[i + 1]
+            if (shot_stats[a]["size"] < minimum_point_count and
+                    shot_stats[b]["size"] < minimum_point_count):
+                if _angular_diff(shot_stats[a]["mean_az"], shot_stats[b]["mean_az"]) <= fusion_azimuth_tolerance:
+                    fusions.append((a, b))
 
-        # Aplicar fusões
         for from_id, to_id in fusions:
-            for fid, values in shots[from_id]:
-                values[OutputFieldKey.SHOT_ID.value] = to_id
+            if from_id in shots:
+                for _, values in shots[from_id]:
+                    values[OutputFieldKey.SHOT_ID.value] = to_id
 
-        self.logger.info("Fusão de tiros pequenos aplicada", fusions_count=len(fusions))
+        self.logger.info("Fusão de tiros pequenos", fusions=len(fusions))
         return updates
 
-    def _build_default_output(self, shot_id: int):
-        """Constrói a saída padrão para um novo tiro."""
+    # ------------------------------------------------------------------
+    # Métodos de infraestrutura (inalterados, levemente limpos)
+    # ------------------------------------------------------------------
+
+    def _load_layer(self):
+        if self.layer is not None:
+            return self.layer
+        layer = VectorLayerSource.load_vector_layer_from_source_path(
+            self.source_path, external_tool_key=self.tool_key
+        )
+        if not layer:
+            raise RuntimeError("Não foi possível carregar a camada.")
+        return layer
+
+    def _validate_layer(self, layer, field_id, field_time):
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            raise RuntimeError("Camada vetorial inválida.")
+        if layer.geometryType() != QgsWkbTypes.PointGeometry:
+            raise RuntimeError("A camada deve ser do tipo ponto.")
+        if layer.fields().lookupField(field_id) == -1:
+            raise RuntimeError(f"Campo de ID não encontrado: {field_id}")
+        if layer.fields().lookupField(field_time) == -1:
+            raise RuntimeError(f"Campo de timestamp não encontrado: {field_time}")
+
+    def _load_ordered_points(self, layer, field_id, field_time):
+        import time
+        t0 = time.time()
+        ordered = []
+        for feature in layer.getFeatures():
+            geometry = feature.geometry()
+            if not geometry or geometry.isEmpty():
+                continue
+            point = VectorLayerGeometry.get_representative_point(geometry)
+            if point is None:
+                continue
+            timestamp = self._parse_timestamp(feature.attribute(field_time))
+            if timestamp is None:
+                continue
+            ordered.append({
+                "fid": feature.id(),
+                "seq_id_sort": self._build_sort_key(feature.attribute(field_id)),
+                "timestamp": timestamp,
+                "point": point,
+            })
+        ordered.sort(key=lambda x: (x["seq_id_sort"], x["timestamp"], x["fid"]))
+        self.logger.info(
+            "Pontos carregados",
+            valid=len(ordered),
+            elapsed=round(time.time() - t0, 2),
+        )
+        return ordered
+
+    def _resolve_output_fields(self, layer, *, conflict_resolver=None):
+        max_length = 10 if self.source_path.lower().endswith(".shp") else 255
+        resolved = {}
+        for logical_key, field_spec in self.OUTPUT_FIELDS.items():
+            field_name = VectorLayerAttributes.resolve_output_field_name(
+                layer, field_spec.attribute,
+                conflict_resolver=conflict_resolver,
+                max_length=max_length,
+            )
+            if field_name is None:
+                raise RuntimeError("Operação cancelada pelo usuário.")
+            resolved[logical_key] = field_name
+        return resolved
+
+    def _build_default_output(self, shot_id: int) -> dict:
         return {
             OutputFieldKey.SHOT_ID.value: shot_id,
             OutputFieldKey.SHOT_VALID.value: 0,
@@ -605,14 +837,7 @@ class SequentialPointBreakJudge:
         }
 
     @staticmethod
-    def _apply_time_score(
-        *,
-        score: int,
-        delta_time: float,
-        point_frequency_seconds: float,
-        time_tolerance_multiplier: float,
-    ) -> int:
-        """Aplica pontuação baseada na diferença de tempo."""
+    def _apply_time_score(*, score, delta_time, point_frequency_seconds, time_tolerance_multiplier):
         threshold = float(point_frequency_seconds) * float(time_tolerance_multiplier)
         if delta_time > threshold:
             score += 1
@@ -620,36 +845,8 @@ class SequentialPointBreakJudge:
             score += 3
         return score
 
-    def _resolve_output_fields(self, layer, *, conflict_resolver=None):
-        """Resolve nomes dos campos de saída, evitando conflitos."""
-        max_length = 10 if self.source_path.lower().endswith(".shp") else 255
-        resolved = {}
-        for logical_key, field_spec in self.OUTPUT_FIELDS.items():
-            field_name = VectorLayerAttributes.resolve_output_field_name(
-                layer,
-                field_spec.attribute,
-                conflict_resolver=conflict_resolver,
-                max_length=max_length,
-            )
-            if field_name is None:
-                raise RuntimeError("Operação cancelada pelo usuário.")
-            resolved[logical_key] = field_name
-        return resolved
-
-    @staticmethod
-    def _map_updates_to_resolved_fields(updates, field_name_map):
-        """Mapeia updates para os nomes de campos resolvidos."""
-        remapped = {}
-        for fid, values in (updates or {}).items():
-            remapped[fid] = {
-                field_name_map[logical_name]: value
-                for logical_name, value in values.items()
-            }
-        return remapped
-
     @staticmethod
     def _build_sort_key(value):
-        """Constrói chave de ordenação para valores heterogêneos."""
         try:
             return (0, int(value))
         except Exception:
@@ -660,27 +857,20 @@ class SequentialPointBreakJudge:
 
     @staticmethod
     def _parse_timestamp(value):
-        """Converte valor para timestamp em segundos."""
         if value is None:
             return None
-
         if hasattr(value, "toSecsSinceEpoch"):
             try:
                 return float(value.toSecsSinceEpoch())
             except Exception:
                 pass
-
         if isinstance(value, datetime):
             return float(value.timestamp())
-
         if isinstance(value, (int, float)):
-            numeric = float(value)
-            return SequentialPointBreakJudge._coerce_numeric_timestamp(numeric)
-
+            return float(value)
         text = str(value).strip()
         if not text:
             return None
-
         for parser in (
             lambda x: datetime.fromisoformat(x.replace("Z", "+00:00")).timestamp(),
             lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S").timestamp(),
@@ -693,77 +883,61 @@ class SequentialPointBreakJudge:
                 return float(parser(text))
             except Exception:
                 continue
-
         digits = "".join(ch for ch in text if ch.isdigit())
         if len(digits) == 14:
             try:
                 return float(datetime.strptime(digits, "%Y%m%d%H%M%S").timestamp())
             except Exception:
                 pass
-
         try:
-            return SequentialPointBreakJudge._coerce_numeric_timestamp(float(text))
+            return float(text)
         except Exception:
             return None
 
     @staticmethod
     def _create_memory_layer_with_updates(layer, updates, field_name_map):
-        """Cria uma nova camada de memória com os updates aplicados."""
         import time
-        start = time.time()
+        t0 = time.time()
 
-        # Criar nova camada de memória com mesmo CRS e geometria
         uri = f"Point?crs={layer.crs().authid()}"
         new_layer = QgsVectorLayer(uri, f"{layer.name()}_segmentado", "memory")
         if not new_layer.isValid():
-            raise RuntimeError("Falha ao criar camada de memória")
+            raise RuntimeError("Falha ao criar camada de memória.")
 
-        # Copiar campos da camada original
         new_fields = layer.fields()
-        # Adicionar campos de saída
         for logical_key, field_spec in SequentialPointBreakJudge.OUTPUT_FIELDS.items():
             field_name = field_name_map[logical_key]
             if new_fields.lookupField(field_name) == -1:
-                new_fields.append(QgsField(field_name, field_spec.type, len=field_spec.length, prec=field_spec.precision))
+                new_fields.append(
+                    QgsField(field_name, field_spec.type,
+                             len=field_spec.length, prec=field_spec.precision)
+                )
 
-        # Para camadas de memória, usar dataProvider para adicionar campos
         new_layer.dataProvider().addAttributes(new_fields)
         new_layer.updateFields()
-
-        # Adicionar features com updates
         new_layer.startEditing()
+
         for feature in layer.getFeatures():
             fid = feature.id()
-            if fid in updates:
-                # Criar uma nova feature com os campos da nova camada
-                new_feature = QgsFeature(new_layer.fields())
-                new_feature.setGeometry(feature.geometry())
-                
-                # Copiar atributos originais por nome de campo
-                for idx, field in enumerate(feature.fields()):
-                    field_name = field.name()
-                    value = feature.attribute(field_name)
-                    new_feature.setAttribute(field_name, value)
-                
-                # Adicionar novos atributos calculados
-                for attr_name, attr_value in updates[fid].items():
-                    resolved_name = field_name_map.get(attr_name, attr_name)
-                    # Usar índice do campo para garantir que existe
-                    field_idx = new_layer.fields().lookupField(resolved_name)
-                    if field_idx >= 0:
-                        new_feature.setAttribute(field_idx, attr_value)
-                
-                new_layer.addFeature(new_feature)
+            if fid not in updates:
+                continue
+            new_feature = QgsFeature(new_layer.fields())
+            new_feature.setGeometry(feature.geometry())
+            for field in feature.fields():
+                new_feature.setAttribute(field.name(), feature.attribute(field.name()))
+            for attr_key, attr_val in updates[fid].items():
+                resolved = field_name_map.get(attr_key, attr_key)
+                idx = new_layer.fields().lookupField(resolved)
+                if idx >= 0:
+                    new_feature.setAttribute(idx, attr_val)
+            new_layer.addFeature(new_feature)
 
         new_layer.commitChanges()
         new_layer.updateFields()
 
-        elapsed = time.time() - start
         LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SequentialPointBreakJudge").info(
-            "Nova camada de memória criada",
-            original_features=layer.featureCount(),
-            new_features=new_layer.featureCount(),
-            creation_time_seconds=round(elapsed, 2)
+            "Camada de memória criada",
+            features=new_layer.featureCount(),
+            elapsed=round(time.time() - t0, 2),
         )
-
         return new_layer

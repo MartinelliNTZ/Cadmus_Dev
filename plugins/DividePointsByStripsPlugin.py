@@ -487,7 +487,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 border_azimuth_threshold=90.0,
                 border_speed_threshold=1.0,
                 border_distance_threshold=5.0,
-                retroactive_window=5,
+                retroactive_relabel_window=5,
                 fusion_azimuth_tolerance=10.0,
                 conflict_resolver=lambda field_name: QgisMessageUtil.ask_field_conflict(
                     self.iface, field_name

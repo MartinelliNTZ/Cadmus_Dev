@@ -308,50 +308,31 @@ class SequentialPointBreakJudge:
         field_time: str,
         point_frequency_seconds: float,
         strip_width_meters: float,
-        # Janela para média circular (histórico de azimuths passados)
         azimuth_window: int = 10,
-        # Thresholds de azimute para score de direção
         light_azimuth_threshold: float = 20.0,
         severe_azimuth_threshold: float = 45.0,
-        # Score mínimo para candidatar quebra
         minimum_break_score: int = 3,
-        # Mínimo de pontos para faixa válida
         minimum_point_count: int = 20,
-        # Multiplicador de tolerância de tempo
         time_tolerance_multiplier: float = 3.0,
-        # Janela de confirmação prospectiva (quantos pontos futuros devem confirmar)
         confirmation_window: int = 5,
         min_confirmed: int = 2,
-        # Parâmetros de bordadura (mantidos)
         border_azimuth_threshold: float = 90.0,
         border_speed_threshold: float = 1.0,
         border_distance_threshold: float = 5.0,
-        # ---------------------------------------------------------------
-        # NOVOS PARÂMETROS
-        # ---------------------------------------------------------------
-        # Lookahead para detecção de estabilidade futura
         future_stability_window: int = 8,
-        # Limiar de estabilidade futura: se ratio >= este valor, é entrada de faixa
         future_stability_threshold: float = 0.75,
-        # Limiar de az para considerar ponto "dentro" do cluster futuro
         future_az_cluster_threshold: float = 15.0,
-        # Variância circular máxima para considerar histórico "estável"
         past_stability_max_variance: float = 0.08,
-        # Janela de variância passada
         past_stability_window: int = 6,
-        # Taxa de convergência máxima (°/ponto) para considerar estável
         convergence_rate_threshold: float = 10.0,
-        # Janela retroativa: quantos pontos anteriores reatribuir ao novo shot
         retroactive_relabel_window: int = 5,
-        # Peso mínimo de velocidade (evita divisão por zero em pontos parados)
         min_velocity_weight: float = 0.5,
-        # Tolerância de azimute para fusão de tiros pequenos
         fusion_azimuth_tolerance: float = 10.0,
-        # Número máximo de pontos de desvio a ignorar (outlier skip)
         max_desvio: int = 3,
         conflict_resolver=None,
+        recap: bool = False,
     ):
-        """Executa o julgamento bidirecional de segmentação."""
+        """Executa o julgamento bidirecional de segmentação, com repescagem opcional."""
         layer = self._load_layer()
         self._validate_layer(layer, field_id, field_time)
         field_name_map = self._resolve_output_fields(layer, conflict_resolver=conflict_resolver)
@@ -398,6 +379,45 @@ class SequentialPointBreakJudge:
 
         # Estágio 2: Marcar validade, fusão, órfãos
         updates = self._postprocess(updates, minimum_point_count, fusion_azimuth_tolerance)
+
+        # REPESCAGEM: se não for repescagem, tente reclassificar os pontos lixo
+        if not recap:
+            lixo_fids = [fid for fid, v in updates.items() if v[OutputFieldKey.SHOT_ID.value] == 0]
+            if lixo_fids:
+                self.logger.info(f"Repescagem ativada: {len(lixo_fids)} pontos lixo serão reavaliados.")
+                # Filtra apenas os pontos lixo para nova avaliação
+                ordered_lixo = [p for p in ordered if p["fid"] in lixo_fids]
+                # Reavalia apenas os pontos lixo, com recap=True
+                recap_updates = self._evaluate_bidirectional(
+                    ordered_points=ordered_lixo,
+                    layer=layer,
+                    point_frequency_seconds=point_frequency_seconds,
+                    strip_width_meters=strip_width_meters,
+                    azimuth_window=azimuth_window,
+                    light_azimuth_threshold=light_azimuth_threshold,
+                    severe_azimuth_threshold=severe_azimuth_threshold,
+                    minimum_break_score=minimum_break_score,
+                    time_tolerance_multiplier=time_tolerance_multiplier,
+                    confirmation_window=confirmation_window,
+                    min_confirmed=min_confirmed,
+                    border_azimuth_threshold=border_azimuth_threshold,
+                    border_speed_threshold=border_speed_threshold,
+                    border_distance_threshold=border_distance_threshold,
+                    future_stability_window=future_stability_window,
+                    future_stability_threshold=future_stability_threshold,
+                    future_az_cluster_threshold=future_az_cluster_threshold,
+                    past_stability_max_variance=past_stability_max_variance,
+                    past_stability_window=past_stability_window,
+                    convergence_rate_threshold=convergence_rate_threshold,
+                    retroactive_relabel_window=retroactive_relabel_window,
+                    min_velocity_weight=min_velocity_weight,
+                    max_desvio=max_desvio,
+                )
+                # Atualiza apenas os pontos lixo com os novos resultados
+                for fid, v in recap_updates.items():
+                    updates[fid] = v
+                # Pós-processa novamente para atualizar validade/fusão
+                updates = self._postprocess(updates, minimum_point_count, fusion_azimuth_tolerance)
 
         result_layer = self._create_memory_layer_with_updates(layer, updates, field_name_map)
 

@@ -7,3 +7,6 @@
 [2.3.25.5][20/04/2026] ProjectNameDialog/Styles: corrigida aplicacao de estilo dos botoes OK/Cancelar com escopo em QDialogButtonBox (#project_name_button_box) e objectNames dedicados para evitar override do tema nativo.
 [2.3.25.6][20/04/2026] ProjectNameDialog: substituido QDialogButtonBox por botoes QPushButton (OK/Cancelar) para garantir aplicacao do stylesheet; adicionada chave STR.OK em Strings_pt_BR.
 [2.3.25.7][20/04/2026] Styles.project_name_dialog: removido escopo de QDialogButtonBox e ajustado seletor para QPushButton#project_name_btn_ok/#project_name_btn_cancel, alinhando o estilo com o novo layout do ProjectNameDialog.
+2.3.26 23/04/2026
+[2.3.26.1][23/04/2026] SequentialPointBreakJudge: corrigido UnboundLocalError no metodo _evaluate_bidirectional ao acessar precomputed_dt antes de sua populacao.
+[2.3.26.2][23/04/2026] SequentialPointBreakJudge: removida declaracao duplicada e precoce de use_time que causava UnboundLocalError.

@@ -449,9 +449,13 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         field_id = self.id_field_selector.get_selected_key()
         field_time = self.time_field_selector.get_selected_key()
-        if not field_id or not field_time:
+        
+        # O campo ID continua obrigatório para ordenação, mas tempo agora é opcional.
+        if not field_id:
             QgisMessageUtil.bar_warning(self.iface, STR.SELECT_REQUIRED_FIELDS)
             return
+
+        self.logger.info(f"Campos selecionados: ID={field_id}, Tempo={field_time or 'N/A'}")
 
         operational_values = self.operational_fields.get_values()
         sensitivity_values = self.sensitivity_fields.get_values()

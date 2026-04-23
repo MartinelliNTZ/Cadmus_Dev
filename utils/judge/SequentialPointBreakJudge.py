@@ -162,7 +162,7 @@ class SequentialPointBreakJudge:
         self,
         *,
         field_id: str,
-        field_time: str,
+        field_time: str = None,
         point_frequency_seconds: float,
         strip_width_meters: float,
         azimuth_window: int = 10,
@@ -188,6 +188,7 @@ class SequentialPointBreakJudge:
         max_desvio: int = 3,
         conflict_resolver=None,
         recap: bool = False,
+        path_mode: str = "both",
     ):
         """Executa o julgamento bidirecional de segmentação, com repescagem opcional."""
         layer = self._load_layer()
@@ -199,7 +200,7 @@ class SequentialPointBreakJudge:
             raise RuntimeError("Nenhum ponto válido encontrado.")
 
         self.logger.info(
-            "Iniciando julgamento bidirecional",
+            f"Iniciando julgamento bidirecional {path_mode}",
             source_path=self.source_path,
             features=len(ordered),
         )
@@ -400,14 +401,21 @@ class SequentialPointBreakJudge:
             delta_distance = precomputed_dd[i]
             instant_speed = precomputed_vel[i]
 
-            # --- Média circular ponderada por velocidade (histórico) ---
-            w = max(min_velocity_weight, instant_speed)
+            # --- Cálculo de média circular (Ponderada no Cenário 1, Simples no Cenário 2) ---
             recent_az = az_history[-azimuth_window:] if az_history else []
             recent_vel = vel_history[-azimuth_window:] if vel_history else []
-            mean_az = (
-                MathUtils.weighted_circular_mean(recent_az, [max(min_velocity_weight, v) for v in recent_vel])
-                if recent_az else instant_az
-            )
+            
+            if use_time and recent_vel:
+                mean_az = (
+                    MathUtils.weighted_circular_mean(recent_az, [max(min_velocity_weight, v) for v in recent_vel])
+                    if recent_az else instant_az
+                )
+            else:
+                mean_az = (
+                    MathUtils.circular_mean(recent_az)
+                    if recent_az else instant_az
+                )
+
             delta_azimuth = MathUtils.angular_diff(instant_az, mean_az)
 
             # --- Métricas de estabilidade ---
@@ -434,12 +442,15 @@ class SequentialPointBreakJudge:
             if delta_azimuth > severe_azimuth_threshold:
                 score_direction += 2
 
-            score_continuity = self._apply_time_score(
-                score=0,
-                delta_time=delta_time,
-                point_frequency_seconds=point_frequency_seconds,
-                time_tolerance_multiplier=time_tolerance_multiplier,
-            )
+            score_continuity = 0
+            if use_time:
+                score_continuity = self._apply_time_score(
+                    score=0,
+                    delta_time=delta_time,
+                    point_frequency_seconds=point_frequency_seconds,
+                    time_tolerance_multiplier=time_tolerance_multiplier,
+                )
+            
             if delta_distance > float(strip_width_meters) * 0.8:
                 score_continuity += 1
 
@@ -448,7 +459,7 @@ class SequentialPointBreakJudge:
             # --- Tipo de segmento ---
             is_border = (
                 delta_azimuth > border_azimuth_threshold
-                and instant_speed < border_speed_threshold
+                and (not use_time or instant_speed < border_speed_threshold)
                 and delta_distance < border_distance_threshold
             )
             seg_type = "bordadura" if is_border else "faixa"
@@ -497,13 +508,23 @@ class SequentialPointBreakJudge:
                                 skip_score_dir += 1
                             if skip_delta > severe_azimuth_threshold:
                                 skip_score_dir += 2
-                            skip_dt = max(0.0, ordered_points[si]["timestamp"] - ordered_points[i - 1]["timestamp"])
-                            skip_score_cont = self._apply_time_score(
-                                score=0,
-                                delta_time=skip_dt,
-                                point_frequency_seconds=point_frequency_seconds,
-                                time_tolerance_multiplier=time_tolerance_multiplier,
-                            )
+                            
+                            skip_score_cont = 0
+                            if use_time:
+                                skip_dt = max(0.0, ordered_points[si]["timestamp"] - ordered_points[i - 1]["timestamp"])
+                                skip_score_cont = self._apply_time_score(
+                                    score=0,
+                                    delta_time=skip_dt,
+                                    point_frequency_seconds=point_frequency_seconds,
+                                    time_tolerance_multiplier=time_tolerance_multiplier,
+                                )
+                            else:
+                                skip_dd = VectorLayerGeometry.measure_distance_between_points(
+                                    ordered_points[i - 1]["point"], ordered_points[si]["point"], layer.crs()
+                                )
+                                if skip_dd > float(strip_width_meters) * 0.8:
+                                    skip_score_cont += 1
+
                             if skip_score_dir + skip_score_cont < minimum_break_score:
                                 break  # não precisa quebrar
 
@@ -652,13 +673,15 @@ class SequentialPointBreakJudge:
             raise RuntimeError("A camada deve ser do tipo ponto.")
         if layer.fields().lookupField(field_id) == -1:
             raise RuntimeError(f"Campo de ID não encontrado: {field_id}")
-        if layer.fields().lookupField(field_time) == -1:
-            raise RuntimeError(f"Campo de timestamp não encontrado: {field_time}")
+        if field_time and layer.fields().lookupField(field_time) == -1:
+            # Se o usuário informou um nome de campo, ele deve existir. Se não informou (None), ignoramos.
+            raise RuntimeError(f"Campo de timestamp '{field_time}' não encontrado na camada.")
 
     def _load_ordered_points(self, layer, field_id, field_time):
         import time
         t0 = time.time()
         ordered = []
+        use_time = bool(field_time)
         for feature in layer.getFeatures():
             geometry = feature.geometry()
             if not geometry or geometry.isEmpty():
@@ -666,9 +689,15 @@ class SequentialPointBreakJudge:
             point = VectorLayerGeometry.get_representative_point(geometry)
             if point is None:
                 continue
-            timestamp = self._parse_timestamp(feature.attribute(field_time))
-            if timestamp is None:
-                continue
+            
+            timestamp = 0.0
+            if use_time:
+                timestamp = self._parse_timestamp(feature.attribute(field_time))
+                if timestamp is None:
+                    # Se campo de tempo foi definido mas está corrompido neste ponto,
+                    # logamos o aviso mas continuamos o processamento (Cenário 2 degradado)
+                    timestamp = 0.0
+
             ordered.append({
                 "fid": feature.id(),
                 "seq_id_sort": self._build_sort_key(feature.attribute(field_id)),
@@ -715,6 +744,9 @@ class SequentialPointBreakJudge:
 
     @staticmethod
     def _apply_time_score(*, score, delta_time, point_frequency_seconds, time_tolerance_multiplier):
+        if not delta_time:
+            return score
+            
         threshold = float(point_frequency_seconds) * float(time_tolerance_multiplier)
         if delta_time > threshold:
             score += 1

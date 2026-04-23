@@ -25,6 +25,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
     TOOL_KEY = ToolKey.DIVIDE_POINTS_BY_STRIPS
     PREF_SELECTED_OUTPUT_FIELDS = "selected_output_fields"
     REQUIRED_OUTPUT_FIELD = "shot_id"
+    PATH_MODES = ["Curva", "Reta", "Ambas"]
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
@@ -123,6 +124,17 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         self.advanced_params.add_content_layout(sensitivity_layout)
 
+        radio_layout, self.radio_path_mode = WidgetFactory.create_radio_button_grid(
+            items=self.PATH_MODES,
+            columns=3,
+            title="Modo de Segmentação",
+            checked_index=2,
+            tool_key=self.TOOL_KEY,
+            parent=self,
+            separator_top=False,
+            separator_bottom=True,
+        )
+
         output_layout, self.output_fields_grid = WidgetFactory.create_checkbox_grid(
             options_data=StringAdapter.to_key_label_description(
                 SequentialPointBreakJudge.DIVIDE_STRIP_FIELDS
@@ -180,8 +192,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             [
                 intro_label,
                 layer_layout,
+                radio_layout,
                 operational_container_layout,
-                advanced_layout,
+                advanced_layout,                
                 attributes_layout,
                 save_layout,
                 buttons_layout,
@@ -202,6 +215,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.sensitivity_fields.set_values(
             self.preferences.get("sensitivity_fields", {})
         )
+
+        path_mode = self.preferences.get("path_mode", "Ambas")
+        if path_mode in self.PATH_MODES:
+            self.radio_path_mode.set_selected_index(self.PATH_MODES.index(path_mode))
+
         selected_output_fields = self.preferences.get(
             self.PREF_SELECTED_OUTPUT_FIELDS, []
         )
@@ -240,6 +258,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         self.preferences["operational_fields"] = self.operational_fields.get_values()
         self.preferences["sensitivity_fields"] = self.sensitivity_fields.get_values()
+        self.preferences["path_mode"] = self.radio_path_mode.get_selected_text()
         self.preferences[self.PREF_SELECTED_OUTPUT_FIELDS] = (
             self._get_selected_output_fields()
         )

@@ -163,6 +163,8 @@ class StringManager:
     }
     RASTER_EXTS = {".tif", ".tiff", ".ecw", ".jp2", ".asc"}
 
+    DIVIDE_POINTS_STRIP_TYPES = ["Curva", "Reta", "Ambas"]
+
     DIVIDE_POINTS_OPERATIONAL_FIELDS = {
         "frequencia_pontos": {
             "title": STR.EXPECTED_POINT_FREQUENCY_SECONDS,

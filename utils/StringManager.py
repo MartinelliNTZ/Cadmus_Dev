@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from ..core.enum.OutputFieldKey import OutputFieldKey
+from ..core.enum.OutputFieldKey import StripOutputFieldKey
 from ..core.model.Field import Field
 from qgis.PyQt.QtCore import QVariant
 
@@ -11,7 +11,7 @@ from ..i18n.TranslationManager import STR
 class StringManager:
 
     DIVIDE_STRIP_FIELDS = {
-        OutputFieldKey.SHOT_ID: Field(
+        StripOutputFieldKey.SHOT_ID: Field(
             label="Shot ID",
             attribute="shot_id",
             description="Identificador único do segmento de tiro/faixa.",
@@ -19,7 +19,7 @@ class StringManager:
             length=10,
             precision=0,
         ),
-        OutputFieldKey.SHOT_VALID: Field(
+        StripOutputFieldKey.SHOT_VALID: Field(
             label="Shot Valid",
             attribute="shot_valid",
             description="Indica se o tiro possui pontos suficientes para ser válido.",
@@ -27,7 +27,7 @@ class StringManager:
             length=1,
             precision=0,
         ),
-        OutputFieldKey.SCORE: Field(
+        StripOutputFieldKey.SCORE: Field(
             label="Score",
             attribute="score",
             description="Pontuação de quebra (direção + continuidade).",
@@ -35,7 +35,7 @@ class StringManager:
             length=10,
             precision=0,
         ),
-        OutputFieldKey.SCORE_DIRECTION: Field(
+        StripOutputFieldKey.SCORE_DIRECTION: Field(
             label="Score Direction",
             attribute="score_direction",
             description="Componente de quebra por mudança de direção.",
@@ -43,7 +43,7 @@ class StringManager:
             length=10,
             precision=0,
         ),
-        OutputFieldKey.SCORE_CONTINUITY: Field(
+        StripOutputFieldKey.SCORE_CONTINUITY: Field(
             label="Score Continuity",
             attribute="score_continuity",
             description="Componente de quebra por descontinuidade temporal/espacial.",
@@ -51,7 +51,7 @@ class StringManager:
             length=10,
             precision=0,
         ),
-        OutputFieldKey.SEG_TYPE: Field(
+        StripOutputFieldKey.SEG_TYPE: Field(
             label="Segment Type",
             attribute="seg_type",
             description="Tipo: 'faixa' ou 'bordadura'.",
@@ -59,7 +59,7 @@ class StringManager:
             length=20,
             precision=0,
         ),
-        OutputFieldKey.AZIMUTH_INSTANT: Field(
+        StripOutputFieldKey.AZIMUTH_INSTANT: Field(
             label="Azimuth Instant",
             attribute="azimuth_instant",
             description="Azimute instantâneo entre pontos consecutivos.",
@@ -67,7 +67,7 @@ class StringManager:
             length=20,
             precision=8,
         ),
-        OutputFieldKey.AZIMUTH_MEAN: Field(
+        StripOutputFieldKey.AZIMUTH_MEAN: Field(
             label="Azimuth Mean",
             attribute="azimuth_mean",
             description="Média circular ponderada por velocidade.",
@@ -75,7 +75,7 @@ class StringManager:
             length=20,
             precision=8,
         ),
-        OutputFieldKey.DELTA_AZIMUTH: Field(
+        StripOutputFieldKey.DELTA_AZIMUTH: Field(
             label="Delta Azimuth",
             attribute="delta_azimuth",
             description="Diferença angular entre azimute instantâneo e média.",
@@ -83,7 +83,7 @@ class StringManager:
             length=20,
             precision=8,
         ),
-        OutputFieldKey.DELTA_TIME: Field(
+        StripOutputFieldKey.DELTA_TIME: Field(
             label="Delta Time",
             attribute="delta_time",
             description="Diferença de tempo entre pontos consecutivos (s).",
@@ -91,7 +91,7 @@ class StringManager:
             length=20,
             precision=8,
         ),
-        OutputFieldKey.DELTA_DISTANCE: Field(
+        StripOutputFieldKey.DELTA_DISTANCE: Field(
             label="Delta Distance",
             attribute="delta_distance",
             description="Distância entre pontos consecutivos (m).",
@@ -99,7 +99,7 @@ class StringManager:
             length=20,
             precision=8,
         ),
-        OutputFieldKey.VELOCITY_INSTANT: Field(
+        StripOutputFieldKey.VELOCITY_INSTANT: Field(
             label="Velocity Instant",
             attribute="velocity_instant",
             description="Velocidade instantânea (m/s).",

@@ -56,7 +56,7 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsWkbTypes, QgsField, QgsFeature
 
 from ...core.config.LogUtils import LogUtils
-from ...core.enum.OutputFieldKey import OutputFieldKey
+from ...core.enum.OutputFieldKey import StripOutputFieldKey
 from ...core.model.Field import Field
 from ..ToolKeys import ToolKey
 from ..vector.VectorLayerAttributes import VectorLayerAttributes
@@ -239,7 +239,7 @@ class SequentialPointBreakJudge:
 
         # REPESCAGEM: se não for repescagem, tente reclassificar os pontos lixo
         if not recap:
-            lixo_fids = [fid for fid, v in updates.items() if v[OutputFieldKey.SHOT_ID.value] == 0]
+            lixo_fids = [fid for fid, v in updates.items() if v[StripOutputFieldKey.SHOT_ID.value] == 0]
             if lixo_fids:
                 self.logger.info(f"Repescagem ativada: {len(lixo_fids)} pontos lixo serão reavaliados.")
                 # Filtra apenas os pontos lixo para nova avaliação
@@ -280,7 +280,7 @@ class SequentialPointBreakJudge:
 
         shot_sizes = {}
         for v in updates.values():
-            sid = v[OutputFieldKey.SHOT_ID.value]
+            sid = v[StripOutputFieldKey.SHOT_ID.value]
             shot_sizes[sid] = shot_sizes.get(sid, 0) + 1
 
         valid_shots = sum(1 for s, sz in shot_sizes.items() if sz >= minimum_point_count and s != 0)
@@ -531,7 +531,7 @@ class SequentialPointBreakJudge:
                         # Reatribuir se o az já estava "na direção" da nova faixa
                         # (diferença aceitável e decrescente em direção ao alvo)
                         if back_diff <= future_az_cluster_threshold * 2.0:
-                            updates[back_fid][OutputFieldKey.SHOT_ID.value] = current_shot_id
+                            updates[back_fid][StripOutputFieldKey.SHOT_ID.value] = current_shot_id
                             relabel_count += 1
                         else:
                             break  # Para ao encontrar ponto muito longe
@@ -541,18 +541,18 @@ class SequentialPointBreakJudge:
                         )
 
             updates[ordered_points[i]["fid"]] = {
-                OutputFieldKey.SHOT_ID.value: current_shot_id,
-                OutputFieldKey.SHOT_VALID.value: 0,
-                OutputFieldKey.SCORE.value: int(total_score),
-                OutputFieldKey.SCORE_DIRECTION.value: int(score_direction),
-                OutputFieldKey.SCORE_CONTINUITY.value: int(score_continuity),
-                OutputFieldKey.SEG_TYPE.value: seg_type,
-                OutputFieldKey.AZIMUTH_INSTANT.value: float(instant_az),
-                OutputFieldKey.AZIMUTH_MEAN.value: float(mean_az),
-                OutputFieldKey.DELTA_AZIMUTH.value: float(delta_azimuth),
-                OutputFieldKey.DELTA_TIME.value: float(delta_time),
-                OutputFieldKey.DELTA_DISTANCE.value: float(delta_distance),
-                OutputFieldKey.VELOCITY_INSTANT.value: float(instant_speed),
+                StripOutputFieldKey.SHOT_ID.value: current_shot_id,
+                StripOutputFieldKey.SHOT_VALID.value: 0,
+                StripOutputFieldKey.SCORE.value: int(total_score),
+                StripOutputFieldKey.SCORE_DIRECTION.value: int(score_direction),
+                StripOutputFieldKey.SCORE_CONTINUITY.value: int(score_continuity),
+                StripOutputFieldKey.SEG_TYPE.value: seg_type,
+                StripOutputFieldKey.AZIMUTH_INSTANT.value: float(instant_az),
+                StripOutputFieldKey.AZIMUTH_MEAN.value: float(mean_az),
+                StripOutputFieldKey.DELTA_AZIMUTH.value: float(delta_azimuth),
+                StripOutputFieldKey.DELTA_TIME.value: float(delta_time),
+                StripOutputFieldKey.DELTA_DISTANCE.value: float(delta_distance),
+                StripOutputFieldKey.VELOCITY_INSTANT.value: float(instant_speed),
             }
 
             az_history.append(instant_az)
@@ -575,7 +575,7 @@ class SequentialPointBreakJudge:
         def shot_sizes(upd):
             sizes = {}
             for v in upd.values():
-                sid = v[OutputFieldKey.SHOT_ID.value]
+                sid = v[StripOutputFieldKey.SHOT_ID.value]
                 sizes[sid] = sizes.get(sid, 0) + 1
             return sizes
 
@@ -586,13 +586,13 @@ class SequentialPointBreakJudge:
 
         # Marcar válidos e órfãos
         for fid, values in updates.items():
-            sid = values[OutputFieldKey.SHOT_ID.value]
+            sid = values[StripOutputFieldKey.SHOT_ID.value]
             sz = sizes.get(sid, 0)
             if sz < minimum_point_count:
-                values[OutputFieldKey.SHOT_ID.value] = 0
-                values[OutputFieldKey.SHOT_VALID.value] = 0
+                values[StripOutputFieldKey.SHOT_ID.value] = 0
+                values[StripOutputFieldKey.SHOT_VALID.value] = 0
             else:
-                values[OutputFieldKey.SHOT_VALID.value] = 1
+                values[StripOutputFieldKey.SHOT_VALID.value] = 1
 
         return updates
 
@@ -603,12 +603,12 @@ class SequentialPointBreakJudge:
 
         shots: dict[int, list] = {}
         for fid, values in updates.items():
-            sid = values[OutputFieldKey.SHOT_ID.value]
+            sid = values[StripOutputFieldKey.SHOT_ID.value]
             shots.setdefault(sid, []).append((fid, values))
 
         shot_stats = {}
         for sid, features in shots.items():
-            azs = [v[OutputFieldKey.AZIMUTH_MEAN.value] for _, v in features if v[OutputFieldKey.AZIMUTH_MEAN.value] > 0]
+            azs = [v[StripOutputFieldKey.AZIMUTH_MEAN.value] for _, v in features if v[StripOutputFieldKey.AZIMUTH_MEAN.value] > 0]
             shot_stats[sid] = {
                 "size": len(features),
                 "mean_az": MathUtils.circular_mean(azs) if azs else 0.0,
@@ -626,7 +626,7 @@ class SequentialPointBreakJudge:
         for from_id, to_id in fusions:
             if from_id in shots:
                 for _, values in shots[from_id]:
-                    values[OutputFieldKey.SHOT_ID.value] = to_id
+                    values[StripOutputFieldKey.SHOT_ID.value] = to_id
 
         self.logger.info("Fusão de tiros pequenos", fusions=len(fusions))
         return updates
@@ -699,18 +699,18 @@ class SequentialPointBreakJudge:
 
     def _build_default_output(self, shot_id: int) -> dict:
         return {
-            OutputFieldKey.SHOT_ID.value: shot_id,
-            OutputFieldKey.SHOT_VALID.value: 0,
-            OutputFieldKey.SCORE.value: 0,
-            OutputFieldKey.SCORE_DIRECTION.value: 0,
-            OutputFieldKey.SCORE_CONTINUITY.value: 0,
-            OutputFieldKey.SEG_TYPE.value: "faixa",
-            OutputFieldKey.AZIMUTH_INSTANT.value: 0.0,
-            OutputFieldKey.AZIMUTH_MEAN.value: 0.0,
-            OutputFieldKey.DELTA_AZIMUTH.value: 0.0,
-            OutputFieldKey.DELTA_TIME.value: 0.0,
-            OutputFieldKey.DELTA_DISTANCE.value: 0.0,
-            OutputFieldKey.VELOCITY_INSTANT.value: 0.0,
+            StripOutputFieldKey.SHOT_ID.value: shot_id,
+            StripOutputFieldKey.SHOT_VALID.value: 0,
+            StripOutputFieldKey.SCORE.value: 0,
+            StripOutputFieldKey.SCORE_DIRECTION.value: 0,
+            StripOutputFieldKey.SCORE_CONTINUITY.value: 0,
+            StripOutputFieldKey.SEG_TYPE.value: "faixa",
+            StripOutputFieldKey.AZIMUTH_INSTANT.value: 0.0,
+            StripOutputFieldKey.AZIMUTH_MEAN.value: 0.0,
+            StripOutputFieldKey.DELTA_AZIMUTH.value: 0.0,
+            StripOutputFieldKey.DELTA_TIME.value: 0.0,
+            StripOutputFieldKey.DELTA_DISTANCE.value: 0.0,
+            StripOutputFieldKey.VELOCITY_INSTANT.value: 0.0,
         }
 
     @staticmethod

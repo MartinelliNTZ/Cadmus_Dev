@@ -25,7 +25,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
     TOOL_KEY = ToolKey.DIVIDE_POINTS_BY_STRIPS
     PREF_SELECTED_OUTPUT_FIELDS = "selected_output_fields"
     REQUIRED_OUTPUT_FIELD = "shot_id"
-    PATH_MODES = ["Curva", "Reta", "Ambas"]
+    PATH_MODES = [STR.CURVE, STR.STRAIGHT, STR.BOTH_PATH]
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
@@ -127,7 +127,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         radio_layout, self.radio_path_mode = WidgetFactory.create_radio_button_grid(
             items=self.PATH_MODES,
             columns=3,
-            title="Modo de Segmentação",
+            title=STR.SEGMENTATION_MODE,
             checked_index=2,
             tool_key=self.TOOL_KEY,
             parent=self,
@@ -216,7 +216,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             self.preferences.get("sensitivity_fields", {})
         )
 
-        path_mode = self.preferences.get("path_mode", "Ambas")
+        path_mode = self.preferences.get("path_mode", STR.BOTH_PATH)
         if path_mode in self.PATH_MODES:
             self.radio_path_mode.set_selected_index(self.PATH_MODES.index(path_mode))
 
@@ -511,6 +511,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 conflict_resolver=lambda field_name: QgisMessageUtil.ask_field_conflict(
                     self.iface, field_name
                 ),
+                path_mode=self.radio_path_mode.get_selected_text(),
             )
             processing_time = time.time() - start_time
             selected_fields = self._get_selected_output_fields()

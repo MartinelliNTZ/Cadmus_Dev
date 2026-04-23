@@ -614,3 +614,7 @@ class Strings_pt_BR:
     DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
         "A interface foi criada. A rotina de divisão por faixas será implementada na próxima etapa."
     )
+    SEGMENTATION_MODE = "Modo de Segmentação"
+    CURVE = "Curva"
+    STRAIGHT = "Reta"
+    BOTH_PATH = "Ambas"

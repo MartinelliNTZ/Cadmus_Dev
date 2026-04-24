@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import time
 from qgis.core import (
     QgsMapLayerProxyModel,
     QgsVectorLayer,
     QgsProject,
     QgsField,
     QgsFeature,
+    QgsGeometry,
 )
+from qgis.PyQt.QtCore import QVariant
+from qgis.core import QgsProject
 
 from .BasePlugin import BasePluginMTL
 from ..core.ui.WidgetFactory import WidgetFactory
@@ -16,9 +20,11 @@ from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.StringManager import StringManager
 from ..utils.ToolKeys import ToolKey
 from ..utils.adapter.StringAdapter import StringAdapter
+from ..core.enum.OutputFieldKey import StripOutputFieldKey
 from ..utils.judge.SequentialPointBreakJudge import SequentialPointBreakJudge
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerSource import VectorLayerSource
+from ..utils.MathUtils import MathUtils
 
 
 class DividePointsByStripsPlugin(BasePluginMTL):
@@ -31,6 +37,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         super().__init__(iface.mainWindow())
         self.iface = iface
         self.save_points_selector = None
+        self.save_track_selector = None
         self.init(
             tool_key=self.TOOL_KEY,
             class_name=self.__class__.__name__,
@@ -163,18 +170,29 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         self.attributes_params.add_content_layout(output_layout)
 
-        save_layout, self.save_collapsible, self.save_points_selector = (
-            WidgetFactory.create_save_layer_collapsible(
+        # ====== SALVAMENTO (Expandido para Pontos e Linhas) ======
+        save_layout, self.save_collapsible = (
+            WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.SAVING,
                 expanded_by_default=False,
-                file_filter=StringManager.FILTER_VECTOR,
-                checkbox_text=STR.SAVE_POINTS_CHECKBOX,
-                label_text=STR.SAVE_IN,
-                separator_top=False,
                 separator_bottom=True,
             )
         )
+        save_pts_layout, self.save_points_selector = WidgetFactory.create_save_file_selector(
+            parent=self,
+            file_filter=StringManager.FILTER_VECTOR,
+            checkbox_text=STR.SAVE_POINTS_CHECKBOX,
+            label_text=STR.SAVE_IN,
+        )
+        save_lines_layout, self.save_track_selector = WidgetFactory.create_save_file_selector(
+            parent=self,
+            file_filter=StringManager.FILTER_VECTOR,
+            checkbox_text=STR.SAVE_TRACK_CHECKBOX,
+            label_text=STR.SAVE_IN,
+        )
+        self.save_collapsible.add_content_layout(save_pts_layout)
+        self.save_collapsible.add_content_layout(save_lines_layout)
 
         buttons_layout, self.action_buttons = (
             WidgetFactory.create_bottom_action_buttons(
@@ -241,6 +259,12 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.save_points_selector.set_file_path(
             self.preferences.get("last_output_file", "")
         )
+        self.save_track_selector.set_enabled(
+            self.preferences.get("save_track_to_folder", False)
+        )
+        self.save_track_selector.set_file_path(
+            self.preferences.get("last_output_track_file", "")
+        )
 
         # Restaurar estado de expansão dos colapsáveis
         self.operational_params.set_expanded(self.preferences.get("expanded_operational", True))
@@ -264,6 +288,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         self.preferences["save_to_folder"] = bool(self.save_points_selector.is_enabled())
         self.preferences["last_output_file"] = self.save_points_selector.get_file_path()
+        self.preferences["save_track_to_folder"] = bool(self.save_track_selector.is_enabled())
+        self.preferences["last_output_track_file"] = self.save_track_selector.get_file_path()
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
 
@@ -422,6 +448,91 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         return filtered_layer
 
+    def _generate_strip_lines_layer(self, point_layer, field_name_map, original_layer_name):
+        """Gera uma camada de linhas onde cada feição representa um shot_id."""
+        t0 = time.time()
+        self.logger.info("Iniciando agrupamento de pontos para geração de linhas (strips)")
+
+        sid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_ID)
+        valid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_VALID)
+        az_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.AZIMUTH_INSTANT)
+
+        # Agrupamento manual para garantir ordem e controle de atributos
+        shots_data = {}
+        for feat in point_layer.getFeatures():
+            sid = feat.attribute(sid_key)
+            if sid is None or sid == 0:
+                continue
+            
+            if sid not in shots_data:
+                shots_data[sid] = {
+                    "points": [],
+                    "azs": [],
+                    "valid": feat.attribute(valid_key),
+                }
+            
+            geom = feat.geometry()
+            if geom and not geom.isEmpty():
+                shots_data[sid]["points"].append(geom.asPoint())
+                az_val = feat.attribute(az_key)
+                if isinstance(az_val, (int, float)):
+                    shots_data[sid]["azs"].append(az_val)
+
+        # Criar camada de memória para linhas
+        uri = f"LineString?crs={point_layer.crs().authid()}"
+        line_layer = QgsVectorLayer(uri, f"{original_layer_name}_linhas", "memory")
+        provider = line_layer.dataProvider()
+
+        # Definir campos agregados
+        fields = [
+            QgsField("shot_id", QVariant.Int),
+            QgsField("shot_valid", QVariant.Int),
+            QgsField("point_count", QVariant.Int),
+            QgsField("azimuth_mean", QVariant.Double, len=10, prec=2),
+            QgsField("source", QVariant.String, len=255)
+        ]
+        provider.addAttributes(fields)
+        line_layer.updateFields()
+
+        new_features = []
+        ignored_shots = 0
+
+        for sid in sorted(shots_data.keys()):
+            data = shots_data[sid]
+            pts = data["points"]
+            
+            if len(pts) < 2:
+                ignored_shots += 1
+                continue
+            
+            line_geom = QgsGeometry.fromPolylineXY(pts)
+            
+            feat = QgsFeature(line_layer.fields())
+            feat.setGeometry(line_geom)
+            
+            # Calcular média circular do azimute para a linha
+            avg_az = MathUtils.circular_mean(data["azs"]) if data.get("azs") else 0.0
+            
+            feat.setAttribute("shot_id", int(sid))
+            feat.setAttribute("shot_valid", int(data["valid"]))
+            feat.setAttribute("point_count", len(pts))
+            feat.setAttribute("azimuth_mean", float(avg_az))
+            feat.setAttribute("source", point_layer.source())
+            
+            new_features.append(feat)
+
+        provider.addFeatures(new_features)
+        line_layer.updateFields()
+        
+        self.logger.info(
+            "Geração de linhas concluída",
+            total_lines=len(new_features),
+            ignored_single_points=ignored_shots,
+            elapsed=round(time.time() - t0, 2)
+        )
+        
+        return line_layer
+
     def _refresh_field_selectors(self):
         layer = self.layer_input.current_layer()
         options = VectorLayerAttributes.get_field_options(layer)
@@ -557,11 +668,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             else:
                 self.logger.warning("Camada de resultado invalida ou nao encontrada")
 
-            if (
-                hasattr(self, "save_points_selector")
-                and self.save_points_selector
-                and self.save_points_selector.is_enabled()
-            ):
+            if self.save_points_selector and self.save_points_selector.is_enabled():
                 out_path = self.save_points_selector.get_file_path().strip()
                 if out_path:
                     if result_layer and result_layer.isValid():
@@ -595,6 +702,40 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 self.logger.info(
                     "Salvamento em arquivo desabilitado; resultado filtrado mantido apenas no projeto"
                 )
+
+            # ====== NOVA SAÍDA: GERAÇÃO DE LINHAS (STRIPS) ======
+            strip_lines_layer = self._generate_strip_lines_layer(
+                raw_result_layer, 
+                field_name_map, 
+                layer.name()
+            )
+            
+            if strip_lines_layer and strip_lines_layer.isValid():
+                # Obrigatorio: Adiciona camada temporária em memória
+                QgsProject.instance().addMapLayer(strip_lines_layer)
+                self.logger.info("Camada de linhas (strips) adicionada ao projeto como camada temporária")
+
+                # Opcional: Salva em disco se o seletor estiver ativo e com caminho
+                if self.save_track_selector and self.save_track_selector.is_enabled():
+                    line_out_path = self.save_track_selector.get_file_path().strip()
+                    if line_out_path:
+                        saved_line_layer = VectorLayerSource.save_and_load_layer(
+                            strip_lines_layer,
+                            line_out_path,
+                            tool_key=self.TOOL_KEY,
+                            decision="rename",
+                        )
+                        if saved_line_layer and saved_line_layer.isValid():
+                            QgsProject.instance().addMapLayer(saved_line_layer)
+                            self.logger.info(
+                                "Camada de linhas salva em disco e carregada", 
+                                path=line_out_path
+                            )
+                        else:
+                            self.logger.warning("Falha ao salvar camada de linhas (strips) em arquivo")
+                    else:
+                        self.logger.warning("Salvamento de linhas habilitado, mas caminho de saída está vazio")
+
         except Exception as e:
             processing_time = time.time() - start_time
             self.logger.error(

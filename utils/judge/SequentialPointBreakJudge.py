@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-SequentialPointBreakJudge — Professional Refactoring
-=======================================
-Arquitetura modularizada usando JudgeConfig e Ways Engine para processamento adaptativo.
+SequentialPointBreakJudge — Refatoração v2
+==========================================
+Correções aplicadas:
+  1. Shot ID em 2 fases: temporário durante avaliação → sequencial validado no pós-processo.
+     Outliers isolados = 0. Outliers centrais (recuos, desvios) = shot_id da strip dona.
+  2. Dupla validação bidirecional do ponto de inflexão via max_desvio janela para trás e para frente.
+     Falso positivo → não quebra. Verdadeira quebra → confirmada.
+  3. Estado SUSPENDED para outliers centrais: acumulados em buffer suspenso e absorvidos
+     pela strip se ela se estabilizar, ou descartados se virar quebra real.
+  4. Retroactive relabel protegido por guard bidirecional de azimute.
+  5. Score de confirmação aprimorado com velocidade e estabilidade futura combinadas.
 """
 
-import math
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import Optional, Any
+from typing import Optional
 
 from qgis.core import QgsVectorLayer, QgsWkbTypes, QgsField, QgsFeature
 from qgis.PyQt.QtCore import QVariant
@@ -23,120 +30,103 @@ from ..vector.VectorLayerGeometry import VectorLayerGeometry
 from ..vector.VectorLayerSource import VectorLayerSource
 from ..MathUtils import MathUtils
 
+
 # ---------------------------------------------------------------------------
-# Enums e Modelos de Dados
+# Enums
 # ---------------------------------------------------------------------------
 
 class JudgeScenario(Enum):
-    STRAIGHT_TIME = auto()
-    CURVE_TIME = auto()
-    BOTH_TIME = auto()
+    STRAIGHT_TIME    = auto()
+    CURVE_TIME       = auto()
+    BOTH_TIME        = auto()
     STRAIGHT_NO_TIME = auto()
-    CURVE_NO_TIME = auto()
-    BOTH_NO_TIME = auto()
+    CURVE_NO_TIME    = auto()
+    BOTH_NO_TIME     = auto()
 
+
+class PointState(Enum):
+    """Estado interno de cada ponto durante a avaliação sequencial."""
+    COMMITTED   = auto()   # Pertence firmemente à strip atual
+    SUSPENDED   = auto()   # Desvio central — aguarda resolução (recuo/ruído mid-strip)
+    BREAK       = auto()   # Confirmado como início de nova strip
+    DISCARDED   = auto()   # Outlier isolado (shot_id = 0)
+
+
+# ---------------------------------------------------------------------------
+# Modelos de Dados
+# ---------------------------------------------------------------------------
 
 @dataclass
 class JudgeConfig:
-    """Encapsula parâmetros de sensibilidade e operacionais do julgamento."""
+    """Parâmetros de sensibilidade e operacionais do julgamento."""
     point_frequency_seconds: float = 1.0
-    strip_width_meters: float = 20.0
-    azimuth_window: int = 10
+    strip_width_meters: float      = 20.0
+    azimuth_window: int            = 10
     light_azimuth_threshold: float = 20.0
-    severe_azimuth_threshold: float = 45.0
-    minimum_break_score: int = 3
-    minimum_point_count: int = 20
+    severe_azimuth_threshold: float= 45.0
+    minimum_break_score: int       = 3
+    minimum_point_count: int       = 20
     time_tolerance_multiplier: float = 3.0
-    confirmation_window: int = 3
-    min_confirmed: int = 2
-    max_desvio: int = 3
-    future_stability_window: int = 8
-    future_stability_threshold: float = 0.75
+    confirmation_window: int       = 3
+    min_confirmed: int             = 2
+    max_desvio: int                = 3    # janela bidirecional do ponto de inflexão
+    future_stability_window: int   = 8
+    future_stability_threshold: float  = 0.75
     future_az_cluster_threshold: float = 15.0
     past_stability_max_variance: float = 0.08
-    past_stability_window: int = 6
-    convergence_rate_threshold: float = 10.0
-    retroactive_relabel_window: int = 5
-    min_velocity_weight: float = 0.5
-    fusion_azimuth_tolerance: float = 10.0
-    border_azimuth_threshold: float = 90.0
-    border_speed_threshold: float = 1.0
+    past_stability_window: int     = 6
+    convergence_rate_threshold: float  = 10.0
+    retroactive_relabel_window: int    = 5
+    min_velocity_weight: float     = 0.5
+    fusion_azimuth_tolerance: float= 10.0
+    border_azimuth_threshold: float= 90.0
+    border_speed_threshold: float  = 1.0
     border_distance_threshold: float = 5.0
-    path_mode: str = "both"
-    max_distance_meters: float = 0.0
-    use_time: bool = True
+    path_mode: str                 = "both"
+    max_distance_meters: float     = 0.0
+    use_time: bool                 = True
+    # Quantos pontos suspensos consecutivos toleramos antes de forçar quebra
+    max_suspended_streak: int      = 5
 
 
 @dataclass
 class PointMetrics:
-    """Dados pré-calculados para um ponto na sequência."""
-    az: float = 0.0
-    dt: float = 0.0
-    dd: float = 0.0
+    """Métricas pré-calculadas para um ponto."""
+    az: float  = 0.0
+    dt: float  = 0.0
+    dd: float  = 0.0
     vel: float = 0.0
 
 
+@dataclass
+class SuspendedPoint:
+    """Um ponto no buffer suspenso aguardando resolução."""
+    fid: int
+    index: int
+    output: dict
+
+
 # ---------------------------------------------------------------------------
-# Componentes Internos (Módulos de Responsabilidade)
+# Funções auxiliares de análise de janela
 # ---------------------------------------------------------------------------
 
-class ScenarioResolver:
-    """Identifica e valida o cenário de processamento."""
-
-    @staticmethod
-    def resolve(path_mode: str, has_time: bool) -> JudgeScenario:
-        mode = path_mode.lower()
-        if has_time:
-            if "straight" in mode: return JudgeScenario.STRAIGHT_TIME
-            if "curve" in mode: return JudgeScenario.CURVE_TIME
-            return JudgeScenario.BOTH_TIME
-        else:
-            if "straight" in mode: return JudgeScenario.STRAIGHT_NO_TIME
-            if "curve" in mode: return JudgeScenario.CURVE_NO_TIME
-            return JudgeScenario.BOTH_NO_TIME
-
-
-class ParameterTuner:
-    """Ajusta thresholds com base no cenário (Adaptive Ways Engine)."""
-
-    @staticmethod
-    def tune(config: JudgeConfig, scenario: JudgeScenario):
-        if scenario in (JudgeScenario.STRAIGHT_TIME, JudgeScenario.STRAIGHT_NO_TIME):
-            config.light_azimuth_threshold *= 0.8  # Mais sensível
-            config.min_confirmed = 1
-        elif scenario in (JudgeScenario.CURVE_TIME, JudgeScenario.CURVE_NO_TIME):
-            config.light_azimuth_threshold *= 1.4  # Mais tolerante
-            config.minimum_break_score += 1
-            config.past_stability_max_variance *= 1.5
-
-
-def _future_stability_score(precomputed_az: list[float], current_index: int, window: int, cluster_threshold: float) -> tuple[float, float]:
+def _future_stability_score(
+    pre_az: list[float], current_index: int, window: int, cluster_threshold: float
+) -> tuple[float, float]:
     """
-    Analisa os próximos `lookahead` pontos e retorna:
-      (stability_ratio, converged_azimuth)
-
-    stability_ratio ∈ [0,1]: fração de pontos que concordam com o az futuro médio.
-    converged_azimuth: valor para o qual os pontos futuros convergem.
-
-    Algoritmo:
-      1. Coleta az_instant dos próximos K pontos
-      2. Calcula a média circular desses pontos futuros
-      3. Conta quantos estão dentro de ±threshold dessa média → ratio
+    Retorna (stability_ratio ∈ [0,1], converged_azimuth).
+    Fração de pontos futuros que concordam com o azimute médio circular futuro.
     """
-    future_azs = precomputed_az[current_index + 1: current_index + 1 + window]
+    future_azs = pre_az[current_index + 1 : current_index + 1 + window]
     if not future_azs:
         return 0.0, 0.0
     conv_az = MathUtils.circular_mean(future_azs)
-    agreed = sum(1 for a in future_azs if MathUtils.angular_diff(a, conv_az) <= cluster_threshold)
-    ratio = agreed / len(future_azs)
-    return ratio, conv_az
+    agreed  = sum(1 for a in future_azs if MathUtils.angular_diff(a, conv_az) <= cluster_threshold)
+    return agreed / len(future_azs), conv_az
 
 
 def _past_stability(az_history: list[float], window: int) -> float:
-    """
-    Variância circular dos últimos `window` azimuths do histórico.
-    Retorna 0 (muito estável) → 1 (muito disperso).
-    """
+    """Variância circular dos últimos `window` azimuths. 0=estável, 1=disperso."""
     recent = az_history[-window:] if az_history else []
     if len(recent) < 2:
         return 1.0
@@ -144,11 +134,7 @@ def _past_stability(az_history: list[float], window: int) -> float:
 
 
 def _az_convergence_rate(az_history: list[float], window: int) -> float:
-    """
-    Taxa de mudança do azimute instantâneo nos últimos `window` pontos.
-    Alta taxa → em curva ou saída de faixa.
-    Baixa taxa → estável na faixa.
-    """
+    """Taxa média de mudança do azimute nos últimos `window` pontos."""
     recent = az_history[-window:]
     if len(recent) < 2:
         return 0.0
@@ -156,65 +142,139 @@ def _az_convergence_rate(az_history: list[float], window: int) -> float:
     return sum(diffs) / len(diffs)
 
 
+def _bidirectional_inflection_check(
+    pre_az: list[float],
+    index: int,
+    mean_az_current: float,
+    window: int,
+    threshold: float,
+) -> tuple[bool, bool]:
+    """
+    Verifica se o ponto `index` se encaixa melhor na strip atual ou na próxima.
+
+    Retorna (fits_current_strip, fits_next_strip):
+      - fits_current: az do ponto está próximo do az médio atual (para trás)
+      - fits_next:    az do ponto está próximo do az médio futuro (para frente)
+
+    Se fits_current AND fits_next → falso positivo (não quebrar).
+    Se apenas fits_next → entrada confirmada de nova strip.
+    Se nenhum → ponto de transição ambíguo (suspender ou quebrar por score).
+    """
+    n = len(pre_az)
+    az_point = pre_az[index]
+
+    # Azimute médio dos N pontos anteriores (excluindo o próprio ponto)
+    back_azs = [pre_az[j] for j in range(max(0, index - window), index) if j < n]
+    az_back  = MathUtils.circular_mean(back_azs) if back_azs else mean_az_current
+
+    # Azimute médio dos N pontos seguintes
+    fwd_azs  = [pre_az[j] for j in range(index + 1, min(n, index + 1 + window))]
+    az_fwd   = MathUtils.circular_mean(fwd_azs) if fwd_azs else az_point
+
+    diff_back = MathUtils.angular_diff(az_point, az_back)
+    diff_fwd  = MathUtils.angular_diff(az_point, az_fwd)
+
+    fits_current = diff_back <= threshold
+    fits_next    = diff_fwd  <= threshold
+    return fits_current, fits_next
+
+
+# ---------------------------------------------------------------------------
+# ScenarioResolver & ParameterTuner
+# ---------------------------------------------------------------------------
+
+class ScenarioResolver:
+    @staticmethod
+    def resolve(path_mode: str, has_time: bool) -> JudgeScenario:
+        mode = path_mode.lower()
+        if has_time:
+            if "straight" in mode: return JudgeScenario.STRAIGHT_TIME
+            if "curve"    in mode: return JudgeScenario.CURVE_TIME
+            return JudgeScenario.BOTH_TIME
+        else:
+            if "straight" in mode: return JudgeScenario.STRAIGHT_NO_TIME
+            if "curve"    in mode: return JudgeScenario.CURVE_NO_TIME
+            return JudgeScenario.BOTH_NO_TIME
+
+
+class ParameterTuner:
+    @staticmethod
+    def tune(config: JudgeConfig, scenario: JudgeScenario):
+        if scenario in (JudgeScenario.STRAIGHT_TIME, JudgeScenario.STRAIGHT_NO_TIME):
+            # Retas exigem maior sensibilidade a desvios de direção
+            config.light_azimuth_threshold  *= 0.8
+            config.min_confirmed             = 1
+            config.future_stability_threshold = 0.65   # mais fácil confirmar nova strip reta
+        elif scenario in (JudgeScenario.CURVE_TIME, JudgeScenario.CURVE_NO_TIME):
+            # Curvas naturalmente variam mais o azimute — mais tolerância
+            config.light_azimuth_threshold  *= 1.4
+            config.minimum_break_score      += 1
+            config.past_stability_max_variance *= 1.5
+            config.max_suspended_streak      = 8       # aguentar mais oscilações
+
+
+# ---------------------------------------------------------------------------
+# SequentialPointBreakJudge
+# ---------------------------------------------------------------------------
+
 class SequentialPointBreakJudge:
     """
-    Juiz de segmentação de sequências de pontos em faixas de voo.
-    Refatorado para suportar o Ways Engine (Cenários Adaptativos).
+    Juiz de segmentação de sequências de pontos em faixas (strips) de voo/varredura.
+
+    Garantias desta versão:
+      - shot_id nunca é o FID do feição; é sempre um inteiro sequencial validado.
+      - shot_id=0 indica outlier isolado (sem strip válida).
+      - Outliers centrais (recuos, ruídos mid-strip) recebem o shot_id da strip dona.
+      - Ponto de inflexão passa por dupla validação bidirecional antes de confirmar quebra.
+      - IDs finais são compactados: 1, 2, 3… sem saltos.
     """
-    
+
     from ..StringManager import StringManager
-    # Campos de saída definidos centralmente no StringManager
     DIVIDE_STRIP_FIELDS = StringManager.DIVIDE_STRIP_FIELDS
 
-    def __init__(
-        self,
-        *,
-        layer=None,
-        source_path: str = "",
-        tool_key: str = ToolKey.UNTRACEABLE,
-    ):
-        self.layer = layer
+    def __init__(self, *, layer=None, source_path: str = "", tool_key: str = ToolKey.UNTRACEABLE):
+        self.layer       = layer
         self.source_path = source_path or (layer.source() if layer is not None else "")
-        self.tool_key = tool_key
-        self.logger = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
+        self.tool_key    = tool_key
+        self.logger      = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
 
     # -------------------------------------------------------------------
-    # ORCHESTRATOR (Judge Orchestrator)
+    # Ponto de entrada público
     # -------------------------------------------------------------------
-    def judge(    
+
+    def judge(
         self,
         *,
         field_id: str,
         field_time: str = None,
         point_frequency_seconds: float,
         strip_width_meters: float,
-        azimuth_window: int = 10,
-        light_azimuth_threshold: float = 20.0,
+        azimuth_window: int             = 10,
+        light_azimuth_threshold: float  = 20.0,
         severe_azimuth_threshold: float = 45.0,
-        minimum_break_score: int = 3,
-        minimum_point_count: int = 20,
-        time_tolerance_multiplier: float = 3.0,
-        confirmation_window: int = 5,
-        min_confirmed: int = 2,
+        minimum_break_score: int        = 3,
+        minimum_point_count: int        = 20,
+        time_tolerance_multiplier: float= 3.0,
+        confirmation_window: int        = 5,
+        min_confirmed: int              = 2,
         border_azimuth_threshold: float = 90.0,
-        border_speed_threshold: float = 1.0,
-        border_distance_threshold: float = 5.0,
-        future_stability_window: int = 8,
-        future_stability_threshold: float = 0.75,
+        border_speed_threshold: float   = 1.0,
+        border_distance_threshold: float= 5.0,
+        future_stability_window: int    = 8,
+        future_stability_threshold: float  = 0.75,
         future_az_cluster_threshold: float = 15.0,
         past_stability_max_variance: float = 0.08,
-        past_stability_window: int = 6,
-        convergence_rate_threshold: float = 10.0,
-        retroactive_relabel_window: int = 5,
-        min_velocity_weight: float = 0.5,
+        past_stability_window: int      = 6,
+        convergence_rate_threshold: float  = 10.0,
+        retroactive_relabel_window: int    = 5,
+        min_velocity_weight: float      = 0.5,
         fusion_azimuth_tolerance: float = 10.0,
-        max_desvio: int = 3,
-        conflict_resolver=None,
-        recap: bool = False,
-        path_mode: str = "both",
-        max_distance_meters: float = 0.0,
+        max_desvio: int                 = 3,
+        conflict_resolver               = None,
+        recap: bool                     = False,
+        path_mode: str                  = "both",
+        max_distance_meters: float      = 0.0,
     ):
-        """Executa o julgamento bidirecional de segmentação, com repescagem opcional."""
         layer = self._load_layer()
         self._validate_layer(layer, field_id, field_time)
         field_name_map = self._resolve_output_fields(layer, conflict_resolver=conflict_resolver)
@@ -223,50 +283,52 @@ class SequentialPointBreakJudge:
         if not ordered_points:
             raise RuntimeError("Nenhum ponto válido encontrado.")
 
-        # Configuração e Ways Engine
         config = JudgeConfig(
-            point_frequency_seconds=point_frequency_seconds,
-            strip_width_meters=strip_width_meters,
-            azimuth_window=azimuth_window,
-            light_azimuth_threshold=light_azimuth_threshold,
-            severe_azimuth_threshold=severe_azimuth_threshold,
-            minimum_break_score=minimum_break_score,
-            minimum_point_count=minimum_point_count,
-            time_tolerance_multiplier=time_tolerance_multiplier,
-            confirmation_window=confirmation_window,
-            min_confirmed=min_confirmed,
-            future_stability_window=future_stability_window,
-            future_stability_threshold=future_stability_threshold,
-            future_az_cluster_threshold=future_az_cluster_threshold,
-            past_stability_max_variance=past_stability_max_variance,
-            past_stability_window=past_stability_window,
-            convergence_rate_threshold=convergence_rate_threshold,
-            retroactive_relabel_window=retroactive_relabel_window,
-            min_velocity_weight=min_velocity_weight,
-            fusion_azimuth_tolerance=fusion_azimuth_tolerance,
-            max_desvio=max_desvio,
-            border_azimuth_threshold=border_azimuth_threshold,
-            border_speed_threshold=border_speed_threshold,
-            border_distance_threshold=border_distance_threshold,
-            path_mode=path_mode,
-            use_time=bool(field_time),
-            max_distance_meters=max_distance_meters
+            point_frequency_seconds     = point_frequency_seconds,
+            strip_width_meters          = strip_width_meters,
+            azimuth_window              = azimuth_window,
+            light_azimuth_threshold     = light_azimuth_threshold,
+            severe_azimuth_threshold    = severe_azimuth_threshold,
+            minimum_break_score         = minimum_break_score,
+            minimum_point_count         = minimum_point_count,
+            time_tolerance_multiplier   = time_tolerance_multiplier,
+            confirmation_window         = confirmation_window,
+            min_confirmed               = min_confirmed,
+            future_stability_window     = future_stability_window,
+            future_stability_threshold  = future_stability_threshold,
+            future_az_cluster_threshold = future_az_cluster_threshold,
+            past_stability_max_variance = past_stability_max_variance,
+            past_stability_window       = past_stability_window,
+            convergence_rate_threshold  = convergence_rate_threshold,
+            retroactive_relabel_window  = retroactive_relabel_window,
+            min_velocity_weight         = min_velocity_weight,
+            fusion_azimuth_tolerance    = fusion_azimuth_tolerance,
+            max_desvio                  = max_desvio,
+            border_azimuth_threshold    = border_azimuth_threshold,
+            border_speed_threshold      = border_speed_threshold,
+            border_distance_threshold   = border_distance_threshold,
+            path_mode                   = path_mode,
+            use_time                    = bool(field_time),
+            max_distance_meters         = max_distance_meters,
         )
 
         scenario = ScenarioResolver.resolve(path_mode, config.use_time)
         ParameterTuner.tune(config, scenario)
 
         self.logger.info(
-            f"Iniciando julgamento bidirecional {path_mode}",
-            source_path=self.source_path,
-            features=len(ordered_points),
-            scenario=scenario.name
+            "Iniciando julgamento bidirecional",
+            path_mode=path_mode, features=len(ordered_points), scenario=scenario.name
         )
 
         t0 = time.time()
+
+        # Fase 1: avaliação — shot_ids temporários
         updates = self._evaluate_bidirectional(ordered_points, layer.crs(), config)
+
+        # Fase 2: pós-processo — valida, funde, remapeia IDs sequencialmente
         updates = self._postprocess(updates, config.minimum_point_count, config.fusion_azimuth_tolerance)
 
+        # Repescagem opcional de outliers
         if not recap:
             updates = self._handle_recap(ordered_points, layer, updates, config)
 
@@ -277,7 +339,7 @@ class SequentialPointBreakJudge:
             sid = v[StripOutputFieldKey.SHOT_ID.value]
             shot_sizes[sid] = shot_sizes.get(sid, 0) + 1
 
-        valid_shots = sum(1 for s, sz in shot_sizes.items() if sz >= minimum_point_count and s != 0)
+        valid_shots   = sum(1 for s, sz in shot_sizes.items() if sz >= minimum_point_count and s != 0)
         summary = {
             "total_points": len(ordered_points),
             "total_shots": len(shot_sizes),
@@ -290,167 +352,342 @@ class SequentialPointBreakJudge:
         self.logger.info(
             "Julgamento concluído",
             elapsed_seconds=round(time.time() - t0, 2),
-            summary=summary,
+            summary={k: v for k, v in summary.items() if k != "result_layer"},
         )
         return summary
 
+    # -------------------------------------------------------------------
+    # Repescagem
+    # -------------------------------------------------------------------
+
     def _handle_recap(self, ordered_points, layer, updates, config):
-        """Reavalia pontos lixo (shot_id=0) para tentar salvar faixas pequenas perdidas."""
+        """Reavalia pontos descartados (shot_id=0) para recuperar faixas pequenas."""
         lixo_fids = [fid for fid, v in updates.items() if v[StripOutputFieldKey.SHOT_ID.value] == 0]
         if not lixo_fids:
             return updates
-        
+
         self.logger.info(f"Repescagem: {len(lixo_fids)} pontos serão reavaliados.")
-        ordered_lixo = [p for p in ordered_points if p["fid"] in lixo_fids]
+        ordered_lixo  = [p for p in ordered_points if p["fid"] in lixo_fids]
         recap_updates = self._evaluate_bidirectional(ordered_lixo, layer.crs(), config)
-        
+
         for fid, v in recap_updates.items():
             updates[fid] = v
         return self._postprocess(updates, config.minimum_point_count, config.fusion_azimuth_tolerance)
 
     # -------------------------------------------------------------------
-    # DETECTOR (Break Detector & PreComputer)
+    # Loop principal de avaliação
     # -------------------------------------------------------------------
 
-    def _evaluate_bidirectional(self, ordered_points, crs, config: JudgeConfig):
-        """Loop principal de avaliação usando pre-computação e regras bidirecionais."""
+    def _evaluate_bidirectional(self, ordered_points, crs, config: JudgeConfig) -> dict:
+        """
+        Avaliação sequencial com:
+          - Dupla validação bidirecional do ponto de inflexão
+          - Buffer de pontos suspensos (outliers centrais)
+          - Retroactive relabel com guard bidirecional
+          - IDs temporários crescentes (reatribuídos no pós-processo)
+        """
         n = len(ordered_points)
-        if n == 0: return {}
+        if n == 0:
+            return {}
 
         pre_az, pre_metrics = self._precompute_metrics(ordered_points, crs)
-        
-        updates = {}
-        az_history: list[float] = []
-        vel_history: list[float] = []
-        current_shot_id = 1
-        updates[ordered_points[0]["fid"]] = self._build_default_output(current_shot_id)
+
+        updates: dict[int, dict]    = {}
+        az_history:  list[float]    = []
+        vel_history: list[float]    = []
+        suspended:   list[SuspendedPoint] = []   # buffer de outliers centrais
+
+        # IDs temporários — serão remapeados no pós-processo
+        # Usamos inteiros simples crescentes; nunca usamos FID.
+        temp_shot_id    = 1
+        committed_count = 0    # pontos COMMITTED na strip atual (excluindo suspensos)
+
+        # Ponto 0: sempre committed no shot 1
+        updates[ordered_points[0]["fid"]] = self._build_default_output(temp_shot_id)
+        az_history.append(pre_az[0] if pre_az[0] != 0.0 else 0.0)
+        vel_history.append(0.0)
+        committed_count = 1
 
         for i in range(1, n):
-            m = pre_metrics[i]
+            m          = pre_metrics[i]
             instant_az = pre_az[i]
-            
-            # Média Circular Ponderada (apenas se tiver tempo)
-            recent_az = az_history[-config.azimuth_window:] if az_history else []
-            recent_vel = vel_history[-config.azimuth_window:] if vel_history else []
-            
-            mean_az = MathUtils.circular_mean(recent_az) if recent_az else instant_az
+
+            # Azimute médio ponderado da strip atual (apenas pontos committed)
+            recent_az  = az_history[-config.azimuth_window:]
+            recent_vel = vel_history[-config.azimuth_window:]
+            mean_az    = MathUtils.circular_mean(recent_az) if recent_az else instant_az
             if config.use_time and recent_vel:
                 weights = [max(config.min_velocity_weight, v) for v in recent_vel]
                 mean_az = MathUtils.weighted_circular_mean(recent_az, weights)
-            
+
             delta_azimuth = MathUtils.angular_diff(instant_az, mean_az)
 
             # Estabilidades
-            past_var = _past_stability(az_history, config.past_stability_window)
-            past_stable = past_var <= config.past_stability_max_variance
-            conv_rate = _az_convergence_rate(az_history, config.past_stability_window)
+            past_var        = _past_stability(az_history, config.past_stability_window)
+            past_stable     = past_var <= config.past_stability_max_variance
+            conv_rate       = _az_convergence_rate(az_history, config.past_stability_window)
             past_converging = conv_rate > config.convergence_rate_threshold
 
-            f_ratio, f_az_mean = _future_stability_score(pre_az, i, config.future_stability_window, config.future_az_cluster_threshold)
+            f_ratio, f_az_mean = _future_stability_score(
+                pre_az, i, config.future_stability_window, config.future_az_cluster_threshold
+            )
             future_stable = f_ratio >= config.future_stability_threshold
 
-            # Scores
-            score_dir = (1 if delta_azimuth > config.light_azimuth_threshold else 0) + (2 if delta_azimuth > config.severe_azimuth_threshold else 0)
+            # Score
+            score_dir  = (1 if delta_azimuth > config.light_azimuth_threshold else 0) + \
+                         (2 if delta_azimuth > config.severe_azimuth_threshold else 0)
             score_cont = self._apply_time_score(
-                score=0, 
-                delta_time=m.dt, 
-                point_frequency_seconds=config.point_frequency_seconds, 
-                time_tolerance_multiplier=config.time_tolerance_multiplier
+                score=0,
+                delta_time=m.dt,
+                point_frequency_seconds=config.point_frequency_seconds,
+                time_tolerance_multiplier=config.time_tolerance_multiplier,
             ) if config.use_time else 0
-            if m.dd > float(config.strip_width_meters) * 0.8: score_cont += 1
-            
+            if m.dd > float(config.strip_width_meters) * 0.8:
+                score_cont += 1
             total_score = score_dir + score_cont
 
-            # Segmentação adaptativa
-            should_break = False
-            
-            # R0: Quebra prioritária por distância máxima (Gap espacial)
+            # -------------------------------------------------------
+            # Decisão principal
+            # -------------------------------------------------------
+            should_break    = False
+            is_central_outlier = False
+
+            # R0: Gap espacial forçado
             if config.max_distance_meters > 0 and m.dd > config.max_distance_meters:
                 should_break = True
+
             elif total_score >= config.minimum_break_score:
-                if future_stable:
-                    should_break = True # R2: Entrada de faixa
-                elif past_stable and not past_converging:
-                    # R1: Saída de faixa estável - Confirmar prospectivamente
+
+                # ── DUPLA VALIDAÇÃO BIDIRECIONAL DO PONTO DE INFLEXÃO ──
+                # Verifica se o ponto atual pertence à strip atual (para trás)
+                # ou à próxima strip (para frente) usando max_desvio como janela.
+                fits_current, fits_next = _bidirectional_inflection_check(
+                    pre_az      = pre_az,
+                    index       = i,
+                    mean_az_current = mean_az,
+                    window      = config.max_desvio,
+                    threshold   = config.light_azimuth_threshold,
+                )
+
+                if fits_current and fits_next:
+                    # Falso positivo: ponto se encaixa em ambas as direções
+                    # → não quebrar, absorver como committed
+                    should_break = False
+
+                elif fits_next and future_stable:
+                    # Entrada confirmada de nova strip
+                    should_break = True
+
+                elif past_stable and not past_converging and not fits_current:
+                    # Saída de strip estável — confirmar prospectivamente
+                    # com verificação aprimorada (azimute + velocidade relativa)
                     confirmed = 0
                     for j in range(i + 1, min(i + 1 + config.confirmation_window, n)):
                         conf_delta = MathUtils.angular_diff(pre_az[j], mean_az)
-                        if conf_delta > config.light_azimuth_threshold: confirmed += 1
-                    if confirmed >= config.min_confirmed: should_break = True
+                        conf_ok    = conf_delta > config.light_azimuth_threshold
+                        # Se temos tempo, velocidade muito baixa ajuda a confirmar bordadura
+                        if config.use_time and pre_metrics[j].vel > 0:
+                            pass   # velocidade não nega a confirmação, apenas complementa
+                        if conf_ok:
+                            confirmed += 1
+                    if confirmed >= config.min_confirmed:
+                        should_break = True
+                    else:
+                        # Não confirmado → ponto suspeito no meio da strip
+                        is_central_outlier = True
 
+                elif not fits_current and not fits_next:
+                    # Nenhuma direção — ponto de transição ambíguo
+                    # Suspender se ainda dentro do limite de streak
+                    is_central_outlier = True
+
+            # ── RESOLUÇÃO DO BUFFER DE SUSPENSOS ──
             if should_break:
-                current_shot_id += 1
-                if future_stable and config.retroactive_relabel_window > 0:
-                    self._apply_retroactive_relabel(i, updates, pre_az, f_az_mean, current_shot_id, config, ordered_points)
+                # Pontos suspensos acumulados antes desta quebra são outliers centrais
+                # da strip ANTERIOR → recebem shot_id da strip anterior (temp_shot_id atual)
+                for sp in suspended:
+                    updates[sp.fid][StripOutputFieldKey.SHOT_ID.value]    = temp_shot_id
+                    updates[sp.fid][StripOutputFieldKey.SHOT_VALID.value]  = -1  # central outlier flag
+                    updates[sp.fid][StripOutputFieldKey.SEG_TYPE.value]    = "outlier_central"
+                suspended.clear()
 
-            is_border = (delta_azimuth > config.border_azimuth_threshold and (not config.use_time or m.vel < config.border_speed_threshold) and m.dd < config.border_distance_threshold)
+                temp_shot_id   += 1
+                committed_count = 0
+
+                # Retroactive relabel com guard bidirecional
+                if f_az_mean and config.retroactive_relabel_window > 0:
+                    self._apply_retroactive_relabel_guarded(
+                        i, updates, pre_az, mean_az, f_az_mean,
+                        temp_shot_id, config, ordered_points
+                    )
+
+            elif is_central_outlier:
+                # Verificar limite de streak de suspensos
+                if len(suspended) >= config.max_suspended_streak:
+                    # Muitos suspensos consecutivos → confirmar como quebra real
+                    for sp in suspended:
+                        updates[sp.fid][StripOutputFieldKey.SHOT_ID.value]   = temp_shot_id
+                        updates[sp.fid][StripOutputFieldKey.SHOT_VALID.value] = -1
+                        updates[sp.fid][StripOutputFieldKey.SEG_TYPE.value]   = "outlier_central"
+                    suspended.clear()
+                    temp_shot_id   += 1
+                    committed_count = 0
+                    should_break    = True   # para registrar o ponto atual como início de nova strip
+
+                # Registrar como suspenso (output provisório — será corrigido)
+                output = self._build_point_output(
+                    temp_shot_id, total_score, score_dir, score_cont,
+                    "outlier_central", instant_az, mean_az, delta_azimuth, m
+                )
+                output[StripOutputFieldKey.SHOT_VALID.value] = -1
+                updates[ordered_points[i]["fid"]] = output
+                suspended.append(SuspendedPoint(
+                    fid=ordered_points[i]["fid"], index=i, output=output
+                ))
+                # Não atualiza az_history para não contaminar a média da strip
+                continue
+
+            else:
+                # Ponto estável → committed
+                # Se havia suspensos acumulados antes, absorvê-los na strip atual
+                for sp in suspended:
+                    updates[sp.fid][StripOutputFieldKey.SHOT_ID.value]    = temp_shot_id
+                    updates[sp.fid][StripOutputFieldKey.SHOT_VALID.value]  = -1   # outlier central absorvido
+                    updates[sp.fid][StripOutputFieldKey.SEG_TYPE.value]    = "outlier_central"
+                suspended.clear()
+                committed_count += 1
+
+            # Bordadura
+            is_border = (
+                delta_azimuth > config.border_azimuth_threshold
+                and (not config.use_time or m.vel < config.border_speed_threshold)
+                and m.dd < config.border_distance_threshold
+            )
             seg_type = "bordadura" if is_border else "faixa"
 
-            updates[ordered_points[i]["fid"]] = self._build_point_output(current_shot_id, total_score, score_dir, score_cont, seg_type, instant_az, mean_az, delta_azimuth, m)
+            updates[ordered_points[i]["fid"]] = self._build_point_output(
+                temp_shot_id, total_score, score_dir, score_cont,
+                seg_type, instant_az, mean_az, delta_azimuth, m
+            )
 
             az_history.append(instant_az)
             vel_history.append(m.vel)
 
+        # Pontos suspensos ao final da sequência → outliers isolados (shot_id=0)
+        for sp in suspended:
+            updates[sp.fid][StripOutputFieldKey.SHOT_ID.value]   = 0
+            updates[sp.fid][StripOutputFieldKey.SHOT_VALID.value] = 0
+            updates[sp.fid][StripOutputFieldKey.SEG_TYPE.value]   = "outlier_central"
+
         return updates
 
-    def _precompute_metrics(self, ordered_points, crs) -> tuple[list[float], list[PointMetrics]]:
-        """Otimização: Pré-calcula geometria e física de toda a trilha de uma vez."""
-        n = len(ordered_points)
-        pre_az = [0.0] * n
+    # -------------------------------------------------------------------
+    # Pré-computação
+    # -------------------------------------------------------------------
+
+    def _precompute_metrics(
+        self, ordered_points, crs
+    ) -> tuple[list[float], list[PointMetrics]]:
+        n       = len(ordered_points)
+        pre_az  = [0.0] * n
         metrics = [PointMetrics()] * n
         for i in range(1, n):
-            p1, p2 = ordered_points[i - 1], ordered_points[i]
+            p1, p2  = ordered_points[i - 1], ordered_points[i]
             pre_az[i] = VectorLayerGeometry.calculate_point_azimuth(p1["point"], p2["point"])
             dt = max(0.0, p2["timestamp"] - p1["timestamp"])
             dd = VectorLayerGeometry.measure_distance_between_points(p1["point"], p2["point"], crs)
-            metrics[i] = PointMetrics(az=pre_az[i], dt=dt, dd=dd, vel=(dd/dt if dt > 0 else 0.0))
+            metrics[i] = PointMetrics(
+                az=pre_az[i], dt=dt, dd=dd, vel=(dd / dt if dt > 0 else 0.0)
+            )
         return pre_az, metrics
 
-    def _apply_retroactive_relabel(self, i, updates, pre_az, f_az_mean, shot_id, config: JudgeConfig, ordered_points):
-        """Move pontos de 'assentamento' da entrada da faixa para o novo Shot ID."""
+    # -------------------------------------------------------------------
+    # Retroactive relabel com guard bidirecional
+    # -------------------------------------------------------------------
+
+    def _apply_retroactive_relabel_guarded(
+        self, i, updates, pre_az, mean_az_current, f_az_mean,
+        new_shot_id, config: JudgeConfig, ordered_points
+    ):
+        """
+        Move pontos de assentamento para o novo shot_id SOMENTE se passarem
+        no guard bidirecional: az_diff para frente E para trás dentro do threshold.
+        Impede a destruição de strips retas por falsos relabels.
+        """
+        double_threshold = config.future_az_cluster_threshold * 2.0
+
         for back in range(1, config.retroactive_relabel_window + 1):
             bi = i - back
-            if bi < 0: break
+            if bi < 0:
+                break
             point_data = updates.get(ordered_points[bi]["fid"])
-            if not point_data: break
-            diff = MathUtils.angular_diff(pre_az[bi] if bi > 0 else 0.0, f_az_mean)
-            if diff <= config.future_az_cluster_threshold * 2.0:
-                updates[ordered_points[bi]["fid"]][StripOutputFieldKey.SHOT_ID.value] = shot_id
-            else: break
+            if not point_data:
+                break
+
+            az_bi = pre_az[bi] if bi > 0 else 0.0
+
+            # Guard para frente: está próximo do az futuro?
+            diff_fwd = MathUtils.angular_diff(az_bi, f_az_mean)
+            # Guard para trás: está LONGE do az atual? (se ficou próximo do atual, não deve mudar)
+            diff_back = MathUtils.angular_diff(az_bi, mean_az_current)
+
+            if diff_fwd <= double_threshold and diff_back > config.light_azimuth_threshold:
+                # Ponto claramente pertence à nova strip
+                updates[ordered_points[bi]["fid"]][StripOutputFieldKey.SHOT_ID.value] = new_shot_id
+            else:
+                # Não passou no guard — parar retroação
+                break
 
     # -------------------------------------------------------------------
-    # POST PROCESSOR (Post Processor)
+    # Pós-processamento (Fase 2 de IDs)
     # -------------------------------------------------------------------
 
     def _postprocess(self, updates, minimum_point_count, fusion_azimuth_tolerance):
-        """Fusão de pequenos shots + marcação de validade + órfãos → shot_id=0."""
-
-        def shot_sizes(upd):
-            sizes = {}
-            for v in upd.values():
-                sid = v[StripOutputFieldKey.SHOT_ID.value]
-                sizes[sid] = sizes.get(sid, 0) + 1
-            return sizes
-
-        # Fusão de tiros pequenos consecutivos com az similar
+        """
+        1. Fusão de shots pequenos consecutivos com azimute similar.
+        2. Identificação de shots válidos (≥ minimum_point_count pontos committed).
+           Outliers centrais (shot_valid=-1) NÃO contam para o mínimo mas ficam no shot.
+        3. Remapeamento para IDs sequenciais 1, 2, 3… (sem saltos).
+           Shots inválidos → shot_id=0, shot_valid=0.
+        """
         updates = self._fuse_small_shots(updates, minimum_point_count, fusion_azimuth_tolerance)
 
-        sizes = shot_sizes(updates)
+        # Tamanho de cada shot (apenas pontos committed)
+        shot_committed: dict[int, int] = {}
+        for v in updates.values():
+            sid   = v[StripOutputFieldKey.SHOT_ID.value]
+            valid = v[StripOutputFieldKey.SHOT_VALID.value]
+            if sid > 0 and valid != -1:   # -1 = outlier central
+                shot_committed[sid] = shot_committed.get(sid, 0) + 1
 
-        # Marcar válidos e órfãos
+        # IDs válidos (atingiram mínimo de pontos committed)
+        valid_original_ids = sorted(
+            sid for sid, cnt in shot_committed.items() if cnt >= minimum_point_count
+        )
+
+        # Mapa de reatribuição sequencial
+        id_map: dict[int, int] = {old: new + 1 for new, old in enumerate(valid_original_ids)}
+        id_map[0] = 0
+
         for fid, values in updates.items():
-            sid = values[StripOutputFieldKey.SHOT_ID.value]
-            sz = sizes.get(sid, 0)
-            if sz < minimum_point_count:
-                values[StripOutputFieldKey.SHOT_ID.value] = 0
-                values[StripOutputFieldKey.SHOT_VALID.value] = 0
+            old_sid   = values[StripOutputFieldKey.SHOT_ID.value]
+            old_valid = values[StripOutputFieldKey.SHOT_VALID.value]
+
+            if old_sid in id_map and old_sid != 0:
+                new_sid = id_map[old_sid]
+                values[StripOutputFieldKey.SHOT_ID.value] = new_sid
+                # Outliers centrais ficam com shot_valid=-1 (mantidos na strip, fora das médias)
+                if old_valid != -1:
+                    values[StripOutputFieldKey.SHOT_VALID.value] = 1
             else:
-                values[StripOutputFieldKey.SHOT_VALID.value] = 1
+                # Shot inválido (pequeno demais) → outlier isolado
+                values[StripOutputFieldKey.SHOT_ID.value]    = 0
+                values[StripOutputFieldKey.SHOT_VALID.value]  = 0
 
         return updates
 
     def _fuse_small_shots(self, updates, minimum_point_count, fusion_azimuth_tolerance):
-        """Funde tiros pequenos consecutivos com azimute médio similar."""
+        """Funde shots pequenos consecutivos com azimute médio similar."""
         if not updates:
             return updates
 
@@ -461,30 +698,81 @@ class SequentialPointBreakJudge:
 
         shot_stats = {}
         for sid, features in shots.items():
-            azs = [v[StripOutputFieldKey.AZIMUTH_MEAN.value] for _, v in features if v[StripOutputFieldKey.AZIMUTH_MEAN.value] > 0]
+            # Apenas pontos committed para calcular média de azimute
+            azs = [
+                v[StripOutputFieldKey.AZIMUTH_MEAN.value]
+                for _, v in features
+                if v[StripOutputFieldKey.AZIMUTH_MEAN.value] > 0
+                and v[StripOutputFieldKey.SHOT_VALID.value] != -1
+            ]
             shot_stats[sid] = {
-                "size": len(features),
+                "size":    len([f for f in features if f[1][StripOutputFieldKey.SHOT_VALID.value] != -1]),
                 "mean_az": MathUtils.circular_mean(azs) if azs else 0.0,
             }
 
         sorted_ids = sorted(shot_stats)
-        fusions = []
+        fusions    = []
         for i in range(len(sorted_ids) - 1):
             a, b = sorted_ids[i], sorted_ids[i + 1]
-            if (shot_stats[a]["size"] < minimum_point_count and
-                    shot_stats[b]["size"] < minimum_point_count):
-                if MathUtils.angular_diff(shot_stats[a]["mean_az"], shot_stats[b]["mean_az"]) <= fusion_azimuth_tolerance:
-                    fusions.append((a, b))
+            if (
+                shot_stats[a]["size"] < minimum_point_count
+                and shot_stats[b]["size"] < minimum_point_count
+                and MathUtils.angular_diff(shot_stats[a]["mean_az"], shot_stats[b]["mean_az"])
+                    <= fusion_azimuth_tolerance
+            ):
+                fusions.append((a, b))
 
         for from_id, to_id in fusions:
             if from_id in shots:
                 for _, values in shots[from_id]:
                     values[StripOutputFieldKey.SHOT_ID.value] = to_id
 
-        self.logger.info("Fusão de tiros pequenos", fusions=len(fusions))
+        self.logger.info("Fusão de shots pequenos", fusions=len(fusions))
         return updates
 
-    def _load_layer(self):    
+    # -------------------------------------------------------------------
+    # Construtores de output
+    # -------------------------------------------------------------------
+
+    def _build_default_output(self, shot_id: int) -> dict:
+        return {
+            StripOutputFieldKey.SHOT_ID.value:           shot_id,
+            StripOutputFieldKey.SHOT_VALID.value:        0,
+            StripOutputFieldKey.SCORE.value:             0,
+            StripOutputFieldKey.SCORE_DIRECTION.value:   0,
+            StripOutputFieldKey.SCORE_CONTINUITY.value:  0,
+            StripOutputFieldKey.SEG_TYPE.value:          "faixa",
+            StripOutputFieldKey.AZIMUTH_INSTANT.value:   0.0,
+            StripOutputFieldKey.AZIMUTH_MEAN.value:      0.0,
+            StripOutputFieldKey.DELTA_AZIMUTH.value:     0.0,
+            StripOutputFieldKey.DELTA_TIME.value:        0.0,
+            StripOutputFieldKey.DELTA_DISTANCE.value:    0.0,
+            StripOutputFieldKey.VELOCITY_INSTANT.value:  0.0,
+        }
+
+    def _build_point_output(
+        self, shot_id, score, s_dir, s_cont, s_type, az, mean, d_az, m: PointMetrics
+    ) -> dict:
+        return {
+            StripOutputFieldKey.SHOT_ID.value:           shot_id,
+            StripOutputFieldKey.SHOT_VALID.value:        0,
+            StripOutputFieldKey.SCORE.value:             int(score),
+            StripOutputFieldKey.SCORE_DIRECTION.value:   int(s_dir),
+            StripOutputFieldKey.SCORE_CONTINUITY.value:  int(s_cont),
+            StripOutputFieldKey.SEG_TYPE.value:          s_type,
+            StripOutputFieldKey.AZIMUTH_INSTANT.value:   float(az),
+            StripOutputFieldKey.AZIMUTH_MEAN.value:      float(mean),
+            StripOutputFieldKey.DELTA_AZIMUTH.value:     float(d_az),
+            StripOutputFieldKey.DELTA_TIME.value:        float(m.dt),
+            StripOutputFieldKey.DELTA_DISTANCE.value:    float(m.dd),
+            StripOutputFieldKey.VELOCITY_INSTANT.value:  float(m.vel),
+        }
+
+    # -------------------------------------------------------------------
+    # Infraestrutura (inalterada funcionalmente)
+    # -------------------------------------------------------------------
+
+    def _load_layer(self):
         if self.layer is not None:
             return self.layer
         layer = VectorLayerSource.load_vector_layer_from_source_path(
@@ -502,13 +790,11 @@ class SequentialPointBreakJudge:
         if layer.fields().lookupField(field_id) == -1:
             raise RuntimeError(f"Campo de ID não encontrado: {field_id}")
         if field_time and layer.fields().lookupField(field_time) == -1:
-            # Se o usuário informou um nome de campo, ele deve existir. Se não informou (None), ignoramos.
             raise RuntimeError(f"Campo de timestamp '{field_time}' não encontrado na camada.")
 
     def _load_ordered_points(self, layer, field_id, field_time):
-        import time
-        t0 = time.time()
-        ordered = []
+        t0       = time.time()
+        ordered  = []
         use_time = bool(field_time)
         for feature in layer.getFeatures():
             geometry = feature.geometry()
@@ -517,30 +803,23 @@ class SequentialPointBreakJudge:
             point = VectorLayerGeometry.get_representative_point(geometry)
             if point is None:
                 continue
-            
             timestamp = 0.0
             if use_time:
-                timestamp = self._parse_timestamp(feature.attribute(field_time))
-                if timestamp is None:
-                    timestamp = 0.0
-
+                ts = self._parse_timestamp(feature.attribute(field_time))
+                timestamp = ts if ts is not None else 0.0
             ordered.append({
-                "fid": feature.id(),
-                "seq_id_sort": self._build_sort_key(feature.attribute(field_id)),
-                "timestamp": timestamp,
-                "point": point,
+                "fid":          feature.id(),
+                "seq_id_sort":  self._build_sort_key(feature.attribute(field_id)),
+                "timestamp":    timestamp,
+                "point":        point,
             })
         ordered.sort(key=lambda x: (x["seq_id_sort"], x["timestamp"], x["fid"]))
-        self.logger.info(
-            "Pontos carregados",
-            valid=len(ordered),
-            elapsed=round(time.time() - t0, 2),
-        )
+        self.logger.info("Pontos carregados", valid=len(ordered), elapsed=round(time.time() - t0, 2))
         return ordered
 
     def _resolve_output_fields(self, layer, *, conflict_resolver=None):
         max_length = 10 if self.source_path.lower().endswith(".shp") else 255
-        resolved = {}
+        resolved   = {}
         for logical_key, field_spec in self.DIVIDE_STRIP_FIELDS.items():
             field_name = VectorLayerAttributes.resolve_output_field_name(
                 layer, field_spec.attribute,
@@ -552,44 +831,10 @@ class SequentialPointBreakJudge:
             resolved[logical_key] = field_name
         return resolved
 
-    def _build_default_output(self, shot_id: int) -> dict:
-        return {
-            StripOutputFieldKey.SHOT_ID.value: shot_id,
-            StripOutputFieldKey.SHOT_VALID.value: 0,
-            StripOutputFieldKey.SCORE.value: 0,
-            StripOutputFieldKey.SCORE_DIRECTION.value: 0,
-            StripOutputFieldKey.SCORE_CONTINUITY.value: 0,
-            StripOutputFieldKey.SEG_TYPE.value: "faixa",
-            StripOutputFieldKey.AZIMUTH_INSTANT.value: 0.0,
-            StripOutputFieldKey.AZIMUTH_MEAN.value: 0.0,
-            StripOutputFieldKey.DELTA_AZIMUTH.value: 0.0,
-            StripOutputFieldKey.DELTA_TIME.value: 0.0,
-            StripOutputFieldKey.DELTA_DISTANCE.value: 0.0,
-            StripOutputFieldKey.VELOCITY_INSTANT.value: 0.0,
-        }
-
-    def _build_point_output(self, shot_id, score, s_dir, s_cont, s_type, az, mean, d_az, m: PointMetrics) -> dict:
-        return {
-            StripOutputFieldKey.SHOT_ID.value: shot_id,
-            StripOutputFieldKey.SHOT_VALID.value: 0,
-            StripOutputFieldKey.SCORE.value: int(score),
-            StripOutputFieldKey.SCORE_DIRECTION.value: int(s_dir),
-            StripOutputFieldKey.SCORE_CONTINUITY.value: int(s_cont),
-            StripOutputFieldKey.SEG_TYPE.value: s_type,
-            StripOutputFieldKey.AZIMUTH_INSTANT.value: float(az),
-            StripOutputFieldKey.AZIMUTH_MEAN.value: float(mean),
-            StripOutputFieldKey.DELTA_AZIMUTH.value: float(d_az),
-            StripOutputFieldKey.DELTA_TIME.value: float(m.dt),
-            StripOutputFieldKey.DELTA_DISTANCE.value: float(m.dd),
-            StripOutputFieldKey.VELOCITY_INSTANT.value: float(m.vel),
-        }
-
-
     @staticmethod
     def _apply_time_score(*, score, delta_time, point_frequency_seconds, time_tolerance_multiplier):
         if not delta_time:
             return score
-            
         threshold = float(point_frequency_seconds) * float(time_tolerance_multiplier)
         if delta_time > threshold:
             score += 1
@@ -648,10 +893,8 @@ class SequentialPointBreakJudge:
 
     @staticmethod
     def _create_memory_layer_with_updates(layer, updates, field_name_map):
-        import time
-        t0 = time.time()
-
-        uri = f"Point?crs={layer.crs().authid()}"
+        t0      = time.time()
+        uri     = f"Point?crs={layer.crs().authid()}"
         new_layer = QgsVectorLayer(uri, f"{layer.name()}_segmentado", "memory")
         if not new_layer.isValid():
             raise RuntimeError("Falha ao criar camada de memória.")
@@ -661,8 +904,7 @@ class SequentialPointBreakJudge:
             field_name = field_name_map[logical_key]
             if new_fields.lookupField(field_name) == -1:
                 new_fields.append(
-                    QgsField(field_name, field_spec.type,
-                             len=field_spec.length, prec=field_spec.precision)
+                    QgsField(field_name, field_spec.type, len=field_spec.length, prec=field_spec.precision)
                 )
 
         new_layer.dataProvider().addAttributes(new_fields)
@@ -679,7 +921,7 @@ class SequentialPointBreakJudge:
                 new_feature.setAttribute(field.name(), feature.attribute(field.name()))
             for attr_key, attr_val in updates[fid].items():
                 resolved = field_name_map.get(attr_key, attr_key)
-                idx = new_layer.fields().lookupField(resolved)
+                idx      = new_layer.fields().lookupField(resolved)
                 if idx >= 0:
                     new_feature.setAttribute(idx, attr_val)
             new_layer.addFeature(new_feature)

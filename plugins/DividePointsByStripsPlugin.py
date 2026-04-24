@@ -107,9 +107,20 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
+        dist_max_layout, self.dist_max_input = WidgetFactory.create_double_spin_input(
+            "Distância Máxima de Quebra (m)",
+            #tooltip="Distância a partir da qual uma quebra de faixa é forçada automaticamente.",
+            value=0.0,
+            minimum=0.0,
+            maximum=100000.0,
+            decimals=1,
+            step=10.0,
+            #arent=self,
+        )
         self.operational_params.add_content_layout(id_field_layout)
         self.operational_params.add_content_layout(time_field_layout)
         self.operational_params.add_content_layout(operational_layout)
+        self.operational_params.add_content_layout(dist_max_layout)
 
         sensitivity_layout, self.sensitivity_fields = (
             WidgetFactory.create_input_fields_widget(
@@ -265,6 +276,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.save_track_selector.set_file_path(
             self.preferences.get("last_output_track_file", "")
         )
+        
+        self.dist_max_input.setValue(float(self.preferences.get("max_distance_meters", 0.0)))
 
         # Restaurar estado de expansão dos colapsáveis
         self.operational_params.set_expanded(self.preferences.get("expanded_operational", True))
@@ -291,6 +304,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.preferences["save_track_to_folder"] = bool(self.save_track_selector.is_enabled())
         self.preferences["last_output_track_file"] = self.save_track_selector.get_file_path()
         self.preferences["window_width"] = self.width()
+        self.preferences["max_distance_meters"] = float(self.dist_max_input.value())
         self.preferences["window_height"] = self.height()
 
         # Salvar estado de expansão dos colapsáveis
@@ -570,6 +584,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         operational_values = self.operational_fields.get_values()
         sensitivity_values = self.sensitivity_fields.get_values()
+        max_dist = float(self.dist_max_input.value())
 
         self.logger.info(
             "Executando segmentacao de tiros em camada de pontos",
@@ -627,6 +642,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     self.iface, field_name
                 ),
                 path_mode=self.radio_path_mode.get_selected_text(),
+                max_distance_meters=max_dist,
             )
             processing_time = time.time() - start_time
             selected_fields = self._get_selected_output_fields()

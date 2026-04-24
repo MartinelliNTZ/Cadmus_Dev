@@ -63,6 +63,7 @@ class JudgeConfig:
     border_speed_threshold: float = 1.0
     border_distance_threshold: float = 5.0
     path_mode: str = "both"
+    max_distance_meters: float = 0.0
     use_time: bool = True
 
 
@@ -211,6 +212,7 @@ class SequentialPointBreakJudge:
         conflict_resolver=None,
         recap: bool = False,
         path_mode: str = "both",
+        max_distance_meters: float = 0.0,
     ):
         """Executa o julgamento bidirecional de segmentação, com repescagem opcional."""
         layer = self._load_layer()
@@ -247,7 +249,8 @@ class SequentialPointBreakJudge:
             border_speed_threshold=border_speed_threshold,
             border_distance_threshold=border_distance_threshold,
             path_mode=path_mode,
-            use_time=bool(field_time)
+            use_time=bool(field_time),
+            max_distance_meters=max_distance_meters
         )
 
         scenario = ScenarioResolver.resolve(path_mode, config.use_time)
@@ -360,7 +363,11 @@ class SequentialPointBreakJudge:
 
             # Segmentação adaptativa
             should_break = False
-            if total_score >= config.minimum_break_score:
+            
+            # R0: Quebra prioritária por distância máxima (Gap espacial)
+            if config.max_distance_meters > 0 and m.dd > config.max_distance_meters:
+                should_break = True
+            elif total_score >= config.minimum_break_score:
                 if future_stable:
                     should_break = True # R2: Entrada de faixa
                 elif past_stable and not past_converging:

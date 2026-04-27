@@ -450,6 +450,69 @@
 
     <div class="card">
         <details open>
+            <summary>Agrupamento por Voo</summary>
+            <table>
+            <tr>
+                <th>Voo</th>
+                <th>Imagens</th>
+                <th>Score Medio</th>
+                <th>Inicio do voo</th>
+                <th>Fim do voo</th>
+                <th>Tempo de voo</th>
+                <th>Velocidade media (km/h)</th>
+                <th>SensorTemperature media (°C)</th>
+                <th>LRFTargetDistance media (m)</th>
+                {% for col in agg.flight_level5_columns %}
+                <th>{{ col.label }}</th>
+                {% endfor %}
+            </tr>
+            {% for f in agg.per_flight %}
+            <tr>
+                <td>{{ f.flight_id }}</td>
+                <td>{{ f.images }}</td>
+                {% set flight_level = f.mean_score|round(0)|int %}
+                <td class="{{ ('level-' ~ flight_level) if (flight_level >= 1 and flight_level <= 5) else 'level-na' }}">{{ f.mean_score }}</td>
+                <td>{{ f.start }}</td>
+                <td>{{ f.end }}</td>
+                <td>{{ f.flight_time }}</td>
+                <td>
+                    {% if f.avg_speed3d_kmh is not none %}
+                        {{ '%.2f'|format(f.avg_speed3d_kmh) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if f.avg_sensor_temperature is not none %}
+                        {{ '%.2f'|format(f.avg_sensor_temperature) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if f.avg_lrf_target_distance is not none %}
+                        {{ '%.2f'|format(f.avg_lrf_target_distance) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% for col in agg.flight_level5_columns %}
+                <td>
+                    {% if f.level5_means.get(col.key) is not none %}
+                        {{ '%.2f'|format(f.level5_means.get(col.key)) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </table>
+        </details>
+    </div>
+
+    <div class="card">
+        <details open>
             <summary>Agregados por Indicador</summary>
             <div class="dist-legend">
                 <span class="legend-item"><span class="legend-dot l1"></span>N1</span>
@@ -518,69 +581,6 @@
                         </div>
                     </details>
                 </td>
-            </tr>
-            {% endfor %}
-            </table>
-        </details>
-    </div>
-
-    <div class="card">
-        <details open>
-            <summary>Agrupamento por Voo</summary>
-            <table>
-            <tr>
-                <th>Voo</th>
-                <th>Imagens</th>
-                <th>Score Medio</th>
-                <th>Inicio do voo</th>
-                <th>Fim do voo</th>
-                <th>Tempo de voo</th>
-                <th>Velocidade media (km/h)</th>
-                <th>SensorTemperature media (°C)</th>
-                <th>LRFTargetDistance media (m)</th>
-                {% for col in agg.flight_level5_columns %}
-                <th>{{ col.label }}</th>
-                {% endfor %}
-            </tr>
-            {% for f in agg.per_flight %}
-            <tr>
-                <td>{{ f.flight_id }}</td>
-                <td>{{ f.images }}</td>
-                {% set flight_level = f.mean_score|round(0)|int %}
-                <td class="{{ ('level-' ~ flight_level) if (flight_level >= 1 and flight_level <= 5) else 'level-na' }}">{{ f.mean_score }}</td>
-                <td>{{ f.start }}</td>
-                <td>{{ f.end }}</td>
-                <td>{{ f.flight_time }}</td>
-                <td>
-                    {% if f.avg_speed3d_kmh is not none %}
-                        {{ '%.2f'|format(f.avg_speed3d_kmh) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                <td>
-                    {% if f.avg_sensor_temperature is not none %}
-                        {{ '%.2f'|format(f.avg_sensor_temperature) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                <td>
-                    {% if f.avg_lrf_target_distance is not none %}
-                        {{ '%.2f'|format(f.avg_lrf_target_distance) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% for col in agg.flight_level5_columns %}
-                <td>
-                    {% if f.level5_means.get(col.key) is not none %}
-                        {{ '%.2f'|format(f.level5_means.get(col.key)) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endfor %}
             </tr>
             {% endfor %}
             </table>

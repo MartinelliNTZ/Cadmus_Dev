@@ -40,7 +40,20 @@ Traducao: 9
   - eLIMIAR TODOS OS untraceable exceptions e garantir que tudo seja logado
   - Usar iconManager para carregar ícones de forma centralizada e eficiente
  changelog=
- 
+2.3.29 27/04/2026
+2.3.28 24/04/2026
+    - SequentialPointBreakJudge: corrigido UnboundLocalError no metodo _evaluate_bidirectional ao acessar precomputed_dt antes de sua populacao.
+    - SequentialPointBreakJudge: removida declaracao duplicada e precoce de use_time que causava UnboundLocalError.
+
+2.3.27 22/04/2026
+    - DividePointsByStrips: corrigido filtro de campos de saida no salvamento; agora salva somente os checkboxes marcados e sempre inclui shot_id (mesmo com diferencas no field_name_map).
+    - CreateProjectPlugin: migrado para heranca de BasePluginMTL (plugin INSTANT sem UI), com init(build_ui=False), execute_tool() como fluxo principal e run() alinhado ao ciclo padrao mantendo o comportamento de criacao de projeto.
+    - ProjectNameDialog/Styles: criado estilo dedicado Styles.project_name_dialog() e aplicado ao dialogo com objectName para padronizar visual (label, input e botoes) sem afetar outros dialogs.
+    - ProjectNameDialog/Styles: corrigida aplicacao de estilo dos botoes OK/Cancelar com escopo em QDialogButtonBox (#project_name_button_box) e objectNames dedicados para evitar override do tema nativo.
+    - ProjectNameDialog: substituido QDialogButtonBox por botoes QPushButton (OK/Cancelar) para garantir aplicacao do stylesheet; adicionada chave STR.OK em Strings_pt_BR.
+    - Styles.project_name_dialog: removido escopo de QDialogButtonBox e ajustado seletor para QPushButton#project_name_btn_ok/#project_name_btn_cancel, alinhando o estilo com o novo layout do ProjectNameDialog.
+
+
 2.3.26 21/04/2026
     - Restruturada a toolregistry
     - icones adicionados

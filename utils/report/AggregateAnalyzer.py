@@ -734,7 +734,28 @@ class AggregateAnalyzer:
                 )
             )
 
-        # 3) Yaw direction inconsistency near opposite direction.
+        # 3) RTK signal quality using StdLat/StdHgt thresholds.
+        rtk_std_lat_vals = AggregateAnalyzer._numeric_values_from_keys(results, ['RtkStdLat', 'rtk_std_lat'])
+        rtk_std_hgt_vals = AggregateAnalyzer._numeric_values_from_keys(results, ['RtkStdHgt', 'rtk_std_hgt'])
+        poor_lat = [v for v in rtk_std_lat_vals if v > 0.011]
+        poor_hgt = [v for v in rtk_std_hgt_vals if v > 0.026]
+        poor_lat_pct = (len(poor_lat) / len(rtk_std_lat_vals) * 100.0) if rtk_std_lat_vals else 0.0
+        poor_hgt_pct = (len(poor_hgt) / len(rtk_std_hgt_vals) * 100.0) if rtk_std_hgt_vals else 0.0
+        if rtk_std_lat_vals and rtk_std_hgt_vals and (poor_lat_pct > 20.0 or poor_hgt_pct > 20.0):
+            critical_alerts.append(
+                AggregateAnalyzer._severity_entry(
+                    'CRITICO',
+                    'Sinal GPS/RTK com qualidade insuficiente',
+                    (
+                        f'RtkStdLat > 0.011 em {poor_lat_pct:.2f}% das imagens '
+                        f'e RtkStdHgt > 0.026 em {poor_hgt_pct:.2f}% das imagens.'
+                    ),
+                    'Reduz precisao posicional e pode degradar alinhamento, georreferenciamento e qualidade final do produto.',
+                    'Validar base RTK, radio/link, visibilidade GNSS e repetir trechos com altos desvios padrao.'
+                )
+            )
+
+        # 4) Yaw direction inconsistency near opposite direction.
         yaw_err_values = AggregateAnalyzer._numeric_values_from_keys(results, ['YawAlignmentError', 'yaw_alignment_error'])
         yaw_opposite = [v for v in yaw_err_values if v >= 150.0]
         yaw_opposite_pct = (len(yaw_opposite) / len(yaw_err_values) * 100.0) if yaw_err_values else 0.0

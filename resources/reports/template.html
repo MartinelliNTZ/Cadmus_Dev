@@ -304,27 +304,48 @@
                 <table>
                     <tr>
                         <th>RTK Diff Age (media / max / p95)</th>
-                        <td>{{ agg.advanced_analysis.metrics.rtk_diff_age_mean }} / {{ agg.advanced_analysis.metrics.rtk_diff_age_max }} / {{ agg.advanced_analysis.metrics.rtk_diff_age_p95 }}</td>
+                        <td>
+                            {{ agg.advanced_analysis.metrics.rtk_diff_age_mean if agg.advanced_analysis.metrics.rtk_diff_age_mean is not none else '-' }}
+                            /
+                            {{ agg.advanced_analysis.metrics.rtk_diff_age_max if agg.advanced_analysis.metrics.rtk_diff_age_max is not none else '-' }}
+                            /
+                            {{ agg.advanced_analysis.metrics.rtk_diff_age_p95 if agg.advanced_analysis.metrics.rtk_diff_age_p95 is not none else '-' }}
+                        </td>
                     </tr>
                     <tr>
                         <th>Estabilidade RTK</th>
-                        <td>{{ agg.advanced_analysis.metrics.rtk_stability_class }} (media {{ agg.advanced_analysis.metrics.rtk_stability_mean }})</td>
+                        <td>
+                            {{ agg.advanced_analysis.metrics.rtk_stability_class if agg.advanced_analysis.metrics.rtk_stability_class is not none else '-' }}
+                            (media {{ agg.advanced_analysis.metrics.rtk_stability_mean if agg.advanced_analysis.metrics.rtk_stability_mean is not none else '-' }})
+                        </td>
                     </tr>
                     <tr>
                         <th>Gimbal Offset (media / desvio / max)</th>
-                        <td>{{ agg.advanced_analysis.metrics.gimbal_offset_mean }} / {{ agg.advanced_analysis.metrics.gimbal_offset_std }} / {{ agg.advanced_analysis.metrics.gimbal_offset_max }}</td>
+                        <td>
+                            {{ agg.advanced_analysis.metrics.gimbal_offset_mean if agg.advanced_analysis.metrics.gimbal_offset_mean is not none else '-' }}
+                            /
+                            {{ agg.advanced_analysis.metrics.gimbal_offset_std if agg.advanced_analysis.metrics.gimbal_offset_std is not none else '-' }}
+                            /
+                            {{ agg.advanced_analysis.metrics.gimbal_offset_max if agg.advanced_analysis.metrics.gimbal_offset_max is not none else '-' }}
+                        </td>
                     </tr>
                     <tr>
                         <th>YawAlignmentError >= 150°</th>
-                        <td>{{ agg.advanced_analysis.metrics.yaw_inconsistent_pct }}%</td>
+                        <td>{{ agg.advanced_analysis.metrics.yaw_inconsistent_pct if agg.advanced_analysis.metrics.yaw_inconsistent_pct is not none else '-' }}%</td>
                     </tr>
                     <tr>
                         <th>Overlap &lt; 60%</th>
-                        <td>{{ agg.advanced_analysis.metrics.overlap_below_ideal_pct }}% (media {{ agg.advanced_analysis.metrics.overlap_mean }})</td>
+                        <td>
+                            {{ agg.advanced_analysis.metrics.overlap_below_ideal_pct if agg.advanced_analysis.metrics.overlap_below_ideal_pct is not none else '-' }}%
+                            (media {{ agg.advanced_analysis.metrics.overlap_mean if agg.advanced_analysis.metrics.overlap_mean is not none else '-' }})
+                        </td>
                     </tr>
                     <tr>
                         <th>Velocidade media vs recomendada</th>
-                        <td>{{ agg.advanced_analysis.metrics.speed_ms_mean }} m/s ({{ agg.advanced_analysis.metrics.speed_ms_recommended }})</td>
+                        <td>
+                            {{ agg.advanced_analysis.metrics.speed_ms_mean if agg.advanced_analysis.metrics.speed_ms_mean is not none else '-' }} m/s
+                            ({{ agg.advanced_analysis.metrics.speed_ms_recommended if agg.advanced_analysis.metrics.speed_ms_recommended is not none else '-' }})
+                        </td>
                     </tr>
                 </table>
             </details>

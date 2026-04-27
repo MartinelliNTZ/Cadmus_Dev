@@ -61,17 +61,66 @@ class CustomPhotosFieldsUtil:
 
     @staticmethod
     def parse_datetime(dt_str: str) -> datetime:
-        """Parse DateTimeOriginal 'YYYY:MM:DD HH:MM:SS'."""
-        return datetime.strptime(dt_str, "%Y:%m:%d %H:%M:%S")
+        """Parse robusto de datetime com suporte a formatos EXIF/ISO."""
+        if dt_str is None:
+            return None
+        raw = str(dt_str).strip()
+        if not raw or raw.lower() in ("none", "null", "nan"):
+            return None
+
+        try:
+            return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+        formats = (
+            "%Y:%m:%d %H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%S%z",
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+            "%Y%m%d%H%M",
+            "%Y%m%d",
+        )
+        for fmt in formats:
+            try:
+                return datetime.strptime(raw, fmt)
+            except Exception:
+                continue
+        return None
+
+    @staticmethod
+    def resolve_capture_datetime(data: Dict) -> Tuple[Optional[datetime], Optional[str]]:
+        """Resolve data/hora de captura usando fallback entre campos conhecidos."""
+        candidates = (
+            ("DateTimeOriginal", data.get("DateTimeOriginal")),
+            ("DateTime", data.get("DateTime")),
+            ("UTCAtExposure", data.get("UTCAtExposure")),
+            ("DtFull", data.get("DtFull")),
+        )
+        for source, value in candidates:
+            parsed = CustomPhotosFieldsUtil.parse_datetime(value)
+            if parsed is not None:
+                return parsed, source
+
+        dt_date = str(data.get("DtDate") or "").strip()
+        dt_time = str(data.get("DtTime") or "").strip()
+        if dt_date and dt_time and dt_date.lower() not in ("none", "null"):
+            hhmm = dt_time.zfill(4)
+            parsed = CustomPhotosFieldsUtil.parse_datetime(f"{dt_date}{hhmm}")
+            if parsed is not None:
+                return parsed, "DtDate+DtTime"
+
+        return None, None
 
     @staticmethod
     def get_voo_id(data: Dict) -> str:
         """VOO_ID = drone_sn[:8] + camera_sn[:8] + YYYY-MM-DD."""
         drone_sn = data.get("DroneSerialNumber", "UNKNOWN")
         camera_sn = data.get("CameraSerialNumber", "UNKNOWN")
-        date_str = CustomPhotosFieldsUtil.parse_datetime(data["DateTimeOriginal"]).strftime(
-            "%Y-%m-%d"
-        )
+        dt, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(data)
+        date_str = dt.strftime("%Y-%m-%d") if dt is not None else "UNKNOWN_DATE"
         return f"{drone_sn[:8]}_{camera_sn[:8]}_{date_str}"
 
     @staticmethod
@@ -89,15 +138,17 @@ class CustomPhotosFieldsUtil:
             return False
 
         # 2. dt_diff
-        dt_curr = CustomPhotosFieldsUtil.parse_datetime(curr_data["DateTimeOriginal"])
-        dt_other = CustomPhotosFieldsUtil.parse_datetime(other_data["DateTimeOriginal"])
+        dt_curr, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(curr_data)
+        dt_other, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(other_data)
+        if dt_curr is None or dt_other is None:
+            return False
         dt_diff = abs((dt_curr - dt_other).total_seconds())
         if dt_diff > CustomPhotosFieldsUtil.MAX_DT_DIFF:
             return False
 
         # 3. alt_diff
-        alt_curr = CustomPhotosFieldsUtil.safe_float(curr_data["AbsoluteAltitude"])
-        alt_other = CustomPhotosFieldsUtil.safe_float(other_data["AbsoluteAltitude"])
+        alt_curr = CustomPhotosFieldsUtil.safe_float(curr_data.get("AbsoluteAltitude", 0))
+        alt_other = CustomPhotosFieldsUtil.safe_float(other_data.get("AbsoluteAltitude", 0))
         alt_diff = abs(alt_curr - alt_other)
         if alt_diff > CustomPhotosFieldsUtil.MAX_ALT_DIFF:
             return False
@@ -181,8 +232,17 @@ class CustomPhotosFieldsUtil:
                 f"{prefix}displacement_direction": round(0.0, DECIMAL_PLACES),
             }
 
-        dt_curr = CustomPhotosFieldsUtil.parse_datetime(data["DateTimeOriginal"])
-        dt_other = CustomPhotosFieldsUtil.parse_datetime(other_data["DateTimeOriginal"])
+        dt_curr, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(data)
+        dt_other, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(other_data)
+        if dt_curr is None or dt_other is None:
+            prefix = f"{direction}_"
+            return {
+                f"{prefix}time_since": round(0.0, DECIMAL_PLACES),
+                f"{prefix}geodesic_distance": round(0.0, DECIMAL_PLACES),
+                f"{prefix}distance_3d": round(0.0, DECIMAL_PLACES),
+                f"{prefix}avg_velocity": round(0.0, DECIMAL_PLACES),
+                f"{prefix}displacement_direction": round(0.0, DECIMAL_PLACES),
+            }
         dt_diff = abs((dt_curr - dt_other).total_seconds())
 
         # GPS (haversine precisa lat/lon reais - usar LRFTarget se GPS None)
@@ -200,8 +260,8 @@ class CustomPhotosFieldsUtil:
         )
 
         geo_dist = CustomPhotosFieldsUtil.haversine(lat_curr, lon_curr, lat_other, lon_other)
-        alt_curr = CustomPhotosFieldsUtil.safe_float(data["AbsoluteAltitude"])
-        alt_other = CustomPhotosFieldsUtil.safe_float(other_data["AbsoluteAltitude"])
+        alt_curr = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
+        alt_other = CustomPhotosFieldsUtil.safe_float(other_data.get("AbsoluteAltitude", 0))
         alt_diff = abs(alt_curr - alt_other)
         dist_3d = math.sqrt(geo_dist**2 + alt_diff**2)
 
@@ -241,9 +301,9 @@ class CustomPhotosFieldsUtil:
         total_heat_index = (sens_temp + lens_temp) / 2 if sens_temp > 0 and lens_temp > 0 else (sens_temp or lens_temp or 0.0)
 
         # Speed 3D for blur risk
-        xspd = CustomPhotosFieldsUtil.safe_float(data["FlightXSpeed"])
-        yspd = CustomPhotosFieldsUtil.safe_float(data["FlightYSpeed"])
-        zspd = CustomPhotosFieldsUtil.safe_float(data["FlightZSpeed"])
+        xspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0))
+        yspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0))
+        zspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0))
         speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
 
         # New fields
@@ -286,13 +346,13 @@ class CustomPhotosFieldsUtil:
     @staticmethod
     def _calculate_gimbal_3d(data: Dict, prev_dir: float = None) -> Dict:
         """GimbalOffset, 3DSpeed + yaw_alignment_error."""
-        gim_yaw = CustomPhotosFieldsUtil.safe_float(data["GimbalYawDegree"])
-        flight_yaw = CustomPhotosFieldsUtil.safe_float(data["FlightYawDegree"])
+        gim_yaw = CustomPhotosFieldsUtil.safe_float(data.get("GimbalYawDegree", 0))
+        flight_yaw = CustomPhotosFieldsUtil.safe_float(data.get("FlightYawDegree", 0))
         gimbal_offset = CustomPhotosFieldsUtil._calculate_gimbal_offset(gim_yaw, flight_yaw)
 
-        xspd = CustomPhotosFieldsUtil.safe_float(data["FlightXSpeed"])
-        yspd = CustomPhotosFieldsUtil.safe_float(data["FlightYSpeed"])
-        zspd = CustomPhotosFieldsUtil.safe_float(data["FlightZSpeed"])
+        xspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0))
+        yspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0))
+        zspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0))
         speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
 
         displacement_dir = prev_dir if prev_dir is not None else flight_yaw
@@ -415,8 +475,8 @@ class CustomPhotosFieldsUtil:
             )
 
         # Incidence angle
-        gim_pitch = CustomPhotosFieldsUtil.safe_float(data["GimbalPitchDegree"])
-        flight_pitch = CustomPhotosFieldsUtil.safe_float(data["FlightPitchDegree"])
+        gim_pitch = CustomPhotosFieldsUtil.safe_float(data.get("GimbalPitchDegree", 0))
+        flight_pitch = CustomPhotosFieldsUtil.safe_float(data.get("FlightPitchDegree", 0))
         inc_angle = round(abs(gim_pitch + flight_pitch), DECIMAL_PLACES)
 
         # Predicted overlap
@@ -525,10 +585,36 @@ class CustomPhotosFieldsUtil:
         if not metadata_dict:
             return {}
 
+        dt_source_counts = {}
+        missing_datetime_count = 0
+        for _, data in metadata_dict.items():
+            dt, source = cls.resolve_capture_datetime(data or {})
+            if dt is None:
+                missing_datetime_count += 1
+                continue
+            dt_source_counts[source] = dt_source_counts.get(source, 0) + 1
+            if data.get("DateTimeOriginal") in (None, "", "None", "null"):
+                data["DateTimeOriginal"] = dt.strftime("%Y:%m:%d %H:%M:%S")
+            if data.get("DtFull") in (None, "", "None", "null"):
+                data["DtFull"] = dt.strftime("%Y%m%d%H%M")
+            if data.get("DtDate") in (None, "", "None", "null"):
+                data["DtDate"] = dt.strftime("%Y%m%d")
+            if data.get("DtTime") in (None, "", "None", "null"):
+                data["DtTime"] = dt.strftime("%H%M")
+
         # Ordenar por datetime
         sorted_items = sorted(
             metadata_dict.items(),
-            key=lambda x: cls.parse_datetime(x[1]["DateTimeOriginal"]),
+            key=lambda x: cls.resolve_capture_datetime(x[1])[0] or datetime.max,
+        )
+        logger.info(
+            "Fallback de datetime aplicado no calculo custom",
+            code="CUSTOM_FIELDS_DATETIME_FALLBACK",
+            data={
+                "total_items": len(metadata_dict),
+                "missing_datetime_count": missing_datetime_count,
+                "datetime_sources": dt_source_counts,
+            },
         )
 
         result = {}

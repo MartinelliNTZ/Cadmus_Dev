@@ -104,7 +104,18 @@ class AggregateAnalyzer:
         if not raw:
             return None
         text = str(raw).strip()
-        for fmt in ('%Y:%m:%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S'):
+        try:
+            return datetime.fromisoformat(text.replace('Z', '+00:00'))
+        except ValueError:
+            pass
+        for fmt in (
+            '%Y:%m:%d %H:%M:%S',
+            '%Y-%m-%dT%H:%M:%S.%f',
+            '%Y-%m-%dT%H:%M:%S',
+            '%Y-%m-%dT%H:%M:%S%z',
+            '%Y-%m-%dT%H:%M:%S.%f%z',
+            '%Y%m%d%H%M',
+        ):
             try:
                 return datetime.strptime(text, fmt)
             except ValueError:

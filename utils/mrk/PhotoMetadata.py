@@ -130,9 +130,26 @@ class PhotoMetadata:
     def _safe_parse_datetime(value):
         if not value:
             return None
+        raw = str(value).strip()
+        if not raw:
+            return None
+
+        # ISO-8601 (com/s/sem timezone e microssegundos)
+        try:
+            iso_raw = raw.replace("Z", "+00:00")
+            return datetime.fromisoformat(iso_raw)
+        except Exception:
+            pass
+
         candidates = [
-            ("%Y:%m:%d %H:%M:%S", value),
-            ("%Y-%m-%d %H:%M:%S", value),
+            ("%Y:%m:%d %H:%M:%S", raw),
+            ("%Y-%m-%d %H:%M:%S", raw),
+            ("%Y-%m-%dT%H:%M:%S", raw),
+            ("%Y-%m-%dT%H:%M:%S.%f", raw),
+            ("%Y-%m-%dT%H:%M:%S%z", raw),
+            ("%Y-%m-%dT%H:%M:%S.%f%z", raw),
+            ("%Y%m%d%H%M", raw),
+            ("%Y%m%d", raw),
         ]
         for fmt, raw in candidates:
             try:
@@ -316,8 +333,14 @@ class PhotoMetadata:
         dt = PhotoMetadata._safe_parse_datetime(payload.get("DateTimeOriginal"))
         if dt is None:
             dt = PhotoMetadata._safe_parse_datetime(payload.get("DateTime"))
+        if dt is None:
+            dt = PhotoMetadata._safe_parse_datetime(payload.get("UTCAtExposure"))
+        if dt is None:
+            dt = PhotoMetadata._safe_parse_datetime(payload.get("DtFull"))
         if dt is not None:
             payload.update(PhotoMetadata._format_dates(dt))
+            if payload.get("DateTimeOriginal") in (None, "", "None", "null"):
+                payload["DateTimeOriginal"] = dt.strftime("%Y:%m:%d %H:%M:%S")
         else:
             logger.debug(f"Falha ao obter datetime para dt_* em {image_path}")
 

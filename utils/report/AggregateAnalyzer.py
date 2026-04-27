@@ -442,6 +442,14 @@ class AggregateAnalyzer:
         equipment_serial_numbers = sorted({r.equipment_serial_number for r in results if r.equipment_serial_number and r.equipment_serial_number != 'unknown'})
         camera_models = sorted({r.camera_model for r in results if r.camera_model and r.camera_model != 'unknown'})
         camera_serial_numbers = sorted({r.camera_serial_number for r in results if r.camera_serial_number and r.camera_serial_number != 'unknown'})
+        firmware_versions = sorted(
+            {
+                str(r.get_indicator('Software') or r.get_indicator('Firmware') or '').strip()
+                for r in results
+                if str(r.get_indicator('Software') or r.get_indicator('Firmware') or '').strip()
+                and str(r.get_indicator('Software') or r.get_indicator('Firmware') or '').strip().lower() not in {'unknown', 'none', 'null'}
+            }
+        )
         parsed_dates = [AggregateAnalyzer._parse_capture_datetime(r.capture_datetime) for r in results]
         parsed_dates = sorted([d for d in parsed_dates if d is not None])
 
@@ -450,6 +458,7 @@ class AggregateAnalyzer:
             'equipment_serial_numbers': equipment_serial_numbers,
             'camera_models': camera_models,
             'camera_serial_numbers': camera_serial_numbers,
+            'firmware_versions': firmware_versions,
             'capture_start': parsed_dates[0].strftime('%Y-%m-%d %H:%M:%S') if parsed_dates else 'N/A',
             'capture_end': parsed_dates[-1].strftime('%Y-%m-%d %H:%M:%S') if parsed_dates else 'N/A'
         }
@@ -528,6 +537,28 @@ class AggregateAnalyzer:
                     if vals else None
                 )
 
+            speed3d_kmh_vals = []
+            sensor_temp_vals = []
+            lrf_target_distance_vals = []
+            for it in items:
+                v_speed = AggregateAnalyzer._first_numeric_from_result(
+                    it, ['Speed3dKmh', 'speed_3d_kmh']
+                )
+                if v_speed is not None and v_speed not in (math.inf, -math.inf):
+                    speed3d_kmh_vals.append(v_speed)
+
+                v_sensor = AggregateAnalyzer._first_numeric_from_result(
+                    it, ['SensorTemperature', 'sensor_temp_c']
+                )
+                if v_sensor is not None and v_sensor not in (math.inf, -math.inf):
+                    sensor_temp_vals.append(v_sensor)
+
+                v_lrf = AggregateAnalyzer._first_numeric_from_result(
+                    it, ['LRFTargetDistance', 'lrf_target_distance']
+                )
+                if v_lrf is not None and v_lrf not in (math.inf, -math.inf):
+                    lrf_target_distance_vals.append(v_lrf)
+
             flight_rows.append({
                 'flight_id': flight_id,
                 'images': len(items),
@@ -536,6 +567,18 @@ class AggregateAnalyzer:
                 'end': end_dt.strftime('%Y-%m-%d %H:%M:%S') if end_dt else 'N/A',
                 'flight_seconds': total_seconds,
                 'flight_time': AggregateAnalyzer._format_duration(total_seconds),
+                'avg_speed3d_kmh': (
+                    round(statistics.mean(speed3d_kmh_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if speed3d_kmh_vals else None
+                ),
+                'avg_sensor_temperature': (
+                    round(statistics.mean(sensor_temp_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if sensor_temp_vals else None
+                ),
+                'avg_lrf_target_distance': (
+                    round(statistics.mean(lrf_target_distance_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if lrf_target_distance_vals else None
+                ),
                 'level5_means': level5_means,
             })
 

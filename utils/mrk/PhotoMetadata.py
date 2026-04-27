@@ -6,6 +6,7 @@ from datetime import datetime
 from qgis.PyQt.QtCore import QVariant
 
 from ...core.config.LogUtils import LogUtils
+from ...core.enum.LightSourceEnum import LightSourceEnum
 from ..ExplorerUtils import ExplorerUtils
 from ..ToolKeys import ToolKey
 from .CustomPhotosFieldsUtil import CustomPhotosFieldsUtil
@@ -145,6 +146,43 @@ class PhotoMetadata:
         return LogUtils(tool=tool_key, class_name="PhotoMetadata")
 
     @staticmethod
+    def _translate_light_source_value(
+        light_source_raw,
+        logger: LogUtils,
+        image_path: str = "",
+    ) -> str:
+        if light_source_raw in (None, "", "None", "null"):
+            return None
+
+        try:
+            code = int(str(light_source_raw).strip())
+        except Exception as exc:
+            logger.error(
+                "Falha ao converter LightSource para inteiro",
+                code="LIGHT_SOURCE_PARSE_ERROR",
+                data={
+                    "image_path": image_path,
+                    "light_source_raw": light_source_raw,
+                    "error": str(exc),
+                },
+            )
+            return None
+
+        try:
+            return LightSourceEnum.get_label(code)
+        except Exception as exc:
+            logger.error(
+                "Falha ao traduzir LightSource com LightSourceEnum",
+                code="LIGHT_SOURCE_TRANSLATE_ERROR",
+                data={
+                    "image_path": image_path,
+                    "light_source_code": code,
+                    "error": str(exc),
+                },
+            )
+            return None
+
+    @staticmethod
     def _format_dates(dt: datetime) -> dict:
         return {
             "dt_criacao": dt.strftime("%Y-%m-%d %H:%M:%S"),
@@ -262,6 +300,15 @@ class PhotoMetadata:
             if target_key and target_key not in payload:
                 payload[target_key] = source_val
 
+        canonical_payload = MetadataFields.normalize_record_to_keys(payload)
+        light_source_label = PhotoMetadata._translate_light_source_value(
+            canonical_payload.get("LightSource"),
+            logger=logger,
+            image_path=image_path,
+        )
+        if light_source_label:
+            payload["LightSourceClassification"] = light_source_label
+
         # Campos solicitados no novo padrao
         payload["FileType"] = os.path.splitext(image_path)[1].upper()
 
@@ -297,6 +344,9 @@ class PhotoMetadata:
         raw_by_file = {}
         indexed_by_number = {}
         raw_dump_records = {}
+        translated_light_source = 0
+        missing_light_source = 0
+        untranslated_light_source = 0
 
         for file_path in photo_files:
             fname = os.path.basename(file_path)
@@ -308,6 +358,16 @@ class PhotoMetadata:
             payload = PhotoMetadata._extract_photo_payload(file_path, tool_key=tool_key)
             raw_by_file[fname] = payload
             indexed_by_number[seq] = payload
+
+            canonical_payload = MetadataFields.normalize_record_to_keys(payload)
+            light_source_code = canonical_payload.get("LightSource")
+            light_source_label = canonical_payload.get("LightSourceClassification")
+            if light_source_code in (None, "", "None", "null"):
+                missing_light_source += 1
+            elif light_source_label in (None, "", "None", "null"):
+                untranslated_light_source += 1
+            else:
+                translated_light_source += 1
 
         # Tenta enriquecer com campos custom quando o dataset possui base minima.
         try:
@@ -354,6 +414,9 @@ class PhotoMetadata:
                 "base_folder": base_folder,
                 "total_photos": len(photo_files),
                 "indexed_keys": len(indexed_by_number),
+                "light_source_translated": translated_light_source,
+                "light_source_missing": missing_light_source,
+                "light_source_untranslated": untranslated_light_source,
             },
         )
         raw_dump_records = PhotoMetadata._normalize_dump_records(raw_by_file)
@@ -376,6 +439,16 @@ class PhotoMetadata:
             selected_custom_fields=selected_custom_fields,
             selected_mrk_fields=selected_mrk_fields,
         )
+        if "LightSource" in selected_keys and "LightSourceClassification" not in selected_keys:
+            selected_keys.add("LightSourceClassification")
+            logger.info(
+                "Dependencia de campo aplicada para LightSource",
+                code="LIGHT_SOURCE_DEPENDENCY_APPLIED",
+                data={
+                    "added_key": "LightSourceClassification",
+                    "reason": "LightSource selecionado sem campo textual",
+                },
+            )
 
         logger.info(
             "Iniciando enriquecimento de metadados de fotos",
@@ -387,6 +460,8 @@ class PhotoMetadata:
                 "total_points": len(points),
                 "selected_keys_count": len(selected_keys),
                 "selected_keys_sample": sorted(list(selected_keys))[:20],
+                "has_light_source_key": "LightSource" in selected_keys,
+                "has_light_source_text_key": "LightSourceClassification" in selected_keys,
             },
         )
 

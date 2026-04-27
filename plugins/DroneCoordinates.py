@@ -467,6 +467,12 @@ class DroneCordinates(BasePluginMTL):
 
         recursive = self.checkbox_map["recursive"].isChecked()
         apply_photos = self.checkbox_map["photos"].isChecked()
+        first_path = paths[0] if paths else None
+        base_folder = (
+            os.path.dirname(first_path)
+            if first_path and os.path.isfile(first_path)
+            else first_path
+        )
 
         if apply_photos and not DependenciesManager.check_dependency(
             "Pillow", self.TOOL_KEY
@@ -481,6 +487,7 @@ class DroneCordinates(BasePluginMTL):
 
         context = ExecutionContext()
         context.set("paths", paths)
+        context.set("base_folder", base_folder)
         context.set("recursive", recursive)
         context.set("extra_fields", extra_fields)
         # Combine EXIF and XMP fields into selected_required_fields for pipeline compatibility
@@ -507,6 +514,7 @@ class DroneCordinates(BasePluginMTL):
             "Iniciando pipeline de processamento",
             code="PIPELINE_START",
             steps=[s.name() for s in steps],
+            base_folder=base_folder,
         )
 
         engine = AsyncPipelineEngine(

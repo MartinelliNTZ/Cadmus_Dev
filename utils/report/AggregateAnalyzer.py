@@ -8,6 +8,7 @@ import math
 from ..adapter.StringAdapter import StringAdapter
 from ..mrk.MetadataFields import MetadataFields
 from .RangeMetadataManager import range_metadata_manager as config
+from ...core.enum.LightSourceEnum import LightSourceEnum
 
 
 class AggregateAnalyzer:
@@ -35,6 +36,57 @@ class AggregateAnalyzer:
     SPEED_RECOMMENDED_MIN_MS = 5.0
     SPEED_RECOMMENDED_MAX_MS = 10.0
     IDEAL_OVERLAP_PCT = 60.0
+    LIGHT_SOURCE_PT_LABELS = {
+        'Unknown': 'Desconhecida',
+        'Daylight': 'Luz do dia',
+        'Fluorescent': 'Fluorescente',
+        'Tungsten': 'Tungstenio',
+        'Flash': 'Flash',
+        'Fine Weather': 'Tempo claro',
+        'Cloudy Weather': 'Nublado',
+        'Shade': 'Sombra',
+        'Daylight Fluorescent': 'Fluorescente luz do dia',
+        'Day White Fluorescent': 'Fluorescente branco dia',
+        'Cool White Fluorescent': 'Fluorescente branco frio',
+        'White Fluorescent': 'Fluorescente branco',
+        'Warm White Fluorescent': 'Fluorescente branco quente',
+        'Standard Light A': 'Luz padrao A',
+        'Standard Light B': 'Luz padrao B',
+        'Standard Light C': 'Luz padrao C',
+        'D55': 'D55',
+        'D65': 'D65',
+        'D75': 'D75',
+        'D50': 'D50',
+        'ISO Studio Tungsten': 'Tungstenio estudio ISO',
+        'Other Light Source': 'Outra fonte de luz',
+    }
+
+    @staticmethod
+    def _to_pt_light_source_label(label: str) -> str:
+        text = str(label or '').strip()
+        if not text:
+            return 'Desconhecida'
+        return AggregateAnalyzer.LIGHT_SOURCE_PT_LABELS.get(text, text)
+
+    @staticmethod
+    def _resolve_light_source_label(result: IMGMetadata) -> tuple[str, str]:
+        text_label = str(
+            result.level5_values.get('LightSourceClassification')
+            or result.values.get('light_source_classification')
+            or ''
+        ).strip()
+        if text_label:
+            return text_label, 'text'
+
+        raw_code = result.get_indicator('LightSource')
+        if raw_code in (None, '', 'None', 'null'):
+            return '', 'missing'
+
+        try:
+            code = int(float(str(raw_code).strip()))
+            return LightSourceEnum.get_label(code), 'code'
+        except Exception:
+            return '', 'missing'
 
     @staticmethod
     def _resolve_field_meta(indicator: str):
@@ -656,6 +708,45 @@ class AggregateAnalyzer:
             sum(1 for v in light_consistency_vals if v.lower() == 'inconsistent') / len(light_consistency_vals) * 100.0
             if light_consistency_vals else 0.0
         )
+        light_source_vals = []
+        light_source_from_text = 0
+        light_source_from_code = 0
+        for r in results:
+            label, source = AggregateAnalyzer._resolve_light_source_label(r)
+            if not label:
+                continue
+            light_source_vals.append(label)
+            if source == 'text':
+                light_source_from_text += 1
+            elif source == 'code':
+                light_source_from_code += 1
+        light_source_counts = defaultdict(int)
+        for v in light_source_vals:
+            light_source_counts[v] += 1
+        light_source_total = sum(light_source_counts.values())
+        light_source_classes = []
+        for raw_label, count in sorted(
+            light_source_counts.items(),
+            key=lambda item: (-item[1], str(item[0]).lower()),
+        ):
+            pct = (count / light_source_total * 100.0) if light_source_total else 0.0
+            light_source_classes.append(
+                {
+                    'label_raw': raw_label,
+                    'label_pt': AggregateAnalyzer._to_pt_light_source_label(raw_label),
+                    'count': count,
+                    'pct': round(pct, 2),
+                }
+            )
+        if light_source_classes:
+            predominant = light_source_classes[0]
+            light_source_predominant = predominant['label_pt']
+            light_source_predominant_count = predominant['count']
+            light_source_predominant_pct = predominant['pct']
+        else:
+            light_source_predominant = None
+            light_source_predominant_count = None
+            light_source_predominant_pct = None
 
         if rtk_stab_score:
             mean_rtk_stab = statistics.mean(rtk_stab_score)
@@ -766,6 +857,13 @@ class AggregateAnalyzer:
             'morning_pqi_mean': round(morning_mean, 2) if morning_mean is not None else None,
             'midday_pqi_mean': round(midday_mean, 2) if midday_mean is not None else None,
             'light_inconsistent_pct': round(light_inconsistent_pct, 2),
+            'light_source_predominant': light_source_predominant,
+            'light_source_predominant_count': light_source_predominant_count,
+            'light_source_predominant_pct': light_source_predominant_pct,
+            'light_source_total_classified': light_source_total,
+            'light_source_classes': light_source_classes,
+            'light_source_from_text': light_source_from_text,
+            'light_source_from_code': light_source_from_code,
             'estimated_area_ha': round(area_ha, 2) if area_ha is not None else None,
             'problematic_strips': problematic_strips,
         }

@@ -384,6 +384,30 @@
                 <tr><th>Insight</th><th>Valor</th></tr>
                 <tr><td>Area estimada coberta (ha)</td><td>{{ agg.advanced_analysis.metrics.estimated_area_ha if agg.advanced_analysis.metrics.estimated_area_ha is not none else 'N/A (coordenadas insuficientes)' }}</td></tr>
                 <tr><td>Inconsistencia de iluminacao (LightConsistency)</td><td>{{ agg.advanced_analysis.metrics.light_inconsistent_pct }}%</td></tr>
+                <tr>
+                    <td>Tipo de luz predominante</td>
+                    <td>
+                        {% if agg.advanced_analysis.metrics.light_source_predominant %}
+                            {{ agg.advanced_analysis.metrics.light_source_predominant }}
+                            ({{ agg.advanced_analysis.metrics.light_source_predominant_count }})
+                            {{ agg.advanced_analysis.metrics.light_source_predominant_pct }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Classes de luz presentes</td>
+                    <td>
+                        {% if agg.advanced_analysis.metrics.light_source_classes %}
+                            {% for c in agg.advanced_analysis.metrics.light_source_classes %}
+                                {{ c.label_pt }} ({{ c.count }}) {{ c.pct }}%{% if not loop.last %}<br>{% endif %}
+                            {% endfor %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
             </table>
         </details>
     </div>

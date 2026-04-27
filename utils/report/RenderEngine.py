@@ -185,6 +185,23 @@ class RenderEngine:
         mtl_agro_icon_path = Path(IM.icon_path(IM.MTL_AGRO_PNG)).resolve()
         cadmus_icon_url = cadmus_icon_path.as_uri()
         mtl_agro_icon_url = mtl_agro_icon_path.as_uri()
+        light_metrics = (
+            (agg or {}).get("advanced_analysis", {}).get("metrics", {})
+            if isinstance(agg, dict)
+            else {}
+        )
+        self.logger.info(
+            "Renderizando bloco de luz no relatorio",
+            code="REPORT_LIGHT_SOURCE_BLOCK",
+            data={
+                "predominant": light_metrics.get("light_source_predominant"),
+                "predominant_count": light_metrics.get("light_source_predominant_count"),
+                "predominant_pct": light_metrics.get("light_source_predominant_pct"),
+                "classes_count": len(light_metrics.get("light_source_classes") or []),
+                "from_text": light_metrics.get("light_source_from_text"),
+                "from_code": light_metrics.get("light_source_from_code"),
+            },
+        )
 
         return self.template.render(
             results=results,

@@ -15,8 +15,8 @@ class StringManager:
             label="Shot ID",
             attribute="shot_id",
             description="Identificador único do segmento de tiro/faixa.",
-            type=QVariant.Int,
-            length=10,
+            type=QVariant.String,
+            length=50,
             precision=0,
         ),
         StripOutputFieldKey.SHOT_VALID: Field(

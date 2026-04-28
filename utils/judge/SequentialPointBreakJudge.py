@@ -923,6 +923,8 @@ class SequentialPointBreakJudge:
                 resolved = field_name_map.get(attr_key, attr_key)
                 idx      = new_layer.fields().lookupField(resolved)
                 if idx >= 0:
+                    if attr_key == StripOutputFieldKey.SHOT_ID.value and attr_val is not None:
+                        attr_val = str(attr_val)
                     new_feature.setAttribute(idx, attr_val)
             new_layer.addFeature(new_feature)
 

@@ -4,3 +4,9 @@
 [2.3.29.2][28/04/2026] Corrigido possível erro de argumentos duplicados em DividePointsByStripsPlugin.judge_args
 [2.3.29.3][28/04/2026] Atualizado DividePointsByStripsPlugin para gerar shot_id como string com prefixo de grupo e linha de strip com geometry robusta
 [2.3.29.4][28/04/2026] Adicionados logs de validação em _generate_strip_lines_layer e processamento de grupos para debug de linhas zeradas
+[2.3.29.5][28/04/2026] Refatoração v3 do SequentialPointBreakJudge:
+  - _precompute_metrics agora retorna 3 valores (raw_az, smoothed_az, metrics) — raw_az contém azimutes brutos (não suavizados) para a checagem bidirecional detector inflexões reais sem falsos negativos.
+  - raw_az[0] = None em vez de 0.0; az_history começa vazio e add_to_history rejeita None/0.0, eliminando a poluição do histórico inicial com azimute fantasma.
+  - _bidirectional_inflection_check recebe raw_az (bruto), não smoothed_az — a suavização prévia diluía gradientes de direção e produzia falsos negativos de quebra.
+  - Fusão de shots (_fuse_small_shots) recalcula tamanhos incrementalmente com loop while + set fused_from, corrigindo fusões em cadeia que usavam estatísticas obsoletas.
+  - _apply_retroactive_relabel_guarded verifica se o shot de origem atingiu minimum_point_count antes de permitir relabel, evitando destruir strips válidas ao retirar seus pontos de cauda.

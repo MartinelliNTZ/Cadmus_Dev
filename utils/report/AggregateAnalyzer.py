@@ -170,6 +170,18 @@ class AggregateAnalyzer:
         return f'{hh:02d}:{mm:02d}:{ss:02d}'
 
     @staticmethod
+    def _format_shutter_speed(seconds: Optional[float]) -> str:
+        """Formata tempo de exposicao em notacao de obturador (ex.: 1/500s)."""
+        if seconds is None or seconds <= 0:
+            return 'N/A'
+        if seconds >= 1:
+            return f'{seconds:.2f}s'
+        denom = round(1.0 / seconds)
+        if denom <= 0:
+            return 'N/A'
+        return f'1/{denom}s'
+
+    @staticmethod
     def _is_dewarp_zero(value: Any) -> bool:
         """Indica se o valor representa dewarp desabilitado (zero)."""
         if value is None:
@@ -551,6 +563,11 @@ class AggregateAnalyzer:
             speed3d_kmh_vals = []
             sensor_temp_vals = []
             lrf_target_distance_vals = []
+            relative_altitude_vals = []
+            absolute_altitude_vals = []
+            iso_vals = []
+            white_balance_cct_vals = []
+            exposure_time_vals = []
             for it in items:
                 v_speed = AggregateAnalyzer._first_numeric_from_result(
                     it, ['Speed3dKmh', 'speed_3d_kmh']
@@ -569,6 +586,43 @@ class AggregateAnalyzer:
                 )
                 if v_lrf is not None and v_lrf not in (math.inf, -math.inf):
                     lrf_target_distance_vals.append(v_lrf)
+
+                v_rel_alt = AggregateAnalyzer._first_numeric_from_result(
+                    it, ['RelativeAltitude', 'relative_altitude']
+                )
+                if v_rel_alt is not None and v_rel_alt not in (math.inf, -math.inf):
+                    relative_altitude_vals.append(v_rel_alt)
+
+                v_abs_alt = AggregateAnalyzer._first_numeric_from_result(
+                    it, ['AbsoluteAltitude', 'absolute_altitude']
+                )
+                if v_abs_alt is not None and v_abs_alt not in (math.inf, -math.inf):
+                    absolute_altitude_vals.append(v_abs_alt)
+
+                v_iso = AggregateAnalyzer._first_numeric_from_result(
+                    it, ['ISOSpeedRatings', 'iso', 'RecommendedExposureIndex']
+                )
+                if v_iso is not None and v_iso not in (math.inf, -math.inf):
+                    iso_vals.append(v_iso)
+
+                v_cct = AggregateAnalyzer._first_numeric_from_result(
+                    it, ['WhiteBalanceCCT', 'white_balance_cct']
+                )
+                if v_cct is not None and v_cct not in (math.inf, -math.inf):
+                    white_balance_cct_vals.append(v_cct)
+
+                v_exposure = AggregateAnalyzer._first_numeric_from_result(
+                    it, ['ExposureTime', 'exposure_time']
+                )
+                if v_exposure is not None and v_exposure not in (math.inf, -math.inf) and v_exposure > 0:
+                    exposure_time_vals.append(v_exposure)
+
+            exposure_mean = (
+                statistics.mean(exposure_time_vals)
+                if exposure_time_vals else None
+            )
+            exposure_min = min(exposure_time_vals) if exposure_time_vals else None
+            exposure_max = max(exposure_time_vals) if exposure_time_vals else None
 
             flight_rows.append({
                 'flight_id': flight_id,
@@ -589,6 +643,28 @@ class AggregateAnalyzer:
                 'avg_lrf_target_distance': (
                     round(statistics.mean(lrf_target_distance_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
                     if lrf_target_distance_vals else None
+                ),
+                'avg_relative_altitude': (
+                    round(statistics.mean(relative_altitude_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if relative_altitude_vals else None
+                ),
+                'avg_absolute_altitude': (
+                    round(statistics.mean(absolute_altitude_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if absolute_altitude_vals else None
+                ),
+                'avg_iso': (
+                    round(statistics.mean(iso_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if iso_vals else None
+                ),
+                'avg_white_balance_cct': (
+                    round(statistics.mean(white_balance_cct_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if white_balance_cct_vals else None
+                ),
+                'avg_shutter_speed_text': AggregateAnalyzer._format_shutter_speed(exposure_mean),
+                'shutter_speed_range_text': (
+                    f'entre {AggregateAnalyzer._format_shutter_speed(exposure_max)} e {AggregateAnalyzer._format_shutter_speed(exposure_min)}'
+                    if exposure_min is not None and exposure_max is not None
+                    else 'N/A'
                 ),
                 'level5_means': level5_means,
             })

@@ -462,6 +462,11 @@
                 <th>Velocidade media (km/h)</th>
                 <th>SensorTemperature media (°C)</th>
                 <th>LRFTargetDistance media (m)</th>
+                <th title="Altura media do voo sobre o ponto de decolagem.">Altitude Relativa Media (m)</th>
+                <th title="Altitude MSL (nivel medio do mar).">Altitude Absoluta Media (m)</th>
+                <th title="ISO medio das capturas do voo.">ISO Medio</th>
+                <th title="Tempo medio do obturador e faixa observada no voo.">Velocidade do Obturador (media)</th>
+                <th title="Temperatura de cor media (Kelvin).">WhiteBalanceCCT Medio</th>
                 {% for col in agg.flight_level5_columns %}
                 <th>{{ col.label }}</th>
                 {% endfor %}
@@ -492,6 +497,41 @@
                 <td>
                     {% if f.avg_lrf_target_distance is not none %}
                         {{ '%.2f'|format(f.avg_lrf_target_distance) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if f.avg_relative_altitude is not none %}
+                        {{ '%.2f'|format(f.avg_relative_altitude) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if f.avg_absolute_altitude is not none %}
+                        {{ '%.2f'|format(f.avg_absolute_altitude) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if f.avg_iso is not none %}
+                        {{ '%.0f'|format(f.avg_iso) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if f.avg_shutter_speed_text and f.avg_shutter_speed_text != 'N/A' %}
+                        {{ f.avg_shutter_speed_text }} ({{ f.shutter_speed_range_text }})
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if f.avg_white_balance_cct is not none %}
+                        {{ '%.0f'|format(f.avg_white_balance_cct) }}
                     {% else %}
                         -
                     {% endif %}

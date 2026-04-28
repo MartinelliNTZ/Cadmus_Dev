@@ -473,73 +473,73 @@
             </tr>
             {% for f in agg.per_flight %}
             <tr>
-                <td>{{ f.flight_id }}</td>
-                <td>{{ f.images }}</td>
-                {% set flight_level = f.mean_score|round(0)|int %}
-                <td class="{{ ('level-' ~ flight_level) if (flight_level >= 1 and flight_level <= 5) else 'level-na' }}">{{ f.mean_score }}</td>
-                <td>{{ f.start }}</td>
-                <td>{{ f.end }}</td>
-                <td>{{ f.flight_time }}</td>
+                <td>{{ f['flight_id'] }}</td>
+                <td>{{ f['images'] }}</td>
+                {% set flight_level = f['mean_score']|round(0)|int %}
+                <td class="{{ ('level-' ~ flight_level) if (flight_level >= 1 and flight_level <= 5) else 'level-na' }}">{{ f['mean_score'] }}</td>
+                <td>{{ f['start'] }}</td>
+                <td>{{ f['end'] }}</td>
+                <td>{{ f['flight_time'] }}</td>
                 <td>
-                    {% if f.avg_speed3d_kmh is not none %}
-                        {{ '%.2f'|format(f.avg_speed3d_kmh) }}
+                    {% if f['avg_speed3d_kmh'] is not none %}
+                        {{ '%.2f'|format(f['avg_speed3d_kmh']) }}
                     {% else %}
                         -
                     {% endif %}
                 </td>
                 <td>
-                    {% if f.avg_sensor_temperature is not none %}
-                        {{ '%.2f'|format(f.avg_sensor_temperature) }}
+                    {% if f['avg_sensor_temperature'] is not none %}
+                        {{ '%.2f'|format(f['avg_sensor_temperature']) }}
                     {% else %}
                         -
                     {% endif %}
                 </td>
                 <td>
-                    {% if f.avg_lrf_target_distance is not none %}
-                        {{ '%.2f'|format(f.avg_lrf_target_distance) }}
+                    {% if f['avg_lrf_target_distance'] is not none %}
+                        {{ '%.2f'|format(f['avg_lrf_target_distance']) }}
                     {% else %}
                         -
                     {% endif %}
                 </td>
                 <td>
-                    {% if f.avg_relative_altitude is not none %}
-                        {{ '%.2f'|format(f.avg_relative_altitude) }}
+                    {% if f['avg_relative_altitude'] is not none %}
+                        {{ '%.2f'|format(f['avg_relative_altitude']) }}
                     {% else %}
                         -
                     {% endif %}
                 </td>
                 <td>
-                    {% if f.avg_absolute_altitude is not none %}
-                        {{ '%.2f'|format(f.avg_absolute_altitude) }}
+                    {% if f['avg_absolute_altitude'] is not none %}
+                        {{ '%.2f'|format(f['avg_absolute_altitude']) }}
                     {% else %}
                         -
                     {% endif %}
                 </td>
                 <td>
-                    {% if f.avg_iso is not none %}
-                        {{ '%.0f'|format(f.avg_iso) }}
+                    {% if f['avg_iso'] is not none %}
+                        {{ '%.0f'|format(f['avg_iso']) }}
                     {% else %}
                         -
                     {% endif %}
                 </td>
                 <td>
-                    {% if f.avg_shutter_speed_text and f.avg_shutter_speed_text != 'N/A' %}
-                        {{ f.avg_shutter_speed_text }} ({{ f.shutter_speed_range_text }})
+                    {% if f['avg_shutter_speed_text'] and f['avg_shutter_speed_text'] != 'N/A' %}
+                        {{ f['avg_shutter_speed_text'] }} ({{ f['shutter_speed_range_text'] }})
                     {% else %}
                         -
                     {% endif %}
                 </td>
                 <td>
-                    {% if f.avg_white_balance_cct is not none %}
-                        {{ '%.0f'|format(f.avg_white_balance_cct) }}
+                    {% if f['avg_white_balance_cct'] is not none %}
+                        {{ '%.0f'|format(f['avg_white_balance_cct']) }}
                     {% else %}
                         -
                     {% endif %}
                 </td>
                 {% for col in agg.flight_level5_columns %}
                 <td>
-                    {% if f.level5_means.get(col.key) is not none %}
-                        {{ '%.2f'|format(f.level5_means.get(col.key)) }}
+                    {% if f['level5_means'].get(col.key) is not none %}
+                        {{ '%.2f'|format(f['level5_means'].get(col.key)) }}
                     {% else %}
                         -
                     {% endif %}

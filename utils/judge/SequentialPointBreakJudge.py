@@ -441,11 +441,16 @@ class SequentialPointBreakJudge:
         temp_shot_id    = 1
 
         def add_to_history(index: int):
-            """Adiciona azimute real/suavizado ao histórico da strip atual."""
-            az = smoothed_az[index] if index < len(smoothed_az) else None
+            """Adiciona azimute REAL (bruto) ao histórico da strip atual.
+
+            Bug 2: histórico usava smoothed_az, que acumula bias da média
+            de toda a trajetória percorrida. Em faixas longas, o mean_az
+            convergia para a direção global, não da strip corrente.
+            Com raw_az + janela azimuth_window, o mean_az reflete apenas
+            os últimos N segmentos reais da strip.
+            """
+            az = raw_az[index] if index < len(raw_az) else None
             if az is None or az == 0.0:
-                # Não adiciona azimute 0.0 fantasma do índice 0
-                # (pré-computação só preenche a partir do índice 1)
                 return
             az_history.append(az)
             vel_history.append(pre_metrics[index].vel)
@@ -457,42 +462,49 @@ class SequentialPointBreakJudge:
 
         for i in range(1, n):
             m          = pre_metrics[i]
-            instant_az = smoothed_az[i]
-            if instant_az is None:
+            raw_now    = raw_az[i]
+            instant_az = smoothed_az[i]  # para output/log, mantido
+            if raw_now is None or instant_az is None:
                 continue
 
-            # Azimute médio ponderado da strip atual (apenas pontos committed)
+            # ── Azimute médio da strip atual a partir dos RAW azimutes ──
+            # Usamos raw_az (não suavizado) para que o mean_az reflita
+            # a direção real da strip sem a diluição da janela de suavização.
+            # A janela `azimuth_window` limita o histórico aos N últimos pontos,
+            # impedindo que faixas longas acumulem bias da direção antiga.
             recent_az  = az_history[-config.azimuth_window:]
             recent_vel = vel_history[-config.azimuth_window:]
-            mean_az    = MathUtils.axial_mean(recent_az) if recent_az else instant_az
+            mean_az    = MathUtils.axial_mean(recent_az) if recent_az else raw_now
             if config.use_time and recent_vel:
                 weights = [max(config.min_velocity_weight, v) for v in recent_vel]
                 mean_az = MathUtils.weighted_axial_mean(recent_az, weights)
 
-            delta_azimuth = MathUtils.axial_diff(instant_az, mean_az)
+            # ── Delta usa azimute BRUTO (não suavizado) ──
+            # Bug 1: smoothed_az dilui a inflexão real (90° → ~30° após
+            # janela de suavização), fazendo o score ficar abaixo do
+            # minimum_break_score. raw_now preserva o gradiente real.
+            delta_azimuth = MathUtils.axial_diff(raw_now, mean_az)
 
             # ── DUPLO CHECK DE AZIMUTE (ANTERIOR + POSTERIOR) ──
-            # Compara o azimute bruto do segmento que chega (i-1 → i)
-            # e do segmento que sai (i → i+1) contra a média da strip atual.
-            # Se AMBOS desviam além de severe_azimuth_threshold, o ponto
-            # está entre duas direções radicalmente diferentes → sinal forte
-            # de inflexão real. Este princípio é propagado para score, decisão
-            # de quebra, bordadura e guard do relabel retroativo.
+            # diff_back: segmento que chega (i-1 → i) vs. média da strip.
+            # diff_fwd:  segmento que sai (i → i+1) vs. média da strip.
             raw_fwd_az = raw_az[i + 1] if i + 1 < n else None
-            diff_back_raw = (
-                MathUtils.axial_diff(raw_az[i], mean_az)
-                if raw_az[i] is not None else delta_azimuth
-            )
+            diff_back_raw = MathUtils.axial_diff(raw_now, mean_az)
             diff_fwd_raw = (
                 MathUtils.axial_diff(raw_fwd_az, mean_az)
                 if raw_fwd_az is not None else 0.0
             )
+            # Bug 4: dual_angle_break usava severe (45°) nos DOIS lados,
+            # mas em curva gradual de 90° o lado forward ainda não atingiu
+            # 45° no ponto i. Agora: back precisa ser severo (definitivamente
+            # saiu da strip), forward precisa ser apenas light (já está indo
+            # para outra direção, mesmo que ainda não tenha virado totalmente).
             dual_angle_break = (
                 diff_back_raw > config.severe_azimuth_threshold
                 and raw_fwd_az is not None
-                and diff_fwd_raw > config.severe_azimuth_threshold
+                and diff_fwd_raw > config.light_azimuth_threshold
             )
-            # Dual-angle light: pelo menos um lado é severo e o outro é moderado
+            # Dual-angle light: ambos os lados desviam pelo menos moderadamente
             dual_angle_light = (
                 diff_back_raw > config.light_azimuth_threshold
                 and raw_fwd_az is not None
@@ -505,12 +517,16 @@ class SequentialPointBreakJudge:
             conv_rate       = _az_convergence_rate(az_history, config.past_stability_window)
             past_converging = conv_rate > config.convergence_rate_threshold
 
+            # Bug 5: _future_stability_score usava smoothed_az, que dilui a
+            # progressão de azimutes futuros. Com raw_az, a variância real
+            # dos próximos segmentos é preservada e o cluster_threshold=15°
+            # consegue detectar convergência para nova direção da curva.
             f_ratio, f_az_mean = _future_stability_score(
-                smoothed_az, i, config.future_stability_window, config.future_az_cluster_threshold
+                raw_az, i, config.future_stability_window, config.future_az_cluster_threshold
             )
             future_stable = f_ratio >= config.future_stability_threshold
 
-            # Score — inclui o duplo check de azimute
+            # Score — usa delta_azimuth BRUTO + duplo check
             score_dir  = (1 if delta_azimuth > config.light_azimuth_threshold else 0) + \
                          (2 if delta_azimuth > config.severe_azimuth_threshold else 0) + \
                          (2 if dual_angle_break else (1 if dual_angle_light else 0))
@@ -556,11 +572,21 @@ class SequentialPointBreakJudge:
                 )
 
                 if fits_current and fits_next and not dual_angle_break:
-                    # Falso positivo: ponto se encaixa em ambas as direções
-                    # → não quebrar, absorver como committed.
-                    # EXCEÇÃO: dual_angle_break sobrepõe falso positivo
-                    # (ambos os lados desviam severamente = inflexão real).
-                    should_break = False
+                    # Falso positivo: ponto se encaixa em ambas as direções.
+                    # Bug 3: em curvas graduais (ex: 90° distribuída em 8+
+                    # pontos), a janela de 3 pontos para frente/trás ainda
+                    # cobre a zona de transição, fazendo fits_current AND
+                    # fits_next = True mesmo quando o ponto já divergiu
+                    # significativamente. O guard abaixo impede a supressão
+                    # da quebra quando o ponto já ultrapassou o threshold
+                    # light — se o ponto está > light_threshold da média
+                    # da strip, ele JÁ sinaliza saída. A checagem
+                    # bidirecional serve para filtrar ruído, não para
+                    # engolir inflexões reais já detectadas pelo score.
+                    if delta_azimuth <= config.light_azimuth_threshold:
+                        should_break = False
+                    # else: ponto já divergiu significativamente →
+                    # não suprimir; deixar os próximos elif decidirem.
 
                 elif (fits_next and future_stable) or (dual_angle_break and fits_next):
                     # Entrada confirmada de nova strip

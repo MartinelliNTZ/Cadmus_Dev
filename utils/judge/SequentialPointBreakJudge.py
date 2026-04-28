@@ -471,6 +471,34 @@ class SequentialPointBreakJudge:
 
             delta_azimuth = MathUtils.axial_diff(instant_az, mean_az)
 
+            # ── DUPLO CHECK DE AZIMUTE (ANTERIOR + POSTERIOR) ──
+            # Compara o azimute bruto do segmento que chega (i-1 → i)
+            # e do segmento que sai (i → i+1) contra a média da strip atual.
+            # Se AMBOS desviam além de severe_azimuth_threshold, o ponto
+            # está entre duas direções radicalmente diferentes → sinal forte
+            # de inflexão real. Este princípio é propagado para score, decisão
+            # de quebra, bordadura e guard do relabel retroativo.
+            raw_fwd_az = raw_az[i + 1] if i + 1 < n else None
+            diff_back_raw = (
+                MathUtils.axial_diff(raw_az[i], mean_az)
+                if raw_az[i] is not None else delta_azimuth
+            )
+            diff_fwd_raw = (
+                MathUtils.axial_diff(raw_fwd_az, mean_az)
+                if raw_fwd_az is not None else 0.0
+            )
+            dual_angle_break = (
+                diff_back_raw > config.severe_azimuth_threshold
+                and raw_fwd_az is not None
+                and diff_fwd_raw > config.severe_azimuth_threshold
+            )
+            # Dual-angle light: pelo menos um lado é severo e o outro é moderado
+            dual_angle_light = (
+                diff_back_raw > config.light_azimuth_threshold
+                and raw_fwd_az is not None
+                and diff_fwd_raw > config.light_azimuth_threshold
+            )
+
             # Estabilidades
             past_var        = _past_stability(az_history, config.past_stability_window)
             past_stable     = past_var <= config.past_stability_max_variance
@@ -482,9 +510,10 @@ class SequentialPointBreakJudge:
             )
             future_stable = f_ratio >= config.future_stability_threshold
 
-            # Score
+            # Score — inclui o duplo check de azimute
             score_dir  = (1 if delta_azimuth > config.light_azimuth_threshold else 0) + \
-                         (2 if delta_azimuth > config.severe_azimuth_threshold else 0)
+                         (2 if delta_azimuth > config.severe_azimuth_threshold else 0) + \
+                         (2 if dual_angle_break else (1 if dual_angle_light else 0))
             score_time = self._apply_time_score(
                 score=0,
                 delta_time=m.dt,
@@ -505,6 +534,13 @@ class SequentialPointBreakJudge:
             if config.max_distance_meters > 0 and m.dd > config.max_distance_meters:
                 should_break = True
 
+            # R0.5: Dual-angle break — ambos os lados desviam severamente da
+            # direção da strip, indicando inflexão aguda confirmada pelos
+            # segmentos anterior E posterior. Quebra antecipada mesmo sem
+            # atingir o minimum_break_score completo.
+            elif dual_angle_break and future_stable:
+                should_break = True
+
             elif total_score >= config.minimum_break_score:
 
                 # ── DUPLA VALIDAÇÃO BIDIRECIONAL DO PONTO DE INFLEXÃO ──
@@ -519,18 +555,23 @@ class SequentialPointBreakJudge:
                     threshold   = config.light_azimuth_threshold,
                 )
 
-                if fits_current and fits_next:
+                if fits_current and fits_next and not dual_angle_break:
                     # Falso positivo: ponto se encaixa em ambas as direções
-                    # → não quebrar, absorver como committed
+                    # → não quebrar, absorver como committed.
+                    # EXCEÇÃO: dual_angle_break sobrepõe falso positivo
+                    # (ambos os lados desviam severamente = inflexão real).
                     should_break = False
 
-                elif fits_next and future_stable:
+                elif (fits_next and future_stable) or (dual_angle_break and fits_next):
                     # Entrada confirmada de nova strip
+                    # Dual-angle break dá peso extra à confirmação de fits_next
                     should_break = True
 
                 elif past_stable and not past_converging and not fits_current:
                     # Saída de strip estável — confirmar prospectivamente
                     # com verificação aprimorada (azimute + velocidade relativa)
+                    # Dual-angle light reduz o número de confirmações necessárias
+                    required_conf = max(1, config.min_confirmed - (1 if dual_angle_light else 0))
                     confirmed = 0
                     for j in range(i + 1, min(i + 1 + config.confirmation_window, n)):
                         conf_az = raw_az[j] if raw_az[j] is not None else smoothed_az[j]
@@ -543,7 +584,7 @@ class SequentialPointBreakJudge:
                             pass   # velocidade não nega a confirmação, apenas complementa
                         if conf_ok:
                             confirmed += 1
-                    if confirmed >= config.min_confirmed:
+                    if confirmed >= required_conf:
                         should_break = True
                     else:
                         # Não confirmado → ponto suspeito no meio da strip
@@ -551,8 +592,12 @@ class SequentialPointBreakJudge:
 
                 elif not fits_current and not fits_next:
                     # Nenhuma direção — ponto de transição ambíguo
-                    # Suspender se ainda dentro do limite de streak
-                    is_central_outlier = True
+                    # Dual-angle break transforma ambíguo em quebra confirmada
+                    if dual_angle_break:
+                        should_break = True
+                    else:
+                        # Suspender se ainda dentro do limite de streak
+                        is_central_outlier = True
 
             # Streak de suspensos excedeu o limite: a transição é tratada como
             # quebra real e o ponto atual vira o primeiro ponto da nova strip.
@@ -577,10 +622,13 @@ class SequentialPointBreakJudge:
                 vel_history.clear()
 
                 # Retroactive relabel com guard bidirecional
+                # Propaga dual_angle_break: se o ponto de quebra tem desvio
+                # severo em ambos os lados, o relabel pode ser mais agressivo.
                 if f_az_mean is not None and config.retroactive_relabel_window > 0:
                     self._apply_retroactive_relabel_guarded(
                         i, updates, raw_az, mean_az, f_az_mean,
-                        temp_shot_id, config, ordered_points
+                        temp_shot_id, config, ordered_points,
+                        dual_angle_break
                     )
 
             elif is_central_outlier:
@@ -607,11 +655,15 @@ class SequentialPointBreakJudge:
                     add_to_history(sp.index)
                 suspended.clear()
 
-            # Bordadura
+            # Bordadura — inclui duplo check de azimute
+            # Dual-angle break com futuro estável indica transição clara de direção
+            # (bordadura geométrica), mesmo sem desvio extremo de azimute único.
             is_border = (
                 delta_azimuth > config.border_azimuth_threshold
                 and (not config.use_time or m.vel < config.border_speed_threshold)
                 and m.dd < config.border_distance_threshold
+            ) or (
+                dual_angle_break and m.dd < config.border_distance_threshold * 2.0
             )
             seg_type = "bordadura" if is_border else "faixa"
 
@@ -687,7 +739,8 @@ class SequentialPointBreakJudge:
 
     def _apply_retroactive_relabel_guarded(
         self, i, updates, pre_az, mean_az_current, f_az_mean,
-        new_shot_id, config: JudgeConfig, ordered_points
+        new_shot_id, config: JudgeConfig, ordered_points,
+        dual_angle_break: bool = False
     ):
         """
         Move pontos de assentamento para o novo shot_id SOMENTE se passarem
@@ -696,7 +749,11 @@ class SequentialPointBreakJudge:
         Guardas adicionais:
           - Não relabela pontos de um shot que já atingiu minimum_point_count
             (evita destruir strips válidas ao retirar seus pontos de cauda).
-          - Impede a destruição de strips retas por falsos relabels.
+          - dual_angle_break: quando True (ambos os lados da quebra desviam
+            severamente da média), o guard é relaxado — usa severe_azimuth_threshold
+            em vez de light_azimuth_threshold para diff_back, e dobra a janela
+            de retroação. Isso permite capturar mais pontos de assentamento quando
+            a inflexão é comprovadamente aguda.
         """
         double_threshold = config.future_az_cluster_threshold * 2.0
 
@@ -710,7 +767,17 @@ class SequentialPointBreakJudge:
             and v.get(StripOutputFieldKey.SHOT_VALID.value, 0) != -1
         )
 
-        for back in range(1, config.retroactive_relabel_window + 1):
+        # Dual-angle break: relaxa o guard e estende a janela de retroação
+        back_threshold = (
+            config.severe_azimuth_threshold if dual_angle_break
+            else config.light_azimuth_threshold
+        )
+        effective_window = (
+            config.retroactive_relabel_window * 2 if dual_angle_break
+            else config.retroactive_relabel_window
+        )
+
+        for back in range(1, effective_window + 1):
             bi = i - back
             if bi < 0:
                 break
@@ -729,9 +796,10 @@ class SequentialPointBreakJudge:
             # Guard para frente: está próximo do az futuro?
             diff_fwd = MathUtils.axial_diff(az_bi, f_az_mean)
             # Guard para trás: está LONGE do az atual? (se ficou próximo do atual, não deve mudar)
+            # Dual-angle break usa severe_azimuth_threshold (mais tolerante)
             diff_back = MathUtils.axial_diff(az_bi, mean_az_current)
 
-            if diff_fwd <= double_threshold and diff_back > config.light_azimuth_threshold:
+            if diff_fwd <= double_threshold and diff_back > back_threshold:
                 # Guard de proteção: não remove pontos de um shot que já é válido,
                 # a menos que após a remoção ele ainda mantenha o mínimo.
                 if old_shot_committed > config.minimum_point_count:

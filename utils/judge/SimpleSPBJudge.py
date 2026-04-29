@@ -49,6 +49,7 @@ class SimpleSPBJudge:
     Versão atual apenas calcula métricas; o julgamento (quebra) será
     implementado em fase posterior.
     """
+    
 
     from ..StringManager import StringManager
     DIVIDE_STRIP_FIELDS = StringManager.DIVIDE_STRIP_FIELDS
@@ -58,6 +59,9 @@ class SimpleSPBJudge:
         self.source_path = source_path or (layer.source() if layer is not None else "")
         self.tool_key    = tool_key
         self.logger      = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
+        self.JUDGEMENT_MODES = ["ANGLE", "DISTANCE"]
+        self.JUDGEMENT_MODE = self.JUDGEMENT_MODES[0]
+        
 
     # -------------------------------------------------------------------
     # Ponto de entrada público (mesma assinatura simplificada)

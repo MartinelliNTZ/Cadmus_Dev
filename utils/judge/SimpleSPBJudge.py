@@ -76,7 +76,6 @@ class SimpleSPBJudge:
         minimum_point_count: int = 20,
         max_distance_meters: float = 0.0,
         max_desvio: int = 2,
-        conflict_resolver = None,
         **kwargs,  # absorve parâmetros não utilizados do juiz complexo
     ):
         layer = self._load_layer()
@@ -87,7 +86,7 @@ class SimpleSPBJudge:
             raise RuntimeError("Nenhum ponto válido encontrado.")
 
         # Resolve nomes de campos de saída
-        field_name_map = self._resolve_output_fields(layer, conflict_resolver=conflict_resolver)
+        field_name_map = self._resolve_output_fields(layer)
 
         self.logger.info(
             "Iniciando cálculo simples de métricas",
@@ -155,7 +154,7 @@ class SimpleSPBJudge:
         for i in range(1, n):
             p1, p2 = ordered_points[i - 1], ordered_points[i]
             az = VectorLayerGeometry.calculate_point_azimuth(p1["point"], p2["point"])
-            raw_az[i] = MathUtils.normalize_bearing(az)
+            raw_az[i] = float(az) % 360.0
             distances[i] = VectorLayerGeometry.measure_distance_between_points(
                 p1["point"], p2["point"], crs
             )
@@ -190,12 +189,12 @@ class SimpleSPBJudge:
                 continue
 
             # Calcula azimute médio anterior (direção de chegada)
-            az_prev_mean = MathUtils.axial_mean(prev_az_list)
+            az_prev_mean = MathUtils.circular_mean(prev_az_list)
             # Calcula azimute médio posterior (direção de saída)
-            az_next_mean = MathUtils.axial_mean(next_az_list)
+            az_next_mean = MathUtils.circular_mean(next_az_list)
 
             # Diferença entre as direções média
-            diff = MathUtils.axial_diff(az_prev_mean, az_next_mean)
+            diff = MathUtils.angular_diff(az_prev_mean, az_next_mean)
 
             # Se a diferença exceder o limiar, marca quebra antes do ponto i
             break_points[i] = diff > severe_azimuth_threshold
@@ -227,7 +226,7 @@ class SimpleSPBJudge:
             dd = distances[i]
 
             if prev_segment_az is not None and next_segment_az is not None:
-                az_instant = MathUtils.axial_mean([prev_segment_az, next_segment_az])
+                az_instant = MathUtils.circular_mean([prev_segment_az, next_segment_az])
             elif prev_segment_az is not None:
                 az_instant = prev_segment_az
             elif next_segment_az is not None:
@@ -236,12 +235,12 @@ class SimpleSPBJudge:
                 az_instant = 0.0
 
             delta_prev = (
-                MathUtils.axial_diff(az_instant, prev_segment_az)
+                MathUtils.angular_diff(az_instant, prev_segment_az)
                 if prev_segment_az is not None
                 else 0.0
             )
             delta_next = (
-                MathUtils.axial_diff(az_instant, next_segment_az)
+                MathUtils.angular_diff(az_instant, next_segment_az)
                 if next_segment_az is not None
                 else 0.0
             )
@@ -318,20 +317,10 @@ class SimpleSPBJudge:
         self.logger.info("Pontos carregados (simples)", valid=len(ordered), elapsed=round(time.time() - t0, 2))
         return ordered
 
-    def _resolve_output_fields(self, layer, *, conflict_resolver=None):
-        from ..vector.VectorLayerAttributes import VectorLayerAttributes
-
-        max_length = 10 if self.source_path.lower().endswith(".shp") else 255
+    def _resolve_output_fields(self, layer):
         resolved   = {}
         for logical_key, field_spec in self.DIVIDE_STRIP_FIELDS.items():
-            field_name = VectorLayerAttributes.resolve_output_field_name(
-                layer, field_spec.attribute,
-                conflict_resolver=conflict_resolver,
-                max_length=max_length,
-            )
-            if field_name is None:
-                raise RuntimeError("Operacao cancelada pelo usuario.")
-            resolved[logical_key] = field_name
+            resolved[logical_key] = field_spec.attribute
         return resolved
 
     @staticmethod
@@ -432,3 +421,5 @@ class SimpleSPBJudge:
             elapsed=round(time.time() - t0, 2),
         )
         return new_layer
+
+

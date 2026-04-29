@@ -103,6 +103,7 @@ class SimpleSPBJudge:
             severe_azimuth_threshold=severe_azimuth_threshold,
             max_deviation_points=max_desvio,
             minimum_point_count=minimum_point_count,
+            max_distance_meters=max_distance_meters,
         )
 
         result_layer = self._create_memory_layer(layer, updates, field_name_map)
@@ -132,6 +133,7 @@ class SimpleSPBJudge:
         severe_azimuth_threshold: float = 45.0,
         max_deviation_points: int = 2,
         minimum_point_count: int = 20,
+        max_distance_meters: float = 0.0,
     ) -> dict:
         """
         Calcula métricas de azimute e atribui shot_id baseado em janela de pontos.
@@ -167,6 +169,11 @@ class SimpleSPBJudge:
         break_points[0] = False
 
         for i in range(1, n):  # i é o índice do ponto de chegada do segmento
+            # Regra de quebra automática por distância (segmento i-1 -> i)
+            if max_distance_meters > 0.0 and distances[i] > max_distance_meters:
+                break_points[i] = True
+                continue
+
             # Janela para trás: segmentos [i - window, i-1] (chegando em i)
             # Janela para frente: segmentos [i, i + window - 1] (saindo de i)
             window = max_deviation_points

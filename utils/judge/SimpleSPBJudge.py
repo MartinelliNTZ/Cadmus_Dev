@@ -126,7 +126,6 @@ class SimpleSPBJudge:
     # -------------------------------------------------------------------
     # Cálculo de métricas (sem julgamento)
     # -------------------------------------------------------------------
-
     def _compute_metrics(
         self,
         ordered_points,
@@ -136,12 +135,14 @@ class SimpleSPBJudge:
         minimum_point_count: int = 20,
     ) -> dict:
         """
-        Calcula métricas de azimute para cada ponto.
+        Calcula métricas de azimute e atribui shot_id baseado em janela de pontos.
 
-        Retorna dicionário: fid → {atributos de saída}.
-        old_shot_id preserva a primeira atribuição de shot antes da
-        validação por tamanho mínimo de grupo. Grupos menores que
-        minimum_point_count recebem shot_id=0.
+        Nova lógica:
+        - max_deviation_points = N (janela)
+        - Para cada ponto i, compara o azimute médio dos N segmentos anteriores
+        com o azimute médio dos N segmentos posteriores.
+        - Se a diferença axial ultrapassar severe_azimuth_threshold, marca quebra.
+        - Pontos no início/fim da trilha usam janela reduzida (o que estiver disponível).
         """
         n = len(ordered_points)
         if n == 0:
@@ -159,31 +160,55 @@ class SimpleSPBJudge:
                 p1["point"], p2["point"], crs
             )
 
+        # Determina onde ocorrem as quebras
+        break_points = [False] * n  # break_points[i] = True se há quebra ANTES do ponto i
+        # (i.e., o ponto i inicia um novo shot)
+
+        # O primeiro ponto nunca é quebra (início da trilha)
+        break_points[0] = False
+
+        for i in range(1, n):  # i é o índice do ponto de chegada do segmento
+            # Janela para trás: segmentos [i - window, i-1] (chegando em i)
+            # Janela para frente: segmentos [i, i + window - 1] (saindo de i)
+            window = max_deviation_points
+
+            # Coleta azimutes anteriores (que chegam em i)
+            prev_az_list = []
+            for j in range(max(1, i - window), i):  # segmento (j-1 -> j)
+                if raw_az[j] is not None:
+                    prev_az_list.append(raw_az[j])
+
+            # Coleta azimutes posteriores (que saem de i)
+            next_az_list = []
+            for j in range(i, min(n, i + window)):  # segmento (j -> j+1)
+                if j + 1 < n and raw_az[j + 1] is not None:
+                    next_az_list.append(raw_az[j + 1])
+
+            # Se não houver dados suficientes em um dos lados, mantém continuação (sem quebra)
+            if not prev_az_list or not next_az_list:
+                break_points[i] = False
+                continue
+
+            # Calcula azimute médio anterior (direção de chegada)
+            az_prev_mean = MathUtils.axial_mean(prev_az_list)
+            # Calcula azimute médio posterior (direção de saída)
+            az_next_mean = MathUtils.axial_mean(next_az_list)
+
+            # Diferença entre as direções média
+            diff = MathUtils.axial_diff(az_prev_mean, az_next_mean)
+
+            # Se a diferença exceder o limiar, marca quebra antes do ponto i
+            break_points[i] = diff > severe_azimuth_threshold
+
+        # Atribui shot_id com base nos break_points
         original_shot_ids = [1] * n
         current_shot = 1
-        consecutive_outliers = 0
-
-        for i in range(n):
-            prev_segment_az = raw_az[i] if i >= 1 else None
-            next_segment_az = raw_az[i + 1] if i + 1 < n else None
-
-            is_outlier = False
-            if prev_segment_az is not None and next_segment_az is not None:
-                az_delta = abs(MathUtils.axial_diff(prev_segment_az, next_segment_az))
-                is_outlier = az_delta > severe_azimuth_threshold
-
-            if is_outlier:
-                consecutive_outliers += 1
-            else:
-                consecutive_outliers = 0
-
-            if consecutive_outliers >= max_deviation_points:
+        for i in range(1, n):
+            if break_points[i]:
                 current_shot += 1
-                consecutive_outliers = 0
-
             original_shot_ids[i] = current_shot
 
-        # Validação de tamanho mínimo de grupo: grupos menores recebem shot_id=0.
+        # Validação de tamanho mínimo de grupo: grupos menores recebem shot_id=0
         shot_sizes: dict[int, int] = {}
         for shot in original_shot_ids:
             shot_sizes[shot] = shot_sizes.get(shot, 0) + 1
@@ -193,6 +218,7 @@ class SimpleSPBJudge:
             for shot in original_shot_ids
         ]
 
+        # constrói updates (igual ao original)
         updates: dict[int, dict] = {}
 
         for i in range(n):
@@ -231,7 +257,6 @@ class SimpleSPBJudge:
                 StripOutputFieldKey.DELTA_AZ_PREV.value:    float(delta_prev),
                 StripOutputFieldKey.DELTA_AZ_NEXT.value:    float(delta_next),
                 StripOutputFieldKey.DELTA_DISTANCE.value:   float(dd),
-                # Demais campos preenchidos com zero/placeholder
                 StripOutputFieldKey.SCORE.value:            0,
                 StripOutputFieldKey.SCORE_DIRECTION.value:  0,
                 StripOutputFieldKey.SCORE_CONTINUITY.value: 0,

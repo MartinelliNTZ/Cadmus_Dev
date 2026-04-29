@@ -714,6 +714,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         layer.startEditing()
         modified_count = 0
+        old_shot_idx = layer.fields().lookupField("old_shot_id")
         for feat in layer.getFeatures():
             sid = feat.attribute(shot_idx)
             if sid is None:
@@ -724,6 +725,12 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             prefixed = f"{prefix}{sid_str}"
             if prefixed != sid_str:
                 layer.changeAttributeValue(feat.id(), shot_idx, prefixed)
+                if old_shot_idx != -1:
+                    old_sid = feat.attribute(old_shot_idx)
+                    if old_sid is not None:
+                        old_sid_str = str(old_sid)
+                        if old_sid_str != "0":
+                            layer.changeAttributeValue(feat.id(), old_shot_idx, f"{prefix}{old_sid_str}")
                 modified_count += 1
         layer.commitChanges()
 

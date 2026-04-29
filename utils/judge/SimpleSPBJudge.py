@@ -24,7 +24,7 @@ Lógica (versão atual — apenas cálculo, sem julgamento):
      - delta_distance:  distância entre pontos consecutivos (m)
 
   Atributos de saída (disponíveis no grid de atributos):
-     shot_id, shot_valid, azimuth_instant, azimuth_mean,
+     shot_id, old_shot_id, shot_valid, azimuth_instant, azimuth_mean,
      azimuth_prev, azimuth_next, delta_az_prev, delta_az_next,
      delta_distance
 """
@@ -103,6 +103,7 @@ class SimpleSPBJudge:
             layer.crs(),
             severe_azimuth_threshold=severe_azimuth_threshold,
             max_deviation_points=max_desvio,
+            minimum_point_count=minimum_point_count,
         )
 
         result_layer = self._create_memory_layer(layer, updates, field_name_map)
@@ -132,12 +133,15 @@ class SimpleSPBJudge:
         crs,
         severe_azimuth_threshold: float = 45.0,
         max_deviation_points: int = 2,
+        minimum_point_count: int = 20,
     ) -> dict:
         """
         Calcula métricas de azimute para cada ponto.
 
         Retorna dicionário: fid → {atributos de saída}.
-        shot_id agrupa pontos com base em máximo de outliers consecutivos.
+        old_shot_id preserva a primeira atribuição de shot antes da
+        validação por tamanho mínimo de grupo. Grupos menores que
+        minimum_point_count recebem shot_id=0.
         """
         n = len(ordered_points)
         if n == 0:
@@ -155,7 +159,7 @@ class SimpleSPBJudge:
                 p1["point"], p2["point"], crs
             )
 
-        shot_ids = [1] * n
+        original_shot_ids = [1] * n
         current_shot = 1
         consecutive_outliers = 0
 
@@ -175,10 +179,19 @@ class SimpleSPBJudge:
 
             if consecutive_outliers >= max_deviation_points:
                 current_shot += 1
-                shot_ids[i] = current_shot
                 consecutive_outliers = 0
-            else:
-                shot_ids[i] = current_shot
+
+            original_shot_ids[i] = current_shot
+
+        # Validação de tamanho mínimo de grupo: grupos menores recebem shot_id=0.
+        shot_sizes: dict[int, int] = {}
+        for shot in original_shot_ids:
+            shot_sizes[shot] = shot_sizes.get(shot, 0) + 1
+
+        validated_shot_ids = [
+            shot if shot_sizes.get(shot, 0) >= minimum_point_count else 0
+            for shot in original_shot_ids
+        ]
 
         updates: dict[int, dict] = {}
 
@@ -208,7 +221,8 @@ class SimpleSPBJudge:
             )
 
             updates[ordered_points[i]["fid"]] = {
-                StripOutputFieldKey.SHOT_ID.value:          str(shot_ids[i]),
+                StripOutputFieldKey.SHOT_ID.value:          str(validated_shot_ids[i]),
+                StripOutputFieldKey.OLD_SHOT_ID.value:      str(original_shot_ids[i]),
                 StripOutputFieldKey.SHOT_VALID.value:       0,
                 StripOutputFieldKey.AZIMUTH_INSTANT.value:  float(az_instant),
                 StripOutputFieldKey.AZIMUTH_MEAN.value:     float(az_instant),

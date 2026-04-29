@@ -5,6 +5,7 @@ from enum import Enum
 class StripOutputFieldKey(Enum):
     # OUTPUT FIELDS FOR SEQUENTIAL POINT BREAK JUDGE
     SHOT_ID = "shot_id"
+    OLD_SHOT_ID = "old_shot_id"
     SHOT_VALID = "shot_valid"
     SCORE = "score"
     SCORE_DIRECTION = "score_direction"

@@ -19,6 +19,14 @@ class StringManager:
             length=50,
             precision=0,
         ),
+        StripOutputFieldKey.OLD_SHOT_ID: Field(
+            label="Old Shot ID",
+            attribute="old_shot_id",
+            description="Identificador original do shot antes da validação de tamanho de grupo.",
+            type=QVariant.String,
+            length=50,
+            precision=0,
+        ),
         StripOutputFieldKey.SHOT_VALID: Field(
             label="Shot Valid",
             attribute="shot_valid",

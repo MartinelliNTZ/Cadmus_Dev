@@ -75,6 +75,7 @@ class SimpleSPBJudge:
         severe_azimuth_threshold: float = 45.0,
         minimum_point_count: int = 20,
         max_distance_meters: float = 0.0,
+        max_desvio: int = 2,
         conflict_resolver = None,
         **kwargs,  # absorve parâmetros não utilizados do juiz complexo
     ):
@@ -96,8 +97,13 @@ class SimpleSPBJudge:
 
         t0 = time.time()
 
-        # Fase única: cálculo de métricas + atribuição de shot_id temporário (0)
-        updates = self._compute_metrics(ordered_points, layer.crs())
+        # Fase única: cálculo de métricas + atribuição de shot_id por grupo simples
+        updates = self._compute_metrics(
+            ordered_points,
+            layer.crs(),
+            severe_azimuth_threshold=severe_azimuth_threshold,
+            max_deviation_points=max_desvio,
+        )
 
         result_layer = self._create_memory_layer(layer, updates, field_name_map)
 
@@ -120,18 +126,24 @@ class SimpleSPBJudge:
     # Cálculo de métricas (sem julgamento)
     # -------------------------------------------------------------------
 
-    def _compute_metrics(self, ordered_points, crs) -> dict:
+    def _compute_metrics(
+        self,
+        ordered_points,
+        crs,
+        severe_azimuth_threshold: float = 45.0,
+        max_deviation_points: int = 2,
+    ) -> dict:
         """
         Calcula métricas de azimute para cada ponto.
 
         Retorna dicionário: fid → {atributos de saída}.
-        shot_id = 0 (placeholder, sem julgamento).
+        shot_id agrupa pontos com base em máximo de outliers consecutivos.
         """
         n = len(ordered_points)
         if n == 0:
             return {}
 
-        # Pré-computa azimutes brutos e distâncias
+        # Pré-computa azimutes brutos e distâncias entre pontos consecutivos
         raw_az: list[Optional[float]] = [None] * n
         distances: list[float] = [0.0] * n
 
@@ -143,45 +155,65 @@ class SimpleSPBJudge:
                 p1["point"], p2["point"], crs
             )
 
+        shot_ids = [1] * n
+        current_shot = 1
+        consecutive_outliers = 0
+
+        for i in range(n):
+            prev_segment_az = raw_az[i] if i >= 1 else None
+            next_segment_az = raw_az[i + 1] if i + 1 < n else None
+
+            is_outlier = False
+            if prev_segment_az is not None and next_segment_az is not None:
+                az_delta = abs(MathUtils.axial_diff(prev_segment_az, next_segment_az))
+                is_outlier = az_delta > severe_azimuth_threshold
+
+            if is_outlier:
+                consecutive_outliers += 1
+            else:
+                consecutive_outliers = 0
+
+            if consecutive_outliers >= max_deviation_points:
+                current_shot += 1
+                shot_ids[i] = current_shot
+                consecutive_outliers = 0
+            else:
+                shot_ids[i] = current_shot
+
         updates: dict[int, dict] = {}
 
         for i in range(n):
-            az_instant = raw_az[i]  # None para i=0
-            dd         = distances[i]
+            prev_segment_az = raw_az[i] if i >= 1 else None
+            next_segment_az = raw_az[i + 1] if i + 1 < n else None
+            dd = distances[i]
 
-            # Azimute anterior: raw_az[i-1] se i >= 2
-            az_prev = raw_az[i - 1] if i >= 2 else None
-
-            # Azimute seguinte: raw_az[i+1] se i+1 < n
-            az_next = raw_az[i + 1] if i + 1 < n else None
-
-            # Azimute médio: média axial entre prev e next (suavização local)
-            if az_prev is not None and az_next is not None:
-                az_mean = MathUtils.axial_mean([az_prev, az_next])
-            elif az_instant is not None:
-                az_mean = az_instant
+            if prev_segment_az is not None and next_segment_az is not None:
+                az_instant = MathUtils.axial_mean([prev_segment_az, next_segment_az])
+            elif prev_segment_az is not None:
+                az_instant = prev_segment_az
+            elif next_segment_az is not None:
+                az_instant = next_segment_az
             else:
-                az_mean = 0.0
+                az_instant = 0.0
 
-            # Deltas
             delta_prev = (
-                MathUtils.axial_diff(az_instant, az_prev)
-                if az_instant is not None and az_prev is not None
+                MathUtils.axial_diff(az_instant, prev_segment_az)
+                if prev_segment_az is not None
                 else 0.0
             )
             delta_next = (
-                MathUtils.axial_diff(az_instant, az_next)
-                if az_instant is not None and az_next is not None
+                MathUtils.axial_diff(az_instant, next_segment_az)
+                if next_segment_az is not None
                 else 0.0
             )
 
             updates[ordered_points[i]["fid"]] = {
-                StripOutputFieldKey.SHOT_ID.value:          "0",
+                StripOutputFieldKey.SHOT_ID.value:          str(shot_ids[i]),
                 StripOutputFieldKey.SHOT_VALID.value:       0,
-                StripOutputFieldKey.AZIMUTH_INSTANT.value:  float(az_instant) if az_instant is not None else 0.0,
-                StripOutputFieldKey.AZIMUTH_MEAN.value:     float(az_mean),
-                StripOutputFieldKey.AZIMUTH_PREV.value:     float(az_prev) if az_prev is not None else 0.0,
-                StripOutputFieldKey.AZIMUTH_NEXT.value:     float(az_next) if az_next is not None else 0.0,
+                StripOutputFieldKey.AZIMUTH_INSTANT.value:  float(az_instant),
+                StripOutputFieldKey.AZIMUTH_MEAN.value:     float(az_instant),
+                StripOutputFieldKey.AZIMUTH_PREV.value:     float(prev_segment_az) if prev_segment_az is not None else 0.0,
+                StripOutputFieldKey.AZIMUTH_NEXT.value:     float(next_segment_az) if next_segment_az is not None else 0.0,
                 StripOutputFieldKey.DELTA_AZ_PREV.value:    float(delta_prev),
                 StripOutputFieldKey.DELTA_AZ_NEXT.value:    float(delta_next),
                 StripOutputFieldKey.DELTA_DISTANCE.value:   float(dd),

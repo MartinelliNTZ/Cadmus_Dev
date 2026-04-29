@@ -251,7 +251,7 @@ class StringManager:
             "title": "Numero max de pontos desvio",
             "description": "Maximo de pontos fora do padrao que serao ignorados antes de confirmar a quebra.",
             "type": "int",
-            "default": 5,
+            "default": 2,
         },
     }
 

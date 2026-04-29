@@ -883,9 +883,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 "border_distance_threshold": 5.0,
                 "retroactive_relabel_window": 5,
                 "fusion_azimuth_tolerance": 10.0,
-                "conflict_resolver": lambda field_name: QgisMessageUtil.ask_field_conflict(
-                    self.iface, field_name
-                ),
+                "conflict_resolver": "replace",
                 "path_mode": self.radio_path_mode.get_selected_text(),
                 "max_distance_meters": max_dist,
             }

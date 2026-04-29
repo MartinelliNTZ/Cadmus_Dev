@@ -440,6 +440,12 @@ class SequentialPointBreakJudge:
         # Usamos inteiros simples crescentes; nunca usamos FID.
         temp_shot_id    = 1
 
+        # Guarda o último mean_az antes de limpar o histórico na quebra.
+        # Usado como fallback nos primeiros pontos da nova strip quando
+        # az_history está vazia, evitando que delta_azimuth = 0 suprima
+        # quebras imediatas entre trechos curtos consecutivos.
+        prior_mean_az: Optional[float] = None
+
         def add_to_history(index: int):
             """Adiciona azimute REAL (bruto) ao histórico da strip atual.
 
@@ -474,7 +480,12 @@ class SequentialPointBreakJudge:
             # impedindo que faixas longas acumulem bias da direção antiga.
             recent_az  = az_history[-config.azimuth_window:]
             recent_vel = vel_history[-config.azimuth_window:]
-            mean_az    = MathUtils.axial_mean(recent_az) if recent_az else raw_now
+            # Fallback: prior_mean_az (da strip anterior) > raw_now (que zera delta)
+            mean_az    = (
+                MathUtils.axial_mean(recent_az) if recent_az
+                else prior_mean_az if prior_mean_az is not None
+                else raw_now
+            )
             if config.use_time and recent_vel:
                 weights = [max(config.min_velocity_weight, v) for v in recent_vel]
                 mean_az = MathUtils.weighted_axial_mean(recent_az, weights)
@@ -504,9 +515,13 @@ class SequentialPointBreakJudge:
                 and raw_fwd_az is not None
                 and diff_fwd_raw > config.light_azimuth_threshold
             )
-            # Dual-angle light: ambos os lados desviam pelo menos moderadamente
+            # Dual-angle light: ambos os lados desviam pelo menos moderadamente.
+            # Deve ser mutualmente exclusivo com dual_angle_break para evitar
+            # que o mesmo ponto some pontos nos dois e reduza required_conf
+            # duplamente em caminhos diferentes do min_confirmed.
             dual_angle_light = (
-                diff_back_raw > config.light_azimuth_threshold
+                not dual_angle_break
+                and diff_back_raw > config.light_azimuth_threshold
                 and raw_fwd_az is not None
                 and diff_fwd_raw > config.light_azimuth_threshold
             )
@@ -550,11 +565,32 @@ class SequentialPointBreakJudge:
             if config.max_distance_meters > 0 and m.dd > config.max_distance_meters:
                 should_break = True
 
+            # Helper local: confirmação prospectiva de saída de strip.
+            # Extraída para ser reutilizada tanto do branch elif past_stable
+            # quanto do else do falso positivo com delta alto.
+            def _confirm_prospective(mean_az_val, dual_light):
+                required = max(1, config.min_confirmed - (1 if dual_light else 0))
+                confirmed = 0
+                for j in range(i + 1, min(i + 1 + config.confirmation_window, n)):
+                    conf_az = raw_az[j] if raw_az[j] is not None else smoothed_az[j]
+                    if conf_az is None:
+                        continue
+                    conf_delta = MathUtils.axial_diff(conf_az, mean_az_val)
+                    conf_ok    = conf_delta > config.light_azimuth_threshold
+                    if config.use_time and pre_metrics[j].vel > 0:
+                        pass
+                    if conf_ok:
+                        confirmed += 1
+                if confirmed >= required:
+                    return True, False   # should_break, is_central_outlier
+                else:
+                    return False, True   # should_break, is_central_outlier
+
             # R0.5: Dual-angle break — ambos os lados desviam severamente da
             # direção da strip, indicando inflexão aguda confirmada pelos
             # segmentos anterior E posterior. Quebra antecipada mesmo sem
             # atingir o minimum_break_score completo.
-            elif dual_angle_break and future_stable:
+            if dual_angle_break and future_stable:
                 should_break = True
 
             elif total_score >= config.minimum_break_score:
@@ -573,20 +609,22 @@ class SequentialPointBreakJudge:
 
                 if fits_current and fits_next and not dual_angle_break:
                     # Falso positivo: ponto se encaixa em ambas as direções.
-                    # Bug 3: em curvas graduais (ex: 90° distribuída em 8+
-                    # pontos), a janela de 3 pontos para frente/trás ainda
-                    # cobre a zona de transição, fazendo fits_current AND
-                    # fits_next = True mesmo quando o ponto já divergiu
-                    # significativamente. O guard abaixo impede a supressão
-                    # da quebra quando o ponto já ultrapassou o threshold
-                    # light — se o ponto está > light_threshold da média
-                    # da strip, ele JÁ sinaliza saída. A checagem
-                    # bidirecional serve para filtrar ruído, não para
-                    # engolir inflexões reais já detectadas pelo score.
+                    # Em curvas graduais (ex: 90° distribuída em 8+ pontos),
+                    # a janela de 3 pontos para frente/trás ainda cobre a zona
+                    # de transição, fazendo fits_current AND fits_next = True
+                    # mesmo quando o ponto já divergiu significativamente.
+                    #   - Se delta_azimuth <= light_threshold: ruído real →
+                    #     suprimir a quebra (falso positivo genuíno).
+                    #   - Se delta_azimuth > light_threshold: o ponto JÁ
+                    #     sinaliza saída da strip. Encaminhar para confirmação
+                    #     prospectiva em vez de absorver silenciosamente.
                     if delta_azimuth <= config.light_azimuth_threshold:
                         should_break = False
-                    # else: ponto já divergiu significativamente →
-                    # não suprimir; deixar os próximos elif decidirem.
+                    else:
+                        # Ponto divergiu → confirmar prospectivamente
+                        should_break, is_central_outlier = _confirm_prospective(
+                            mean_az, dual_angle_light
+                        )
 
                 elif (fits_next and future_stable) or (dual_angle_break and fits_next):
                     # Entrada confirmada de nova strip
@@ -595,26 +633,11 @@ class SequentialPointBreakJudge:
 
                 elif past_stable and not past_converging and not fits_current:
                     # Saída de strip estável — confirmar prospectivamente
-                    # com verificação aprimorada (azimute + velocidade relativa)
-                    # Dual-angle light reduz o número de confirmações necessárias
-                    required_conf = max(1, config.min_confirmed - (1 if dual_angle_light else 0))
-                    confirmed = 0
-                    for j in range(i + 1, min(i + 1 + config.confirmation_window, n)):
-                        conf_az = raw_az[j] if raw_az[j] is not None else smoothed_az[j]
-                        if conf_az is None:
-                            continue
-                        conf_delta = MathUtils.axial_diff(conf_az, mean_az)
-                        conf_ok    = conf_delta > config.light_azimuth_threshold
-                        # Se temos tempo, velocidade muito baixa ajuda a confirmar bordadura
-                        if config.use_time and pre_metrics[j].vel > 0:
-                            pass   # velocidade não nega a confirmação, apenas complementa
-                        if conf_ok:
-                            confirmed += 1
-                    if confirmed >= required_conf:
-                        should_break = True
-                    else:
-                        # Não confirmado → ponto suspeito no meio da strip
-                        is_central_outlier = True
+                    # com verificação aprimorada (azimute + velocidade relativa).
+                    # Dual-angle light reduz o número de confirmações necessárias.
+                    should_break, is_central_outlier = _confirm_prospective(
+                        mean_az, dual_angle_light
+                    )
 
                 elif not fits_current and not fits_next:
                     # Nenhuma direção — ponto de transição ambíguo
@@ -642,6 +665,12 @@ class SequentialPointBreakJudge:
                     updates[sp.fid][StripOutputFieldKey.SHOT_VALID.value]  = -1  # central outlier flag
                     updates[sp.fid][StripOutputFieldKey.SEG_TYPE.value]    = "outlier_central"
                 suspended.clear()
+
+                # Salva o mean_az da strip que está terminando para usar como
+                # prior fraco nos primeiros pontos da nova strip (quando
+                # az_history estiver vazia). Isso evita que delta_azimuth = 0
+                # suprima quebras imediatas entre trechos curtos.
+                prior_mean_az = mean_az
 
                 temp_shot_id   += 1
                 az_history.clear()

@@ -163,6 +163,7 @@ class SimpleSPBJudge:
 
         # Determina onde ocorrem as quebras
         break_points = [False] * n  # break_points[i] = True se há quebra ANTES do ponto i
+        break_reasons = [""] * n    # motivo simples da quebra no ponto i
         # (i.e., o ponto i inicia um novo shot)
 
         # O primeiro ponto nunca é quebra (início da trilha)
@@ -172,6 +173,7 @@ class SimpleSPBJudge:
             # Regra de quebra automática por distância (segmento i-1 -> i)
             if max_distance_meters > 0.0 and distances[i] > max_distance_meters:
                 break_points[i] = True
+                break_reasons[i] = "dist"
                 continue
 
             # Janela para trás: segmentos [i - window, i-1] (chegando em i)
@@ -205,6 +207,8 @@ class SimpleSPBJudge:
 
             # Se a diferença exceder o limiar, marca quebra antes do ponto i
             break_points[i] = diff > severe_azimuth_threshold
+            if break_points[i]:
+                break_reasons[i] = "az prev"
 
         # Atribui shot_id com base nos break_points
         original_shot_ids = [1] * n
@@ -231,6 +235,14 @@ class SimpleSPBJudge:
             prev_segment_az = raw_az[i] if i >= 1 else None
             next_segment_az = raw_az[i + 1] if i + 1 < n else None
             dd = distances[i]
+            if i == 0:
+                seg_type = "primeiro"
+            elif break_points[i]:
+                seg_type = break_reasons[i] or "quebra"
+            elif validated_shot_ids[i] == 0:
+                seg_type = "outlier"
+            else:
+                seg_type = "normal"
 
             if prev_segment_az is not None and next_segment_az is not None:
                 az_instant = MathUtils.circular_mean([prev_segment_az, next_segment_az])
@@ -266,7 +278,7 @@ class SimpleSPBJudge:
                 StripOutputFieldKey.SCORE.value:            0,
                 StripOutputFieldKey.SCORE_DIRECTION.value:  0,
                 StripOutputFieldKey.SCORE_CONTINUITY.value: 0,
-                StripOutputFieldKey.SEG_TYPE.value:         "",
+                StripOutputFieldKey.SEG_TYPE.value:         seg_type,
                 StripOutputFieldKey.DELTA_TIME.value:       0.0,
                 StripOutputFieldKey.VELOCITY_INSTANT.value: 0.0,
             }

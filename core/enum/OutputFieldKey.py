@@ -16,3 +16,7 @@ class StripOutputFieldKey(Enum):
     DELTA_TIME = "delta_time"
     DELTA_DISTANCE = "delta_distance"
     VELOCITY_INSTANT = "velocity_instant"
+    AZIMUTH_PREV = "azimuth_prev"
+    AZIMUTH_NEXT = "azimuth_next"
+    DELTA_AZ_PREV = "delta_az_prev"
+    DELTA_AZ_NEXT = "delta_az_next"

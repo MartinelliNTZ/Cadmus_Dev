@@ -107,6 +107,38 @@ class StringManager:
             length=20,
             precision=8,
         ),
+        StripOutputFieldKey.AZIMUTH_PREV: Field(
+            label="Azimuth Prev",
+            attribute="azimuth_prev",
+            description="Azimute do segmento anterior (i-1 → i).",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        StripOutputFieldKey.AZIMUTH_NEXT: Field(
+            label="Azimuth Next",
+            attribute="azimuth_next",
+            description="Azimute do segmento seguinte (i → i+1).",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        StripOutputFieldKey.DELTA_AZ_PREV: Field(
+            label="Delta Azimuth Prev",
+            attribute="delta_az_prev",
+            description="Diferença angular entre azimute instantâneo e azimute anterior.",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        StripOutputFieldKey.DELTA_AZ_NEXT: Field(
+            label="Delta Azimuth Next",
+            attribute="delta_az_next",
+            description="Diferença angular entre azimute instantâneo e azimute seguinte.",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
     }
     MENU_CATEGORIES = {
         "SYSTEM": STR.MENU_SYSTEM,

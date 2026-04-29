@@ -23,6 +23,7 @@ from ..utils.ToolKeys import ToolKey
 from ..utils.adapter.StringAdapter import StringAdapter
 from ..core.enum.OutputFieldKey import StripOutputFieldKey
 from ..utils.judge.SequentialPointBreakJudge import SequentialPointBreakJudge
+from ..utils.judge.SimpleSPBJudge import SimpleSPBJudge
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerSource import VectorLayerSource
 from ..utils.MathUtils import MathUtils
@@ -33,6 +34,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
     PREF_SELECTED_OUTPUT_FIELDS = "selected_output_fields"
     REQUIRED_OUTPUT_FIELD = "shot_id"
     PATH_MODES = [STR.CURVE, STR.STRAIGHT, STR.BOTH_PATH]
+    JUDGE_MODES = {"Complexo": "complex", "Simples": "simple"}
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
@@ -100,6 +102,17 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
+        judge_mode_layout, self.judge_mode_selector = (
+            WidgetFactory.create_dropdown_selector(
+                title="Modo de Processamento",
+                options_dict=self.JUDGE_MODES,
+                selected_key="Complexo",
+                allow_empty=False,
+                parent=self,
+                separator_top=False,
+                separator_bottom=False,
+            )
+        )
         group_field_layout, self.group_field_selector = (
             WidgetFactory.create_dropdown_selector(
                 title="Agrupar por Campo (opcional)",
@@ -131,6 +144,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         self.operational_params.add_content_layout(id_field_layout)
         self.operational_params.add_content_layout(time_field_layout)
+        self.operational_params.add_content_layout(judge_mode_layout)
         self.operational_params.add_content_layout(group_field_layout)
         self.operational_params.add_content_layout(operational_layout)
         self.operational_params.add_content_layout(dist_max_layout)
@@ -831,6 +845,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         try:
             selected_fields = self._get_selected_output_fields()
+            path_mode = self.radio_path_mode.get_selected_text()
+            if path_mode == STR.STRAIGHT:
+                judge_class = SimpleSPBJudge
+            else:
+                judge_class = SequentialPointBreakJudge
             judge_args = {
                 "field_id": field_id,
                 "field_time": field_time,
@@ -917,7 +936,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     process_layer = layer
                     group_label = layer.name()
 
-                summary = SequentialPointBreakJudge(
+                summary = judge_class(
                     layer=process_layer,
                     tool_key=self.TOOL_KEY,
                 ).judge(**judge_args)

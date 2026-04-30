@@ -236,13 +236,46 @@ class SimpleSPBJudge:
             next_segment_az = raw_az[i + 1] if i + 1 < n else None
             dd = distances[i]
             if i == 0:
-                seg_type = "primeiro"
+                seg_type = "start"
+
+            elif i == n - 1:
+                seg_type = "end"
+
             elif break_points[i]:
-                seg_type = break_reasons[i] or "quebra"
+                if break_reasons[i] == "dist":
+                    seg_type = "break_distance"
+                else:
+                    seg_type = "break_direction"
+
             elif validated_shot_ids[i] == 0:
                 seg_type = "outlier"
+
             else:
-                seg_type = "normal"
+                # análise dinâmica
+                local_variation = max(delta_prev, delta_next)
+
+                # suspeita de gap (quase quebra por distância)
+                if max_distance_meters > 0.0 and distances[i] > max_distance_meters * 0.7:
+                    seg_type = "gap_suspect"
+
+                # trajetória muito estável
+                elif local_variation < 5:
+                    seg_type = "straight"
+
+                # curva suave
+                elif local_variation < 15:
+                    seg_type = "smooth_turn"
+
+                # curva forte
+                elif local_variation < severe_azimuth_threshold:
+                    seg_type = "sharp_turn"
+
+                # comportamento instável (zig-zag)
+                elif delta_prev > 20 and delta_next > 20:
+                    seg_type = "zigzag"
+
+                else:
+                    seg_type = "noisy"
 
             if prev_segment_az is not None and next_segment_az is not None:
                 az_instant = MathUtils.circular_mean([prev_segment_az, next_segment_az])

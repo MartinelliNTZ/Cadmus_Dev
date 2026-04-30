@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+from functools import partial
 from qgis.core import (
     QgsMapLayerProxyModel,
     QgsVectorLayer,
@@ -531,7 +532,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             crs_authid=point_layer.crs().authid(),
             min_vertices_per_line=2,
             output_field_specs=self._strip_line_output_field_specs(),
-            attributes_resolver=self._strip_line_attributes_resolver(
+            attributes_resolver=partial(
+                self._strip_line_attributes_resolver,
                 source_path=point_layer.source(),
                 sid_key=sid_key,
                 valid_key=valid_key,
@@ -616,39 +618,46 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         stats["unique_shots"] = len(seen_shots)
         return features, stats
 
-    def _strip_line_attributes_resolver(self, source_path, sid_key, valid_key, az_key):
-        """Cria resolvedor de atributos agregados."""
-        def _resolve(group_records, group_key=None):
-            """Calcula atributos de uma linha agrupada."""
-            sid_val = ""
-            if group_records:
-                sid_val = str(group_records[0].attribute(sid_key))
-            valid_val = 0
-            if group_records:
-                try:
-                    valid_val = int(group_records[0].attribute(valid_key) or 0)
-                except Exception:
-                    valid_val = 0
+    def _strip_line_attributes_resolver(
+        self,
+        group_records,
+        group_key=None,
+        *,
+        source_path,
+        sid_key,
+        valid_key,
+        az_key,
+    ):
+        """Calcula atributos agregados de uma linha."""
+        sid_val = ""
+        if group_records:
+            sid_val = str(group_records[0].attribute(sid_key))
 
-            az_values = []
-            for rec in group_records or []:
-                az = rec.attribute(az_key)
-                if isinstance(az, (int, float)):
-                    az_values.append(float(az))
-            avg_az = (
-                VectorLayerGeometry.circular_mean_degrees(az_values)
-                if az_values
-                else 0.0
-            )
-            return {
-                "shot_id": sid_val,
-                "shot_valid": valid_val,
-                "point_count": len(group_records or []),
-                "azimuth_mean": float(avg_az),
-                "source": source_path,
-            }
+        valid_val = 0
+        if group_records:
+            try:
+                valid_val = int(group_records[0].attribute(valid_key) or 0)
+            except Exception:
+                valid_val = 0
 
-        return _resolve
+        az_values = []
+        for rec in group_records or []:
+            az = rec.attribute(az_key)
+            if isinstance(az, (int, float)):
+                az_values.append(float(az))
+
+        avg_az = (
+            VectorLayerGeometry.circular_mean_degrees(az_values)
+            if az_values
+            else 0.0
+        )
+        return {
+            "shot_id": sid_val,
+            "shot_valid": valid_val,
+            "point_count": len(group_records or []),
+            "azimuth_mean": float(avg_az),
+            "source": source_path,
+        }
 
     def _refresh_field_selectors(self):
         """Atualiza opções dos seletores de campo."""

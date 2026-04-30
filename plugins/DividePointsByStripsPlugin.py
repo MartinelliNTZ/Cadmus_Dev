@@ -132,22 +132,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
-        dist_max_layout, self.dist_max_input = WidgetFactory.create_double_spin_input(
-            "Distância Máxima de Quebra (m)",
-            #tooltip="Distância a partir da qual uma quebra de faixa é forçada automaticamente.",
-            value=0.0,
-            minimum=0.0,
-            maximum=100000.0,
-            decimals=1,
-            step=10.0,
-            #arent=self,
-        )
         self.operational_params.add_content_layout(id_field_layout)
         self.operational_params.add_content_layout(time_field_layout)
         self.operational_params.add_content_layout(judge_mode_layout)
         self.operational_params.add_content_layout(group_field_layout)
         self.operational_params.add_content_layout(operational_layout)
-        self.operational_params.add_content_layout(dist_max_layout)
 
         sensitivity_layout, self.sensitivity_fields = (
             WidgetFactory.create_input_fields_widget(
@@ -306,8 +295,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             self.preferences.get("last_output_track_file", "")
         )
         
-        self.dist_max_input.setValue(float(self.preferences.get("max_distance_meters", 0.0)))
-
         self.group_field_selector.set_selected_key(self.preferences.get("group_field", ""))
 
         # Restaurar estado de expansão dos colapsáveis
@@ -337,7 +324,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.preferences["save_track_to_folder"] = bool(self.save_track_selector.is_enabled())
         self.preferences["last_output_track_file"] = self.save_track_selector.get_file_path()
         self.preferences["window_width"] = self.width()
-        self.preferences["max_distance_meters"] = float(self.dist_max_input.value())
         self.preferences["window_height"] = self.height()
 
         # Salvar estado de expansão dos colapsáveis
@@ -791,7 +777,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         operational_values = self.operational_fields.get_values()
         sensitivity_values = self.sensitivity_fields.get_values()
-        max_dist = float(self.dist_max_input.value())
 
         self.logger.info(
             "Executando segmentacao de tiros em camada de pontos",
@@ -818,29 +803,21 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             judge_args = {
                 "field_id": field_id,
                 "field_time": field_time,
-                "point_frequency_seconds": float(
-                    operational_values.get("frequencia_pontos", 1) or 1
-                ),
-                "strip_width_meters": float(
-                    operational_values.get("largura_tiro", 20.0) or 20.0
-                ),
-                "azimuth_window": int(sensitivity_values.get("janela_azimute", 10) or 10),
+                "point_frequency_seconds": float(sensitivity_values["frequencia_pontos"]),
+                "strip_width_meters": float(sensitivity_values["largura_tiro"]),
+                "azimuth_window": int(sensitivity_values["janela_azimute"]),
                 "light_azimuth_threshold": float(
-                    sensitivity_values.get("threshold_azimute_leve", 20.0) or 20.0
+                    sensitivity_values["threshold_azimute_leve"]
                 ),
                 "severe_azimuth_threshold": float(
-                    sensitivity_values.get("threshold_azimute_grave", 45.0) or 45.0
+                    operational_values["threshold_azimute_grave"]
                 ),
-                "minimum_break_score": int(
-                    sensitivity_values.get("score_minimo_quebra", 3) or 3
-                ),
-                "minimum_point_count": int(
-                    sensitivity_values.get("n_minimo_pontos", 20) or 20
-                ),
+                "minimum_break_score": int(sensitivity_values["score_minimo_quebra"]),
+                "minimum_point_count": int(operational_values["n_minimo_pontos"]),
                 "time_tolerance_multiplier": float(
-                    sensitivity_values.get("tolerancia_tempo", 3.0) or 3.0
+                    sensitivity_values["tolerancia_tempo"]
                 ),
-                "max_desvio": int(sensitivity_values.get("max_desvio", 5) or 5),
+                "max_desvio": int(operational_values["max_desvio"]),
                 "confirmation_window": 3,
                 "min_confirmed": 2,
                 "border_azimuth_threshold": 90.0,
@@ -850,7 +827,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 "fusion_azimuth_tolerance": 10.0,
                 "conflict_resolver": "replace",
                 "path_mode": self.radio_path_mode.get_selected_text(),
-                "max_distance_meters": max_dist,
+                "max_distance_meters": float(operational_values["max_distance"]),
             }
 
             if field_group:
@@ -1153,3 +1130,5 @@ def run(iface):
     dlg.setModal(False)
     dlg.show()
     return dlg
+
+

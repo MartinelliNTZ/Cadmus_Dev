@@ -75,7 +75,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.OPERATIONAL_PARAMETERS,
-                expanded_by_default=True,
+                expanded_by_default=self.preferences.get("",False),
                 separator_top=False,
                 separator_bottom=True,
             )
@@ -136,7 +136,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.operational_params.add_content_layout(group_field_layout)
         self.operational_params.add_content_layout(operational_layout)
 
-        sensitivity_layout, self.sensitivity_fields = (
+        sensitivity_fields_layout, self.sensitivity_fields = (
             WidgetFactory.create_input_fields_widget(
                 fields_dict=StringManager.DIVIDE_POINTS_SENSITIVITY_FIELDS,
                 parent=self,
@@ -145,11 +145,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             )
         )
         
-        advanced_layout, self.advanced_params = (
+        sensitivity_layout, self.advanced_params = (
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.SENSITIVITY_PARAMETERS,
-                expanded_by_default=True,
+                expanded_by_default=self.preferences.get("",False),
                 separator_top=False,
                 separator_bottom=True,
             )
@@ -167,7 +167,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             separator_bottom=True,
         )
         
-        self.advanced_params.add_content_layout(sensitivity_layout)
+        self.advanced_params.add_content_layout(sensitivity_fields_layout)
         self.advanced_params.add_content_layout(time_field_layout)
         self.advanced_params.add_content_layout(judge_mode_layout)
         self.advanced_params.add_content_layout(radio_layout)
@@ -193,7 +193,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.ATTRIBUTES,
-                expanded_by_default=True,
+                expanded_by_default=self.preferences.get("",False),
                 separator_top=False,
                 separator_bottom=True,
             )
@@ -241,7 +241,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 intro_label,
                 layer_layout,                
                 operational_container_layout,
-                advanced_layout,                
+                sensitivity_layout,                
                 attributes_layout,
                 save_layout,
                 buttons_layout,

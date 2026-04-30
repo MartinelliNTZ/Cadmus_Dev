@@ -64,7 +64,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             label_text=STR.INPUT_POINTS,
             filters=[QgsMapLayerProxyModel.PointLayer],
             allow_empty=False,
-            enable_selected_checkbox=False,
+            enable_selected_checkbox=True,
             parent=self,
             separator_top=False,
             separator_bottom=True,

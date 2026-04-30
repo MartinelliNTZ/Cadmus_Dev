@@ -2,6 +2,8 @@
 from pathlib import Path
 import json
 import math
+import re
+from typing import Union, Tuple, List
 
 from typing import Optional
 
@@ -300,6 +302,37 @@ class VectorLayerGeometry:
             )
             return None
         return vl
+    
+
+
+    def natural_sort_key(value: Union[str, int, float, None]) -> Tuple:
+        """
+        Gera uma chave de ordenação para valores mistos (string com números ou números puros).
+        Exemplos:
+            'A1'   -> ('A', 1)
+            'A2'   -> ('A', 2)
+            'A10'  -> ('A', 10)
+            'B1'   -> ('B', 1)
+            123    -> (123,)
+            12.5   -> (12.5,)
+            None   -> ('',)  # ou (float('-inf'),)
+        """
+        if value is None:
+            return ('',)  # valores nulos vão para o início
+
+        if isinstance(value, (int, float)):
+            return (value,)
+
+        # Converte para string e separa partes numéricas e não numéricas
+        s = str(value)
+        parts = re.split(r'(\d+)', s)  # ex: 'A10' -> ['A', '10', '']
+        key_parts = []
+        for part in parts:
+            if part.isdigit():
+                key_parts.append(int(part))
+            else:
+                key_parts.append(part)
+        return tuple(key_parts)
 
     
     @staticmethod
@@ -358,10 +391,8 @@ class VectorLayerGeometry:
 
         # --- Ordenação por sequência ---
         def _sort_key(feature: QgsFeature):
-            try:
-                return float(_safe_attribute(feature, order_by_field))
-            except (TypeError, ValueError):
-                return 0
+            val = _safe_attribute(feature, order_by_field)
+            return VectorLayerGeometry.natural_sort_key(val)
 
         # --- Agrupamento ---
         if group_by_fields:

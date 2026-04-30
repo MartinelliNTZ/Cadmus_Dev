@@ -488,7 +488,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         return filtered_layer
 
-    def _generate_strip_lines_layer(self, point_layer, field_name_map, original_layer_name):
+    def _generate_strip_lines_layer(
+        self, point_layer, field_name_map, original_layer_name, sequence_field
+    ):
         """Orquestra a criação de linhas por shot."""
         t0 = time.time()
         self.logger.info("Iniciando geração de linhas (strips)")
@@ -512,7 +514,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         line_layer = VectorLayerGeometry.create_line_layer_from_points(
             points=features,
-            order_by_field=sid_key,
+            order_by_field=sequence_field,
             name=f"{original_layer_name}_linhas",
             group_by_fields=[sid_key],
             crs_authid=point_layer.crs().authid(),
@@ -927,7 +929,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     strip_lines_layer = self._generate_strip_lines_layer(
                         raw_result_layer,
                         field_name_map or {},
-                        f"{group_label}"
+                        f"{group_label}",
+                        field_id,
                     )
                     if strip_lines_layer and strip_lines_layer.isValid():
                         if field_group and gv is not None:

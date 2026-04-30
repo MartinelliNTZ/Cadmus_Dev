@@ -30,6 +30,7 @@ from ..utils.ProjectUtils import ProjectUtils
 class DividePointsByStripsPlugin(BasePluginMTL):
     TOOL_KEY = ToolKey.DIVIDE_POINTS_BY_STRIPS
     PREF_SELECTED_OUTPUT_FIELDS = "selected_output_fields"
+    PREF_JUDGE_MODE = "judge_mode"
     REQUIRED_OUTPUT_FIELD = "shot_id"
     PATH_MODES = [STR.CURVE, STR.STRAIGHT, STR.BOTH_PATH]
     JUDGE_MODES = {"Complexo": "complex", "Simples": "simple"}
@@ -106,7 +107,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             WidgetFactory.create_dropdown_selector(
                 title="Modo de Processamento",
                 options_dict=self.JUDGE_MODES,
-                selected_key="Complexo",
+                selected_key=self.preferences.get(self.PREF_JUDGE_MODE, "Complexo"),
                 allow_empty=False,
                 parent=self,
                 separator_top=False,
@@ -298,6 +299,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
         
         self.group_field_selector.set_selected_key(self.preferences.get("group_field", ""))
+        self.judge_mode_selector.set_selected_key(
+            self.preferences.get(self.PREF_JUDGE_MODE, "Complexo")
+        )
 
         # Restaurar estado de expansão dos colapsáveis
         self.operational_params.set_expanded(self.preferences.get("expanded_operational", True))
@@ -315,6 +319,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             self.time_field_selector.get_selected_key() or ""
         )
         self.preferences["group_field"] = self.group_field_selector.get_selected_key() or ""
+        self.preferences[self.PREF_JUDGE_MODE] = (
+            self.judge_mode_selector.get_selected_key() or "Complexo"
+        )
         self.preferences["operational_fields"] = self.operational_fields.get_values()
         self.preferences["sensitivity_fields"] = self.sensitivity_fields.get_values()
         self.preferences["path_mode"] = self.radio_path_mode.get_selected_text()
@@ -799,8 +806,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         try:
             selected_fields = self._get_selected_output_fields()
-            path_mode = self.radio_path_mode.get_selected_text()
-            if path_mode == STR.STRAIGHT:
+            judge_mode = self.judge_mode_selector.get_selected_key()
+            judge_mode_id = self.JUDGE_MODES[judge_mode]
+            if judge_mode_id == "simple":
                 judge_class = SimpleSPBJudge
             else:
                 judge_class = SequentialPointBreakJudge

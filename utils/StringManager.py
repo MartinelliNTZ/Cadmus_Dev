@@ -206,18 +206,31 @@ class StringManager:
     DIVIDE_POINTS_STRIP_TYPES = ["Curva", "Reta", "Ambas"]
 
     DIVIDE_POINTS_OPERATIONAL_FIELDS = {
-        "frequencia_pontos": {
-            "title": STR.EXPECTED_POINT_FREQUENCY_SECONDS,
-            "type": "int",
-            "default": 1,
-        },
-        "largura_tiro": {
-            "title": STR.EXPECTED_LATERAL_WIDTH_METERS,
+        "threshold_azimute_grave": {
+            "title": STR.SEVERE_AZIMUTH_DEVIATION_THRESHOLD,
+            "description": "Desvio alto de azimute que indica uma mudanca de direcao clara.",
             "type": "float",
-            "default": 20.0,
+            "default": 45.0,
+        },
+        "n_minimo_pontos": {
+            "title": STR.MINIMUM_POINT_COUNT,
+            "description": "Menor quantidade de pontos que um trecho precisa para ser aceito.",
+            "type": "int",
+            "default": 20,
+        },
+        "max_desvio": {
+            "title": "Numero max de pontos desvio",
+            "description": "Maximo de pontos fora do padrao que serao ignorados antes de confirmar a quebra.",
+            "type": "int",
+            "default": 2,
+        },
+        "max_distance": {
+            "title": "Distância Máxima entre pontos",
+            "description": "Distância máxima entre pontos para considerar uma quebra.",
+            "type": "int",
+            "default": 150,
         },
     }
-
     DIVIDE_POINTS_SENSITIVITY_FIELDS = {
         "janela_azimute": {
             "title": STR.AZIMUTH_MOVING_WINDOW,
@@ -231,23 +244,11 @@ class StringManager:
             "type": "float",
             "default": 20.0,
         },
-        "threshold_azimute_grave": {
-            "title": STR.SEVERE_AZIMUTH_DEVIATION_THRESHOLD,
-            "description": "Desvio alto de azimute que indica uma mudanca de direcao clara.",
-            "type": "float",
-            "default": 45.0,
-        },
         "score_minimo_quebra": {
             "title": STR.MINIMUM_BREAK_SCORE,
             "description": "Pontos necessarios para que o desvio seja considerado uma quebra real.",
             "type": "int",
             "default": 3,
-        },
-        "n_minimo_pontos": {
-            "title": STR.MINIMUM_POINT_COUNT,
-            "description": "Menor quantidade de pontos que um trecho precisa para ser aceito.",
-            "type": "int",
-            "default": 20,
         },
         "tolerancia_tempo": {
             "title": STR.TIME_TOLERANCE_MULTIPLIER,
@@ -255,11 +256,15 @@ class StringManager:
             "type": "float",
             "default": 3.0,
         },
-        "max_desvio": {
-            "title": "Numero max de pontos desvio",
-            "description": "Maximo de pontos fora do padrao que serao ignorados antes de confirmar a quebra.",
+        "frequencia_pontos": {
+            "title": STR.EXPECTED_POINT_FREQUENCY_SECONDS,
             "type": "int",
-            "default": 2,
+            "default": 1,
+        },
+        "largura_tiro": {
+            "title": STR.EXPECTED_LATERAL_WIDTH_METERS,
+            "type": "float",
+            "default": 20.0,
         },
     }
 

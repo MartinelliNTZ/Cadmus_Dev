@@ -132,9 +132,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
-        self.operational_params.add_content_layout(id_field_layout)
-        self.operational_params.add_content_layout(time_field_layout)
-        self.operational_params.add_content_layout(judge_mode_layout)
+        self.operational_params.add_content_layout(id_field_layout) 
         self.operational_params.add_content_layout(group_field_layout)
         self.operational_params.add_content_layout(operational_layout)
 
@@ -146,7 +144,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
-
+        
         advanced_layout, self.advanced_params = (
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
@@ -155,8 +153,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_top=False,
                 separator_bottom=True,
             )
-        )
-        self.advanced_params.add_content_layout(sensitivity_layout)
+        )       
+        
 
         radio_layout, self.radio_path_mode = WidgetFactory.create_radio_button_grid(
             items=self.PATH_MODES,
@@ -168,6 +166,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             separator_top=False,
             separator_bottom=True,
         )
+        
+        self.advanced_params.add_content_layout(sensitivity_layout)
+        self.advanced_params.add_content_layout(time_field_layout)
+        self.advanced_params.add_content_layout(judge_mode_layout)
+        self.advanced_params.add_content_layout(radio_layout)
 
         output_layout, self.output_fields_grid = WidgetFactory.create_checkbox_grid(
             options_data=StringAdapter.to_key_label_description(
@@ -236,8 +239,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.layout.add_items(
             [
                 intro_label,
-                layer_layout,
-                radio_layout,
+                layer_layout,                
                 operational_container_layout,
                 advanced_layout,                
                 attributes_layout,

@@ -21,6 +21,7 @@ from ..utils.adapter.StringAdapter import StringAdapter
 from ..core.enum.OutputFieldKey import StripOutputFieldKey
 from ..utils.judge.SequentialPointBreakJudge import SequentialPointBreakJudge
 from ..utils.judge.SimpleSPBJudge import SimpleSPBJudge
+from ..utils.judge.ScoreSPBJudge import ScoreSPBJudge
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
@@ -33,7 +34,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
     PREF_JUDGE_MODE = "judge_mode"
     REQUIRED_OUTPUT_FIELD = "shot_id"
     PATH_MODES = [STR.CURVE, STR.STRAIGHT, STR.BOTH_PATH]
-    JUDGE_MODES = {"Complexo": "complex", "Simples": "simple"}
+    JUDGE_MODES = {"Complexo": "complex", "Simples": "simple", "Score": "score"}
 
     def __init__(self, iface):
         """Inicializa plugin e estado base."""
@@ -810,6 +811,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             judge_mode_id = self.JUDGE_MODES[judge_mode]
             if judge_mode_id == "simple":
                 judge_class = SimpleSPBJudge
+            elif judge_mode_id == "score":
+                judge_class = ScoreSPBJudge
             else:
                 judge_class = SequentialPointBreakJudge
             judge_args = {

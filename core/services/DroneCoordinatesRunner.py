@@ -119,8 +119,6 @@ class DroneCoordinatesRunner:
 
     def _on_pipeline_finished(self, context: ExecutionContext):
         layer = context.get("layer")
-        points = context.get("points", []) or []
-
         if not layer or not layer.isValid():
             self._notify_error(STR.ERROR_LAYER_NOT_FOUND)
             return
@@ -150,10 +148,13 @@ class DroneCoordinatesRunner:
                 if ok:
                     points_layer.triggerRepaint()
 
+        order_field = self._resolve_track_order_field(points_layer or layer)
+        group_fields = self._resolve_track_group_fields(points_layer or layer)
         line_layer = VectorLayerGeometry.create_line_layer_from_points(
-            points,
+            list((points_layer or layer).getFeatures()),
+            order_by_field=order_field,
             name=track_layer_name,
-            group_by_fields=["mrk_path", "mrk_file"],
+            group_by_fields=group_fields,
             attribute_fields=MetadataFields.default_track_attribute_keys(),
         )
 
@@ -254,3 +255,33 @@ class DroneCoordinatesRunner:
         if not layer or not layer.isValid():
             return
         ProjectUtils.add_layer_if_missing(layer)
+
+    @staticmethod
+    def _resolve_track_order_field(layer):
+        candidates = [
+            "Foto",
+            "foto",
+            "PhotoNum",
+            MetadataFields.resolve_output_name("Foto"),
+            "mrk_index",
+            "id",
+        ]
+        for name in candidates:
+            if name and layer.fields().lookupField(name) != -1:
+                return name
+        return layer.fields().field(0).name()
+
+    @staticmethod
+    def _resolve_track_group_fields(layer):
+        pairs = [
+            ("MrkPath", "MrkFile"),
+            ("mrk_path", "mrk_file"),
+            (
+                MetadataFields.resolve_output_name("MrkPath"),
+                MetadataFields.resolve_output_name("MrkFile"),
+            ),
+        ]
+        for a, b in pairs:
+            if layer.fields().lookupField(a) != -1 and layer.fields().lookupField(b) != -1:
+                return [a, b]
+        return None

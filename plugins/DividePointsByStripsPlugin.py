@@ -4,14 +4,10 @@ import time
 from qgis.core import (
     QgsMapLayerProxyModel,
     QgsVectorLayer,
-    QgsProject,
     QgsField,
     QgsFeature,
-    QgsGeometry,
-    QgsPointXY,
 )
 from qgis.PyQt.QtCore import QVariant
-from qgis.core import QgsProject
 
 from .BasePlugin import BasePluginMTL
 from ..core.ui.WidgetFactory import WidgetFactory
@@ -25,8 +21,9 @@ from ..core.enum.OutputFieldKey import StripOutputFieldKey
 from ..utils.judge.SequentialPointBreakJudge import SequentialPointBreakJudge
 from ..utils.judge.SimpleSPBJudge import SimpleSPBJudge
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
+from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
-from ..utils.MathUtils import MathUtils
+from ..utils.ProjectUtils import ProjectUtils
 
 
 class DividePointsByStripsPlugin(BasePluginMTL):
@@ -501,158 +498,146 @@ class DividePointsByStripsPlugin(BasePluginMTL):
     def _generate_strip_lines_layer(self, point_layer, field_name_map, original_layer_name):
         """Gera uma camada de linhas onde cada feição representa um shot_id."""
         t0 = time.time()
-        self.logger.info("Iniciando agrupamento de pontos para geração de linhas (strips)")
-
-        sid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_ID)
-        valid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_VALID)
-        az_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.AZIMUTH_INSTANT)
-
-        self.logger.debug(
-            "Campos resolvidos para geração de linhas",
+        self.logger.info("Iniciando geração de linhas (strips)")
+        sid_key, valid_key, az_key = self._resolve_strip_line_fields(field_name_map)
+        features, stats = self._collect_strip_line_features(
+            point_layer=point_layer,
             sid_key=sid_key,
             valid_key=valid_key,
             az_key=az_key,
-            point_layer_name=point_layer.name(),
-            point_layer_feature_count=point_layer.featureCount()
         )
-
-        # Agrupamento manual para garantir ordem e controle de atributos
-        shots_data = {}
-        total_features_processed = 0
-        skipped_null_sid = 0
-        skipped_zero_sid = 0
-        skipped_invalid_geom = 0
-
-        for feat in point_layer.getFeatures():
-            total_features_processed += 1
-            sid = feat.attribute(sid_key)
-            if sid is None or sid == 0 or str(sid) == "0":
-                if sid is None:
-                    skipped_null_sid += 1
-                else:
-                    skipped_zero_sid += 1
-                continue
-
-            if sid not in shots_data:
-                shots_data[sid] = {
-                    "points": [],
-                    "azs": [],
-                    "valid": feat.attribute(valid_key),
-                }
-
-            geom = feat.geometry()
-            if geom and not geom.isEmpty():
-                point = geom.asPoint()
-                shots_data[sid]["points"].append(QgsPointXY(point.x(), point.y()))
-                az_val = feat.attribute(az_key)
-                if isinstance(az_val, (int, float)):
-                    shots_data[sid]["azs"].append(az_val)
-            else:
-                skipped_invalid_geom += 1
 
         self.logger.info(
-            "Agrupamento de pontos concluído",
-            total_features_processed=total_features_processed,
-            unique_shots=len(shots_data),
-            skipped_null_sid=skipped_null_sid,
-            skipped_zero_sid=skipped_zero_sid,
-            skipped_invalid_geom=skipped_invalid_geom
+            "Coleta de pontos para strips concluída",
+            total_features_processed=stats["total_features_processed"],
+            valid_features=stats["valid_features"],
+            unique_shots=stats["unique_shots"],
+            skipped_null_sid=stats["skipped_null_sid"],
+            skipped_zero_sid=stats["skipped_zero_sid"],
+            skipped_invalid_geom=stats["skipped_invalid_geom"],
         )
 
-        # Criar camada de memória para linhas
-        uri = f"LineString?crs={point_layer.crs().authid()}"
-        line_layer = QgsVectorLayer(uri, f"{original_layer_name}_linhas", "memory")
-        provider = line_layer.dataProvider()
-
-        # Definir campos agregados
-        fields = [
-            QgsField("shot_id", QVariant.String, len=50),
-            QgsField("shot_valid", QVariant.Int),
-            QgsField("point_count", QVariant.Int),
-            QgsField("azimuth_mean", QVariant.Double, len=10, prec=2),
-            QgsField("source", QVariant.String, len=255)
-        ]
-        provider.addAttributes(fields)
-        line_layer.updateFields()
-
-        new_features = []
-        ignored_shots = 0
-
-        for sid in sorted(shots_data.keys()):
-            data = shots_data[sid]
-            pts = data["points"]
-            
-            if len(pts) < 2:
-                ignored_shots += 1
-                self.logger.debug(
-                    "Shot ignorado por poucos pontos",
-                    shot_id=sid,
-                    point_count=len(pts),
-                    valid=data.get("valid")
-                )
-                continue
-
-            line_geom = QgsGeometry.fromPolylineXY(pts)
-
-            if not line_geom or line_geom.isEmpty():
-                self.logger.warning(
-                    "Falha ao criar geometria de linha",
-                    shot_id=sid,
-                    points_count=len(pts),
-                    points_sample=pts[:3] if len(pts) > 3 else pts
-                )
-                continue
-
-            feat = QgsFeature(line_layer.fields())
-            feat.setGeometry(line_geom)
-
-            # Calcular média circular do azimute para a linha
-            avg_az = MathUtils.circular_mean(data["azs"]) if data.get("azs") else 0.0
-
-            feat.setAttribute("shot_id", str(sid))
-            feat.setAttribute("shot_valid", int(data["valid"]))
-            feat.setAttribute("point_count", len(pts))
-            feat.setAttribute("azimuth_mean", float(avg_az))
-            feat.setAttribute("source", point_layer.source())
-            
-            new_features.append(feat)
-
-        # Tenta adicionar via data provider
-        try:
-            add_result = provider.addFeatures(new_features)
-        except Exception:
-            add_result = None
-
-        # Atualiza extensões e campos
-        line_layer.updateFields()
-        line_layer.updateExtents()
-
-        # Verifica se as feições foram realmente adicionadas
-        final_count = line_layer.featureCount()
-
-        # Se não houve features adicionadas, tenta um fallback usando edição direta
-        if final_count == 0 and new_features:
-            try:
-                line_layer.startEditing()
-                added = 0
-                for feat in new_features:
-                    ok = line_layer.addFeature(feat)
-                    if ok:
-                        added += 1
-                line_layer.commitChanges()
-                line_layer.updateExtents()
-                final_count = line_layer.featureCount()
-            except Exception:
-                final_count = line_layer.featureCount()
-
-        self.logger.info(
-            "Geração de linhas concluída",
-            total_lines=final_count,
-            ignored_single_points=ignored_shots,
-            elapsed=round(time.time() - t0, 2),
+        line_layer = VectorLayerGeometry.create_line_layer_from_points(
+            points=features,
+            order_by_field=sid_key,
+            name=f"{original_layer_name}_linhas",
+            group_by_fields=[sid_key],
+            crs_authid=point_layer.crs().authid(),
+            min_vertices_per_line=2,
+            output_field_specs=self._strip_line_output_field_specs(),
+            attributes_resolver=self._strip_line_attributes_resolver(
+                source_path=point_layer.source(),
+                sid_key=sid_key,
+                valid_key=valid_key,
+                az_key=az_key,
+            ),
+            tool_key=self.TOOL_KEY,
         )
+
+        if line_layer and line_layer.isValid():
+            self.logger.info(
+                "Geração de linhas concluída",
+                total_lines=line_layer.featureCount(),
+                elapsed=round(time.time() - t0, 2),
+            )
+        else:
+            self.logger.warning(
+                "Geração de linhas não retornou camada válida",
+                elapsed=round(time.time() - t0, 2),
+            )
 
         return line_layer
+
+    def _resolve_strip_line_fields(self, field_name_map):
+        sid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_ID)
+        valid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_VALID)
+        az_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.AZIMUTH_INSTANT)
+        self.logger.debug(
+            "Campos resolvidos para geração de strips",
+            sid_key=sid_key,
+            valid_key=valid_key,
+            az_key=az_key,
+        )
+        return sid_key, valid_key, az_key
+
+    @staticmethod
+    def _strip_line_output_field_specs():
+        return [
+            ("shot_id", QVariant.String, 50, 0),
+            ("shot_valid", QVariant.Int, 0, 0),
+            ("point_count", QVariant.Int, 0, 0),
+            ("azimuth_mean", QVariant.Double, 10, 2),
+            ("source", QVariant.String, 255, 0),
+        ]
+
+    def _collect_strip_line_features(self, point_layer, sid_key, valid_key, az_key):
+        features = []
+        stats = {
+            "total_features_processed": 0,
+            "valid_features": 0,
+            "unique_shots": 0,
+            "skipped_null_sid": 0,
+            "skipped_zero_sid": 0,
+            "skipped_invalid_geom": 0,
+        }
+
+        seen_shots = set()
+        for feat in point_layer.getFeatures():
+            stats["total_features_processed"] += 1
+            sid = feat.attribute(sid_key)
+            if sid is None:
+                stats["skipped_null_sid"] += 1
+                continue
+            if sid == 0 or str(sid) == "0":
+                stats["skipped_zero_sid"] += 1
+                continue
+
+            geom = feat.geometry()
+            if not geom or geom.isEmpty():
+                stats["skipped_invalid_geom"] += 1
+                continue
+
+            pt = geom.asPoint()
+            sid_str = str(sid)
+            if sid_str not in seen_shots:
+                seen_shots.add(sid_str)
+            features.append(feat)
+            stats["valid_features"] += 1
+
+        stats["unique_shots"] = len(seen_shots)
+        return features, stats
+
+    def _strip_line_attributes_resolver(self, source_path, sid_key, valid_key, az_key):
+        def _resolve(group_records, group_key=None):
+            sid_val = ""
+            if group_records:
+                sid_val = str(group_records[0].attribute(sid_key))
+            valid_val = 0
+            if group_records:
+                try:
+                    valid_val = int(group_records[0].attribute(valid_key) or 0)
+                except Exception:
+                    valid_val = 0
+
+            az_values = []
+            for rec in group_records or []:
+                az = rec.attribute(az_key)
+                if isinstance(az, (int, float)):
+                    az_values.append(float(az))
+            avg_az = (
+                VectorLayerGeometry.circular_mean_degrees(az_values)
+                if az_values
+                else 0.0
+            )
+            return {
+                "shot_id": sid_val,
+                "shot_valid": valid_val,
+                "point_count": len(group_records or []),
+                "azimuth_mean": float(avg_az),
+                "source": source_path,
+            }
+
+        return _resolve
 
     def _refresh_field_selectors(self):
         layer = self.layer_input.current_layer()
@@ -1058,7 +1043,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             )
 
             if result_layer and result_layer.isValid():
-                QgsProject.instance().addMapLayer(result_layer)
+                ProjectUtils.add_layer(result_layer)
                 self.logger.info(
                     "Nova camada adicionada ao projeto", layer_name=result_layer.name()
                 )
@@ -1082,7 +1067,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                         decision="rename",
                     )
                     if saved_layer and saved_layer.isValid():
-                        QgsProject.instance().addMapLayer(saved_layer)
+                        ProjectUtils.add_layer(saved_layer)
                         result_layer = saved_layer
                         self.logger.info(
                             "Camada salva e carregada", layer_name=saved_layer.name()
@@ -1109,7 +1094,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     )
 
                 if strip_lines_layer and strip_lines_layer.isValid():
-                    QgsProject.instance().addMapLayer(strip_lines_layer)
+                    ProjectUtils.add_layer(strip_lines_layer)
                     self.logger.info(
                         "Camada de linhas (strips) adicionada ao projeto como camada temporaria"
                     )
@@ -1124,7 +1109,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                                 decision="rename",
                             )
                             if saved_line_layer and saved_line_layer.isValid():
-                                QgsProject.instance().addMapLayer(saved_line_layer)
+                                ProjectUtils.add_layer(saved_line_layer)
                                 self.logger.info(
                                     "Camada de linhas salva em disco e carregada",
                                     path=line_out_path

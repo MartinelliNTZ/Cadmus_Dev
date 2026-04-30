@@ -301,134 +301,159 @@ class VectorLayerGeometry:
             return None
         return vl
 
+    
     @staticmethod
     def create_line_layer_from_points(
         points: list,
+        order_by_field: str,
         name: str = "Trilha",
-        group_by_fields: list = None,
-        attribute_fields: list = None,
+        group_by_fields: Optional[list] = None,
+        attribute_fields: Optional[list] = None,
+        output_field_specs: Optional[list] = None,
+        attributes_resolver=None,
+        crs_authid: str = "EPSG:4326",
+        min_vertices_per_line: int = 2,
         tool_key: str = ToolKey.UNTRACEABLE,
     ) -> Optional[QgsVectorLayer]:
-        """Cria linha(s) em memoria a partir de pontos."""
+        """
+        Cria linha(s) em memória a partir de QgsFeature com geometria Point.
+
+        As coordenadas são extraídas diretamente da geometria de cada feição.
+
+        Parâmetros obrigatórios:
+            points         — lista de QgsFeature com geometria Point
+            order_by_field — campo usado para ordenar as feições dentro de cada grupo
+
+        Parâmetros opcionais:
+            group_by_fields    — campos para separar os pontos em linhas distintas
+            attribute_fields   — campos copiados do primeiro ponto para a feição da linha
+            output_field_specs — schema explícito: [(nome, tipo, len, prec), ...]
+            attributes_resolver — callback(group, group_key) -> dict
+        """
         logger = VectorLayerGeometry._get_logger(tool_key)
-        logger.debug(
-            f"create_line_layer_from_points(points={len(points) if points else 0}, name={name}, group_by_fields={group_by_fields}, attribute_fields={attribute_fields})"
-        )
+
         if not points:
+            logger.warning("create_line_layer_from_points: lista de pontos vazia")
             return None
 
-        def _first_non_empty(record, keys):
-            for key in keys:
-                value = record.get(key)
-                if value not in (None, ""):
-                    return value
-            return None
+        logger.debug(
+            f"create_line_layer_from_points("
+            f"points={len(points)}, order={order_by_field}, "
+            f"group_by={group_by_fields})"
+        )
 
-        def _to_float(value):
-            if value in (None, ""):
+        # --- Extração de coordenadas direto da geometria ---
+        def _extract_xy(feature: QgsFeature) -> Optional[QgsPointXY]:
+            geom = feature.geometry()
+            if not geom or geom.isEmpty():
                 return None
+            pt = geom.asPoint()
+            return QgsPointXY(pt.x(), pt.y())
+
+        def _safe_attribute(feature: QgsFeature, field_name: str):
             try:
-                return float(value)
+                return feature.attribute(field_name)
             except Exception:
                 return None
 
-        def _extract_xy(record):
-            x_candidates = [
-                "Lon",
-                "lon",
-                "Longitude",
-                "GPSLong",
-                "GpsLongitude",
-                MetadataFields.resolve_output_name("Lon"),
-                MetadataFields.resolve_output_name("GpsLongitude"),
-            ]
-            y_candidates = [
-                "Lat",
-                "lat",
-                "Latitude",
-                "GpsLat",
-                "GpsLatitude",
-                MetadataFields.resolve_output_name("Lat"),
-                MetadataFields.resolve_output_name("GpsLatitude"),
-            ]
-            x_val = _to_float(_first_non_empty(record, x_candidates))
-            y_val = _to_float(_first_non_empty(record, y_candidates))
-            if x_val is None or y_val is None:
-                return None
-            return (x_val, y_val)
-
-        def _photo_sort_key(record):
-            photo_candidates = [
-                "Foto",
-                "foto",
-                "PhotoNum",
-                MetadataFields.resolve_output_name("Foto"),
-            ]
-            raw = _first_non_empty(record, photo_candidates)
+        # --- Ordenação por sequência ---
+        def _sort_key(feature: QgsFeature):
             try:
-                return int(raw)
-            except Exception:
+                return float(_safe_attribute(feature, order_by_field))
+            except (TypeError, ValueError):
                 return 0
 
-        groups = {None: points}
+        # --- Agrupamento ---
         if group_by_fields:
-            groups = {}
-            for point in points:
-                key = tuple(str(point.get(field, "") or "").strip() for field in group_by_fields)
-                groups.setdefault(key, []).append(point)
+            groups: dict = {}
+            for feat in points:
+                key = tuple(
+                    str(_safe_attribute(feat, f) or "").strip()
+                    for f in group_by_fields
+                )
+                groups.setdefault(key, []).append(feat)
+        else:
+            groups = {None: points}
 
+        # --- Schema de campos ---
         fields = QgsFields()
         resolved_attr_pairs = []
-        if attribute_fields:
-            seen_output_names = set()
+
+        if output_field_specs:
+            for spec in output_field_specs:
+                if not spec:
+                    continue
+                fields.append(QgsField(
+                    spec[0],
+                    spec[1] if len(spec) > 1 else QVariant.String,
+                    len=spec[2] if len(spec) > 2 else 0,
+                    prec=spec[3] if len(spec) > 3 else 0,
+                ))
+
+        elif attribute_fields:
+            seen = set()
             for input_name in attribute_fields:
                 output_name = MetadataFields.resolve_output_name(input_name)
-                if output_name in seen_output_names:
+                if output_name in seen:
                     continue
-                seen_output_names.add(output_name)
+                seen.add(output_name)
                 resolved_attr_pairs.append((input_name, output_name))
                 fields.append(QgsField(output_name, QVariant.String))
 
-        line = QgsVectorLayer("LineString?crs=EPSG:4326", name, "memory")
-        line.dataProvider().addAttributes(fields)
-        line.updateFields()
+        # --- Camada de memória ---
+        line_layer = QgsVectorLayer(f"LineString?crs={crs_authid}", name, "memory")
+        line_layer.dataProvider().addAttributes(fields)
+        line_layer.updateFields()
 
-        for _, group in groups.items():
+        # --- Feições ---
+        for group_key, group in groups.items():
             try:
-                group = sorted(group, key=_photo_sort_key)
+                group = sorted(group, key=_sort_key)
             except Exception as e:
-                logger.error(f"Erro ordenando pontos para linha: {e}")
-                return None
-
-            vertices = []
-            for point in group:
-                xy = _extract_xy(point)
-                if not xy:
-                    continue
-                vertices.append(QgsPointXY(xy[0], xy[1]))
-
-            if len(vertices) < 2:
+                logger.error(f"Erro ao ordenar grupo {group_key}: {e}")
                 continue
 
-            feature = QgsFeature(line.fields())
+            vertices = [xy for feat in group if (xy := _extract_xy(feat))]
+
+            if len(vertices) < max(2, min_vertices_per_line):
+                logger.debug(f"Grupo {group_key} ignorado: {len(vertices)} vértice(s)")
+                continue
+
+            feature = QgsFeature(line_layer.fields())
             feature.setGeometry(QgsGeometry.fromPolylineXY(vertices))
 
-            if attribute_fields:
+            if attributes_resolver:
+                try:
+                    custom_attrs = attributes_resolver(group, group_key=group_key) or {}
+                except TypeError:
+                    custom_attrs = attributes_resolver(group) or {}
+                except Exception as e:
+                    logger.warning(f"attributes_resolver falhou para grupo {group_key}: {e}")
+                    custom_attrs = {}
+                for attr_name, attr_value in custom_attrs.items():
+                    if line_layer.fields().lookupField(attr_name) != -1:
+                        feature.setAttribute(attr_name, attr_value)
+
+            elif resolved_attr_pairs:
                 source = group[0]
                 for input_name, output_name in resolved_attr_pairs:
-                    value = source.get(input_name)
+                    value = _safe_attribute(source, input_name)
                     if value is None and output_name != input_name:
-                        value = source.get(output_name)
+                        value = _safe_attribute(source, output_name)
                     if value is not None:
                         feature.setAttribute(output_name, value)
 
-            line.dataProvider().addFeature(feature)
+            line_layer.dataProvider().addFeature(feature)
 
-        line.updateExtents()
-        if line.featureCount() == 0:
+        line_layer.updateExtents()
+
+        if line_layer.featureCount() == 0:
+            logger.warning("create_line_layer_from_points: nenhuma feição gerada")
             return None
-        return line
 
+        return line_layer
+    
+    @staticmethod
     def create_buffer_geometry(
         *,
         layer: QgsVectorLayer,

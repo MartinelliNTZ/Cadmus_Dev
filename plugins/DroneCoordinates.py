@@ -528,8 +528,6 @@ class DroneCordinates(BasePluginMTL):
     def _on_pipeline_finished(self, context):
         layer = context.get("layer")
         if not layer or not layer.isValid():
-            from ..utils.QgisMessageUtil import QgisMessageUtil
-
             QgisMessageUtil.modal_error(self.iface, STR.ERROR_LAYER_NOT_FOUND)
             return
 
@@ -560,14 +558,13 @@ class DroneCordinates(BasePluginMTL):
                     layer.triggerRepaint()
 
         # ===== TRAÃ‡O =====
-        points = context.get("points", []) or []
-        normalized_points = [
-            MetadataFields.normalize_record_to_keys(point or {}) for point in points
-        ]
         try:
+            order_field = self._resolve_track_order_field(layer)
+            group_fields = self._resolve_track_group_fields(layer)
             vl_line = VectorLayerGeometry.create_line_layer_from_points(
-                normalized_points,
-                group_by_fields=["MrkPath", "MrkFile"],
+                list(layer.getFeatures()),
+                order_by_field=order_field,
+                group_by_fields=group_fields,
                 attribute_fields=MetadataFields.default_track_attribute_keys(),
             )
             if vl_line:
@@ -604,6 +601,36 @@ class DroneCordinates(BasePluginMTL):
             self.logger.error(f"Falha ao gerar camada de traco: {e}")
 
         QgisMessageUtil.bar_success(self.iface, STR.SUCCESS_MESSAGE)
+
+    @staticmethod
+    def _resolve_track_order_field(layer):
+        candidates = [
+            "Foto",
+            "foto",
+            "PhotoNum",
+            MetadataFields.resolve_output_name("Foto"),
+            "mrk_index",
+            "id",
+        ]
+        for name in candidates:
+            if name and layer.fields().lookupField(name) != -1:
+                return name
+        return layer.fields().field(0).name()
+
+    @staticmethod
+    def _resolve_track_group_fields(layer):
+        pairs = [
+            ("MrkPath", "MrkFile"),
+            ("mrk_path", "mrk_file"),
+            (
+                MetadataFields.resolve_output_name("MrkPath"),
+                MetadataFields.resolve_output_name("MrkFile"),
+            ),
+        ]
+        for a, b in pairs:
+            if layer.fields().lookupField(a) != -1 and layer.fields().lookupField(b) != -1:
+                return [a, b]
+        return None
 
 
 def run(iface):

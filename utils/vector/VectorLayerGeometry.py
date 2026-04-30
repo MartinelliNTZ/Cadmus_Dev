@@ -452,6 +452,77 @@ class VectorLayerGeometry:
             return None
 
         return line_layer
+
+    @staticmethod
+    def merge_memory_layers(
+        layers: list,
+        crs_authid: str,
+        layer_name: str,
+    ) -> Optional[QgsVectorLayer]:
+        """Mescla camadas de memória em uma única camada."""
+        if not layers:
+            return None
+        if len(layers) == 1:
+            return layers[0]
+
+        first = None
+        for lyr in layers:
+            if lyr and lyr.isValid():
+                first = lyr
+                break
+
+        if first is None:
+            uri = f"Point?crs={crs_authid}"
+        else:
+            geom_type = first.geometryType()  # 0=Point,1=Line,2=Polygon
+            if geom_type == 1:
+                uri = f"LineString?crs={crs_authid}"
+            elif geom_type == 2:
+                uri = f"Polygon?crs={crs_authid}"
+            else:
+                uri = f"Point?crs={crs_authid}"
+
+        merged = QgsVectorLayer(uri, layer_name, "memory")
+        merged_data = merged.dataProvider()
+
+        all_field_names = []
+        for lyr in layers:
+            if not lyr or not lyr.isValid():
+                continue
+            for field in lyr.fields():
+                if field.name() not in all_field_names:
+                    all_field_names.append(field.name())
+
+        unique_fields = []
+        seen = set()
+        for lyr in layers:
+            if not lyr or not lyr.isValid():
+                continue
+            for fname in all_field_names:
+                idx = lyr.fields().lookupField(fname)
+                if idx >= 0 and fname not in seen:
+                    seen.add(fname)
+                    unique_fields.append(lyr.fields().field(idx))
+
+        merged_data.addAttributes(unique_fields)
+        merged.updateFields()
+
+        for lyr in layers:
+            if not lyr or not lyr.isValid():
+                continue
+            for feat in lyr.getFeatures():
+                new_feat = QgsFeature(merged.fields())
+                new_feat.setGeometry(feat.geometry())
+                for field_name in all_field_names:
+                    src_idx = lyr.fields().lookupField(field_name)
+                    tgt_idx = merged.fields().lookupField(field_name)
+                    if src_idx >= 0 and tgt_idx >= 0:
+                        new_feat.setAttribute(tgt_idx, feat.attribute(src_idx))
+                merged_data.addFeatures([new_feat])
+
+        merged.updateExtents()
+        merged.updateFields()
+        return merged
     
     @staticmethod
     def create_buffer_geometry(

@@ -12,7 +12,7 @@ from qgis.PyQt.QtCore import QVariant
 from .BasePlugin import BasePluginMTL
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
-from ..utils.Preferences import load_tool_prefs, save_tool_prefs
+from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.StringManager import StringManager
 from ..utils.ToolKeys import ToolKey
@@ -34,6 +34,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
     JUDGE_MODES = {"Complexo": "complex", "Simples": "simple"}
 
     def __init__(self, iface):
+        """Inicializa plugin e estado base."""
         super().__init__(iface.mainWindow())
         self.iface = iface
         self.save_points_selector = None
@@ -45,6 +46,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
 
     def _build_ui(self, **kwargs):
+        """Monta componentes da interface."""
         super()._build_ui(
             title=STR.DIVIDE_POINTS_BY_STRIPS_TITLE,
             icon_path="vector.ico",
@@ -256,6 +258,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self._refresh_field_selectors()
 
     def _load_prefs(self):
+        """Restaura preferências na UI."""
         self.id_field = self.preferences.get("id_field", "")
         self.time_field = self.preferences.get("time_field", "")
         self.group_field = self.preferences.get("group_field", "")
@@ -316,6 +319,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self._refresh_field_selectors()
 
     def _save_prefs(self):
+        """Persiste preferências da UI."""
         self.preferences["id_field"] = self.id_field_selector.get_selected_key() or ""
         self.preferences["time_field"] = (
             self.time_field_selector.get_selected_key() or ""
@@ -342,12 +346,14 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         
         self.preferences["expanded_save"] = self.save_collapsible.is_expanded()
 
-        save_tool_prefs(self.TOOL_KEY, self.preferences)
+        Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
 
     def _on_layer_changed(self, _layer):
+        """Recarrega seletores após troca de camada."""
         self._refresh_field_selectors()
 
     def _normalize_selected_output_fields(self, selected_output_fields):
+        """Normaliza campos selecionados de saída."""
         normalized = []
         for value in selected_output_fields or []:
             if hasattr(value, "value"):
@@ -360,6 +366,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return normalized
 
     def _get_selected_output_fields(self):
+        """Retorna campos de saída marcados."""
         selected = (
             self.output_fields_grid.get_checked_keys()
             if hasattr(self, "output_fields_grid")
@@ -369,6 +376,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     @staticmethod
     def _resolve_field_name_from_map(field_name_map, logical_key):
+        """Resolve nome físico a partir de chave lógica."""
         if not isinstance(field_name_map, dict):
             return None
         key_value = logical_key.value if hasattr(logical_key, "value") else logical_key
@@ -380,6 +388,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     @staticmethod
     def _normalize_field_name_map(field_name_map):
+        """Normaliza o mapa de nomes de campo."""
         normalized = {}
         if not isinstance(field_name_map, dict):
             return normalized
@@ -397,10 +406,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         selected_output_fields,
         field_name_map
     ):
-        """
-        Cria um layer com todos os atributos originais + campos calculados selecionados.
-        Se um campo calculado já existir no original, SOBRESCREVE (não verifica duplicatas).
-        """
+        """Monta camada final com atributos filtrados."""
         if not result_layer or not result_layer.isValid():
             return result_layer
         if not original_layer or not original_layer.isValid():
@@ -496,7 +502,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return filtered_layer
 
     def _generate_strip_lines_layer(self, point_layer, field_name_map, original_layer_name):
-        """Gera uma camada de linhas onde cada feição representa um shot_id."""
+        """Orquestra a criação de linhas por shot."""
         t0 = time.time()
         self.logger.info("Iniciando geração de linhas (strips)")
         sid_key, valid_key, az_key = self._resolve_strip_line_fields(field_name_map)
@@ -549,6 +555,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return line_layer
 
     def _resolve_strip_line_fields(self, field_name_map):
+        """Resolve campos usados na linha de strip."""
         sid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_ID)
         valid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_VALID)
         az_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.AZIMUTH_INSTANT)
@@ -562,6 +569,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     @staticmethod
     def _strip_line_output_field_specs():
+        """Define campos de saída das linhas."""
         return [
             ("shot_id", QVariant.String, 50, 0),
             ("shot_valid", QVariant.Int, 0, 0),
@@ -571,6 +579,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         ]
 
     def _collect_strip_line_features(self, point_layer, sid_key, valid_key, az_key):
+        """Coleta feições válidas para geração das linhas."""
         features = []
         stats = {
             "total_features_processed": 0,
@@ -608,7 +617,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return features, stats
 
     def _strip_line_attributes_resolver(self, source_path, sid_key, valid_key, az_key):
+        """Cria resolvedor de atributos agregados."""
         def _resolve(group_records, group_key=None):
+            """Calcula atributos de uma linha agrupada."""
             sid_val = ""
             if group_records:
                 sid_val = str(group_records[0].attribute(sid_key))
@@ -640,6 +651,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return _resolve
 
     def _refresh_field_selectors(self):
+        """Atualiza opções dos seletores de campo."""
         layer = self.layer_input.current_layer()
         options = VectorLayerAttributes.get_field_options(layer)
 
@@ -666,9 +678,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     @staticmethod
     def _normalize_group_key(group_value):
+        """Normaliza valor para chave de grupo."""
         return str(group_value) if group_value is not None else "__NONE__"
 
     def _build_group_prefixes(self, group_values):
+        """Gera prefixos para cada grupo."""
         prefixes = {}
         for idx, gv in enumerate(group_values):
             if idx < 26:
@@ -679,6 +693,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return prefixes
 
     def _apply_group_prefix_to_shot_ids(self, layer, prefix):
+        """Aplica prefixo aos shot_ids existentes."""
         if not layer or not layer.isValid() or not prefix:
             self.logger.warning(
                 "Aplicação de prefixo pulada",
@@ -727,6 +742,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
 
     def _create_subset_layer_for_group(self, layer, field_group, group_value):
+        """Cria subcamada por valor de grupo."""
         crs = layer.crs().authid()
         uri = 'Point?crs=%s' % crs
         subset = QgsVectorLayer(uri, '{}_{}'.format(layer.name(), str(group_value)), "memory")
@@ -746,60 +762,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         subset.updateFields()
         return subset
 
-    @staticmethod
-    def _merge_memory_layers(layers, crs, layer_name):
-        if not layers:
-            return None
-        if len(layers) == 1:
-            return layers[0]
-        # Detect geometry type from the first valid layer to preserve geometry (Point/LineString/Polygon)
-        first = None
-        for lyr in layers:
-            if lyr and lyr.isValid():
-                first = lyr
-                break
-        if first is None:
-            uri = 'Point?crs=%s' % crs
-        else:
-            geom_type = first.geometryType()  # 0=Point,1=Line,2=Polygon
-            if geom_type == 1:
-                uri = 'LineString?crs=%s' % crs
-            elif geom_type == 2:
-                uri = 'Polygon?crs=%s' % crs
-            else:
-                uri = 'Point?crs=%s' % crs
-
-        merged = QgsVectorLayer(uri, layer_name, "memory")
-        merged_data = merged.dataProvider()
-        all_field_names = []
-        for lyr in layers:
-            for field in lyr.fields():
-                if field.name() not in all_field_names:
-                    all_field_names.append(field.name())
-        unique_fields = []
-        seen = set()
-        for lyr in layers:
-            for fname in all_field_names:
-                idx = lyr.fields().lookupField(fname)
-                if idx >= 0 and fname not in seen:
-                    seen.add(fname)
-                    unique_fields.append(lyr.fields().field(idx))
-        merged_data.addAttributes(unique_fields)
-        merged.updateFields()
-        for lyr in layers:
-            for feat in lyr.getFeatures():
-                new_feat = QgsFeature(merged.fields())
-                new_feat.setGeometry(feat.geometry())
-                for field_name in all_field_names:
-                    src_idx = lyr.fields().lookupField(field_name)
-                    tgt_idx = merged.fields().lookupField(field_name)
-                    if src_idx >= 0 and tgt_idx >= 0:
-                        new_feat.setAttribute(tgt_idx, feat.attribute(src_idx))
-                merged_data.addFeatures([new_feat])
-        merged.updateFields()
-        return merged
-
     def execute_tool(self):
+        """Executa processamento de segmentação."""
         layer = self.layer_input.current_layer()
         if not isinstance(layer, QgsVectorLayer):
             QgisMessageUtil.bar_warning(self.iface, STR.SELECT_POINT_VECTOR_LAYER)
@@ -1022,7 +986,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 raw_result_layer = all_result_layers[0]
                 summary_data = all_summaries[0]
             else:
-                raw_result_layer = self._merge_memory_layers(
+                raw_result_layer = VectorLayerGeometry.merge_memory_layers(
                     all_result_layers, crs_authid, f"{layer.name()}_segmentado"
                 )
                 summary_data = {
@@ -1089,7 +1053,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 if len(all_strip_layers) == 1:
                     strip_lines_layer = all_strip_layers[0]
                 else:
-                    strip_lines_layer = self._merge_memory_layers(
+                    strip_lines_layer = VectorLayerGeometry.merge_memory_layers(
                         all_strip_layers, crs_authid, f"{layer.name()}_linhas"
                     )
 
@@ -1175,6 +1139,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
 
 def run(iface):
+    """Abre o diálogo do plugin."""
     dlg = DividePointsByStripsPlugin(iface)
     dlg.setModal(False)
     dlg.show()

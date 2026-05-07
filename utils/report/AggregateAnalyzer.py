@@ -671,19 +671,29 @@ class AggregateAnalyzer:
 
         agg['per_flight'] = sorted(flight_rows, key=lambda x: x['flight_id'].lower())
 
-        # Compute column visibility: hide columns where ALL flights have None for that field
+        def _is_zero_or_none(val):
+            """Check if a value is None, zero, or empty."""
+            if val is None:
+                return True
+            if isinstance(val, (int, float)):
+                return val == 0.0
+            if isinstance(val, str):
+                return val.strip() in ('', 'N/A')
+            return False
+
+        # Compute column visibility: hide columns where ALL flights have None or 0 for that field
         if agg['per_flight']:
-            all_none_speed3d = all(f.get('avg_speed3d_kmh') is None for f in agg['per_flight'])
-            all_none_sensor_temp = all(f.get('avg_sensor_temperature') is None for f in agg['per_flight'])
-            all_none_lrf = all(f.get('avg_lrf_target_distance') is None for f in agg['per_flight'])
-            all_none_rel_alt = all(f.get('avg_relative_altitude') is None for f in agg['per_flight'])
-            all_none_abs_alt = all(f.get('avg_absolute_altitude') is None for f in agg['per_flight'])
-            all_none_iso = all(f.get('avg_iso') is None for f in agg['per_flight'])
+            all_none_speed3d = all(_is_zero_or_none(f.get('avg_speed3d_kmh')) for f in agg['per_flight'])
+            all_none_sensor_temp = all(_is_zero_or_none(f.get('avg_sensor_temperature')) for f in agg['per_flight'])
+            all_none_lrf = all(_is_zero_or_none(f.get('avg_lrf_target_distance')) for f in agg['per_flight'])
+            all_none_rel_alt = all(_is_zero_or_none(f.get('avg_relative_altitude')) for f in agg['per_flight'])
+            all_none_abs_alt = all(_is_zero_or_none(f.get('avg_absolute_altitude')) for f in agg['per_flight'])
+            all_none_iso = all(_is_zero_or_none(f.get('avg_iso')) for f in agg['per_flight'])
             all_none_shutter = all(
                 f.get('avg_shutter_speed_text') in (None, '', 'N/A')
                 for f in agg['per_flight']
             )
-            all_none_wb_cct = all(f.get('avg_white_balance_cct') is None for f in agg['per_flight'])
+            all_none_wb_cct = all(_is_zero_or_none(f.get('avg_white_balance_cct')) for f in agg['per_flight'])
 
             agg['show_column_speed3d_kmh'] = not all_none_speed3d
             agg['show_column_sensor_temp'] = not all_none_sensor_temp
@@ -694,11 +704,14 @@ class AggregateAnalyzer:
             agg['show_column_shutter'] = not all_none_shutter
             agg['show_column_wb_cct'] = not all_none_wb_cct
 
-            # level5 columns are already filtered by dataset-level numeric data,
-            # so if they exist in flight_level5_columns, show them
+            # level5 columns: hide if all flights have None or 0 for that field
             level5_keys = [col['key'] for col in agg.get('flight_level5_columns', [])]
             for col_key in level5_keys:
-                agg[f'show_column_level5_{col_key}'] = True
+                all_zero_or_none = all(
+                    _is_zero_or_none(f.get('level5_means', {}).get(col_key))
+                    for f in agg['per_flight']
+                )
+                agg[f'show_column_level5_{col_key}'] = not all_zero_or_none
         else:
             agg['show_column_speed3d_kmh'] = True
             agg['show_column_sensor_temp'] = True

@@ -301,10 +301,10 @@ class CustomPhotosFieldsUtil:
         total_heat_index = (sens_temp + lens_temp) / 2 if sens_temp > 0 and lens_temp > 0 else (sens_temp or lens_temp or 0.0)
 
         # Speed 3D for blur risk
-        xspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0))
-        yspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0))
-        zspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0))
-        speed_3d = math.sqrt(abs(xspd) + abs(yspd) + abs(zspd))
+        xspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
+        yspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
+        zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
+        speed_3d = math.sqrt(xspd + yspd + zspd)
 
         # New fields
         exp_time = CustomPhotosFieldsUtil.safe_float(data.get("ExposureTime", 0))
@@ -350,10 +350,10 @@ class CustomPhotosFieldsUtil:
         flight_yaw = CustomPhotosFieldsUtil.safe_float(data.get("FlightYawDegree", 0))
         gimbal_offset = CustomPhotosFieldsUtil._calculate_gimbal_offset(gim_yaw, flight_yaw)
 
-        xspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0))
-        yspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0))
-        zspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0))
-        speed_3d = math.sqrt(abs(xspd) + abs(yspd) + abs(zspd))
+        xspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
+        yspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
+        zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
+        speed_3d = math.sqrt(xspd + yspd + zspd)
 
         displacement_dir = prev_dir if prev_dir is not None else flight_yaw
         yaw_alignment_error = min(abs(flight_yaw - displacement_dir), 360 - abs(flight_yaw - displacement_dir))
@@ -526,14 +526,14 @@ class CustomPhotosFieldsUtil:
         # Speed variation
         speed_variation_index = 0.0
         if valid_prev and prev_data is not None:
-            px = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightXSpeed", 0)))
-            py = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightYSpeed", 0)))
-            pz = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightZSpeed", 0)))
+            px = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("XSpeed", 0)))
+            py = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("YSpeed", 0)))
+            pz = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("ZSpeed", 0)))
             prev_speed = math.sqrt(px + py + pz)
 
-            cx = abs(CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0)))
-            cy = abs(CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0)))
-            cz = abs(CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0)))
+            cx = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
+            cy = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
+            cz = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
             current_speed = math.sqrt(cx + cy + cz)
             mean_speed = statistics.mean([prev_speed, current_speed])
             if mean_speed > 0:
@@ -711,6 +711,12 @@ class CustomPhotosFieldsUtil:
                 prev_geo_values.append(custom["geodesic_distance_previous"])
 
             result[filename] = {**data, **custom}
+
+        # Garantir que os campos brutos de velocidade sejam absolutos (evitar valores negativos no output)
+        for filename, item in result.items():
+            for speed_key in ("XSpeed", "YSpeed", "ZSpeed"):
+                if speed_key in item and item[speed_key] is not None:
+                    item[speed_key] = abs(CustomPhotosFieldsUtil.safe_float(item[speed_key], 0.0))
 
         median_time = statistics.median(prev_time_values) if prev_time_values else 0.0
         median_geo = statistics.median(prev_geo_values) if prev_geo_values else 0.0

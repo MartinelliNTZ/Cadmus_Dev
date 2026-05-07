@@ -304,7 +304,7 @@ class CustomPhotosFieldsUtil:
         xspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0))
         yspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0))
         zspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0))
-        speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
+        speed_3d = math.sqrt(abs(xspd) + abs(yspd) + abs(zspd))
 
         # New fields
         exp_time = CustomPhotosFieldsUtil.safe_float(data.get("ExposureTime", 0))
@@ -353,7 +353,7 @@ class CustomPhotosFieldsUtil:
         xspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0))
         yspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0))
         zspd = CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0))
-        speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
+        speed_3d = math.sqrt(abs(xspd) + abs(yspd) + abs(zspd))
 
         displacement_dir = prev_dir if prev_dir is not None else flight_yaw
         yaw_alignment_error = min(abs(flight_yaw - displacement_dir), 360 - abs(flight_yaw - displacement_dir))
@@ -526,16 +526,15 @@ class CustomPhotosFieldsUtil:
         # Speed variation
         speed_variation_index = 0.0
         if valid_prev and prev_data is not None:
-            prev_speed = math.sqrt(
-                CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightXSpeed", 0)) ** 2
-                + CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightYSpeed", 0)) ** 2
-                + CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightZSpeed", 0)) ** 2
-            )
-            current_speed = math.sqrt(
-                CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0)) ** 2
-                + CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0)) ** 2
-                + CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0)) ** 2
-            )
+            px = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightXSpeed", 0)))
+            py = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightYSpeed", 0)))
+            pz = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("FlightZSpeed", 0)))
+            prev_speed = math.sqrt(px + py + pz)
+
+            cx = abs(CustomPhotosFieldsUtil.safe_float(data.get("FlightXSpeed", 0)))
+            cy = abs(CustomPhotosFieldsUtil.safe_float(data.get("FlightYSpeed", 0)))
+            cz = abs(CustomPhotosFieldsUtil.safe_float(data.get("FlightZSpeed", 0)))
+            current_speed = math.sqrt(cx + cy + cz)
             mean_speed = statistics.mean([prev_speed, current_speed])
             if mean_speed > 0:
                 speed_variation_index = statistics.pstdev([prev_speed, current_speed]) / mean_speed
@@ -726,4 +725,3 @@ class CustomPhotosFieldsUtil:
                 item["abrupt_change_flag"] = True
 
         return result
-

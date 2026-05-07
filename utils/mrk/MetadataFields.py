@@ -662,7 +662,7 @@ class MetadataFields:
             core="custom",
             label="3 D Speed",
             attribute="3DSpeed",
-            description="Velocidade total 3D da aeronave em m/s, calculada como sqrt(FlightXSpeed² + FlightYSpeed² + FlightZSpeed²). Valores: 0-50 m/s. Valor referência: <10 m/s para voos estáveis. [3DSpeed]",
+            description="Velocidade total 3D da aeronave em m/s, calculada como |FlightXSpeed| + |FlightYSpeed| + |FlightZSpeed| (norma L1 com valores absolutos para garantir que velocidades negativas também somem). Valores: 0-50 m/s. Valor referência: <10 m/s para voos estáveis. [3DSpeed]",
             level=5,
         ),
         MetadataFieldKey.TIME_SINCE_PREVIOUS: Field(
@@ -702,7 +702,7 @@ class MetadataFields:
             core="custom",
             label="Linear Velocity Instant",
             attribute="LinVelI",
-            description="Velocidade instantânea 3D em m/s. Valores: 0-50 m/s. Valor referência: <10 m/s. [LinVelI]",
+            description="Velocidade instantânea 3D em m/s, calculada como |FlightXSpeed| + |FlightYSpeed| + |FlightZSpeed| (norma L1 com valores absolutos). Valores: 0-50 m/s. Valor referência: <10 m/s. [LinVelI]",
             level=5,
         ),
         MetadataFieldKey.DISPLACEMENT_DIRECTION: Field(

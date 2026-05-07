@@ -95,6 +95,8 @@ class MetadataFieldKey(Enum):
     DISPLACEMENT_DIRECTION = "DisplacementDirection"
     INCIDENCE_ANGLE = "IncidenceAngle"
     ESTIMATED_COVERAGE = "EstimatedCoverage"
+    COVERAGE_WIDTH = "CoverageWidth"
+    COVERAGE_HEIGHT = "CoverageHeight"
     PREDICTED_OVERLAP = "PredictedOverlap"
     RTK_EFFECTIVE_PRECISION = "RtkEffectivePrecision"
     IS_IDEAL_OVERLAP = "IsIdealOverlap"

@@ -729,6 +729,22 @@ class MetadataFields:
             description="Tupla (largura, altura) em metros da cobertura estimada no solo. Valores: (0-200, 0-150) m. Valor referência: depende altitude. [EstCover]",
             level=5,
         ),
+        MetadataFieldKey.COVERAGE_WIDTH: Field(
+            normalized="Custom:CoverageWidth",
+            core="custom",
+            label="Coverage Width",
+            attribute="CoverW",
+            description="Largura da cobertura estimada no solo em metros. Valores: 0-200 m. [CoverW]",
+            level=5,
+        ),
+        MetadataFieldKey.COVERAGE_HEIGHT: Field(
+            normalized="Custom:CoverageHeight",
+            core="custom",
+            label="Coverage Height",
+            attribute="CoverH",
+            description="Altura da cobertura estimada no solo em metros. Valores: 0-150 m. [CoverH]",
+            level=5,
+        ),
         MetadataFieldKey.PREDICTED_OVERLAP: Field(
             normalized="Custom:PredictedOverlap",
             core="custom",

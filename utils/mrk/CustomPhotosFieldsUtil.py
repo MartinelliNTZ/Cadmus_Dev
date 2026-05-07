@@ -3,9 +3,9 @@
 """
 CustomUtil - Calcula campos derivados CUSTOM_FIELDS.
 
-Recebe output do Manager.collect_metadata() â†’ adiciona 23 campos custom calculados
+Recebe output do Manager.collect_metadata() → adiciona campos custom calculados
 
-DependÃªncias:
+Dependências:
 - MetadataFields.CUSTOM_FIELDS
 - math, datetime, numpy (haversine)
 """
@@ -22,7 +22,7 @@ DECIMAL_PLACES = 4
 
 
 class CustomPhotosFieldsUtil:
-    """Calcula todos os campos CUSTOM_FIELDS para cada foto, validando sequÃªncias."""
+    """Calcula todos os campos CUSTOM_FIELDS para cada foto, validando sequências."""
 
     @staticmethod
     def _get_logger(tool_key: str = ToolKey.UNTRACEABLE) -> LogUtils:
@@ -42,12 +42,12 @@ class CustomPhotosFieldsUtil:
     }
     
     BLUR_THRESHOLD = 0.5  # motion blur in pixels
-    COVERAGE_FACTOR = 1.45  # approx for 84Â° HFOV
+    COVERAGE_FACTOR = 1.45  # approx for 84° HFOV
     STRIP_CHANGE_THRESHOLD = 150  # degrees
 
     @staticmethod
     def safe_float(val: any, default: float = 0.0) -> float:
-        """Converte para float seguro (strings '+123.4' â†’ 123.4)."""
+        """Converte para float seguro (strings '+123.4' → 123.4)."""
         if val is None:
             return default
         return float(str(val).replace("+", ""))
@@ -127,7 +127,7 @@ class CustomPhotosFieldsUtil:
     def is_valid_sequence(
         curr_data: Dict, other_data: Dict, direction: str = "prev"
     ) -> bool:
-        """Valida se 2 fotos sÃ£o sequÃªncia vÃ¡lida (mesmo voo)."""
+        """Valida se 2 fotos são sequência válida (mesmo voo)."""
         if other_data is None:
             return False
 
@@ -164,7 +164,7 @@ class CustomPhotosFieldsUtil:
 
     @staticmethod
     def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        """DistÃ¢ncia Haversine entre 2 pontos GPS (metros)."""
+        """Distância Haversine entre 2 pontos GPS (metros)."""
         R = 6371000  # Raio Terra
 
         phi1 = math.radians(lat1)
@@ -192,7 +192,7 @@ class CustomPhotosFieldsUtil:
 
     @staticmethod
     def angle_difference(a: float, b: float) -> float:
-        """Menor diferenÃ§a angular entre dois azimutes (0-180)."""
+        """Menor diferença angular entre dois azimutes (0-180)."""
         diff = abs((a - b) % 360)
         return diff if diff <= 180 else 360 - diff
 
@@ -221,7 +221,7 @@ class CustomPhotosFieldsUtil:
     def _calculate_sequence_fields(
         data: Dict, other_data: Optional[Dict], valid_seq: bool, direction: str
     ) -> Dict:
-        """Campos sequÃªncia (prev/next)."""
+        """Campos sequência (prev/next)."""
         if not valid_seq or other_data is None:
             prefix = f"{direction}_"
             return {
@@ -279,7 +279,7 @@ class CustomPhotosFieldsUtil:
 
     @staticmethod
     def _calculate_individual_fields(data: Dict) -> Dict:
-        # Campos custom individuais derivados (speed_3d calculated here)
+        """Campos custom individuais derivados."""
         shutter_count = CustomPhotosFieldsUtil.safe_int(data.get("ShutterCount", 0))
         shutter_life_pct = (shutter_count / 400000) * 100
 
@@ -300,7 +300,7 @@ class CustomPhotosFieldsUtil:
         lens_temp = CustomPhotosFieldsUtil.safe_float(data.get("LensTemperature"))
         total_heat_index = (sens_temp + lens_temp) / 2 if sens_temp > 0 and lens_temp > 0 else (sens_temp or lens_temp or 0.0)
 
-        # Speed 3D for blur risk
+        # Speed 3D for blur risk (usa o mesmo calculo do 3DSpeed de _calculate_gimbal_3d)
         xspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
         yspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
         zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
@@ -313,33 +313,29 @@ class CustomPhotosFieldsUtil:
         motion_blur_risk = (speed_3d * exp_time / gsd_m_px) if gsd_m_px > 0 else 0.0
         exposure_value_ev = math.log2(fnumber**2 / exp_time) if exp_time > 0 else 0.0
 
-        coverage_width = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0)) * CustomPhotosFieldsUtil.COVERAGE_FACTOR
-
         return {
             "shutter_life_pct": round(shutter_life_pct, DECIMAL_PLACES),
             "ground_sample_distance_cm": round(gsd_cm_px, DECIMAL_PLACES),
             "total_heat_index": round(total_heat_index, DECIMAL_PLACES),
             "motion_blur_risk": round(motion_blur_risk, DECIMAL_PLACES),
             "exposure_value_ev": round(exposure_value_ev, DECIMAL_PLACES),
-            "coverage_width": round(coverage_width, DECIMAL_PLACES),
-            "linear_velocity_instant": round(speed_3d, DECIMAL_PLACES),
         }
 
     @staticmethod
     def _calculate_gimbal_offset(gim_yaw: float, flight_yaw: float) -> float:
-        """Calcula o offset do gimbal baseado na diferenÃ§a mÃ­nima com flight yaw."""
-        # Normaliza Ã¢ngulos para 0-360
+        """Calcula o offset do gimbal baseado na diferença mínima com flight yaw."""
+        # Normaliza ângulos para 0-360
         gim_yaw_norm = (gim_yaw % 360 + 360) % 360
         flight_yaw_norm = (flight_yaw % 360 + 360) % 360
         
-        # DiferenÃ§a absoluta
+        # Diferença absoluta
         diff = abs(gim_yaw_norm - flight_yaw_norm)
         diff_min = min(diff, 360 - diff)
         if diff > 150 and diff < 300:
             diff = abs(180 - diff)
         elif diff > 300:
             diff = abs(360 - diff)
-        # Ajuste para casos extremos (ex: 10Â° vs 190Â°)
+        # Ajuste para casos extremos (ex: 10° vs 190°)
         # Offset = |diff_min - 180|
         return abs(diff)
 
@@ -358,8 +354,6 @@ class CustomPhotosFieldsUtil:
         displacement_dir = prev_dir if prev_dir is not None else flight_yaw
         yaw_alignment_error = min(abs(flight_yaw - displacement_dir), 360 - abs(flight_yaw - displacement_dir))
 
-        yaw_alignment_error = min(abs(flight_yaw - displacement_dir), 360 - abs(flight_yaw - displacement_dir))
-
         return {
             "gimbal_offset": round(gimbal_offset, DECIMAL_PLACES),
             "speed_3d": round(speed_3d, DECIMAL_PLACES),
@@ -369,13 +363,13 @@ class CustomPhotosFieldsUtil:
 
     @staticmethod
     def _get_light_source_label(light_source: any) -> str:
-        """Retorna o texto da fonte de luz a partir do cÃ³digo LightSource EXIF."""
+        """Retorna o texto da fonte de luz a partir do código LightSource EXIF."""
         code = CustomPhotosFieldsUtil.safe_int(light_source, default=0)
         return LightSourceEnum.get_label(code)
 
     @staticmethod
     def _check_light_consistency(light_source: any, cct: any) -> str:
-        """Verifica se o valor de CCT estÃ¡ coerente com a fonte de luz declarada."""
+        """Verifica se o valor de CCT está coerente com a fonte de luz declarada."""
         code = CustomPhotosFieldsUtil.safe_int(light_source, default=0)
         cct_value = CustomPhotosFieldsUtil.safe_float(cct, default=0.0)
         if cct_value <= 0:
@@ -433,7 +427,7 @@ class CustomPhotosFieldsUtil:
         yaw_alignment_error: float = 0.0,
         motion_blur_risk: float = 0.0,
     ) -> Dict:
-        """RTK precision, overlap, ortho score, estabilidade e Ã­ndices."""
+        """RTK precision, overlap, ortho score, estabilidade e índices."""
         if prev_seq is None:
             prev_seq = {
                 "prev_time_since": 0.0,
@@ -454,7 +448,7 @@ class CustomPhotosFieldsUtil:
         if rtk_flag == "50" and avg_std < 0.02:
             rtk_prec = "Alta"
         elif avg_std < 0.1:
-            rtk_prec = "MÃ©dia"
+            rtk_prec = "Média"
         elif avg_std < 1.0:
             rtk_prec = "Baixa"
         else:
@@ -631,11 +625,11 @@ class CustomPhotosFieldsUtil:
             prev_prev_data = prev_prev_item[1] if prev_prev_item else None
             next_data = next_item[1] if next_item else None
 
-            # ValidaÃ§Ãµes sequÃªncia
+            # Validações sequência
             valid_prev = cls.is_valid_sequence(data, prev_data)
             valid_next = cls.is_valid_sequence(next_data, data) if next_data else False
 
-            # SequÃªncia campos
+            # Sequência campos
             prev_seq = cls._calculate_sequence_fields(
                 data, prev_data, valid_prev, "prev"
             )
@@ -676,17 +670,10 @@ class CustomPhotosFieldsUtil:
             if current_segment_dir is not None:
                 prev_segment_dir = current_segment_dir
 
-            validation = {
-                "is_valid_sequence_prev": valid_prev,
-                "is_valid_sequence_next": valid_next,
-                "voo_id": cls.get_voo_id(data),
-            }
-
+            # Monta dicionário custom apenas com campos mapeados em MetadataFields.CUSTOM_FIELDS
             custom = {
                 **individual,
                 **quality,
-                **next_seq,
-                **validation,
                 "GimbalOffset": round(gim_3d["gimbal_offset"], DECIMAL_PLACES),
                 "3DSpeed": round(gim_3d["speed_3d"], DECIMAL_PLACES),
                 "speed_3d_kmh": round(gim_3d["speed_3d_kmh"], 1),
@@ -696,8 +683,8 @@ class CustomPhotosFieldsUtil:
                 "distance_3d_previous": round(prev_seq["prev_distance_3d"], DECIMAL_PLACES),
                 "avg_velocity_between_photos": round(prev_seq["prev_avg_velocity"], DECIMAL_PLACES),
                 "displacement_direction": round(prev_seq["prev_displacement_direction"], DECIMAL_PLACES),
-                "estimated_coverage": estimated_coverage,
                 "coverage_width": round(coverage_width, DECIMAL_PLACES),
+                "coverage_height": round(coverage_height, DECIMAL_PLACES),
                 "trajectory_smoothness": round(trajectory_smoothness, DECIMAL_PLACES),
                 "strip_id": strip_id,
                 "light_source_classification": cls._get_light_source_label(data.get("LightSource")),
@@ -705,6 +692,10 @@ class CustomPhotosFieldsUtil:
                     data.get("LightSource"), data.get("WhiteBalanceCCT")
                 ),
             }
+
+            # Nota: next_seq e validation NÃO são incluídos em custom pois não têm
+            # entrada correspondente em MetadataFields.CUSTOM_FIELDS, evitando
+            # campos-fantasma no shapefile.
 
             if valid_prev:
                 prev_time_values.append(custom["time_since_previous"])

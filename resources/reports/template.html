@@ -334,7 +334,7 @@
                         <td>{{ agg.advanced_analysis.metrics.yaw_inconsistent_pct if agg.advanced_analysis.metrics.yaw_inconsistent_pct is not none else '-' }}%</td>
                     </tr>
                     <tr>
-                        <th>Overlap &lt; 60%</th>
+                        <th>Overlap < 60%</th>
                         <td>
                             {{ agg.advanced_analysis.metrics.overlap_below_ideal_pct if agg.advanced_analysis.metrics.overlap_below_ideal_pct is not none else '-' }}%
                             (media {{ agg.advanced_analysis.metrics.overlap_mean if agg.advanced_analysis.metrics.overlap_mean is not none else '-' }})
@@ -459,16 +459,16 @@
                 <th>Inicio do voo</th>
                 <th>Fim do voo</th>
                 <th>Tempo de voo</th>
-                <th>Velocidade media (km/h)</th>
-                <th>SensorTemperature media (°C)</th>
-                <th>LRFTargetDistance media (m)</th>
-                <th title="Altura media do voo sobre o ponto de decolagem.">Altitude Relativa Media (m)</th>
-                <th title="Altitude MSL (nivel medio do mar).">Altitude Absoluta Media (m)</th>
-                <th title="ISO medio das capturas do voo.">ISO Medio</th>
-                <th title="Tempo medio do obturador e faixa observada no voo.">Velocidade do Obturador (media)</th>
-                <th title="Temperatura de cor media (Kelvin).">WhiteBalanceCCT Medio</th>
+                {% if agg.show_column_speed3d_kmh %}<th>Velocidade media (km/h)</th>{% endif %}
+                {% if agg.show_column_sensor_temp %}<th>SensorTemperature media (°C)</th>{% endif %}
+                {% if agg.show_column_lrf %}<th>LRFTargetDistance media (m)</th>{% endif %}
+                {% if agg.show_column_rel_alt %}<th title="Altura media do voo sobre o ponto de decolagem.">Altitude Relativa Media (m)</th>{% endif %}
+                {% if agg.show_column_abs_alt %}<th title="Altitude MSL (nivel medio do mar).">Altitude Absoluta Media (m)</th>{% endif %}
+                {% if agg.show_column_iso %}<th title="ISO medio das capturas do voo.">ISO Medio</th>{% endif %}
+                {% if agg.show_column_shutter %}<th title="Tempo medio do obturador e faixa observada no voo.">Velocidade do Obturador (media)</th>{% endif %}
+                {% if agg.show_column_wb_cct %}<th title="Temperatura de cor media (Kelvin).">WhiteBalanceCCT Medio</th>{% endif %}
                 {% for col in agg.flight_level5_columns %}
-                <th>{{ col.label }}</th>
+                {% if agg['show_column_level5_' ~ col.key] %}<th>{{ col.label }}</th>{% endif %}
                 {% endfor %}
             </tr>
             {% for f in agg.per_flight %}
@@ -480,6 +480,7 @@
                 <td>{{ f['start'] }}</td>
                 <td>{{ f['end'] }}</td>
                 <td>{{ f['flight_time'] }}</td>
+                {% if agg.show_column_speed3d_kmh %}
                 <td>
                     {% if f['avg_speed3d_kmh'] is not none %}
                         {{ '%.2f'|format(f['avg_speed3d_kmh']) }}
@@ -487,6 +488,8 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
+                {% if agg.show_column_sensor_temp %}
                 <td>
                     {% if f['avg_sensor_temperature'] is not none %}
                         {{ '%.2f'|format(f['avg_sensor_temperature']) }}
@@ -494,6 +497,8 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
+                {% if agg.show_column_lrf %}
                 <td>
                     {% if f['avg_lrf_target_distance'] is not none %}
                         {{ '%.2f'|format(f['avg_lrf_target_distance']) }}
@@ -501,6 +506,8 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
+                {% if agg.show_column_rel_alt %}
                 <td>
                     {% if f['avg_relative_altitude'] is not none %}
                         {{ '%.2f'|format(f['avg_relative_altitude']) }}
@@ -508,6 +515,8 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
+                {% if agg.show_column_abs_alt %}
                 <td>
                     {% if f['avg_absolute_altitude'] is not none %}
                         {{ '%.2f'|format(f['avg_absolute_altitude']) }}
@@ -515,6 +524,8 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
+                {% if agg.show_column_iso %}
                 <td>
                     {% if f['avg_iso'] is not none %}
                         {{ '%.0f'|format(f['avg_iso']) }}
@@ -522,6 +533,8 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
+                {% if agg.show_column_shutter %}
                 <td>
                     {% if f['avg_shutter_speed_text'] and f['avg_shutter_speed_text'] != 'N/A' %}
                         {{ f['avg_shutter_speed_text'] }} ({{ f['shutter_speed_range_text'] }})
@@ -529,6 +542,8 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
+                {% if agg.show_column_wb_cct %}
                 <td>
                     {% if f['avg_white_balance_cct'] is not none %}
                         {{ '%.0f'|format(f['avg_white_balance_cct']) }}
@@ -536,7 +551,9 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
                 {% for col in agg.flight_level5_columns %}
+                {% if agg['show_column_level5_' ~ col.key] %}
                 <td>
                     {% if f['level5_means'].get(col.key) is not none %}
                         {{ '%.2f'|format(f['level5_means'].get(col.key)) }}
@@ -544,6 +561,7 @@
                         -
                     {% endif %}
                 </td>
+                {% endif %}
                 {% endfor %}
             </tr>
             {% endfor %}

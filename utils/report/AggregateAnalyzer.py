@@ -671,6 +671,44 @@ class AggregateAnalyzer:
 
         agg['per_flight'] = sorted(flight_rows, key=lambda x: x['flight_id'].lower())
 
+        # Compute column visibility: hide columns where ALL flights have None for that field
+        if agg['per_flight']:
+            all_none_speed3d = all(f.get('avg_speed3d_kmh') is None for f in agg['per_flight'])
+            all_none_sensor_temp = all(f.get('avg_sensor_temperature') is None for f in agg['per_flight'])
+            all_none_lrf = all(f.get('avg_lrf_target_distance') is None for f in agg['per_flight'])
+            all_none_rel_alt = all(f.get('avg_relative_altitude') is None for f in agg['per_flight'])
+            all_none_abs_alt = all(f.get('avg_absolute_altitude') is None for f in agg['per_flight'])
+            all_none_iso = all(f.get('avg_iso') is None for f in agg['per_flight'])
+            all_none_shutter = all(
+                f.get('avg_shutter_speed_text') in (None, '', 'N/A')
+                for f in agg['per_flight']
+            )
+            all_none_wb_cct = all(f.get('avg_white_balance_cct') is None for f in agg['per_flight'])
+
+            agg['show_column_speed3d_kmh'] = not all_none_speed3d
+            agg['show_column_sensor_temp'] = not all_none_sensor_temp
+            agg['show_column_lrf'] = not all_none_lrf
+            agg['show_column_rel_alt'] = not all_none_rel_alt
+            agg['show_column_abs_alt'] = not all_none_abs_alt
+            agg['show_column_iso'] = not all_none_iso
+            agg['show_column_shutter'] = not all_none_shutter
+            agg['show_column_wb_cct'] = not all_none_wb_cct
+
+            # level5 columns are already filtered by dataset-level numeric data,
+            # so if they exist in flight_level5_columns, show them
+            level5_keys = [col['key'] for col in agg.get('flight_level5_columns', [])]
+            for col_key in level5_keys:
+                agg[f'show_column_level5_{col_key}'] = True
+        else:
+            agg['show_column_speed3d_kmh'] = True
+            agg['show_column_sensor_temp'] = True
+            agg['show_column_lrf'] = True
+            agg['show_column_rel_alt'] = True
+            agg['show_column_abs_alt'] = True
+            agg['show_column_iso'] = True
+            agg['show_column_shutter'] = True
+            agg['show_column_wb_cct'] = True
+
         # Flight totals for general info.
         total_flights = len(agg['per_flight'])
         total_flight_seconds = sum(

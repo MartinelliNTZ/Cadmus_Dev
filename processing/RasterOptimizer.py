@@ -65,6 +65,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
     PREDICTOR = "PREDICTOR"
     ZLEVEL = "ZLEVEL"
     DELETE_EXISTING = "DELETE_EXISTING"
+    BIGTIFF = "BIGTIFF"
 
     def initAlgorithm(self, config=None):
         self.logger.debug("Inicializando algoritmo RasterOptimizer...")
@@ -154,6 +155,14 @@ class RasterOptimizer(BaseProcessingAlgorithm):
             )
         )
 
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.BIGTIFF,
+                STR.BIGTIFF_YES,
+                defaultValue=self.prefs.get("bigtiff", False),
+            )
+        )
+
     def processAlgorithm(self, params, context, feedback):
         if feedback.isCanceled():
             return {}
@@ -167,12 +176,13 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         predictor_idx = self.parameterAsEnum(params, self.PREDICTOR, context)
         zlevel = self.parameterAsInt(params, self.ZLEVEL, context)
         delete_existing = self.parameterAsBool(params, self.DELETE_EXISTING, context)
+        bigtiff = self.parameterAsBool(params, self.BIGTIFF, context)
 
         self.logger.debug(
             f"Parametros: folder={input_folder}, recursive={recursive}, "
             f"levels={selected_levels}, resampling={RESAMPLING_METHODS[resampling_idx]}, "
             f"compression={COMPRESSION_METHODS[compression_idx]}, "
-            f"predictor={predictor_idx + 1}, zlevel={zlevel}"
+            f"predictor={predictor_idx + 1}, zlevel={zlevel}, bigtiff={bigtiff}"
         )
 
         # Coletar rasters
@@ -224,6 +234,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                 "predictor": predictor_idx,
                 "zlevel": zlevel,
                 "delete_existing": bool(delete_existing),
+                "bigtiff": bool(bigtiff),
             }
         )
         self.save_preferences()
@@ -247,6 +258,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                         predictor_idx,
                         zlevel,
                         delete_existing,
+                        bigtiff,
                         feedback,
                     )
                 )
@@ -273,6 +285,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         predictor_idx,
         zlevel,
         delete_existing,
+        bigtiff,
         feedback,
     ):
         self.logger.debug(f"Processando: {raster_path}")
@@ -301,6 +314,11 @@ class RasterOptimizer(BaseProcessingAlgorithm):
             raster_path,
             *level_values,
         ]
+
+        if bigtiff:
+            cmd.insert(1, "--config")
+            cmd.insert(2, "BIGTIFF_OVERVIEW")
+            cmd.insert(3, "YES")
 
         self.logger.debug(f"Comando: {' '.join(cmd)}")
 

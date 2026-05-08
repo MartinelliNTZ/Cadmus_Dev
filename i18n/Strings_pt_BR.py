@@ -636,6 +636,7 @@ class Strings_pt_BR:
     RASTER_OPTIMIZER_COMPLETED = "Otimização de rasters concluída."
     USE_RECURSIVE_SEARCH = "Incluir subpastas"
     SEARCHING_RASTERS = "Buscando rasters..."
+    BIGTIFF_YES = "Forçar BIGTIFF (necessário para arquivos >4GB)"
     SEGMENTATION_MODE = "Modo de Segmentação"
     CURVE = "Curva"
     STRAIGHT = "Reta"

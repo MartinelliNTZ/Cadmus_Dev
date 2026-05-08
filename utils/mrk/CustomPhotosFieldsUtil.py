@@ -206,12 +206,12 @@ class CustomPhotosFieldsUtil:
             Tuple (sensor_width_mm, sensor_height_mm, focal_real_mm, img_w_px, img_h_px)
         """
         logger = CustomPhotosFieldsUtil._get_logger()
-        logger.debug("Obtendo parâmetros da câmera para foto com dados: %s", data)
+        logger.debug(f"Obtendo parâmetros da câmera para foto com dados: {data}")
         
         # Tenta obter modelo do drone/câmera
         model = data.get("DroneModel") or data.get("Model", "")
         model_str = str(model).strip() if model else ""
-        logger.debug("Modelo identificado: '%s'", model_str)
+        logger.debug(f"Modelo identificado: '{model_str}'")
         
         # Busca nos parâmetros conhecidos
         if model_str and model_str in MetadataFields.CAMERA_MODEL_PARAMS:
@@ -219,15 +219,13 @@ class CustomPhotosFieldsUtil:
             sensor_w = float(params["sensor_width_mm"])
             sensor_h = float(params["sensor_height_mm"])
             focal = float(params["focal_real_mm"])
-            logger.debug("Parâmetros encontrados para '%s': sensor=%sx%s, focal=%s", 
-                         model_str, sensor_w, sensor_h, focal)
+            logger.debug(f"Parâmetros encontrados para '{model_str}': sensor={sensor_w}x{sensor_h}, focal={focal}")
         else:
             # Fallback para M4E (valores mais comuns)
             sensor_w = 17.3
             sensor_h = 13.0
             focal = 12.29
-            logger.debug("Modelo '%s' não encontrado em CAMERA_MODEL_PARAMS. Usando fallback M4E: sensor=%sx%s, focal=%s",
-                         model_str, sensor_w, sensor_h, focal)
+            logger.debug(f"Modelo '{model_str}' não encontrado em CAMERA_MODEL_PARAMS. Usando fallback M4E: sensor={sensor_w}x{sensor_h}, focal={focal}")
         
         # Resolução da imagem (usa valores do EXIF ou fallback)
         img_w = CustomPhotosFieldsUtil.safe_float(data.get("ExifImageWidth", 5280))
@@ -238,7 +236,7 @@ class CustomPhotosFieldsUtil:
             res = MetadataFields.CAMERA_MODEL_PARAMS[model_str].get("resolution_px", (5280, 3956))
             if isinstance(res, (tuple, list)) and len(res) == 2:
                 img_w, img_h = float(res[0]), float(res[1])
-                logger.debug("Usando resolução de CAMERA_MODEL_PARAMS: %sx%s", img_w, img_h)
+                logger.debug(f"Usando resolução de CAMERA_MODEL_PARAMS: {img_w}x{img_h}")
         
         if img_w <= 0:
             img_w = 5280
@@ -248,11 +246,10 @@ class CustomPhotosFieldsUtil:
         # Focal length do EXIF ou fallback
         focal_exif = CustomPhotosFieldsUtil.safe_float(data.get("FocalLength", 0))
         if focal_exif > 0:
-            logger.debug("Focal do EXIF (%.2f) sobrescrevendo focal padrão (%.2f)", focal_exif, focal)
+            logger.debug(f"Focal do EXIF ({focal_exif:.2f}) sobrescrevendo focal padrão ({focal:.2f})")
             focal = focal_exif
         
-        logger.debug("Parâmetros finais da câmera: sensor=%sx%s mm, focal=%s mm, imagem=%sx%s px",
-                     sensor_w, sensor_h, focal, img_w, img_h)
+        logger.debug(f"Parâmetros finais da câmera: sensor={sensor_w}x{sensor_h} mm, focal={focal} mm, imagem={img_w}x{img_h} px")
         return (sensor_w, sensor_h, focal, img_w, img_h)
 
     @staticmethod
@@ -282,8 +279,7 @@ class CustomPhotosFieldsUtil:
             return (round(0.0, DECIMAL_PLACES), round(0.0, DECIMAL_PLACES))
         
         logger = CustomPhotosFieldsUtil._get_logger()
-        logger.debug("calculate_estimated_coverage: H=%.4f m, sensor=%sx%s mm, focal=%s mm",
-                     h_m, sensor_w, sensor_h, focal)
+        logger.debug(f"calculate_estimated_coverage: H={h_m:.4f} m, sensor={sensor_w}x{sensor_h} mm, focal={focal} mm")
         
         # Largura no solo: H * S_w / f
         width_m = h_m * sensor_w / focal
@@ -291,8 +287,7 @@ class CustomPhotosFieldsUtil:
         # Altura no solo: H * S_h / f
         height_m = h_m * sensor_h / focal
         
-        logger.debug("Cobertura calculada: %.2f x %.2f m (área=%.2f m²)",
-                     width_m, height_m, width_m * height_m)
+        logger.debug(f"Cobertura calculada: {width_m:.2f} x {height_m:.2f} m (área={width_m * height_m:.2f} m²)")
         return (round(width_m, DECIMAL_PLACES), round(height_m, DECIMAL_PLACES))
 
     @staticmethod
@@ -370,8 +365,7 @@ class CustomPhotosFieldsUtil:
             h_m = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
 
         logger = CustomPhotosFieldsUtil._get_logger()
-        logger.debug("_calculate_individual_fields: H=%.4f m, sensor=%sx%s mm, focal=%s mm, imagem=%sx%s px",
-                     h_m, sensor_w, sensor_h, focal, img_w, img_h)
+        logger.debug(f"_calculate_individual_fields: H={h_m:.4f} m, sensor={sensor_w}x{sensor_h} mm, focal={focal} mm, imagem={img_w}x{img_h} px")
         
         # Cálculo do GSD usando fórmula clássica:
         # GSD = (H * S) / (f * I)
@@ -389,14 +383,14 @@ class CustomPhotosFieldsUtil:
             gsd_y_m = (h_m * sensor_h) / (focal * img_h)
             gsd_x_cm = gsd_x_m * 100
             gsd_y_cm = gsd_y_m * 100
-            logger.debug("GSD X=%.4f cm/px, GSD Y=%.4f cm/px (fórmula: H*S/f/I)", gsd_x_cm, gsd_y_cm)
+            logger.debug(f"GSD X={gsd_x_cm:.4f} cm/px, GSD Y={gsd_y_cm:.4f} cm/px (fórmula: H*S/f/I)")
         else:
-            logger.debug("GSD não calculado - H=%s, focal=%s, img_w=%s, img_h=%s", h_m, focal, img_w, img_h)
+            logger.debug(f"GSD não calculado - H={h_m}, focal={focal}, img_w={img_w}, img_h={img_h}")
         
         # GSD final = média entre horizontal e vertical
         gsd_cm_px = (gsd_x_cm + gsd_y_cm) / 2 if gsd_x_cm > 0 and gsd_y_cm > 0 else max(gsd_x_cm, gsd_y_cm)
         gsd_m_px = gsd_cm_px / 100
-        logger.debug("GSD final=%.4f cm/pixel (%.6f m/pixel)", gsd_cm_px, gsd_m_px)
+        logger.debug(f"GSD final={gsd_cm_px:.4f} cm/pixel ({gsd_m_px:.6f} m/pixel)")
 
         # Heat index
         sens_temp = CustomPhotosFieldsUtil.safe_float(data.get("SensorTemperature"))
@@ -408,7 +402,7 @@ class CustomPhotosFieldsUtil:
         yspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
         zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
         speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
-        logger.debug("Speed 3D: sqrt(%.4f²+%.4f²+%.4f²)=%.4f m/s", xspd, yspd, zspd, speed_3d)
+        logger.debug(f"Speed 3D: sqrt({xspd:.4f}²+{yspd:.4f}²+{zspd:.4f}²)={speed_3d:.4f} m/s")
 
         # New fields
         exp_time = CustomPhotosFieldsUtil.safe_float(data.get("ExposureTime", 0))
@@ -455,7 +449,7 @@ class CustomPhotosFieldsUtil:
         zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))        
         speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
         logger = CustomPhotosFieldsUtil._get_logger()
-        logger.debug("Gimbal 3D Speed: sqrt(%.4f²+%.4f²+%.4f²)=%.4f m/s", xspd, yspd, zspd, speed_3d)
+        logger.debug(f"Gimbal 3D Speed: sqrt({xspd:.4f}²+{yspd:.4f}²+{zspd:.4f}²)={speed_3d:.4f} m/s")
 
         displacement_dir = prev_dir if prev_dir is not None else flight_yaw
         yaw_alignment_error = min(abs(flight_yaw - displacement_dir), 360 - abs(flight_yaw - displacement_dir))
@@ -629,12 +623,12 @@ class CustomPhotosFieldsUtil:
             px = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("XSpeed", 0)))
             py = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("YSpeed", 0)))
             pz = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("ZSpeed", 0)))
-            prev_speed = math.sqrt(px + py + pz)
+            prev_speed = math.sqrt(px**2 + py**2 + pz**2)
 
             cx = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
             cy = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
             cz = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
-            current_speed = math.sqrt(cx + cy + cz)
+            current_speed = math.sqrt(cx**2 + cy**2 + cz**2)
             mean_speed = statistics.mean([prev_speed, current_speed])
             if mean_speed > 0:
                 speed_variation_index = statistics.pstdev([prev_speed, current_speed]) / mean_speed

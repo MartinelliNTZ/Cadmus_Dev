@@ -17,6 +17,7 @@ from typing import Dict, List, Tuple, Optional
 from ...core.config.LogUtils import LogUtils
 from ...core.enum.LightSourceEnum import LightSourceEnum
 from ..ToolKeys import ToolKey
+from .MetadataFields import MetadataFields
 
 DECIMAL_PLACES = 4
 
@@ -197,24 +198,101 @@ class CustomPhotosFieldsUtil:
         return diff if diff <= 180 else 360 - diff
 
     @staticmethod
+    def _get_camera_params(data: Dict) -> Tuple[float, float, float, float, float]:
+        """
+        Obtém parâmetros da câmera a partir do dicionário CAMERA_MODEL_PARAMS.
+        
+        Returns:
+            Tuple (sensor_width_mm, sensor_height_mm, focal_real_mm, img_w_px, img_h_px)
+        """
+        logger = CustomPhotosFieldsUtil._get_logger()
+        logger.debug("Obtendo parâmetros da câmera para foto com dados: %s", data)
+        
+        # Tenta obter modelo do drone/câmera
+        model = data.get("DroneModel") or data.get("Model", "")
+        model_str = str(model).strip() if model else ""
+        logger.debug("Modelo identificado: '%s'", model_str)
+        
+        # Busca nos parâmetros conhecidos
+        if model_str and model_str in MetadataFields.CAMERA_MODEL_PARAMS:
+            params = MetadataFields.CAMERA_MODEL_PARAMS[model_str]
+            sensor_w = float(params["sensor_width_mm"])
+            sensor_h = float(params["sensor_height_mm"])
+            focal = float(params["focal_real_mm"])
+            logger.debug("Parâmetros encontrados para '%s': sensor=%sx%s, focal=%s", 
+                         model_str, sensor_w, sensor_h, focal)
+        else:
+            # Fallback para M4E (valores mais comuns)
+            sensor_w = 17.3
+            sensor_h = 13.0
+            focal = 12.29
+            logger.debug("Modelo '%s' não encontrado em CAMERA_MODEL_PARAMS. Usando fallback M4E: sensor=%sx%s, focal=%s",
+                         model_str, sensor_w, sensor_h, focal)
+        
+        # Resolução da imagem (usa valores do EXIF ou fallback)
+        img_w = CustomPhotosFieldsUtil.safe_float(data.get("ExifImageWidth", 5280))
+        img_h = CustomPhotosFieldsUtil.safe_float(data.get("ExifImageHeight", 3956))
+        
+        # Se não veio do EXIF, tenta fallback dos parâmetros conhecidos
+        if img_w <= 0 and model_str and model_str in MetadataFields.CAMERA_MODEL_PARAMS:
+            res = MetadataFields.CAMERA_MODEL_PARAMS[model_str].get("resolution_px", (5280, 3956))
+            if isinstance(res, (tuple, list)) and len(res) == 2:
+                img_w, img_h = float(res[0]), float(res[1])
+                logger.debug("Usando resolução de CAMERA_MODEL_PARAMS: %sx%s", img_w, img_h)
+        
+        if img_w <= 0:
+            img_w = 5280
+        if img_h <= 0:
+            img_h = 3956
+        
+        # Focal length do EXIF ou fallback
+        focal_exif = CustomPhotosFieldsUtil.safe_float(data.get("FocalLength", 0))
+        if focal_exif > 0:
+            logger.debug("Focal do EXIF (%.2f) sobrescrevendo focal padrão (%.2f)", focal_exif, focal)
+            focal = focal_exif
+        
+        logger.debug("Parâmetros finais da câmera: sensor=%sx%s mm, focal=%s mm, imagem=%sx%s px",
+                     sensor_w, sensor_h, focal, img_w, img_h)
+        return (sensor_w, sensor_h, focal, img_w, img_h)
+
+    @staticmethod
     def calculate_estimated_coverage(data: Dict) -> Tuple[float, float]:
-        """Estimativa de cobertura no solo (largura, altura) em metros."""
-        effective_distance = CustomPhotosFieldsUtil.safe_float(data.get("LRFTargetDistance", 0))
-        if effective_distance <= 0:
-            effective_distance = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
-
-        focal_length_mm = CustomPhotosFieldsUtil.safe_float(data.get("FocalLength", 12.29))
-        sensor_width_mm = 7.49
-        img_w_px = CustomPhotosFieldsUtil.safe_float(data.get("ExifImageWidth", 5280))
-        img_h_px = CustomPhotosFieldsUtil.safe_float(data.get("ExifImageHeight", 3956))
-        aspect_ratio = img_h_px / img_w_px if img_w_px > 0 else 0.75
-
-        width_m = (
-            effective_distance * sensor_width_mm / focal_length_mm
-            if effective_distance > 0 and focal_length_mm > 0
-            else 0.0
-        )
-        height_m = width_m * aspect_ratio
+        """
+        Estimativa de cobertura no solo (largura, altura) em metros.
+        
+        Fórmulas:
+            Largura_solo = H * S_w / f
+            Altura_solo  = H * S_h / f
+        
+        Onde:
+            H = RelativeAltitude (metros)
+            S_w = largura física do sensor (mm)
+            S_h = altura física do sensor (mm)
+            f = distância focal real (mm)
+        """
+        # Usa RelativeAltitude como altura primária (altitude sobre o terreno)
+        h_m = CustomPhotosFieldsUtil.safe_float(data.get("RelativeAltitude", 0))
+        if h_m <= 0:
+            # Fallback: AbsoluteAltitude - pode não representar altura sobre o terreno
+            h_m = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
+        
+        sensor_w, sensor_h, focal, _, _ = CustomPhotosFieldsUtil._get_camera_params(data)
+        
+        if h_m <= 0 or focal <= 0:
+            return (round(0.0, DECIMAL_PLACES), round(0.0, DECIMAL_PLACES))
+        
+        logger = CustomPhotosFieldsUtil._get_logger()
+        logger.debug("calculate_estimated_coverage: H=%.4f m, sensor=%sx%s mm, focal=%s mm",
+                     h_m, sensor_w, sensor_h, focal)
+        
+        # Largura no solo: H * S_w / f
+        width_m = h_m * sensor_w / focal
+        
+        # Altura no solo: H * S_h / f
+        height_m = h_m * sensor_h / focal
+        
+        logger.debug("Cobertura calculada: %.2f x %.2f m (área=%.2f m²)",
+                     width_m, height_m, width_m * height_m)
         return (round(width_m, DECIMAL_PLACES), round(height_m, DECIMAL_PLACES))
 
     @staticmethod
@@ -283,17 +361,42 @@ class CustomPhotosFieldsUtil:
         shutter_count = CustomPhotosFieldsUtil.safe_int(data.get("ShutterCount", 0))
         shutter_life_pct = (shutter_count / 400000) * 100
 
-        lrf_distance_m = CustomPhotosFieldsUtil.safe_float(data.get("LRFTargetDistance", 0))
-        focal_length_mm = CustomPhotosFieldsUtil.safe_float(data.get("FocalLength", 12.29))
-        sensor_width_mm = 7.49  # M3E/M4E sensor width
-        img_w_px = CustomPhotosFieldsUtil.safe_float(data.get("ExifImageWidth", 5280))
+        # Obtém parâmetros da câmera do dicionário CAMERA_MODEL_PARAMS
+        sensor_w, sensor_h, focal, img_w, img_h = CustomPhotosFieldsUtil._get_camera_params(data)
 
-        if lrf_distance_m == 0:
-            lrf_distance_m = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0)) * 0.85
+        # Usa RelativeAltitude como altura primária (altitude sobre o terreno)
+        h_m = CustomPhotosFieldsUtil.safe_float(data.get("RelativeAltitude", 0))
+        if h_m <= 0:
+            h_m = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
 
-        pixel_pitch_mm = sensor_width_mm / img_w_px
-        gsd_cm_px = (lrf_distance_m * pixel_pitch_mm / focal_length_mm * 100) if lrf_distance_m > 0 and focal_length_mm > 0 else 0
+        logger = CustomPhotosFieldsUtil._get_logger()
+        logger.debug("_calculate_individual_fields: H=%.4f m, sensor=%sx%s mm, focal=%s mm, imagem=%sx%s px",
+                     h_m, sensor_w, sensor_h, focal, img_w, img_h)
+        
+        # Cálculo do GSD usando fórmula clássica:
+        # GSD = (H * S) / (f * I)
+        # Onde:
+        #   H = altura do voo (m)
+        #   S = dimensão física do sensor (mm)
+        #   f = distância focal real (mm)
+        #   I = dimensão da imagem (pixels)
+        
+        # GSD horizontal (cm/pixel)
+        gsd_x_cm = 0.0
+        gsd_y_cm = 0.0
+        if h_m > 0 and focal > 0 and img_w > 0 and img_h > 0:
+            gsd_x_m = (h_m * sensor_w) / (focal * img_w)
+            gsd_y_m = (h_m * sensor_h) / (focal * img_h)
+            gsd_x_cm = gsd_x_m * 100
+            gsd_y_cm = gsd_y_m * 100
+            logger.debug("GSD X=%.4f cm/px, GSD Y=%.4f cm/px (fórmula: H*S/f/I)", gsd_x_cm, gsd_y_cm)
+        else:
+            logger.debug("GSD não calculado - H=%s, focal=%s, img_w=%s, img_h=%s", h_m, focal, img_w, img_h)
+        
+        # GSD final = média entre horizontal e vertical
+        gsd_cm_px = (gsd_x_cm + gsd_y_cm) / 2 if gsd_x_cm > 0 and gsd_y_cm > 0 else max(gsd_x_cm, gsd_y_cm)
         gsd_m_px = gsd_cm_px / 100
+        logger.debug("GSD final=%.4f cm/pixel (%.6f m/pixel)", gsd_cm_px, gsd_m_px)
 
         # Heat index
         sens_temp = CustomPhotosFieldsUtil.safe_float(data.get("SensorTemperature"))
@@ -304,7 +407,8 @@ class CustomPhotosFieldsUtil:
         xspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
         yspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
         zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
-        speed_3d = math.sqrt(xspd + yspd + zspd)
+        speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
+        logger.debug("Speed 3D: sqrt(%.4f²+%.4f²+%.4f²)=%.4f m/s", xspd, yspd, zspd, speed_3d)
 
         # New fields
         exp_time = CustomPhotosFieldsUtil.safe_float(data.get("ExposureTime", 0))
@@ -348,8 +452,10 @@ class CustomPhotosFieldsUtil:
 
         xspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
         yspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
-        zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
-        speed_3d = math.sqrt(xspd + yspd + zspd)
+        zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))        
+        speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
+        logger = CustomPhotosFieldsUtil._get_logger()
+        logger.debug("Gimbal 3D Speed: sqrt(%.4f²+%.4f²+%.4f²)=%.4f m/s", xspd, yspd, zspd, speed_3d)
 
         displacement_dir = prev_dir if prev_dir is not None else flight_yaw
         yaw_alignment_error = min(abs(flight_yaw - displacement_dir), 360 - abs(flight_yaw - displacement_dir))

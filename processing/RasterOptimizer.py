@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from qgis.core import (
     QgsProcessing,
@@ -12,6 +13,7 @@ from qgis.core import (
     QgsProcessingParameterMultipleLayers,
     QgsProcessingParameterNumber,
     QgsProcessingParameterString,
+    QgsProcessingAlgorithm,
 )
 
 from ..core.config.LogUtils import LogUtils
@@ -48,6 +50,9 @@ PREDICTOR_VALUES = [
 # Fator de estimativa de espaço para overviews internos
 # Overviews internos somam ~33% do tamanho original (pirâmide geométrica)
 OVERVIEW_DISK_FACTOR = 0.34
+
+# Número máximo de processos gdaladdo executados em paralelo
+MAX_WORKERS = 4
 
 
 def _estimate_overview_size(raster_path):
@@ -91,6 +96,46 @@ def _has_internal_overviews(raster_path):
         return len(levels) > 0, levels
     except Exception:
         return False, []
+
+
+def _run_gdaladdo(cmd, raster_path, feedback_queue):
+    """
+    Executa gdaladdo via subprocess.Popen em uma thread separada.
+    Retorna (raster_path, success: bool, error_msg: str)
+    """
+    name = os.path.basename(raster_path)
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+
+        # Ler stdout em tempo real
+        for line in iter(process.stdout.readline, ''):
+            line = line.strip()
+            if line:
+                feedback_queue.append(f"  [{name}] {line}")
+
+        stdout, stderr = process.communicate()
+
+        if stderr and stderr.strip():
+            # gdaladdo costuma mandar progresso no stderr também
+            for line in stderr.strip().splitlines():
+                stripped = line.strip()
+                if stripped:
+                    feedback_queue.append(f"  [{name}] {stripped}")
+
+        if process.returncode != 0:
+            error_msg = stderr.strip() if stderr and stderr.strip() else f"Código de retorno {process.returncode}"
+            return (raster_path, False, error_msg)
+
+        return (raster_path, True, None)
+
+    except Exception as e:
+        return (raster_path, False, str(e))
 
 
 class RasterOptimizer(BaseProcessingAlgorithm):
@@ -221,6 +266,13 @@ class RasterOptimizer(BaseProcessingAlgorithm):
             )
         )
 
+    def flags(self):
+        """
+        Garante que o algoritmo rode em background thread (QgsTask).
+        Isso evita travar a UI do QGIS durante o processamento.
+        """
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+
     def processAlgorithm(self, params, context, feedback):
         if feedback.isCanceled():
             return {}
@@ -283,6 +335,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         feedback.pushInfo(f"Níveis de overview: {', '.join(level_values)}")
         feedback.pushInfo(f"Compressão: {COMPRESSION_METHODS[compression_idx]}")
         feedback.pushInfo(f"Reamostragem: {RESAMPLING_METHODS[resampling_idx]}")
+        feedback.pushInfo(f"Processos paralelos: {MAX_WORKERS}")
         feedback.pushInfo("-" * 60)
 
         # ── Salvar preferências ────────────────────────────────────────────
@@ -303,33 +356,19 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         )
         self.save_preferences()
 
-        # ── Contadores para relatório final ────────────────────────────────
+        # ── Pré-processamento: filtrar rasters inválidos ──────────────────
 
-        count_ok = 0
-        count_skipped = 0
-        count_skipped_disk = 0
-        count_failed = 0
-        t_start = time.time()
-
-        # ── Processar sequencialmente ──────────────────────────────────────
-
-        for i, raster_path in enumerate(raster_paths, start=1):
+        raster_paths_valid = []
+        for raster_path in raster_paths:
             if feedback.isCanceled():
                 feedback.pushInfo("Processamento cancelado pelo usuário.")
-                break
+                return {}
 
-            name = os.path.basename(raster_path)
-            feedback.setProgress(int((i - 1) / total * 100))
-            feedback.pushInfo(f"[{i}/{total}] {name}")
-
-            # Arquivo existe?
             if not os.path.exists(raster_path):
                 feedback.pushInfo(f"  IGNORADO — arquivo não encontrado: {raster_path}")
                 self.logger.warning(f"Arquivo não encontrado: {raster_path}")
-                count_failed += 1
                 continue
 
-            # Pular se já tem overviews internos?
             if skip_if_has_overviews and not delete_existing:
                 has_ovr, existing_levels = _has_internal_overviews(raster_path)
                 if has_ovr:
@@ -338,18 +377,36 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                         f"{', '.join(existing_levels[:4])}{'...' if len(existing_levels) > 4 else ''}"
                     )
                     self.logger.debug(f"Pulado (já tem overviews): {raster_path}")
-                    count_skipped += 1
                     continue
+
+            raster_paths_valid.append(raster_path)
+
+        total_valid = len(raster_paths_valid)
+        if total_valid == 0:
+            feedback.pushInfo("Nenhum raster válido para processar após filtros.")
+            return {}
+
+        feedback.pushInfo(f"Rasters para processar após filtros: {total_valid}")
+        feedback.pushInfo("-" * 60)
+
+        # ── Montar comandos ────────────────────────────────────────────────
+
+        raster_tasks = []
+        for raster_path in raster_paths_valid:
+            if feedback.isCanceled():
+                feedback.pushInfo("Processamento cancelado pelo usuário.")
+                return {}
 
             # Verificação de espaço em disco
             needed = _estimate_overview_size(raster_path)
             free = _free_disk_space(raster_path)
+            skip_disk = False
             if free is not None:
                 needed_mb = needed / (1024 ** 2)
                 free_mb = free / (1024 ** 2)
                 feedback.pushInfo(
-                    f"  Espaço estimado para overviews: {needed_mb:.1f} MB  |  "
-                    f"Livre em disco: {free_mb:.1f} MB"
+                    f"  {os.path.basename(raster_path)} → "
+                    f"estimado: {needed_mb:.1f} MB, livre: {free_mb:.1f} MB"
                 )
                 if free < needed * 1.2:  # margem de segurança de 20%
                     msg = (
@@ -358,26 +415,115 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                     )
                     feedback.pushInfo(msg)
                     self.logger.warning(msg)
-                    count_skipped_disk += 1
-                    continue
+                    skip_disk = True
 
-            # Processar
-            ok = self._process_single_raster(
-                raster_path=raster_path,
-                level_values=level_values,
-                resampling_idx=resampling_idx,
-                compression_idx=compression_idx,
-                predictor_idx=predictor_idx,
-                zlevel=zlevel,
-                delete_existing=delete_existing,
-                bigtiff=bigtiff,
-                feedback=feedback,
-            )
+            if skip_disk:
+                continue
 
-            if ok:
-                count_ok += 1
-            else:
-                count_failed += 1
+            # Deletar overviews existentes se solicitado
+            if delete_existing:
+                self._delete_overviews(raster_path, feedback)
+
+            resampling = RESAMPLING_METHODS[resampling_idx]
+            compression = COMPRESSION_METHODS[compression_idx]
+            predictor_value = str(predictor_idx + 1)
+
+            cmd = [
+                "gdaladdo",
+                "-r", resampling,
+                "--config", "COMPRESS_OVERVIEW", compression,
+                "--config", "PREDICTOR_OVERVIEW", predictor_value,
+                "--config", "ZLEVEL_OVERVIEW", str(zlevel),
+                "--config", "USE_RRD", "NO",
+                "--config", "GDAL_TIFF_OVR_BLOCKSIZE", "512",
+            ]
+
+            if bigtiff:
+                cmd += ["--config", "BIGTIFF_OVERVIEW", "YES"]
+
+            cmd += [raster_path, *level_values]
+            raster_tasks.append((raster_path, cmd))
+
+        total_tasks = len(raster_tasks)
+        if total_tasks == 0:
+            feedback.pushInfo("Nenhum raster para processar após verificações.")
+            return {}
+
+        feedback.pushInfo(f"Enviando {total_tasks} tarefas para pool (max {MAX_WORKERS} paralelos)...")
+        feedback.pushInfo("-" * 60)
+
+        # ── Execução paralela com ThreadPoolExecutor ──────────────────────
+        # Usamos uma lista compartilhada para acumular mensagens de feedback
+        # das threads, e no loop principal drenamos essa lista periodicamente.
+        # Isso evita chamar feedback.pushInfo() de dentro das threads (não
+        # é garantido ser thread-safe) e mantém a UI responsiva.
+
+        count_ok = 0
+        count_failed = 0
+        t_start = time.time()
+        feedback_queue = []
+        last_progress_update = time.time()
+
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # Submeter todas as tarefas
+            future_to_raster = {}
+            for raster_path, cmd in raster_tasks:
+                if feedback.isCanceled():
+                    break
+                self.logger.debug(f"Submetendo: {' '.join(cmd)}")
+                future = executor.submit(_run_gdaladdo, cmd, raster_path, feedback_queue)
+                future_to_raster[future] = raster_path
+
+            # Processar resultados à medida que ficam prontos
+            completed_count = 0
+            for future in as_completed(future_to_raster):
+                completed_count += 1
+
+                # Drenar fila de feedback das threads
+                while feedback_queue:
+                    msg = feedback_queue.pop(0)
+                    feedback.pushInfo(msg)
+
+                # Verificar cancelamento
+                if feedback.isCanceled():
+                    feedback.pushInfo("CANCELADO pelo usuário — terminando processos...")
+                    # Cancelar futures pendentes
+                    for f in future_to_raster:
+                        f.cancel()
+                    break
+
+                # Obter resultado
+                try:
+                    raster_path, success, error_msg = future.result()
+                    name = os.path.basename(raster_path)
+
+                    if success:
+                        count_ok += 1
+                        feedback.pushInfo(f"  ✅ OK — {name}")
+                        self.logger.debug(f"Overviews criadas com sucesso: {raster_path}")
+                    else:
+                        count_failed += 1
+                        feedback.pushInfo(f"  ❌ FALHA — {name}: {error_msg[:200]}")
+                        self.logger.error(f"Falha ao processar {raster_path}: {error_msg}")
+
+                except Exception as e:
+                    count_failed += 1
+                    feedback.pushInfo(f"  ❌ ERRO inesperado: {e}")
+
+                # Atualizar progresso
+                now = time.time()
+                progress = int(completed_count / total_tasks * 100)
+                feedback.setProgress(min(progress, 99))
+                elapsed = now - t_start
+                feedback.pushInfo(
+                    f"  📊 Progresso: {completed_count}/{total_tasks} "
+                    f"({progress}%) — {elapsed:.0f}s decorridos"
+                )
+
+        # ── Drenar feedback residual ───────────────────────────────────────
+        while feedback_queue:
+            msg = feedback_queue.pop(0)
+            feedback.pushInfo(msg)
 
         # ── Relatório final ────────────────────────────────────────────────
 
@@ -387,101 +533,24 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         feedback.pushInfo("RELATÓRIO FINAL")
         feedback.pushInfo("=" * 60)
         feedback.pushInfo(f"  Total encontrado      : {total}")
+        feedback.pushInfo(f"  Válidos após filtros  : {total_valid}")
         feedback.pushInfo(f"  Processados (OK)      : {count_ok}")
-        feedback.pushInfo(f"  Pulados (já otimizados): {count_skipped}")
-        feedback.pushInfo(f"  Pulados (disco cheio) : {count_skipped_disk}")
         feedback.pushInfo(f"  Falhas                : {count_failed}")
         feedback.pushInfo(f"  Tempo total           : {elapsed:.1f}s")
+        feedback.pushInfo(f"  Pool de processos     : {MAX_WORKERS} paralelos")
         feedback.pushInfo("=" * 60)
 
         self.logger.info(
-            f"Otimização concluída. ok={count_ok}, pulados={count_skipped}, "
-            f"disco={count_skipped_disk}, falhas={count_failed}, tempo={elapsed:.1f}s"
+            f"Otimização concluída. ok={count_ok}, falhas={count_failed}, "
+            f"tempo={elapsed:.1f}s, workers={MAX_WORKERS}"
         )
 
         return {
             "PROCESSED": count_ok,
-            "SKIPPED": count_skipped,
-            "SKIPPED_DISK": count_skipped_disk,
+            "SKIPPED": total - total_valid,
             "FAILED": count_failed,
             "ELAPSED_SECONDS": round(elapsed, 1),
         }
-
-    # ── _process_single_raster ─────────────────────────────────────────────
-
-    def _process_single_raster(
-        self,
-        raster_path,
-        level_values,
-        resampling_idx,
-        compression_idx,
-        predictor_idx,
-        zlevel,
-        delete_existing,
-        bigtiff,
-        feedback,
-    ):
-        """
-        Gera overviews internos no próprio GeoTIFF usando gdaladdo.
-        Overviews externos (.ovr) NÃO são gerados: o arquivo de saída
-        não usa -ro, garantindo que tudo fique embutido no .tif.
-        Retorna True em sucesso, False em falha.
-        """
-        self.logger.debug(f"Processando: {raster_path}")
-
-        # Deletar overviews existentes se solicitado
-        if delete_existing:
-            self._delete_overviews(raster_path, feedback)
-
-        resampling = RESAMPLING_METHODS[resampling_idx]
-        compression = COMPRESSION_METHODS[compression_idx]
-        predictor_value = str(predictor_idx + 1)
-
-        # Monta o comando gdaladdo para overviews INTERNOS
-        # Nota: ausência de -ro garante gravação interna no .tif
-        cmd = [
-            "gdaladdo",
-            "-r", resampling,
-            "--config", "COMPRESS_OVERVIEW", compression,
-            "--config", "PREDICTOR_OVERVIEW", predictor_value,
-            "--config", "ZLEVEL_OVERVIEW", str(zlevel),
-            "--config", "USE_RRD", "NO",          # nunca usar .aux/.rrd externo
-            "--config", "GDAL_TIFF_OVR_BLOCKSIZE", "512",  # bloco maior = mais eficiente
-        ]
-
-        if bigtiff:
-            cmd += ["--config", "BIGTIFF_OVERVIEW", "YES"]
-
-        cmd += [raster_path, *level_values]
-
-        self.logger.debug(f"Comando: {' '.join(cmd)}")
-
-        try:
-            result = subprocess.run(
-                cmd,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            if result.stdout:
-                for line in result.stdout.strip().splitlines():
-                    if line.strip():
-                        feedback.pushInfo(f"  {line.strip()}")
-            feedback.pushInfo(f"  OK — overviews internos criados: {os.path.basename(raster_path)}")
-            self.logger.debug(f"Overviews criadas com sucesso: {raster_path}")
-            return True
-
-        except subprocess.CalledProcessError as e:
-            msg = f"  FALHA — {os.path.basename(raster_path)}: {e.stderr.strip()}"
-            self.logger.error(msg)
-            feedback.pushInfo(msg)
-            return False
-
-        except Exception as e:
-            msg = f"  ERRO inesperado — {os.path.basename(raster_path)}: {e}"
-            self.logger.error(msg)
-            feedback.pushInfo(msg)
-            return False
 
     # ── _delete_overviews ──────────────────────────────────────────────────
 

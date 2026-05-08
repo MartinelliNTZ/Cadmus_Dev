@@ -181,7 +181,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                 self.PREDICTOR,
                 STR.PREDICTOR,
                 options=PREDICTOR_VALUES,
-                defaultValue=self.prefs.get("predictor", 0),  # 1 (Default)
+                defaultValue=self.prefs.get("predictor", 1),  # 1 (Default)
             )
         )
 
@@ -190,7 +190,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                 self.ZLEVEL,
                 STR.ZLEVEL,
                 type=QgsProcessingParameterNumber.Integer,
-                defaultValue=self.prefs.get("zlevel", 6),
+                defaultValue=self.prefs.get("zlevel", 9),
                 minValue=1,
                 maxValue=9,
             )
@@ -208,7 +208,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
             QgsProcessingParameterBoolean(
                 self.BIGTIFF,
                 STR.BIGTIFF_YES,
-                defaultValue=self.prefs.get("bigtiff", False),
+                defaultValue=self.prefs.get("bigtiff", True),
             )
         )
 

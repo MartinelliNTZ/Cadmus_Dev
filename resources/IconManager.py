@@ -55,6 +55,7 @@ class IconManager:
     RASTER_MASS_CLIPPER = "raster_mass_clipper.ico"
     GRID_GENERATOR = "grid_generator.ico"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average.ico"
+    RASTER_OPTIMIZER = "raster_mass.ico"
 
     @classmethod
     def icon(cls, name: str) -> QIcon:

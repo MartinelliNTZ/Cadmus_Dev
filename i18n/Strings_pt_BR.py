@@ -614,6 +614,28 @@ class Strings_pt_BR:
     DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
         "A interface foi criada. A rotina de divisão por faixas será implementada na próxima etapa."
     )
+
+    # processing/RasterOptimizer.py
+    RASTER_OPTIMIZER_TITLE = "Otimizar Raster (Overviews)"
+    RASTER_OPTIMIZER_TOOLTIP = (
+        "Cria ou reconstrói pirâmides (overviews) em rasters TIFF.\n"
+        "Permite selecionar pasta com rasters ou camadas individuais,\n"
+        "escolher os níveis de overview, método de reamostragem\n"
+        "e algoritmo de compressão (LZW, DEFLATE, ZSTD)."
+    )
+    INPUT_RASTER_LAYERS = "Camadas Raster de Entrada"
+    INPUT_RASTER_FOLDER = "Pasta com Rasters"
+    OVERVIEW_LEVELS = "Níveis de Overview"
+    RESAMPLING_METHOD = "Método de Reamostragem"
+    COMPRESS_OVERVIEW = "Compressão das Overviews"
+    PREDICTOR = "Predictor"
+    ZLEVEL = "ZLevel (compressão)"
+    DELETE_EXISTING_OVERVIEWS = "Deletar overviews existentes antes de recriar"
+    OVERVIEWS_CREATED_SUCCESS = "Overviews criadas/atualizadas com sucesso."
+    OVERVIEWS_ERROR = "Erro ao criar overviews: {error}"
+    RASTER_OPTIMIZER_COMPLETED = "Otimização de rasters concluída."
+    USE_RECURSIVE_SEARCH = "Incluir subpastas"
+    SEARCHING_RASTERS = "Buscando rasters..."
     SEGMENTATION_MODE = "Modo de Segmentação"
     CURVE = "Curva"
     STRAIGHT = "Reta"

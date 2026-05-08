@@ -42,6 +42,7 @@ class ToolKey:
     RASTER_DIFERENCE_STATISTICS = "raster_diference_statistics"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average"
     GRID_GENERATOR = "grid_generator"
+    RASTER_OPTIMIZER = "raster_optimizer"
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {
@@ -72,4 +73,5 @@ class ToolKey:
         RASTER_MASS_SAMPLER: "#F1948A",  # coral -> raster pesado
         GRID_GENERATOR: "#F39C12",  # laranja forte -> gerador de grade
         ELEVATION_ANALISYS: "#5DADE2",  # azul medio -> relevo
+        RASTER_OPTIMIZER: "#E67E22",  # laranja -> otimizacao raster
     }

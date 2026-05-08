@@ -137,6 +137,31 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
+    def get_raster_optimizer_help(self):
+        return f"""
+            {self.provider.logo}
+            Ferramenta do pacote Cadmus para criar ou reconstruir pirâmides (overviews) em rasters TIFF, otimizando a visualização e o desempenho em grandes mosaicos.
+            {self.provider.transform_h('Objetivo')}
+            Criar overviews (gdaladdo) em lote para acelerar o carregamento de rasters.
+            Suportar seleção por pasta ou camadas existentes no projeto.
+            Oferecer compressão LZW, DEFLATE ou ZSTD com controle de predictor e zlevel.
+            {self.provider.transform_h('Como usar')}
+            1. Selecione camadas raster do projeto OU informe uma pasta com rasters TIFF.
+            2. Ative "Incluir subpastas" se a pasta tiver subdiretórios.
+            3. Escolha os níveis de overview desejados (2, 4, 8, 16, 32, 64, 128, 256).
+            4. Configure o método de reamostragem (average, nearest, cubic, etc).
+            5. Escolha a compressão (LZW, DEFLATE ou ZSTD) e ajuste predictor/zlevel.
+            6. Marque "Deletar overviews existentes" se quiser recriar do zero.
+            7. Execute.
+            {self.provider.transform_h('Saídas')}
+            Os próprios rasters de entrada são modificados in-place com as novas overviews.
+            {self.provider.transform_h('Atenções')}
+            A operação modifica os arquivos TIFF originais (in-place).
+            O processo usa gdaladdo, que deve estar disponível no PATH do sistema.
+            Níveis muito altos para rasters pequenos podem ser ignorados pelo GDAL.
+            {self.provider.author_info}
+        """
+
     def get_attribute_statistics_help(self):
         return f"""
             {self.provider.logo}

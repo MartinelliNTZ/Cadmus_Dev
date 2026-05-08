@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
+import shutil
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 from qgis.core import (
     QgsProcessing,
@@ -44,6 +45,53 @@ PREDICTOR_VALUES = [
     "3 (Vertical)",
 ]
 
+# Fator de estimativa de espaço para overviews internos
+# Overviews internos somam ~33% do tamanho original (pirâmide geométrica)
+OVERVIEW_DISK_FACTOR = 0.34
+
+
+def _estimate_overview_size(raster_path):
+    """
+    Estima o espaço necessário para overviews internos.
+    A soma de uma pirâmide geométrica converge para ~1/3 do tamanho original.
+    """
+    try:
+        return int(os.path.getsize(raster_path) * OVERVIEW_DISK_FACTOR)
+    except OSError:
+        return 0
+
+
+def _free_disk_space(path):
+    """Retorna espaço livre em disco no mesmo volume do arquivo."""
+    try:
+        total, used, free = shutil.disk_usage(os.path.dirname(os.path.abspath(path)))
+        return free
+    except OSError:
+        return None
+
+
+def _has_internal_overviews(raster_path):
+    """
+    Verifica se o raster já possui overviews internos usando gdalinfo.
+    Retorna (tem_overviews: bool, níveis: list[str])
+    """
+    try:
+        result = subprocess.run(
+            ["gdalinfo", raster_path],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        lines = result.stdout.splitlines()
+        levels = [
+            line.strip()
+            for line in lines
+            if "Overview" in line and "x" in line
+        ]
+        return len(levels) > 0, levels
+    except Exception:
+        return False, []
+
 
 class RasterOptimizer(BaseProcessingAlgorithm):
 
@@ -66,6 +114,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
     ZLEVEL = "ZLEVEL"
     DELETE_EXISTING = "DELETE_EXISTING"
     BIGTIFF = "BIGTIFF"
+    SKIP_IF_HAS_OVERVIEWS = "SKIP_IF_HAS_OVERVIEWS"
 
     def initAlgorithm(self, config=None):
         self.logger.debug("Inicializando algoritmo RasterOptimizer...")
@@ -163,6 +212,15 @@ class RasterOptimizer(BaseProcessingAlgorithm):
             )
         )
 
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.SKIP_IF_HAS_OVERVIEWS,
+                STR.SKIP_IF_HAS_OVERVIEWS if hasattr(STR, "SKIP_IF_HAS_OVERVIEWS")
+                else "Pular rasters que já possuem overviews internos",
+                defaultValue=self.prefs.get("skip_if_has_overviews", True),
+            )
+        )
+
     def processAlgorithm(self, params, context, feedback):
         if feedback.isCanceled():
             return {}
@@ -177,32 +235,33 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         zlevel = self.parameterAsInt(params, self.ZLEVEL, context)
         delete_existing = self.parameterAsBool(params, self.DELETE_EXISTING, context)
         bigtiff = self.parameterAsBool(params, self.BIGTIFF, context)
+        skip_if_has_overviews = self.parameterAsBool(params, self.SKIP_IF_HAS_OVERVIEWS, context)
 
         self.logger.debug(
             f"Parametros: folder={input_folder}, recursive={recursive}, "
             f"levels={selected_levels}, resampling={RESAMPLING_METHODS[resampling_idx]}, "
             f"compression={COMPRESSION_METHODS[compression_idx]}, "
-            f"predictor={predictor_idx + 1}, zlevel={zlevel}, bigtiff={bigtiff}"
+            f"predictor={predictor_idx + 1}, zlevel={zlevel}, bigtiff={bigtiff}, "
+            f"skip_if_has_overviews={skip_if_has_overviews}"
         )
 
-        # Coletar rasters
+        # ── Coletar rasters ────────────────────────────────────────────────
+
         raster_paths = []
 
-        # De camadas do projeto
         if raster_layers:
             for rl in raster_layers:
                 path = rl.source()
-                if path.lower().endswith(".tif") or path.lower().endswith(".tiff"):
+                if path.lower().endswith((".tif", ".tiff")):
                     if path not in raster_paths:
                         raster_paths.append(path)
                     self.logger.debug(f"Raster de camada adicionado: {path}")
 
-        # De pasta
         if input_folder and os.path.isdir(input_folder):
             self.logger.debug(f"Buscando rasters em: {input_folder} (recursive={recursive})")
             for root, dirs, files in os.walk(input_folder):
                 for f in files:
-                    if f.lower().endswith(".tif") or f.lower().endswith(".tiff"):
+                    if f.lower().endswith((".tif", ".tiff")):
                         full_path = os.path.join(root, f)
                         if full_path not in raster_paths:
                             raster_paths.append(full_path)
@@ -214,16 +273,20 @@ class RasterOptimizer(BaseProcessingAlgorithm):
             self.logger.warning("Nenhum raster encontrado.")
             return {}
 
-        # Converter indices de niveis para valores reais
+        # ── Converter índices de níveis para valores reais ─────────────────
+
         level_values = [OVERVIEW_LEVEL_ALL[i] for i in selected_levels]
 
-        self.logger.info(f"Total de rasters para processar: {len(raster_paths)}")
-        feedback.pushInfo(f"Total de rasters: {len(raster_paths)}")
-        feedback.pushInfo(f"Niveis de overview: {', '.join(level_values)}")
-        feedback.pushInfo(f"Compressao: {COMPRESSION_METHODS[compression_idx]}")
+        total = len(raster_paths)
+        self.logger.info(f"Total de rasters para processar: {total}")
+        feedback.pushInfo(f"Total de rasters encontrados: {total}")
+        feedback.pushInfo(f"Níveis de overview: {', '.join(level_values)}")
+        feedback.pushInfo(f"Compressão: {COMPRESSION_METHODS[compression_idx]}")
         feedback.pushInfo(f"Reamostragem: {RESAMPLING_METHODS[resampling_idx]}")
+        feedback.pushInfo("-" * 60)
 
-        # Salvar preferencias
+        # ── Salvar preferências ────────────────────────────────────────────
+
         self.prefs.update(
             {
                 "last_folder": input_folder,
@@ -235,46 +298,116 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                 "zlevel": zlevel,
                 "delete_existing": bool(delete_existing),
                 "bigtiff": bool(bigtiff),
+                "skip_if_has_overviews": bool(skip_if_has_overviews),
             }
         )
         self.save_preferences()
 
-        # Processar com ThreadPoolExecutor
-        total = len(raster_paths)
-        tasks = []
+        # ── Contadores para relatório final ────────────────────────────────
 
-        with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-            for i, raster_path in enumerate(raster_paths):
-                if feedback.isCanceled():
-                    break
+        count_ok = 0
+        count_skipped = 0
+        count_skipped_disk = 0
+        count_failed = 0
+        t_start = time.time()
 
-                tasks.append(
-                    executor.submit(
-                        self._process_single_raster,
-                        raster_path,
-                        level_values,
-                        resampling_idx,
-                        compression_idx,
-                        predictor_idx,
-                        zlevel,
-                        delete_existing,
-                        bigtiff,
-                        feedback,
+        # ── Processar sequencialmente ──────────────────────────────────────
+
+        for i, raster_path in enumerate(raster_paths, start=1):
+            if feedback.isCanceled():
+                feedback.pushInfo("Processamento cancelado pelo usuário.")
+                break
+
+            name = os.path.basename(raster_path)
+            feedback.setProgress(int((i - 1) / total * 100))
+            feedback.pushInfo(f"[{i}/{total}] {name}")
+
+            # Arquivo existe?
+            if not os.path.exists(raster_path):
+                feedback.pushInfo(f"  IGNORADO — arquivo não encontrado: {raster_path}")
+                self.logger.warning(f"Arquivo não encontrado: {raster_path}")
+                count_failed += 1
+                continue
+
+            # Pular se já tem overviews internos?
+            if skip_if_has_overviews and not delete_existing:
+                has_ovr, existing_levels = _has_internal_overviews(raster_path)
+                if has_ovr:
+                    feedback.pushInfo(
+                        f"  PULADO — já possui overviews internos: "
+                        f"{', '.join(existing_levels[:4])}{'...' if len(existing_levels) > 4 else ''}"
                     )
+                    self.logger.debug(f"Pulado (já tem overviews): {raster_path}")
+                    count_skipped += 1
+                    continue
+
+            # Verificação de espaço em disco
+            needed = _estimate_overview_size(raster_path)
+            free = _free_disk_space(raster_path)
+            if free is not None:
+                needed_mb = needed / (1024 ** 2)
+                free_mb = free / (1024 ** 2)
+                feedback.pushInfo(
+                    f"  Espaço estimado para overviews: {needed_mb:.1f} MB  |  "
+                    f"Livre em disco: {free_mb:.1f} MB"
                 )
+                if free < needed * 1.2:  # margem de segurança de 20%
+                    msg = (
+                        f"  IGNORADO — espaço insuficiente. "
+                        f"Necessário: {needed_mb:.1f} MB, disponível: {free_mb:.1f} MB."
+                    )
+                    feedback.pushInfo(msg)
+                    self.logger.warning(msg)
+                    count_skipped_disk += 1
+                    continue
 
-            for future in as_completed(tasks):
-                if feedback.isCanceled():
-                    break
-                try:
-                    future.result()
-                except Exception as e:
-                    self.logger.error(f"Erro ao processar raster: {e}")
-                    feedback.pushInfo(f"ERRO: {e}")
+            # Processar
+            ok = self._process_single_raster(
+                raster_path=raster_path,
+                level_values=level_values,
+                resampling_idx=resampling_idx,
+                compression_idx=compression_idx,
+                predictor_idx=predictor_idx,
+                zlevel=zlevel,
+                delete_existing=delete_existing,
+                bigtiff=bigtiff,
+                feedback=feedback,
+            )
 
-        feedback.pushInfo(STR.RASTER_OPTIMIZER_COMPLETED)
-        self.logger.info("Otimizacao de rasters concluida.")
-        return {}
+            if ok:
+                count_ok += 1
+            else:
+                count_failed += 1
+
+        # ── Relatório final ────────────────────────────────────────────────
+
+        elapsed = time.time() - t_start
+        feedback.setProgress(100)
+        feedback.pushInfo("=" * 60)
+        feedback.pushInfo("RELATÓRIO FINAL")
+        feedback.pushInfo("=" * 60)
+        feedback.pushInfo(f"  Total encontrado      : {total}")
+        feedback.pushInfo(f"  Processados (OK)      : {count_ok}")
+        feedback.pushInfo(f"  Pulados (já otimizados): {count_skipped}")
+        feedback.pushInfo(f"  Pulados (disco cheio) : {count_skipped_disk}")
+        feedback.pushInfo(f"  Falhas                : {count_failed}")
+        feedback.pushInfo(f"  Tempo total           : {elapsed:.1f}s")
+        feedback.pushInfo("=" * 60)
+
+        self.logger.info(
+            f"Otimização concluída. ok={count_ok}, pulados={count_skipped}, "
+            f"disco={count_skipped_disk}, falhas={count_failed}, tempo={elapsed:.1f}s"
+        )
+
+        return {
+            "PROCESSED": count_ok,
+            "SKIPPED": count_skipped,
+            "SKIPPED_DISK": count_skipped_disk,
+            "FAILED": count_failed,
+            "ELAPSED_SECONDS": round(elapsed, 1),
+        }
+
+    # ── _process_single_raster ─────────────────────────────────────────────
 
     def _process_single_raster(
         self,
@@ -288,37 +421,38 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         bigtiff,
         feedback,
     ):
+        """
+        Gera overviews internos no próprio GeoTIFF usando gdaladdo.
+        Overviews externos (.ovr) NÃO são gerados: o arquivo de saída
+        não usa -ro, garantindo que tudo fique embutido no .tif.
+        Retorna True em sucesso, False em falha.
+        """
         self.logger.debug(f"Processando: {raster_path}")
-
-        if not os.path.exists(raster_path):
-            msg = f"Arquivo nao encontrado: {raster_path}"
-            self.logger.warning(msg)
-            feedback.pushInfo(msg)
-            return
 
         # Deletar overviews existentes se solicitado
         if delete_existing:
             self._delete_overviews(raster_path, feedback)
 
-        # Construir comando gdaladdo
         resampling = RESAMPLING_METHODS[resampling_idx]
         compression = COMPRESSION_METHODS[compression_idx]
         predictor_value = str(predictor_idx + 1)
 
+        # Monta o comando gdaladdo para overviews INTERNOS
+        # Nota: ausência de -ro garante gravação interna no .tif
         cmd = [
             "gdaladdo",
             "-r", resampling,
             "--config", "COMPRESS_OVERVIEW", compression,
             "--config", "PREDICTOR_OVERVIEW", predictor_value,
-            "--config", "ZLEVEL", str(zlevel),
-            raster_path,
-            *level_values,
+            "--config", "ZLEVEL_OVERVIEW", str(zlevel),
+            "--config", "USE_RRD", "NO",          # nunca usar .aux/.rrd externo
+            "--config", "GDAL_TIFF_OVR_BLOCKSIZE", "512",  # bloco maior = mais eficiente
         ]
 
         if bigtiff:
-            cmd.insert(1, "--config")
-            cmd.insert(2, "BIGTIFF_OVERVIEW")
-            cmd.insert(3, "YES")
+            cmd += ["--config", "BIGTIFF_OVERVIEW", "YES"]
+
+        cmd += [raster_path, *level_values]
 
         self.logger.debug(f"Comando: {' '.join(cmd)}")
 
@@ -330,28 +464,51 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                 text=True,
             )
             if result.stdout:
-                for line in result.stdout.strip().split("\n"):
+                for line in result.stdout.strip().splitlines():
                     if line.strip():
-                        feedback.pushInfo(f"[{os.path.basename(raster_path)}] {line.strip()}")
-            feedback.pushInfo(f"OK: {os.path.basename(raster_path)}")
+                        feedback.pushInfo(f"  {line.strip()}")
+            feedback.pushInfo(f"  OK — overviews internos criados: {os.path.basename(raster_path)}")
             self.logger.debug(f"Overviews criadas com sucesso: {raster_path}")
+            return True
+
         except subprocess.CalledProcessError as e:
-            msg = f"Falha ao criar overviews para {os.path.basename(raster_path)}: {e.stderr.strip()}"
+            msg = f"  FALHA — {os.path.basename(raster_path)}: {e.stderr.strip()}"
             self.logger.error(msg)
             feedback.pushInfo(msg)
+            return False
+
         except Exception as e:
-            msg = f"Erro inesperado em {os.path.basename(raster_path)}: {e}"
+            msg = f"  ERRO inesperado — {os.path.basename(raster_path)}: {e}"
             self.logger.error(msg)
             feedback.pushInfo(msg)
+            return False
+
+    # ── _delete_overviews ──────────────────────────────────────────────────
 
     def _delete_overviews(self, raster_path, feedback):
-        """Remove overviews existentes de um TIFF usando gdaladdo -clean."""
+        """
+        Remove overviews internos do TIFF usando gdaladdo -clean.
+        Também remove arquivo .ovr externo residual, se existir.
+        """
         self.logger.debug(f"Limpando overviews existentes: {raster_path}")
+
+        # Limpar overviews internos
         try:
             cmd = ["gdaladdo", "-clean", raster_path]
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=120)
+            feedback.pushInfo(f"  Overviews internos removidos: {os.path.basename(raster_path)}")
             self.logger.debug(f"Overviews limpas: {raster_path}")
         except subprocess.CalledProcessError as e:
             self.logger.warning(f"Falha ao limpar overviews (pode ser ignorado): {e.stderr.strip()}")
         except Exception as e:
             self.logger.warning(f"Erro ao limpar overviews: {e}")
+
+        # Remover .ovr externo residual, se existir
+        ovr_path = raster_path + ".ovr"
+        if os.path.exists(ovr_path):
+            try:
+                os.remove(ovr_path)
+                feedback.pushInfo(f"  Arquivo externo .ovr residual removido: {os.path.basename(ovr_path)}")
+                self.logger.debug(f".ovr externo removido: {ovr_path}")
+            except OSError as e:
+                self.logger.warning(f"Não foi possível remover .ovr externo: {e}")

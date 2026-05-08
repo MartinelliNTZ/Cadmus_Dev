@@ -1022,6 +1022,247 @@ class MetadataFields:
         ),
     }
 
+    CAMERA_MODEL_PARAMS = CAMERA_SPECS = {
+        # =========================================================
+        # DJI ENTERPRISE / MAPPING
+        # =========================================================
+        "M4E": {
+            "name": "DJI Matrice 4 Enterprise",
+            "sensor_type": "4/3 CMOS",
+            "sensor_width_mm": 17.3,
+            "sensor_height_mm": 13.0,
+            "resolution_px": (5280, 3956),
+            "megapixels": 20,
+            "focal_real_mm": 12.29,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 3.3,
+            "mechanical_shutter": True,
+        },
+        "M3E": {
+            "name": "DJI Mavic 3 Enterprise",
+            "sensor_type": "4/3 CMOS",
+            "sensor_width_mm": 17.3,
+            "sensor_height_mm": 13.0,
+            "resolution_px": (5280, 3956),
+            "megapixels": 20,
+            "focal_real_mm": 12.29,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 3.3,
+            "mechanical_shutter": True,
+        },
+        "M3M": {
+            "name": "DJI Mavic 3 Multispectral",
+            "sensor_type": "4/3 CMOS RGB + Multispectral",
+            "sensor_width_mm": 17.3,
+            "sensor_height_mm": 13.0,
+            "resolution_px": (5280, 3956),
+            "megapixels": 20,
+            "focal_real_mm": 12.29,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 3.3,
+            "mechanical_shutter": True,
+        },
+        "M3T": {
+            "name": "DJI Mavic 3 Thermal",
+            "sensor_type": "1/2 CMOS",
+            "sensor_width_mm": 6.4,
+            "sensor_height_mm": 4.8,
+            "resolution_px": (4000, 3000),
+            "megapixels": 12,
+            "focal_real_mm": 6.7,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 1.6,
+            "mechanical_shutter": False,
+        },
+        "FC6310R": {
+            "name": "DJI Phantom 4 RTK",
+            "sensor_type": "1-inch CMOS",
+            "sensor_width_mm": 13.2,
+            "sensor_height_mm": 8.8,
+            "resolution_px": (5472, 3648),
+            "megapixels": 20,
+            "focal_real_mm": 8.8,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 2.41,
+            "mechanical_shutter": True,
+        },
+        "FC6520": {
+            "name": "DJI Phantom 4 Pro V2",
+            "sensor_type": "1-inch CMOS",
+            "sensor_width_mm": 13.2,
+            "sensor_height_mm": 8.8,
+            "resolution_px": (5472, 3648),
+            "megapixels": 20,
+            "focal_real_mm": 8.8,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 2.41,
+            "mechanical_shutter": True,
+        },
+        "Zenmuse P1": {
+            "name": "DJI Zenmuse P1",
+            "sensor_type": "Full Frame",
+            "sensor_width_mm": 35.9,
+            "sensor_height_mm": 24.0,
+            "resolution_px": (8192, 5460),
+            "megapixels": 45,
+            "focal_real_mm": 35.0,
+            "focal_eq_mm": 35,
+            "pixel_size_um": 4.4,
+            "mechanical_shutter": True,
+        },
+        "L2": {
+            "name": "DJI Zenmuse L2",
+            "sensor_type": "4/3 CMOS",
+            "sensor_width_mm": 17.3,
+            "sensor_height_mm": 13.0,
+            "resolution_px": (5280, 3956),
+            "megapixels": 20,
+            "focal_real_mm": 12.29,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 3.3,
+            "mechanical_shutter": True,
+            # LiDAR
+            "lidar": True,
+            "lidar_max_returns": 5,
+            "lidar_points_per_second": 1200000,
+            "lidar_max_range_m": 450,
+            "lidar_fov_horizontal_deg": 70,
+            "lidar_fov_vertical_deg": 75,
+        },
+        "L1D-20c": {
+            "name": "DJI Zenmuse L1 RGB",
+            "sensor_type": "1-inch CMOS",
+            "sensor_width_mm": 13.2,
+            "sensor_height_mm": 8.8,
+            "resolution_px": (5472, 3648),
+            "megapixels": 20,
+            "focal_real_mm": 8.8,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 2.4,
+            "mechanical_shutter": True,
+        },
+        "ZH20T": {
+            "name": "DJI Zenmuse H20T Wide",
+            "sensor_type": "1/2.3 CMOS",
+            "sensor_width_mm": 6.3,
+            "sensor_height_mm": 4.7,
+            "resolution_px": (4056, 3040),
+            "megapixels": 12,
+            "focal_real_mm": 4.5,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 1.55,
+            "mechanical_shutter": False,
+        },
+        # =========================================================
+        # DJI CONSUMER
+        # =========================================================
+        "M3C": {
+            "name": "DJI Mavic 3 Classic",
+            "sensor_type": "4/3 CMOS",
+            "sensor_width_mm": 17.3,
+            "sensor_height_mm": 13.0,
+            "resolution_px": (5280, 3956),
+            "megapixels": 20,
+            "focal_real_mm": 12.29,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 3.3,
+            "mechanical_shutter": False,
+        },
+        "M3P": {
+            "name": "DJI Mavic 3 Pro",
+            "sensor_type": "4/3 CMOS",
+            "sensor_width_mm": 17.3,
+            "sensor_height_mm": 13.0,
+            "resolution_px": (5280, 3956),
+            "megapixels": 20,
+            "focal_real_mm": 12.29,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 3.3,
+            "mechanical_shutter": False,
+        },
+        "AIR3": {
+            "name": "DJI Air 3",
+            "sensor_type": "1/1.3 CMOS",
+            "sensor_width_mm": 9.6,
+            "sensor_height_mm": 7.2,
+            "resolution_px": (8064, 6048),
+            "megapixels": 48,
+            "focal_real_mm": 6.7,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 1.2,
+            "mechanical_shutter": False,
+        },
+        "MINI4PRO": {
+            "name": "DJI Mini 4 Pro",
+            "sensor_type": "1/1.3 CMOS",
+            "sensor_width_mm": 9.6,
+            "sensor_height_mm": 7.2,
+            "resolution_px": (8064, 6048),
+            "megapixels": 48,
+            "focal_real_mm": 6.7,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 1.2,
+            "mechanical_shutter": False,
+        },
+        # =========================================================
+        # AUTEL
+        # =========================================================
+        "EVO2PRO": {
+            "name": "Autel EVO II Pro",
+            "sensor_type": "1-inch CMOS",
+            "sensor_width_mm": 13.2,
+            "sensor_height_mm": 8.8,
+            "resolution_px": (5472, 3648),
+            "megapixels": 20,
+            "focal_real_mm": 10.26,
+            "focal_eq_mm": 28,
+            "pixel_size_um": 2.4,
+            "mechanical_shutter": False,
+        },
+        "EVO_MAX_4T": {
+            "name": "Autel EVO Max 4T",
+            "sensor_type": "1-inch CMOS",
+            "sensor_width_mm": 13.2,
+            "sensor_height_mm": 8.8,
+            "resolution_px": (5472, 3648),
+            "megapixels": 50,
+            "focal_real_mm": 10.5,
+            "focal_eq_mm": 23,
+            "pixel_size_um": 2.4,
+            "mechanical_shutter": False,
+        },
+        # =========================================================
+        # PARROT
+        # =========================================================
+        "ANAFI_AI": {
+            "name": "Parrot Anafi AI",
+            "sensor_type": "1/1.56 CMOS",
+            "sensor_width_mm": 8.2,
+            "sensor_height_mm": 6.1,
+            "resolution_px": (5344, 4016),
+            "megapixels": 48,
+            "focal_real_mm": 6.0,
+            "focal_eq_mm": 23,
+            "pixel_size_um": 1.22,
+            "mechanical_shutter": False,
+        },
+        # =========================================================
+        # SKYDIO
+        # =========================================================
+        "X10": {
+            "name": "Skydio X10",
+            "sensor_type": "1/1.8 CMOS",
+            "sensor_width_mm": 7.2,
+            "sensor_height_mm": 5.4,
+            "resolution_px": (4096, 3072),
+            "megapixels": 12,
+            "focal_real_mm": 4.5,
+            "focal_eq_mm": 24,
+            "pixel_size_um": 1.55,
+            "mechanical_shutter": False,
+        },
+    }
+
     @classmethod
     def all_fields(cls) -> Dict[str, Field]:
         fields: Dict[str, Field] = {}
@@ -1050,7 +1291,9 @@ class MetadataFields:
 
     @classmethod
     def required_keys(cls) -> List[str]:
-        return [key.value for key in cls.EXIF_FIELDS.keys()] + [key.value for key in cls.DJI_XMP_FIELDS.keys()]
+        return [key.value for key in cls.EXIF_FIELDS.keys()] + [
+            key.value for key in cls.DJI_XMP_FIELDS.keys()
+        ]
 
     @classmethod
     def custom_keys(cls) -> List[str]:

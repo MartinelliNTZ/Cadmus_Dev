@@ -607,3 +607,7 @@ Remover código que existia apenas por compatibilidade e simplificar `ExecutionC
 9. `QgsVectorLayer`, `QgsTask` e `changeAttributeValue` só dentro de `JsonToVectorTranslator`
    e dos steps/tasks do pipeline — nunca dentro de utilitários de extração.
 10. Não gerar relatório sem `json_path` válido e com `schema_version: "2.0"` no contexto.
+11. Evitar usar upper para comparar strings — usar sempre `MetadataFieldKey` ou `source` com valores fixos.
+ref_txt = str(ref or "").upper().strip() nem o junior mais burro faria essa atrocidade 
+if hasattr(MetadataFieldKey, key.upper().replace(' ', '_')):  nunca faça essa atrocidade de usar upper para comparar string com enum use o proprio enum para isso 
+   

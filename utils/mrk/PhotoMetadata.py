@@ -306,17 +306,6 @@ class PhotoMetadata:
             if target_key not in payload and source_key in payload:
                 payload[target_key] = payload.get(source_key)
 
-        # Mapeamento direto: valor enum -> chave enum (ex: "GPSMapDatum" -> MetadataFieldKey.GPS_MAP_DATUM)
-        from ...core.enum import MetadataFieldKey as MFK
-        enum_value_to_key = {key.value: key for key in MFK}
-
-        for source_key, source_val in list(payload.items()):
-            source_str = str(source_key)
-            # Tenta encontrar a chave enum correspondente ao valor
-            target_key = enum_value_to_key.get(source_str)
-            if target_key and target_key not in payload:
-                payload[target_key] = source_val
-
         canonical_payload = MetadataFields.normalize_record_to_keys(payload)
         light_source_label = PhotoMetadata._translate_light_source_value(
             canonical_payload.get("LightSource"),
@@ -456,6 +445,14 @@ class PhotoMetadata:
         selected_mrk_fields=None,
         return_report=False,
     ):
+        """
+        Enriquecimento de metadados de fotos.
+        Gera JSON v2.0 com source: "mrk+photo".
+        Retorna caminho do JSON gerado.
+        """
+        from ...utils.JsonUtil import JsonUtil
+        from ...core.enum import MetadataFieldKey
+
         logger = PhotoMetadata._get_logger(TOOL_KEY)
         selected_keys = PhotoMetadata._build_selected_keys(
             selected_required_fields=selected_required_fields,
@@ -488,6 +485,11 @@ class PhotoMetadata:
             },
         )
 
+        # Processar pontos e gerar registros enriquecidos
+        all_records = []
+        total_found = 0
+        total_missing = 0
+
         points_by_folder = {}
         for point in points:
             folder = point.get("mrk_folder") or base_folder
@@ -499,16 +501,6 @@ class PhotoMetadata:
                 folder = base_folder
             points_by_folder.setdefault(folder, []).append(point)
 
-        full_dump_payload = {
-            "base_folder": base_folder,
-            "recursive": recursive,
-            "points_total": len(points),
-            "groups": {},
-        }
-
-        total_found = 0
-        total_missing = 0
-
         for folder, folder_points in points_by_folder.items():
             photo_index, raw_records = PhotoMetadata._index_photos_complete(
                 folder,
@@ -516,25 +508,6 @@ class PhotoMetadata:
                 tool_key=TOOL_KEY,
             )
             mrk_by_seq = PhotoMetadata._build_mrk_context_by_sequence(folder_points)
-            raw_records = PhotoMetadata._merge_mrk_into_dump_records(raw_records, mrk_by_seq)
-
-            full_dump_payload["groups"][folder] = {
-                "points": len(folder_points),
-                "indexed": len(photo_index),
-                "raw_records": raw_records,
-            }
-            first_record = next(iter(raw_records.values()), None) if raw_records else None
-            sample_keys = sorted(list(first_record.keys()))[:40] if first_record else []
-            logger.debug(
-                "Grupo indexado",
-                data={
-                    "folder": folder,
-                    "points_count": len(folder_points),
-                    "indexed_count": len(photo_index),
-                    "mrk_indexed_count": len(mrk_by_seq),
-                    "sample_keys": sample_keys,
-                },
-            )
 
             empty_filtered = 0
             for point in folder_points:
@@ -553,13 +526,40 @@ class PhotoMetadata:
                 merged_payload.update(photo_payload)
                 merged_payload.update(PhotoMetadata._extract_flight_context(point))
                 # Normaliza aliases/snake_case para as chaves canonicas do MetadataFields
-                # antes do filtro para nao perder campos custom apos mudanca de nomenclatura.
                 merged_payload = MetadataFields.normalize_record_to_keys(merged_payload)
 
-                filtered_payload = PhotoMetadata._filter_payload(merged_payload, selected_keys)
-                if selected_keys and not filtered_payload:
-                    empty_filtered += 1
-                point.update(filtered_payload)
+                # Converter para chaves PascalCase usando mapeamento explicito do catalogo.
+                key_to_json_key = {
+                    key: field.key.value
+                    for key, field in MetadataFields.all_fields().items()
+                    if field.key is not None
+                }
+                record = {}
+                for key, value in merged_payload.items():
+                    if isinstance(key, MetadataFieldKey):
+                        record[key.value] = value
+                        continue
+
+                    canonical_key = MetadataFields.resolve_key(str(key))
+                    mapped_key = key_to_json_key.get(canonical_key, canonical_key)
+                    record[mapped_key] = value
+
+                # Adicionar campos obrigatórios
+                record[MetadataFieldKey.COORD_SOURCE.value] = "XMP"  # ou EXIF baseado na lógica
+                record[MetadataFieldKey.QUALITY_FLAG.value] = "ok"
+
+                # Filtrar campos selecionados
+                if selected_keys:
+                    filtered_record = {}
+                    for k, v in record.items():
+                        if k in selected_keys or k in [MetadataFieldKey.COORD_SOURCE.value, MetadataFieldKey.QUALITY_FLAG.value]:
+                            filtered_record[k] = v
+                    if not filtered_record:
+                        empty_filtered += 1
+                        continue
+                    record = filtered_record
+
+                all_records.append(record)
 
             if selected_keys:
                 logger.info(
@@ -571,8 +571,18 @@ class PhotoMetadata:
                     },
                 )
 
+        # Gerar JSON v2.0
+        json_data = JsonUtil.build(
+            records=all_records,
+            source="mrk+photo",
+            base_folder=base_folder,
+            tool_key=TOOL_KEY,
+            recursive=recursive
+        )
+
+        # Salvar JSON
         dump_path = ExplorerUtils.create_temp_json(
-            full_dump_payload,
+            json_data,
             tool_key=TOOL_KEY,
             prefix="DPM",
             subfolder=os.path.join(
@@ -593,16 +603,8 @@ class PhotoMetadata:
                 "total_points": len(points),
                 "matched": total_found,
                 "not_found": total_missing,
-                "json_dump_path": dump_path,
+                "json_path": dump_path,
             },
         )
 
-        if return_report:
-            return {
-                "points": points,
-                "json_dump_path": dump_path,
-                "matched": total_found,
-                "not_found": total_missing,
-                "total_points": len(points),
-            }
-        return points
+        return dump_path  # Retornar caminho do JSON em vez de points

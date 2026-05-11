@@ -27,30 +27,31 @@ class PhotoVectorizationTask(BaseTask):
 
         try:
             service = PhotoFolderVectorizationService(tool_key=self.tool_key)
-            result = service.generate_from_folder(
+            # Novo: usar extract_to_json() em vez de generate_from_folder()
+            json_path = service.extract_to_json(
                 base_folder=self.base_folder,
                 recursive=self.recursive,
-                generate_report=False,  # Relatório será gerado pelo ReportGenerationStep
-                layer_name=self.layer_name,
+                tool_key=self.tool_key,
+                selected_fields=None,  # Todos os campos
             )
 
-            if not result or not isinstance(result, dict):
-                logger.error("Resultado inválido do serviço de vetorização", data={"result": result})
-                return False
-
-            json_path = result.get("json_path")
             if not json_path:
-                logger.error("json_path não encontrado no resultado do serviço", data=result)
+                logger.error("extract_to_json() não retornou json_path válido")
                 return False
 
-            self.result = result
-            logger.info("Vetorização de fotos concluída com sucesso", data={
-                "has_layer": result.get("layer") is not None,
+            self.result = {
                 "json_path": json_path,
-                "total_points": result.get("total_points", 0)
+                "total_points": 0,  # Será determinado pelo translator
+                "quality": {},  # Será populado pelo translator se necessário
+            }
+
+            logger.info("Extração de JSON para vetorização concluída", data={
+                "json_path": json_path,
+                "base_folder": self.base_folder
             })
+
             return True
 
         except Exception as e:
-            logger.error(f"Erro na vetorização de fotos: {e}")
+            logger.error(f"Erro na extração de JSON: {e}")
             raise e

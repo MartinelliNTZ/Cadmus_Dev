@@ -170,9 +170,15 @@ class PhotoVectorizationPlugin(BasePluginMTL):
 
         QgisMessageUtil.bar_success(self.iface, summary, duration=8)
 
-    def _on_pipeline_error(self, context, exception):
+    def _on_pipeline_error(self, errors):
         """Callback chamado quando ocorre erro no pipeline de TASK."""
-        self.logger.error(f"Erro no pipeline de vetorização: {exception}")
+        exception = None
+        if isinstance(errors, list) and errors:
+            exception = errors[-1]
+        elif errors is not None:
+            exception = errors
+
+        self.logger.error(f"Erro no pipeline de vetorizacao: {exception}")
         QgisMessageUtil.modal_error(self.iface, f"{STR.ERROR}: {exception}")
 
     def _run_photo_vectorization(self):

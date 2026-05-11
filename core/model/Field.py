@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from PyQt5.QtCore import QVariant
+
+if TYPE_CHECKING:
+    from ..enum import MetadataFieldKey
 
 @dataclass
 class Field:
@@ -14,3 +17,4 @@ class Field:
     type: Optional[QVariant] = None
     length: Optional[int] = None
     precision: Optional[int] = None
+    key: Optional["MetadataFieldKey"] = None

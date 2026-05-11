@@ -75,6 +75,8 @@ class MetadataFieldKey(Enum):
     EXIF_SATURATION = "ExifSaturation"
     EXIF_FLASH_PIX_VERSION = "ExifFlashPixVersion"
     EXIF_COLOR_SPACE = "ExifColorSpace"
+    COORD_SOURCE = "CoordSource"
+    QUALITY_FLAG = "QualityFlag"
 
     # CUSTOM_FIELDS
     FILE_TYPE = "FileType"

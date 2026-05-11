@@ -122,8 +122,13 @@ class PhotoMetadataTask(BaseTask):
             selected_mrk_fields=self.selected_mrk_fields,
             return_report=True,
         )
-        enriched = enrich_result.get("points", pontos) if isinstance(enrich_result, dict) else pontos
-        json_dump_path = enrich_result.get("json_dump_path") if isinstance(enrich_result, dict) else None
+        enriched = pontos
+        json_path = None
+        if isinstance(enrich_result, dict):
+            enriched = enrich_result.get("points", pontos)
+            json_path = enrich_result.get("json_path") or enrich_result.get("json_dump_path")
+        elif isinstance(enrich_result, str):
+            json_path = enrich_result
 
         updates = {}
         field_names = set()
@@ -186,16 +191,18 @@ class PhotoMetadataTask(BaseTask):
         not_found = len(pontos) - len(updates)
         if not_found > 0:
             logger.debug(f"Fotos sem metadados encontrados: {not_found}")
-        if json_dump_path:
+        if json_path:
             logger.info(
                 "JSON temporario de metadados gerado",
                 code="PHOTO_METADATA_JSON_PATH",
-                data={"json_dump_path": json_dump_path},
+                data={"json_path": json_path},
             )
 
         self.result = {
             "updates": updates,
             "field_names": list(field_names),
-            "json_dump_path": json_dump_path,
+            "json_path": json_path,
+            # Compatibilidade temporaria com callers legados
+            "json_dump_path": json_path,
         }
         return True

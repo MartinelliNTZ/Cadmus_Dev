@@ -34,41 +34,56 @@ class PhotoVectorizationStep(BaseStep):
             logger.error("Resultado inválido da vetorização de fotos")
             return
 
-        layer = result.get("layer")
+        # Novo fluxo: usar JsonToVectorTranslator
         json_path = result.get("json_path")
+        if not json_path:
+            logger.error("json_path não encontrado no resultado")
+            return
 
-        logger.info("PhotoVectorizationStep.on_success chamado", data={
-            "has_layer": layer is not None,
-            "json_path": json_path,
-            "total_points": result.get("total_points", 0)
-        })
+        # Instanciar JsonToVectorTranslator
+        from ..translator.JsonToVectorTranslator import JsonToVectorTranslator
+        translator = JsonToVectorTranslator(tool_key=context.get("tool_key"))
 
-        # Sempre definir json_path no contexto se estiver disponível
-        if json_path:
-            context.set("json_path", json_path)
-            logger.info("json_path definido no contexto", data={"json_path": json_path})
-        else:
-            logger.warning("json_path não disponível no resultado")
+        # Traduzir JSON para layer
+        layer_name = context.get("layer_name", "Fotos_Sem_MRK")
+        try:
+            layer = translator.translate(
+                json_path=json_path,
+                layer_name=layer_name,
+                selected_keys=None  # Usar todos os campos por padrão
+            )
 
-        if layer and layer.isValid():
-            context.set("layer", layer)
-            context.set("report_payload", result.get("report_payload"))
-            context.set("total_points", result.get("total_points", 0))
-            context.set("quality", result.get("quality", {}))
+            if layer and layer.isValid():
+                # Adicionar ao projeto QGIS
+                from qgis.core import QgsProject
+                QgsProject.instance().addMapLayer(layer)
 
-            logger.info("Camada vetorial de fotos criada com sucesso", data={
-                "total_points": result.get("total_points", 0),
-                "layer_name": layer.name(),
-                "has_json": json_path is not None
-            })
+                context.set("layer", layer)
+                context.set("json_path", json_path)
+                context.set("report_payload", result.get("report_payload"))
+                total_points = int(layer.featureCount())
+                context.set("total_points", total_points)
+                context.set("quality", result.get("quality", {}))
 
-            # Abrir relatório HTML se foi gerado
-            report_payload = result.get("report_payload")
-            if report_payload and isinstance(report_payload, dict):
-                html_path = report_payload.get("html_path")
-                if html_path and context.get("iface"):
-                    if not ExplorerUtils.open_file(html_path, context.get("tool_key")):
-                        QgisMessageUtil.bar_warning(
-                            context.get("iface"),
-                            f"{STR.WARNING}: não foi possível abrir o HTML automaticamente.",
-                        )
+                logger.info("Camada vetorial criada via JsonToVectorTranslator", data={
+                    "layer_name": layer.name(),
+                    "json_path": json_path,
+                    "total_points": total_points
+                })
+
+                # Abrir relatório HTML se foi gerado
+                report_payload = result.get("report_payload")
+                if report_payload and isinstance(report_payload, dict):
+                    html_path = report_payload.get("html_path")
+                    if html_path and context.get("iface"):
+                        if not ExplorerUtils.open_file(html_path, context.get("tool_key")):
+                            QgisMessageUtil.bar_warning(
+                                context.get("iface"),
+                                f"{STR.WARNING}: não foi possível abrir o HTML automaticamente.",
+                            )
+            else:
+                logger.error("Falha ao criar layer via JsonToVectorTranslator")
+
+        except Exception as e:
+            logger.error(f"Erro no JsonToVectorTranslator: {e}")
+            raise

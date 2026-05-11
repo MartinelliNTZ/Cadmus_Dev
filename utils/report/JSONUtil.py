@@ -6,10 +6,12 @@ from ...core.config.LogUtils import LogUtils
 from ..ToolKeys import ToolKey
 from ..adapter.StringAdapter import StringAdapter
 from ..mrk.MetadataFields import MetadataFields
+from ..JsonUtil import JsonUtil
 
 
 class JSONUtil:
     """Responsavel por leitura e normalizacao dos JSONs de metadata."""
+
     @staticmethod
     def _get_logger(tool_key: str = ToolKey.UNTRACEABLE) -> LogUtils:
         return LogUtils(tool=tool_key, class_name="JSONUtil")
@@ -60,8 +62,28 @@ class JSONUtil:
         json_path: str = "metadata_completa_custom.json",
         tool_key: str = ToolKey.UNTRACEABLE,
     ) -> List[Dict[str, Any]]:
-        """Carrega registros de metadata suportando formato json2 e formato legado."""
+        """
+        Carrega registros de metadata suportando JSON v2.0 e formatos legados.
+
+        Para JSON v2.0: usa JsonUtil.load_records() que valida schema_version="2.0"
+        Para formatos legados: mantém compatibilidade
+        """
         logger = JSONUtil._get_logger(tool_key)
+
+        try:
+            # Tentar carregar como JSON v2.0 primeiro
+            records = JsonUtil.load_records(json_path)
+            logger.info(f"load_records: carregadas {len(records)} imagens de JSON v2.0")
+            return records
+
+        except ValueError as e:
+            if "schema_version" in str(e):
+                # Não é v2.0, tentar formatos legados
+                logger.debug(f"JSON não é v2.0 ({e}), tentando formatos legados")
+            else:
+                raise
+
+        # Fallback para formatos legados
         data = JSONUtil.load_json_file(json_path, tool_key=tool_key)
 
         if isinstance(data, dict) and isinstance(data.get("groups"), dict):
@@ -81,7 +103,7 @@ class JSONUtil:
                         )
                     )
             logger.info(
-                f"load_records: carregadas {len(images)} imagens de json2 (raw_records={total_raw})"
+                f"load_records: carregadas {len(images)} imagens de json legado (raw_records={total_raw})"
             )
             return images
 
@@ -91,7 +113,7 @@ class JSONUtil:
                 if isinstance(record, dict):
                     images.append(JSONUtil._normalize_record(record, file_key=file_key))
             logger.info(
-                f"load_records: carregadas {len(images)} imagens de {len(data)} chaves"
+                f"load_records: carregadas {len(images)} imagens de {len(data)} chaves (formato legado)"
             )
             return images
 

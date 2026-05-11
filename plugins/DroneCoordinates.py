@@ -6,6 +6,7 @@ from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..core.engine_tasks.MrkParseStep import MrkParseStep
 from ..core.engine_tasks.PhotoMetadataStep import PhotoMetadataStep
+from ..core.engine_tasks.JsonVectorizationStep import JsonVectorizationStep
 from ..core.engine_tasks.ReportGenerationStep import ReportGenerationStep
 from ..utils.mrk.PhotoMetadata import PhotoMetadata
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
@@ -505,6 +506,7 @@ class DroneCordinates(BasePluginMTL):
         steps = [MrkParseStep()]
         if apply_photos:
             steps.append(PhotoMetadataStep())
+        steps.append(JsonVectorizationStep())
 
         # Adicionar step de geração de relatório se solicitado
         if self.checkbox_map["generate_report"].isChecked():

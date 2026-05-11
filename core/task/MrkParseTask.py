@@ -78,5 +78,6 @@ class MrkParseTask(BaseTask):
             "json_path": json_path,
             "source": "mrk",
             "base_folder": base_folder,
+            "points": all_records,
         }
         return True

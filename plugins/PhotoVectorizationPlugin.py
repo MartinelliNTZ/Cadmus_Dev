@@ -5,6 +5,7 @@ from ..core.ui.WidgetFactory import WidgetFactory
 from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..core.engine_tasks.PhotoVectorizationStep import PhotoVectorizationStep
+from ..core.engine_tasks.JsonVectorizationStep import JsonVectorizationStep
 from ..core.engine_tasks.ReportGenerationStep import ReportGenerationStep
 from ..i18n.TranslationManager import STR
 from ..plugins.BasePlugin import BasePluginMTL
@@ -117,7 +118,7 @@ class PhotoVectorizationPlugin(BasePluginMTL):
             context.set("tool_key", self.TOOL_KEY)
             context.set("iface", self.iface)
 
-            steps = [PhotoVectorizationStep()]
+            steps = [PhotoVectorizationStep(), JsonVectorizationStep()]
 
             # Adicionar step de geração de relatório se solicitado
             if generate_report:

@@ -34,48 +34,55 @@ class PhotoMetadataTask(BaseTask):
         if self.isCanceled():
             return False
 
-        layer = QgsProject.instance().mapLayer(self.layer_id)
-        if not layer or not layer.isValid():
-            raise RuntimeError("Camada nÃ£o encontrada para cruzamento de metadados")
-
         logger = LogUtils(tool=self.tool_key, class_name=self.__class__.__name__)
-        photo_field_name = MetadataFields.get_attribute("foto", "foto")
-        mrk_folder_field_name = MetadataFields.get_attribute("mrk_folder", "mrk_folder")
-
-        # Extrair lista de fotos a serem cruzadas (campo 'foto')
-        # ðŸ”´ IMPORTANTE: TambÃ©m extrair 'mrk_folder' se disponÃ­vel (para mÃºltiplos voos)
         pontos = []
+        layer = QgsProject.instance().mapLayer(self.layer_id) if self.layer_id else None
+        if layer and layer.isValid():
+            photo_field_name = MetadataFields.get_attribute("foto", "foto")
+            mrk_folder_field_name = MetadataFields.get_attribute("mrk_folder", "mrk_folder")
 
-        for feat in layer.getFeatures():
-            foto = feat.attribute(photo_field_name)
-            if foto is None:
-                continue
-            try:
-                foto_int = int(foto)
-            except Exception:
-                logger.warning(
-                    f"Valor de foto nÃ£o Ã© um inteiro: {foto} na feiÃ§Ã£o ID {feat.id()}. Ignorando esta feiÃ§Ã£o."
-                )
-                continue
-
-            ponto = {"foto": foto_int}
-
-            # Carrega todos os atributos da feicao para preservar MRK_FIELDS/legado.
-            # Isso garante que campos como lat/lon/mrk_* e contexto de voo cheguem ao PhotoMetadata.
-            for field in feat.fields():
-                name = field.name()
-                if name == photo_field_name:
+            for feat in layer.getFeatures():
+                foto = feat.attribute(photo_field_name)
+                if foto is None:
                     continue
-                normalized_name = MetadataFields.resolve_key(name)
-                ponto[normalized_name] = feat.attribute(name)
+                try:
+                    foto_int = int(foto)
+                except Exception:
+                    logger.warning(
+                        f"Valor de foto nÃ£o Ã© um inteiro: {foto} na feiÃ§Ã£o ID {feat.id()}. Ignorando esta feiÃ§Ã£o."
+                    )
+                    continue
 
-            # Verificar se o campo mrk_folder existe (adicionado por MrkParseTask)
-            if feat.fieldNameIndex(mrk_folder_field_name) != -1:
-                mrk_folder = feat.attribute(mrk_folder_field_name)
+                ponto = {"foto": foto_int}
+                for field in feat.fields():
+                    name = field.name()
+                    if name == photo_field_name:
+                        continue
+                    normalized_name = MetadataFields.resolve_key(name)
+                    ponto[normalized_name] = feat.attribute(name)
+
+                if feat.fieldNameIndex(mrk_folder_field_name) != -1:
+                    mrk_folder = feat.attribute(mrk_folder_field_name)
+                    if mrk_folder:
+                        ponto["mrk_folder"] = mrk_folder
+                pontos.append(ponto)
+        else:
+            for src in self.source_points:
+                canonical = MetadataFields.normalize_record_to_keys(src or {})
+                foto = canonical.get("Foto") or canonical.get("foto")
+                if foto is None:
+                    continue
+                try:
+                    foto_int = int(foto)
+                except Exception:
+                    continue
+                ponto = {"foto": foto_int}
+                for key, value in canonical.items():
+                    ponto[key] = value
+                mrk_folder = canonical.get("MrkFolder")
                 if mrk_folder:
                     ponto["mrk_folder"] = mrk_folder
-
-            pontos.append(ponto)
+                pontos.append(ponto)
 
         logger.info(
             "Pontos extraÃ­dos da camada",

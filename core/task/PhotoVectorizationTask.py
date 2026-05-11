@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+import json
+
 from .BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
 from ..services.PhotoFolderVectorizationService import PhotoFolderVectorizationService
+from ...utils.JsonUtil import JsonUtil
 
 
 class PhotoVectorizationTask(BaseTask):
-    """Task que gera camada vetorial a partir de pasta de fotos (sem MRK)."""
+    """Task que extrai JSON v2.0 a partir de pasta de fotos (sem MRK)."""
 
     def __init__(
         self,
@@ -27,31 +30,38 @@ class PhotoVectorizationTask(BaseTask):
 
         try:
             service = PhotoFolderVectorizationService(tool_key=self.tool_key)
-            # Novo: usar extract_to_json() em vez de generate_from_folder()
             json_path = service.extract_to_json(
                 base_folder=self.base_folder,
                 recursive=self.recursive,
                 tool_key=self.tool_key,
-                selected_fields=None,  # Todos os campos
+                selected_fields=None,
             )
 
             if not json_path:
-                logger.error("extract_to_json() não retornou json_path válido")
+                logger.error("extract_to_json() nao retornou json_path valido")
                 return False
+
+            records = JsonUtil.load_records(json_path)
+            quality = {}
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    quality = (json.load(f) or {}).get("quality", {})
+            except Exception:
+                quality = {}
 
             self.result = {
                 "json_path": json_path,
-                "total_points": 0,  # Será determinado pelo translator
-                "quality": {},  # Será populado pelo translator se necessário
+                "total_points": len(records),
+                "quality": quality,
             }
 
-            logger.info("Extração de JSON para vetorização concluída", data={
-                "json_path": json_path,
-                "base_folder": self.base_folder
-            })
+            logger.info(
+                "Extracao de JSON para vetorizacao concluida",
+                data={"json_path": json_path, "base_folder": self.base_folder},
+            )
 
             return True
 
         except Exception as e:
-            logger.error(f"Erro na extração de JSON: {e}")
-            raise e
+            logger.error(f"Erro na extracao de JSON: {e}")
+            raise

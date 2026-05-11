@@ -107,6 +107,15 @@ class AsyncPipelineEngine:
         task = step.create_task(self._context)
 
         if task is None:
+            if hasattr(step, "run_inline"):
+                try:
+                    step.run_inline(self._context)
+                except Exception as exc:
+                    self._handle_task_error(exc)
+                    return
+                self._current_index += 1
+                self._run_next_step()
+                return
             raise RuntimeError(f"Step '{step.name()}' returned no task.")
 
         self._current_task = task

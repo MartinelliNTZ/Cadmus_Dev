@@ -6,6 +6,7 @@ from datetime import datetime
 from qgis.PyQt.QtCore import QVariant
 
 from ...core.config.LogUtils import LogUtils
+from ...core.enum import MetadataFieldKey
 from ...core.enum.LightSourceEnum import LightSourceEnum
 from ..ExplorerUtils import ExplorerUtils
 from ..ToolKeys import ToolKey
@@ -121,7 +122,7 @@ class PhotoMetadata:
         if any("drone-dji:" in str(k) for k in (merged_payload or {}).keys()):
             return True
         xmp_markers = (
-            "AbsoluteAltitude",
+            MetadataFieldKey.ABSOLUTE_ALTITUDE.value,
             "RelativeAltitude",
             "GimbalYawDegree",
             "FlightYawDegree",
@@ -298,18 +299,18 @@ class PhotoMetadata:
     def _extract_flight_context(point: dict) -> dict:
         canonical_point = MetadataFields.normalize_record_to_keys(point or {})
         return {
-            "FlightNumber": canonical_point.get("FlightNumber"),
-            "FlightName": canonical_point.get("FlightName"),
-            "FolderLevel1": canonical_point.get("FolderLevel1"),
-            "FolderLevel2": canonical_point.get("FolderLevel2"),
-            "MrkFile": canonical_point.get("MrkFile"),
-            "MrkPath": canonical_point.get("MrkPath"),
-            "MrkFolder": canonical_point.get("MrkFolder"),
-            "DateName": canonical_point.get("DateName"),
-            "Foto": canonical_point.get("Foto"),
-            "Lat": canonical_point.get("Lat"),
-            "Lon": canonical_point.get("Lon"),
-            "Alt": canonical_point.get("Alt"),
+            MetadataFieldKey.FLIGHT_NUMBER.value: canonical_point.get(MetadataFieldKey.FLIGHT_NUMBER.value),
+            MetadataFieldKey.FLIGHT_NAME.value: canonical_point.get(MetadataFieldKey.FLIGHT_NAME.value),
+            MetadataFieldKey.FOLDER_LEVEL_1.value: canonical_point.get(MetadataFieldKey.FOLDER_LEVEL_1.value),
+            MetadataFieldKey.FOLDER_LEVEL_2.value: canonical_point.get(MetadataFieldKey.FOLDER_LEVEL_2.value),
+            MetadataFieldKey.MRK_FILE.value: canonical_point.get(MetadataFieldKey.MRK_FILE.value),
+            MetadataFieldKey.MRK_PATH.value: canonical_point.get(MetadataFieldKey.MRK_PATH.value),
+            MetadataFieldKey.MRK_FOLDER.value: canonical_point.get(MetadataFieldKey.MRK_FOLDER.value),
+            MetadataFieldKey.DATE_NAME.value: canonical_point.get(MetadataFieldKey.DATE_NAME.value),
+            MetadataFieldKey.FOTO.value: canonical_point.get(MetadataFieldKey.FOTO.value),
+            MetadataFieldKey.LAT.value: canonical_point.get(MetadataFieldKey.LAT.value),
+            MetadataFieldKey.LON.value: canonical_point.get(MetadataFieldKey.LON.value),
+            MetadataFieldKey.ALT.value: canonical_point.get(MetadataFieldKey.ALT.value),
         }
 
     @staticmethod
@@ -394,28 +395,28 @@ class PhotoMetadata:
 
         canonical_payload = MetadataFields.normalize_record_to_keys(payload)
         light_source_label = PhotoMetadata._translate_light_source_value(
-            canonical_payload.get("LightSource"),
+            canonical_payload.get(MetadataFieldKey.LIGHT_SOURCE.value),
             logger=logger,
             image_path=image_path,
         )
         if light_source_label:
-            payload["LightSourceClassification"] = light_source_label
+            payload[MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value] = light_source_label
 
         # Campos solicitados no novo padrao
         payload["FileType"] = os.path.splitext(image_path)[1].upper()
 
         # dt_* deve priorizar metadado da foto (DateTimeOriginal), com fallback para DateTime (OS).
-        dt = PhotoMetadata._safe_parse_datetime(payload.get("DateTimeOriginal"))
+        dt = PhotoMetadata._safe_parse_datetime(payload.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value))
         if dt is None:
             dt = PhotoMetadata._safe_parse_datetime(payload.get("DateTime"))
         if dt is None:
-            dt = PhotoMetadata._safe_parse_datetime(payload.get("UTCAtExposure"))
+            dt = PhotoMetadata._safe_parse_datetime(payload.get(MetadataFieldKey.UTC_AT_EXPOSURE.value))
         if dt is None:
-            dt = PhotoMetadata._safe_parse_datetime(payload.get("DtFull"))
+            dt = PhotoMetadata._safe_parse_datetime(payload.get(MetadataFieldKey.DT_FULL.value))
         if dt is not None:
             payload.update(PhotoMetadata._format_dates(dt))
-            if payload.get("DateTimeOriginal") in (None, "", "None", "null"):
-                payload["DateTimeOriginal"] = dt.strftime("%Y:%m:%d %H:%M:%S")
+            if payload.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) in (None, "", "None", "null"):
+                payload[MetadataFieldKey.DATE_TIME_ORIGINAL.value] = dt.strftime("%Y:%m:%d %H:%M:%S")
         else:
             logger.debug(f"Falha ao obter datetime para dt_* em {image_path}")
 
@@ -458,8 +459,8 @@ class PhotoMetadata:
             indexed_by_number[seq] = payload
 
             canonical_payload = MetadataFields.normalize_record_to_keys(payload)
-            light_source_code = canonical_payload.get("LightSource")
-            light_source_label = canonical_payload.get("LightSourceClassification")
+            light_source_code = canonical_payload.get(MetadataFieldKey.LIGHT_SOURCE.value)
+            light_source_label = canonical_payload.get(MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value)
             if light_source_code in (None, "", "None", "null"):
                 missing_light_source += 1
             elif light_source_label in (None, "", "None", "null"):
@@ -506,14 +507,14 @@ class PhotoMetadata:
             selected_custom_fields=selected_custom_fields,
             selected_mrk_fields=selected_mrk_fields,
         )
-        if "LightSource" in selected_keys and "LightSourceClassification" not in selected_keys:
-            selected_keys.add("LightSourceClassification")
+        if MetadataFieldKey.LIGHT_SOURCE.value in selected_keys and MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value not in selected_keys:
+            selected_keys.add(MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value)
             logger.info(
                 "Dependencia de campo aplicada para LightSource",
                 code="LIGHT_SOURCE_DEPENDENCY_APPLIED",
                 data={
-                    "added_key": "LightSourceClassification",
-                    "reason": "LightSource selecionado sem campo textual",
+                    "added_key": MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value,
+                    "reason": f"{MetadataFieldKey.LIGHT_SOURCE.value} selecionado sem campo textual",
                 },
             )
 
@@ -527,8 +528,8 @@ class PhotoMetadata:
                 "total_points": len(points),
                 "selected_keys_count": len(selected_keys),
                 "selected_keys_sample": sorted(list(selected_keys))[:20],
-                "has_light_source_key": "LightSource" in selected_keys,
-                "has_light_source_text_key": "LightSourceClassification" in selected_keys,
+                "has_light_source_key": MetadataFieldKey.LIGHT_SOURCE.value in selected_keys,
+                "has_light_source_text_key": MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value in selected_keys,
             },
         )
 
@@ -577,10 +578,10 @@ class PhotoMetadata:
                 has_xmp = PhotoMetadata._has_xmp_data(merged_payload, merged_payload)
                 has_exif_gps = bool(merged_payload.get("GPSLatitude") and merged_payload.get("GPSLongitude"))
                 lat, lon, alt, source = PhotoMetadata._extract_position(merged_payload)
-                merged_payload["GpsLatitude"] = lat if lat is not None else merged_payload.get("GpsLatitude")
+                merged_payload[MetadataFieldKey.GPS_LATITUDE.value] = lat if lat is not None else merged_payload.get(MetadataFieldKey.GPS_LATITUDE.value)
                 merged_payload["GpsLongitude"] = lon if lon is not None else merged_payload.get("GpsLongitude")
-                merged_payload["AbsoluteAltitude"] = (
-                    alt if alt is not None else merged_payload.get("AbsoluteAltitude")
+                merged_payload[MetadataFieldKey.ABSOLUTE_ALTITUDE.value] = (
+                    alt if alt is not None else merged_payload.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value)
                 )
                 merged_payload["CoordSource"] = source
                 merged_payload["HasXmp"] = has_xmp

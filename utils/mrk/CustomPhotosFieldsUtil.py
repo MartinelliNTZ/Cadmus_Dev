@@ -48,6 +48,28 @@ class CustomPhotosFieldsUtil:
     STRIP_CHANGE_THRESHOLD = 150  # degrees
 
     @staticmethod
+    def _key(field_key: MetadataFieldKey) -> str:
+        return field_key.value
+
+    @staticmethod
+    def _get(data: Dict, field_key: MetadataFieldKey, *legacy_keys, default=None):
+        canonical = field_key.value
+        if canonical in data and data.get(canonical) is not None:
+            return data.get(canonical)
+        for legacy in legacy_keys:
+            if legacy in data and data.get(legacy) is not None:
+                return data.get(legacy)
+        return default
+
+    @staticmethod
+    def _get_abs_speed(data: Dict, field_key: MetadataFieldKey, *legacy_keys) -> float:
+        return abs(
+            CustomPhotosFieldsUtil.safe_float(
+                CustomPhotosFieldsUtil._get(data, field_key, *legacy_keys, default=0.0)
+            )
+        )
+
+    @staticmethod
     def safe_float(val: any, default: float = 0.0) -> float:
         """Converte para float seguro (strings '+123.4' → 123.4)."""
         if val is None:
@@ -149,15 +171,19 @@ class CustomPhotosFieldsUtil:
             return False
 
         # 3. alt_diff
-        alt_curr = CustomPhotosFieldsUtil.safe_float(curr_data.get("AbsoluteAltitude", 0))
-        alt_other = CustomPhotosFieldsUtil.safe_float(other_data.get("AbsoluteAltitude", 0))
+        alt_curr = CustomPhotosFieldsUtil.safe_float(curr_data.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value, 0))
+        alt_other = CustomPhotosFieldsUtil.safe_float(other_data.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value, 0))
         alt_diff = abs(alt_curr - alt_other)
         if alt_diff > CustomPhotosFieldsUtil.MAX_ALT_DIFF:
             return False
 
         # 4. shutter_jump (arrochado)
-        shutter_curr = CustomPhotosFieldsUtil.safe_int(curr_data.get("ShutterCount"))
-        shutter_other = CustomPhotosFieldsUtil.safe_int(other_data.get("ShutterCount"))
+        shutter_curr = CustomPhotosFieldsUtil.safe_int(
+            CustomPhotosFieldsUtil._get(curr_data, MetadataFieldKey.SHUTTER_COUNT, default=0)
+        )
+        shutter_other = CustomPhotosFieldsUtil.safe_int(
+            CustomPhotosFieldsUtil._get(other_data, MetadataFieldKey.SHUTTER_COUNT, default=0)
+        )
         shutter_jump = abs(shutter_curr - shutter_other) > CustomPhotosFieldsUtil.MAX_SHUTTER_JUMP
         if shutter_jump:
             return False
@@ -210,7 +236,9 @@ class CustomPhotosFieldsUtil:
         logger.debug(f"Obtendo parâmetros da câmera para foto com dados: {data}")
         
         # Tenta obter modelo do drone/câmera
-        model = data.get("DroneModel") or data.get("Model", "")
+        model = CustomPhotosFieldsUtil._get(
+            data, MetadataFieldKey.DRONE_MODEL, MetadataFieldKey.MODEL.value, default=""
+        )
         model_str = str(model).strip() if model else ""
         logger.debug(f"Modelo identificado: '{model_str}'")
         
@@ -229,8 +257,12 @@ class CustomPhotosFieldsUtil:
             logger.debug(f"Modelo '{model_str}' não encontrado em CAMERA_MODEL_PARAMS. Usando fallback M4E: sensor={sensor_w}x{sensor_h}, focal={focal}")
         
         # Resolução da imagem (usa valores do EXIF ou fallback)
-        img_w = CustomPhotosFieldsUtil.safe_float(data.get("ExifImageWidth", 5280))
-        img_h = CustomPhotosFieldsUtil.safe_float(data.get("ExifImageHeight", 3956))
+        img_w = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.EXIF_IMAGE_WIDTH, default=5280)
+        )
+        img_h = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.EXIF_IMAGE_HEIGHT, default=3956)
+        )
         
         # Se não veio do EXIF, tenta fallback dos parâmetros conhecidos
         if img_w <= 0 and model_str and model_str in MetadataFields.CAMERA_MODEL_PARAMS:
@@ -245,7 +277,9 @@ class CustomPhotosFieldsUtil:
             img_h = 3956
         
         # Focal length do EXIF ou fallback
-        focal_exif = CustomPhotosFieldsUtil.safe_float(data.get("FocalLength", 0))
+        focal_exif = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.FOCAL_LENGTH, default=0)
+        )
         if focal_exif > 0:
             logger.debug(f"Focal do EXIF ({focal_exif:.2f}) sobrescrevendo focal padrão ({focal:.2f})")
             focal = focal_exif
@@ -269,10 +303,12 @@ class CustomPhotosFieldsUtil:
             f = distância focal real (mm)
         """
         # Usa RelativeAltitude como altura primária (altitude sobre o terreno)
-        h_m = CustomPhotosFieldsUtil.safe_float(data.get("RelativeAltitude", 0))
+        h_m = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0)
+        )
         if h_m <= 0:
             # Fallback: AbsoluteAltitude - pode não representar altura sobre o terreno
-            h_m = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
+            h_m = CustomPhotosFieldsUtil.safe_float(data.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value, 0))
         
         sensor_w, sensor_h, focal, _, _ = CustomPhotosFieldsUtil._get_camera_params(data)
         
@@ -321,21 +357,25 @@ class CustomPhotosFieldsUtil:
 
         # GPS (haversine precisa lat/lon reais - usar LRFTarget se GPS None)
         lat_curr = CustomPhotosFieldsUtil.safe_float(
-            data.get("LRFTargetLat") or data.get("GpsLatitude", 0)
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.LRF_TARGET_LAT, default=None)
+            or CustomPhotosFieldsUtil._get(data, MetadataFieldKey.GPS_LATITUDE, default=0)
         )
         lon_curr = CustomPhotosFieldsUtil.safe_float(
-            data.get("LRFTargetLon") or data.get("GpsLongitude", 0)
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.LRF_TARGET_LON, default=None)
+            or CustomPhotosFieldsUtil._get(data, MetadataFieldKey.GPS_LONGITUDE, default=0)
         )
         lat_other = CustomPhotosFieldsUtil.safe_float(
-            other_data.get("LRFTargetLat") or other_data.get("GpsLatitude", 0)
+            CustomPhotosFieldsUtil._get(other_data, MetadataFieldKey.LRF_TARGET_LAT, default=None)
+            or CustomPhotosFieldsUtil._get(other_data, MetadataFieldKey.GPS_LATITUDE, default=0)
         )
         lon_other = CustomPhotosFieldsUtil.safe_float(
-            other_data.get("LRFTargetLon") or other_data.get("GpsLongitude", 0)
+            CustomPhotosFieldsUtil._get(other_data, MetadataFieldKey.LRF_TARGET_LON, default=None)
+            or CustomPhotosFieldsUtil._get(other_data, MetadataFieldKey.GPS_LONGITUDE, default=0)
         )
 
         geo_dist = CustomPhotosFieldsUtil.haversine(lat_curr, lon_curr, lat_other, lon_other)
-        alt_curr = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
-        alt_other = CustomPhotosFieldsUtil.safe_float(other_data.get("AbsoluteAltitude", 0))
+        alt_curr = CustomPhotosFieldsUtil.safe_float(data.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value, 0))
+        alt_other = CustomPhotosFieldsUtil.safe_float(other_data.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value, 0))
         alt_diff = abs(alt_curr - alt_other)
         dist_3d = math.sqrt(geo_dist**2 + alt_diff**2)
 
@@ -354,16 +394,20 @@ class CustomPhotosFieldsUtil:
     @staticmethod
     def _calculate_individual_fields(data: Dict) -> Dict:
         """Campos custom individuais derivados."""
-        shutter_count = CustomPhotosFieldsUtil.safe_int(data.get("ShutterCount", 0))
+        shutter_count = CustomPhotosFieldsUtil.safe_int(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.SHUTTER_COUNT, default=0)
+        )
         shutter_life_pct = (shutter_count / 400000) * 100
 
         # Obtém parâmetros da câmera do dicionário CAMERA_MODEL_PARAMS
         sensor_w, sensor_h, focal, img_w, img_h = CustomPhotosFieldsUtil._get_camera_params(data)
 
         # Usa RelativeAltitude como altura primária (altitude sobre o terreno)
-        h_m = CustomPhotosFieldsUtil.safe_float(data.get("RelativeAltitude", 0))
+        h_m = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0)
+        )
         if h_m <= 0:
-            h_m = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
+            h_m = CustomPhotosFieldsUtil.safe_float(data.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value, 0))
 
         logger = CustomPhotosFieldsUtil._get_logger()
         logger.debug(f"_calculate_individual_fields: H={h_m:.4f} m, sensor={sensor_w}x{sensor_h} mm, focal={focal} mm, imagem={img_w}x{img_h} px")
@@ -394,20 +438,34 @@ class CustomPhotosFieldsUtil:
         logger.debug(f"GSD final={gsd_cm_px:.4f} cm/pixel ({gsd_m_px:.6f} m/pixel)")
 
         # Heat index
-        sens_temp = CustomPhotosFieldsUtil.safe_float(data.get("SensorTemperature"))
-        lens_temp = CustomPhotosFieldsUtil.safe_float(data.get("LensTemperature"))
+        sens_temp = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.SENSOR_TEMPERATURE)
+        )
+        lens_temp = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.LENS_TEMPERATURE)
+        )
         total_heat_index = (sens_temp + lens_temp) / 2 if sens_temp > 0 and lens_temp > 0 else (sens_temp or lens_temp or 0.0)
 
         # Speed 3D for blur risk (usa o mesmo calculo do 3DSpeed de _calculate_gimbal_3d)
-        xspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
-        yspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
-        zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
+        xspd = CustomPhotosFieldsUtil._get_abs_speed(
+            data, MetadataFieldKey.FLIGHT_X_SPEED, "XSpeed"
+        )
+        yspd = CustomPhotosFieldsUtil._get_abs_speed(
+            data, MetadataFieldKey.FLIGHT_Y_SPEED, "YSpeed"
+        )
+        zspd = CustomPhotosFieldsUtil._get_abs_speed(
+            data, MetadataFieldKey.FLIGHT_Z_SPEED, "ZSpeed"
+        )
         speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
         logger.debug(f"Speed 3D: sqrt({xspd:.4f}²+{yspd:.4f}²+{zspd:.4f}²)={speed_3d:.4f} m/s")
 
         # New fields
-        exp_time = CustomPhotosFieldsUtil.safe_float(data.get("ExposureTime", 0))
-        fnumber = CustomPhotosFieldsUtil.safe_float(data.get("FNumber", 2.8))
+        exp_time = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.EXPOSURE_TIME, default=0)
+        )
+        fnumber = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.F_NUMBER, default=2.8)
+        )
         
         motion_blur_risk = (speed_3d * exp_time / gsd_m_px) if gsd_m_px > 0 else 0.0
         exposure_value_ev = math.log2(fnumber**2 / exp_time) if exp_time > 0 else 0.0
@@ -441,13 +499,23 @@ class CustomPhotosFieldsUtil:
     @staticmethod
     def _calculate_gimbal_3d(data: Dict, prev_dir: float = None) -> Dict:
         """GimbalOffset, 3DSpeed + yaw_alignment_error."""
-        gim_yaw = CustomPhotosFieldsUtil.safe_float(data.get("GimbalYawDegree", 0))
-        flight_yaw = CustomPhotosFieldsUtil.safe_float(data.get("FlightYawDegree", 0))
+        gim_yaw = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.GIMBAL_YAW_DEGREE, default=0)
+        )
+        flight_yaw = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.FLIGHT_YAW_DEGREE, default=0)
+        )
         gimbal_offset = CustomPhotosFieldsUtil._calculate_gimbal_offset(gim_yaw, flight_yaw)
 
-        xspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
-        yspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
-        zspd = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))        
+        xspd = CustomPhotosFieldsUtil._get_abs_speed(
+            data, MetadataFieldKey.FLIGHT_X_SPEED, "XSpeed"
+        )
+        yspd = CustomPhotosFieldsUtil._get_abs_speed(
+            data, MetadataFieldKey.FLIGHT_Y_SPEED, "YSpeed"
+        )
+        zspd = CustomPhotosFieldsUtil._get_abs_speed(
+            data, MetadataFieldKey.FLIGHT_Z_SPEED, "ZSpeed"
+        )
         speed_3d = math.sqrt(xspd**2 + yspd**2 + zspd**2)
         logger = CustomPhotosFieldsUtil._get_logger()
         logger.debug(f"Gimbal 3D Speed: sqrt({xspd:.4f}²+{yspd:.4f}²+{zspd:.4f}²)={speed_3d:.4f} m/s")
@@ -538,11 +606,17 @@ class CustomPhotosFieldsUtil:
                 "prev_displacement_direction": 0.0,
             }
         # RTK Precision
-        rtk_flag = data.get("RtkFlag")
+        rtk_flag = CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RTK_FLAG)
         rtk_stds = [
-            CustomPhotosFieldsUtil.safe_float(data.get("RtkStdLon", 999)),
-            CustomPhotosFieldsUtil.safe_float(data.get("RtkStdLat", 999)),
-            CustomPhotosFieldsUtil.safe_float(data.get("RtkStdHgt", 999)),
+            CustomPhotosFieldsUtil.safe_float(
+                CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RTK_STD_LON, default=999)
+            ),
+            CustomPhotosFieldsUtil.safe_float(
+                CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RTK_STD_LAT, default=999)
+            ),
+            CustomPhotosFieldsUtil.safe_float(
+                CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RTK_STD_HGT, default=999)
+            ),
         ]
         avg_std = sum(rtk_stds) / 3
 
@@ -559,9 +633,15 @@ class CustomPhotosFieldsUtil:
         rtk_stability_score = 0.0
         if valid_prev and prev_data is not None:
             prev_rtk_stds = [
-                CustomPhotosFieldsUtil.safe_float(prev_data.get("RtkStdLon", 999)),
-                CustomPhotosFieldsUtil.safe_float(prev_data.get("RtkStdLat", 999)),
-                CustomPhotosFieldsUtil.safe_float(prev_data.get("RtkStdHgt", 999)),
+                CustomPhotosFieldsUtil.safe_float(
+                    CustomPhotosFieldsUtil._get(prev_data, MetadataFieldKey.RTK_STD_LON, default=999)
+                ),
+                CustomPhotosFieldsUtil.safe_float(
+                    CustomPhotosFieldsUtil._get(prev_data, MetadataFieldKey.RTK_STD_LAT, default=999)
+                ),
+                CustomPhotosFieldsUtil.safe_float(
+                    CustomPhotosFieldsUtil._get(prev_data, MetadataFieldKey.RTK_STD_HGT, default=999)
+                ),
             ]
             prev_avg_std = sum(prev_rtk_stds) / 3
             rtk_stability_score = max(
@@ -570,8 +650,12 @@ class CustomPhotosFieldsUtil:
             )
 
         # Incidence angle
-        gim_pitch = CustomPhotosFieldsUtil.safe_float(data.get("GimbalPitchDegree", 0))
-        flight_pitch = CustomPhotosFieldsUtil.safe_float(data.get("FlightPitchDegree", 0))
+        gim_pitch = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.GIMBAL_PITCH_DEGREE, default=0)
+        )
+        flight_pitch = CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.FLIGHT_PITCH_DEGREE, default=0)
+        )
         inc_angle = round(abs(gim_pitch + flight_pitch), DECIMAL_PLACES)
 
         # Predicted overlap
@@ -591,9 +675,11 @@ class CustomPhotosFieldsUtil:
             score += 30
         if inc_angle < 5:
             score += 25
-        if data.get("DewarpFlag") == "0":
+        if str(CustomPhotosFieldsUtil._get(data, MetadataFieldKey.DEWARP_FLAG, default="")) == "0":
             score += 20
-        if CustomPhotosFieldsUtil.safe_float(data.get("RtkDiffAge", 999)) < 2:
+        if CustomPhotosFieldsUtil.safe_float(
+            CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RTK_DIFF_AGE, default=999)
+        ) < 2:
             score += 15
         if pred_overlap > 70:
             score += 10
@@ -606,29 +692,45 @@ class CustomPhotosFieldsUtil:
         # Angular velocity gimbal
         gim_ang_vel = 0.0
         if valid_prev and prev_data is not None and prev_seq["prev_time_since"] > 0:
-            prev_gim_yaw = CustomPhotosFieldsUtil.safe_float(prev_data.get("GimbalYawDegree", 0))
-            curr_gim_yaw = CustomPhotosFieldsUtil.safe_float(data.get("GimbalYawDegree", 0))
+            prev_gim_yaw = CustomPhotosFieldsUtil.safe_float(
+                CustomPhotosFieldsUtil._get(prev_data, MetadataFieldKey.GIMBAL_YAW_DEGREE, default=0)
+            )
+            curr_gim_yaw = CustomPhotosFieldsUtil.safe_float(
+                CustomPhotosFieldsUtil._get(data, MetadataFieldKey.GIMBAL_YAW_DEGREE, default=0)
+            )
             yaw_diff = CustomPhotosFieldsUtil.angle_difference(curr_gim_yaw, prev_gim_yaw)
             gim_ang_vel = yaw_diff / prev_seq["prev_time_since"]
 
         # Vertical stability
         vertical_stability = 0.0
         if valid_prev and prev_data is not None:
-            alt_curr = CustomPhotosFieldsUtil.safe_float(data.get("AbsoluteAltitude", 0))
-            alt_prev = CustomPhotosFieldsUtil.safe_float(prev_data.get("AbsoluteAltitude", 0))
+            alt_curr = CustomPhotosFieldsUtil.safe_float(data.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value, 0))
+            alt_prev = CustomPhotosFieldsUtil.safe_float(prev_data.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value, 0))
             vertical_stability = abs(alt_curr - alt_prev)
 
         # Speed variation
         speed_variation_index = 0.0
         if valid_prev and prev_data is not None:
-            px = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("XSpeed", 0)))
-            py = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("YSpeed", 0)))
-            pz = abs(CustomPhotosFieldsUtil.safe_float(prev_data.get("ZSpeed", 0)))
+            px = CustomPhotosFieldsUtil._get_abs_speed(
+                prev_data, MetadataFieldKey.FLIGHT_X_SPEED, "XSpeed"
+            )
+            py = CustomPhotosFieldsUtil._get_abs_speed(
+                prev_data, MetadataFieldKey.FLIGHT_Y_SPEED, "YSpeed"
+            )
+            pz = CustomPhotosFieldsUtil._get_abs_speed(
+                prev_data, MetadataFieldKey.FLIGHT_Z_SPEED, "ZSpeed"
+            )
             prev_speed = math.sqrt(px**2 + py**2 + pz**2)
 
-            cx = abs(CustomPhotosFieldsUtil.safe_float(data.get("XSpeed", 0)))
-            cy = abs(CustomPhotosFieldsUtil.safe_float(data.get("YSpeed", 0)))
-            cz = abs(CustomPhotosFieldsUtil.safe_float(data.get("ZSpeed", 0)))
+            cx = CustomPhotosFieldsUtil._get_abs_speed(
+                data, MetadataFieldKey.FLIGHT_X_SPEED, "XSpeed"
+            )
+            cy = CustomPhotosFieldsUtil._get_abs_speed(
+                data, MetadataFieldKey.FLIGHT_Y_SPEED, "YSpeed"
+            )
+            cz = CustomPhotosFieldsUtil._get_abs_speed(
+                data, MetadataFieldKey.FLIGHT_Z_SPEED, "ZSpeed"
+            )
             current_speed = math.sqrt(cx**2 + cy**2 + cz**2)
             mean_speed = statistics.mean([prev_speed, current_speed])
             if mean_speed > 0:
@@ -788,9 +890,10 @@ class CustomPhotosFieldsUtil:
                 "coverage_height": round(coverage_height, DECIMAL_PLACES),
                 "trajectory_smoothness": round(trajectory_smoothness, DECIMAL_PLACES),
                 "strip_id": strip_id,
-                "light_source_classification": cls._get_light_source_label(data.get("LightSource")),
+                "light_source_classification": cls._get_light_source_label(data.get(MetadataFieldKey.LIGHT_SOURCE.value)),
                 "light_consistency": cls._check_light_consistency(
-                    data.get("LightSource"), data.get("WhiteBalanceCCT")
+                    data.get(MetadataFieldKey.LIGHT_SOURCE.value),
+                    cls._get(data, MetadataFieldKey.WHITE_BALANCE_CCT),
                 ),
             }
 
@@ -806,7 +909,14 @@ class CustomPhotosFieldsUtil:
 
         # Garantir que os campos brutos de velocidade sejam absolutos (evitar valores negativos no output)
         for filename, item in result.items():
-            for speed_key in ("XSpeed", "YSpeed", "ZSpeed"):
+            for speed_key in (
+                MetadataFieldKey.FLIGHT_X_SPEED.value,
+                MetadataFieldKey.FLIGHT_Y_SPEED.value,
+                MetadataFieldKey.FLIGHT_Z_SPEED.value,
+                "XSpeed",
+                "YSpeed",
+                "ZSpeed",
+            ):
                 if speed_key in item and item[speed_key] is not None:
                     item[speed_key] = abs(CustomPhotosFieldsUtil.safe_float(item[speed_key], 0.0))
 

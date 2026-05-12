@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import json
 import os
 from datetime import datetime
@@ -9,7 +9,7 @@ from ..core.config.LogUtils import LogUtils
 
 class JsonUtil:
     """
-    Constrói o JSON e também é responsável por manipulação do mesmo.
+    Constroi o JSON e tambem e responsavel por manipulacao do mesmo.
     """
 
     @staticmethod
@@ -18,36 +18,48 @@ class JsonUtil:
         source: str,
         base_folder: str,
         tool_key: str,
-        recursive: bool = False
+        recursive: bool = False,
     ) -> Dict[str, Any]:
-        """
-        Monta o JSON canônico v2.0 a partir de registros.
-
-        Args:
-            records: Lista de registros com chaves PascalCase
-            source: "mrk" | "mrk+photo" | "photo_only"
-            base_folder: Pasta base
-            tool_key: Chave da ferramenta
-            recursive: Se foi recursivo
-
-        Returns:
-            Dict representando o JSON v2.0
-        """
         logger = LogUtils(tool=tool_key, class_name="JsonUtil")
 
-        # Agrupar por pasta
-        groups = {}
+        normalized_records = records or []
+
+        with_coords = 0
+        without_coords = 0
+        with_xmp = 0
+        with_exif_gps = 0
+        missing_xmp_and_exif = 0
+
+        for r in normalized_records:
+            source_txt = str(r.get("CoordSource") or "").strip().upper()
+            if source_txt and source_txt != "NONE":
+                with_coords += 1
+            else:
+                without_coords += 1
+
+            has_xmp_raw = r.get("HasXmp")
+            has_exif_gps_raw = r.get("HasExifGps")
+            source_hint = str(r.get("CoordSource") or "").strip().upper()
+            has_xmp = bool(has_xmp_raw) or source_hint == "XMP"
+            has_exif_gps = bool(has_exif_gps_raw) or source_hint == "EXIF"
+            if has_xmp:
+                with_xmp += 1
+            if has_exif_gps:
+                with_exif_gps += 1
+            if (not has_xmp) and (not has_exif_gps):
+                missing_xmp_and_exif += 1
+
         quality = {
-            "total_files": len(records),
-            "with_coords": len([r for r in records if r.get("CoordSource")]),
-            "without_coords": len([r for r in records if not r.get("CoordSource")]),
-            "with_xmp": 0,  # Será populado no fluxo foto
-            "with_exif_gps": 0,  # Será populado no fluxo foto
-            "missing_xmp_and_exif": 0,  # Será populado no fluxo foto
+            "total_files": len(normalized_records),
+            "with_coords": with_coords,
+            "without_coords": without_coords,
+            "with_xmp": with_xmp,
+            "with_exif_gps": with_exif_gps,
+            "missing_xmp_and_exif": missing_xmp_and_exif,
         }
 
-        for record in records:
-            # Usar MrkFolder ou Path como chave do grupo
+        groups = {}
+        for record in normalized_records:
             folder_key = record.get("MrkFolder") or os.path.dirname(record.get("Path", ""))
             if folder_key not in groups:
                 groups[folder_key] = {
@@ -56,18 +68,17 @@ class JsonUtil:
                     "FlightNumber": record.get("FlightNumber", 0),
                     "points_count": 0,
                     "indexed_count": 0,
-                    "records": {}
+                    "records": {},
                 }
 
-            # Usar File como chave do record, ou fallback para registros MRK
             file_key = record.get("File")
             if not file_key:
-                # Para registros MRK que não têm arquivo de imagem associado
                 foto = record.get("Foto")
                 if foto is not None:
                     file_key = f"foto_{foto}"
                 else:
                     file_key = f"record_{len(groups[folder_key]['records'])}"
+
             groups[folder_key]["records"][file_key] = record
             groups[folder_key]["points_count"] += 1
             groups[folder_key]["indexed_count"] += 1
@@ -80,62 +91,36 @@ class JsonUtil:
             "recursive": recursive,
             "generated_at": datetime.now().isoformat(),
             "quality": quality,
-            "groups": groups
+            "groups": groups,
         }
 
-        logger.debug(f"Built JSON v2.0 with {len(groups)} groups and {len(records)} records")
+        logger.debug(f"Built JSON v2.0 with {len(groups)} groups and {len(normalized_records)} records")
         return json_data
 
     @staticmethod
     def save(json_data: Dict[str, Any], output_path: str) -> str:
-        """
-        Salva o JSON em disco.
-
-        Args:
-            json_data: Dados do JSON
-            output_path: Caminho onde salvar
-
-        Returns:
-            Caminho do arquivo salvo
-        """
         logger = LogUtils(tool=json_data.get("tool_key", "json_util"), class_name="JsonUtil")
-
         try:
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(json_data, f, indent=2, ensure_ascii=False)
-
             logger.debug(f"Saved JSON to {output_path}")
             return output_path
-
         except Exception as e:
             logger.error(f"Error saving JSON to {output_path}: {e}")
             raise
 
     @staticmethod
     def load_records(json_path: str) -> List[Dict[str, Any]]:
-        """
-        Carrega registros do JSON v2.0.
-
-        Args:
-            json_path: Caminho do JSON
-
-        Returns:
-            Lista plana de registros
-
-        Raises:
-            ValueError: Se schema_version != "2.0"
-        """
         logger = LogUtils(tool="json_util", class_name="JsonUtil")
-
         try:
-            with open(json_path, 'r', encoding='utf-8') as f:
+            with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             version = data.get("schema_version")
             if version != "2.0":
                 raise ValueError(
-                    f"JSON com schema_version='{version}' não é suportado. "
-                    "Regenere o JSON usando a versão atual do plugin."
+                    f"JSON com schema_version='{version}' nao e suportado. "
+                    "Regenere o JSON usando a versao atual do plugin."
                 )
 
             records = []
@@ -145,7 +130,6 @@ class JsonUtil:
 
             logger.debug(f"Loaded {len(records)} records from {json_path}")
             return records
-
         except Exception as e:
             logger.error(f"Error loading records from {json_path}: {e}")
             raise

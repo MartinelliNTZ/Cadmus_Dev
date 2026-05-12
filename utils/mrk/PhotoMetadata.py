@@ -45,6 +45,92 @@ class PhotoMetadata:
     DJI_RE = re.compile(r"_(\d{4})_[A-Z]\.JPG$", re.IGNORECASE)
 
     @staticmethod
+    def _to_float(value):
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        text = str(value).strip().replace("+", "")
+        if text in ("", "None", "null"):
+            return None
+        try:
+            return float(text)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _extract_gps_decimal_from_dms(value, ref):
+        if value is None:
+            return None
+        parts = list(value) if isinstance(value, (list, tuple)) else None
+        if not parts or len(parts) < 3:
+            return None
+
+        def _part_to_float(p):
+            if isinstance(p, (int, float)):
+                return float(p)
+            text = str(p).strip()
+            if "/" in text:
+                num, den = text.split("/", 1)
+                return float(num) / float(den)
+            return float(text)
+
+        try:
+            deg = _part_to_float(parts[0])
+            minute = _part_to_float(parts[1])
+            sec = _part_to_float(parts[2])
+            dec = deg + (minute / 60.0) + (sec / 3600.0)
+            ref_txt = str(ref or "").strip().upper()
+            if ref_txt in ("S", "W"):
+                dec = -dec
+            return dec
+        except Exception:
+            return None
+
+    @staticmethod
+    def _extract_position(merged_payload):
+        canonical = MetadataFields.normalize_record_to_keys(merged_payload or {})
+        lat = PhotoMetadata._to_float(canonical.get("GpsLatitude"))
+        lon = PhotoMetadata._to_float(canonical.get("GpsLongitude"))
+        if lat is not None and lon is not None:
+            alt = PhotoMetadata._to_float(
+                canonical.get("AbsoluteAltitude") or canonical.get("GPSAltitude")
+            )
+            has_dji_xmp_marker = any("drone-dji:" in str(k) for k in (merged_payload or {}).keys())
+            source = "XMP" if has_dji_xmp_marker else "EXIF"
+            return lat, lon, alt, source
+
+        lat = PhotoMetadata._extract_gps_decimal_from_dms(
+            merged_payload.get("GPSLatitude"),
+            merged_payload.get("GPSLatitudeRef"),
+        )
+        lon = PhotoMetadata._extract_gps_decimal_from_dms(
+            merged_payload.get("GPSLongitude"),
+            merged_payload.get("GPSLongitudeRef"),
+        )
+        alt = PhotoMetadata._to_float(merged_payload.get("GPSAltitude"))
+        if lat is not None and lon is not None:
+            return lat, lon, alt, "EXIF"
+        return None, None, alt, "NONE"
+
+    @staticmethod
+    def _has_xmp_data(merged_payload, canonical_payload):
+        flag = str((merged_payload or {}).get("xmp_encontrado", "")).lower()
+        if flag == "sim":
+            return True
+        if any("drone-dji:" in str(k) for k in (merged_payload or {}).keys()):
+            return True
+        xmp_markers = (
+            "AbsoluteAltitude",
+            "RelativeAltitude",
+            "GimbalYawDegree",
+            "FlightYawDegree",
+            "RtkFlag",
+            "UTCAtExposure",
+        )
+        return any(canonical_payload.get(k) not in (None, "", "None", "null") for k in xmp_markers)
+
+    @staticmethod
     def _dump_allowed_keys() -> list:
         """
         Campos permitidos no JSON de dump por foto.
@@ -488,6 +574,18 @@ class PhotoMetadata:
                 merged_payload.update(PhotoMetadata._extract_flight_context(point))
                 # Normaliza aliases/snake_case para as chaves canonicas do MetadataFields
                 merged_payload = MetadataFields.normalize_record_to_keys(merged_payload)
+                has_xmp = PhotoMetadata._has_xmp_data(merged_payload, merged_payload)
+                has_exif_gps = bool(merged_payload.get("GPSLatitude") and merged_payload.get("GPSLongitude"))
+                lat, lon, alt, source = PhotoMetadata._extract_position(merged_payload)
+                merged_payload["GpsLatitude"] = lat if lat is not None else merged_payload.get("GpsLatitude")
+                merged_payload["GpsLongitude"] = lon if lon is not None else merged_payload.get("GpsLongitude")
+                merged_payload["AbsoluteAltitude"] = (
+                    alt if alt is not None else merged_payload.get("AbsoluteAltitude")
+                )
+                merged_payload["CoordSource"] = source
+                merged_payload["HasXmp"] = has_xmp
+                merged_payload["HasExifGps"] = has_exif_gps
+                merged_payload["QualityFlag"] = "LOW" if source == "NONE" else "OK"
 
                 # Converter para chaves PascalCase usando mapeamento explicito do catalogo.
                 key_to_json_key = {
@@ -505,15 +603,16 @@ class PhotoMetadata:
                     mapped_key = key_to_json_key.get(canonical_key, canonical_key)
                     record[mapped_key] = value
 
-                # Adicionar campos obrigatórios
-                record[MetadataFieldKey.COORD_SOURCE.value] = "XMP"  # ou EXIF baseado na lógica
-                record[MetadataFieldKey.QUALITY_FLAG.value] = "ok"
-
                 # Filtrar campos selecionados
                 if selected_keys:
                     filtered_record = {}
                     for k, v in record.items():
-                        if k in selected_keys or k in [MetadataFieldKey.COORD_SOURCE.value, MetadataFieldKey.QUALITY_FLAG.value]:
+                        if k in selected_keys or k in [
+                            MetadataFieldKey.COORD_SOURCE.value,
+                            MetadataFieldKey.QUALITY_FLAG.value,
+                            "HasXmp",
+                            "HasExifGps",
+                        ]:
                             filtered_record[k] = v
                     if not filtered_record:
                         empty_filtered += 1

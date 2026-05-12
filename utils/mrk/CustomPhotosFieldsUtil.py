@@ -15,6 +15,7 @@ import statistics
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 from ...core.config.LogUtils import LogUtils
+from ...core.enum import MetadataFieldKey
 from ...core.enum.LightSourceEnum import LightSourceEnum
 from ..ToolKeys import ToolKey
 from .MetadataFields import MetadataFields
@@ -95,18 +96,18 @@ class CustomPhotosFieldsUtil:
     def resolve_capture_datetime(data: Dict) -> Tuple[Optional[datetime], Optional[str]]:
         """Resolve data/hora de captura usando fallback entre campos conhecidos."""
         candidates = (
-            ("DateTimeOriginal", data.get("DateTimeOriginal")),
+            (MetadataFieldKey.DATE_TIME_ORIGINAL.value, data.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value)),
             ("DateTime", data.get("DateTime")),
-            ("UTCAtExposure", data.get("UTCAtExposure")),
-            ("DtFull", data.get("DtFull")),
+            (MetadataFieldKey.UTC_AT_EXPOSURE.value, data.get(MetadataFieldKey.UTC_AT_EXPOSURE.value)),
+            (MetadataFieldKey.DT_FULL.value, data.get(MetadataFieldKey.DT_FULL.value)),
         )
         for source, value in candidates:
             parsed = CustomPhotosFieldsUtil.parse_datetime(value)
             if parsed is not None:
                 return parsed, source
 
-        dt_date = str(data.get("DtDate") or "").strip()
-        dt_time = str(data.get("DtTime") or "").strip()
+        dt_date = str(data.get(MetadataFieldKey.DT_DATE.value) or "").strip()
+        dt_time = str(data.get(MetadataFieldKey.DT_TIME.value) or "").strip()
         if dt_date and dt_time and dt_date.lower() not in ("none", "null"):
             hhmm = dt_time.zfill(4)
             parsed = CustomPhotosFieldsUtil.parse_datetime(f"{dt_date}{hhmm}")
@@ -118,8 +119,8 @@ class CustomPhotosFieldsUtil:
     @staticmethod
     def get_voo_id(data: Dict) -> str:
         """VOO_ID = drone_sn[:8] + camera_sn[:8] + YYYY-MM-DD."""
-        drone_sn = data.get("DroneSerialNumber", "UNKNOWN")
-        camera_sn = data.get("CameraSerialNumber", "UNKNOWN")
+        drone_sn = data.get(MetadataFieldKey.DRONE_SERIAL_NUMBER.value, "UNKNOWN")
+        camera_sn = data.get(MetadataFieldKey.CAMERA_SERIAL_NUMBER.value, "UNKNOWN")
         dt, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(data)
         date_str = dt.strftime("%Y-%m-%d") if dt is not None else "UNKNOWN_DATE"
         return f"{drone_sn[:8]}_{camera_sn[:8]}_{date_str}"
@@ -686,14 +687,14 @@ class CustomPhotosFieldsUtil:
                 missing_datetime_count += 1
                 continue
             dt_source_counts[source] = dt_source_counts.get(source, 0) + 1
-            if data.get("DateTimeOriginal") in (None, "", "None", "null"):
-                data["DateTimeOriginal"] = dt.strftime("%Y:%m:%d %H:%M:%S")
-            if data.get("DtFull") in (None, "", "None", "null"):
-                data["DtFull"] = dt.strftime("%Y%m%d%H%M")
-            if data.get("DtDate") in (None, "", "None", "null"):
-                data["DtDate"] = dt.strftime("%Y%m%d")
-            if data.get("DtTime") in (None, "", "None", "null"):
-                data["DtTime"] = dt.strftime("%H%M")
+            if data.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) in (None, "", "None", "null"):
+                data[MetadataFieldKey.DATE_TIME_ORIGINAL.value] = dt.strftime("%Y:%m:%d %H:%M:%S")
+            if data.get(MetadataFieldKey.DT_FULL.value) in (None, "", "None", "null"):
+                data[MetadataFieldKey.DT_FULL.value] = dt.strftime("%Y%m%d%H%M")
+            if data.get(MetadataFieldKey.DT_DATE.value) in (None, "", "None", "null"):
+                data[MetadataFieldKey.DT_DATE.value] = dt.strftime("%Y%m%d")
+            if data.get(MetadataFieldKey.DT_TIME.value) in (None, "", "None", "null"):
+                data[MetadataFieldKey.DT_TIME.value] = dt.strftime("%H%M")
 
         # Ordenar por datetime
         sorted_items = sorted(

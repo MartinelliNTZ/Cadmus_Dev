@@ -381,45 +381,6 @@ class PhotoMetadata:
             else:
                 translated_light_source += 1
 
-        # Tenta enriquecer com campos custom quando o dataset possui base minima.
-        try:
-            required_for_custom = [
-                "DateTimeOriginal",
-                "AbsoluteAltitude",
-                "FlightXSpeed",
-                "FlightYSpeed",
-                "FlightZSpeed",
-                "GimbalYawDegree",
-                "FlightYawDegree",
-                "GimbalPitchDegree",
-                "FlightPitchDegree",
-            ]
-            missing_summary = {}
-            for _, payload in raw_by_file.items():
-                for req_key in required_for_custom:
-                    if payload.get(req_key) in (None, ""):
-                        missing_summary[req_key] = missing_summary.get(req_key, 0) + 1
-            if missing_summary:
-                logger.debug(
-                    "Campos ausentes antes do calculo custom",
-                    data={"missing_summary": missing_summary},
-                )
-
-            custom_enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
-                raw_by_file,
-                tool_key=tool_key,
-            )
-            raw_by_file = custom_enriched
-            for fname, payload in custom_enriched.items():
-                seq_match = PhotoMetadata.DJI_RE.search(fname)
-                if not seq_match:
-                    continue
-                indexed_by_number[seq_match.group(1)] = payload
-        except Exception as exc:
-            logger.warning(
-                f"Falha ao calcular CUSTOM_FIELDS para pasta {base_folder}: {exc}"
-            )
-
         logger.info(
             "Indexacao completa de fotos finalizada",
             data={
@@ -570,6 +531,32 @@ class PhotoMetadata:
                         "points_without_filtered_fields": empty_filtered,
                     },
                 )
+
+        # Calcular campos custom sobre os mesmos records JSON (PascalCase),
+        # mantendo paridade com o fluxo photo_only.
+        try:
+            custom_ready = {
+                key: value
+                for key, value in zip(
+                    [record.get(MetadataFieldKey.FILE.value) for record in all_records],
+                    all_records,
+                )
+                if key and value.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) not in (None, "")
+            }
+            if custom_ready:
+                enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
+                    custom_ready,
+                    tool_key=TOOL_KEY,
+                )
+                for key, value in enriched.items():
+                    for record in all_records:
+                        if record.get(MetadataFieldKey.FILE.value) == key:
+                            for custom_key, custom_value in value.items():
+                                canonical_custom_key = MetadataFields.resolve_key(str(custom_key))
+                                record[canonical_custom_key] = custom_value
+                            break
+        except Exception as exc:
+            logger.warning(f"Falha ao calcular CUSTOM_FIELDS no enrich: {exc}")
 
         # Gerar JSON v2.0
         json_data = JsonUtil.build(

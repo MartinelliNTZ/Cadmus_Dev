@@ -32,13 +32,11 @@ class MrkParseStep(BaseStep):
             logger.error("json_path nao encontrado no resultado do MrkParseTask")
             raise RuntimeError("Nenhum JSON gerado pelos MRKs.")
 
-        points = result.get("points", [])
         context.set("json_path", json_path)
         context.set("source", result.get("source", "mrk"))
         context.set("base_folder", result.get("base_folder"))
-        context.set("points", points)
 
         logger.info(
             "JSON MRK gerado com sucesso",
-            data={"json_path": json_path, "total_points": len(points)},
+            data={"json_path": json_path, "total_points": len(result.get("points", []))},
         )

@@ -15,11 +15,7 @@ class ReportGenerationStep(BaseStep):
         return "ReportGenerationStep"
 
     def _resolve_json_path(self, context: ExecutionContext):
-        return (
-            context.get("json_path")
-            or context.get("photo_metadata_json_path")
-            or context.get("report_json_path")
-        )
+        return context.get("json_path")
 
     def should_run(self, context: ExecutionContext) -> bool:
         """Só executa se json_path estiver disponível no contexto."""
@@ -40,9 +36,6 @@ class ReportGenerationStep(BaseStep):
             raise ValueError(
                 "ReportGenerationStep: json_path não definido no contexto. O step anterior pode ter falhado em gerar o JSON de metadados."
             )
-
-        if not context.has("json_path") and context.has("photo_metadata_json_path"):
-            context.set("json_path", json_path)
 
         return ReportGenerationTask(
             json_path=json_path,

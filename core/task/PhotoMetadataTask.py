@@ -5,6 +5,7 @@ from .BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
 from ...utils.mrk.PhotoMetadata import PhotoMetadata
 from ...utils.mrk.MetadataFields import MetadataFields
+from ...utils.JsonUtil import JsonUtil
 
 
 class PhotoMetadataTask(BaseTask):
@@ -16,6 +17,7 @@ class PhotoMetadataTask(BaseTask):
         base_folder: str,
         recursive: bool,
         source_points: list,
+        json_path: str,
         selected_required_fields: list,
         selected_custom_fields: list,
         selected_mrk_fields: list,
@@ -26,6 +28,7 @@ class PhotoMetadataTask(BaseTask):
         self.base_folder = base_folder
         self.recursive = recursive
         self.source_points = source_points or []
+        self.json_path = json_path
         self.selected_required_fields = selected_required_fields or []
         self.selected_custom_fields = selected_custom_fields or []
         self.selected_mrk_fields = selected_mrk_fields or []
@@ -67,7 +70,11 @@ class PhotoMetadataTask(BaseTask):
                         ponto["mrk_folder"] = mrk_folder
                 pontos.append(ponto)
         else:
-            for src in self.source_points:
+            source_records = self.source_points
+            if not source_records and self.json_path:
+                source_records = JsonUtil.load_records(self.json_path)
+
+            for src in source_records:
                 canonical = MetadataFields.normalize_record_to_keys(src or {})
                 foto = canonical.get("Foto") or canonical.get("foto")
                 if foto is None:
@@ -133,7 +140,7 @@ class PhotoMetadataTask(BaseTask):
         json_path = None
         if isinstance(enrich_result, dict):
             enriched = enrich_result.get("points", pontos)
-            json_path = enrich_result.get("json_path") or enrich_result.get("json_dump_path")
+            json_path = enrich_result.get("json_path")
         elif isinstance(enrich_result, str):
             json_path = enrich_result
 
@@ -209,7 +216,5 @@ class PhotoMetadataTask(BaseTask):
             "updates": updates,
             "field_names": list(field_names),
             "json_path": json_path,
-            # Compatibilidade temporaria com callers legados
-            "json_dump_path": json_path,
         }
         return True

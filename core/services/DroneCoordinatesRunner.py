@@ -176,7 +176,7 @@ class DroneCoordinatesRunner:
                     if ok:
                         track_layer.triggerRepaint()
 
-        json_path = context.get("photo_metadata_json_path")
+        json_path = context.get("json_path")
         generate_report = prefs.get("generate_report", False)
         report_payload = None
         if generate_report:
@@ -195,7 +195,7 @@ class DroneCoordinatesRunner:
                     )
             else:
                 self.logger.warning(
-                    "Runner com generate_report=True sem photo_metadata_json_path no contexto"
+                    "Runner com generate_report=True sem json_path no contexto"
                 )
 
         QgisMessageUtil.bar_success(self.iface, STR.CONVERT_FILE_SUCCESS, duration=4)

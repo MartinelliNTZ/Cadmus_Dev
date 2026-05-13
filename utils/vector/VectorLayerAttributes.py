@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from qgis.core import QgsField, QgsFields
+from qgis.core import QgsField, QgsFields, QgsVectorLayer, QgsFeature, QgsWkbTypes
 
 from qgis.PyQt.QtCore import QVariant
 from ...core.config.LogUtils import LogUtils
@@ -342,6 +342,82 @@ class VectorLayerAttributes:
     ):
         """Exporta todos os atributos da camada para um arquivo tabular."""
         pass
+
+    @staticmethod
+    def reorder_fields_alphabetically(layer):
+        """
+        Cria uma nova layer com campos reordenados em ordem alfabética (case-insensitive).
+        Compatível com QGIS 3.16+.
+        
+        A ordenação segue o padrão key=str.lower:
+        - Case-insensitive: 'A' e 'a' na mesma sequência
+        - Números e símbolos vêm antes das letras (ordem ASCII)
+        - 'abacate', 'Alicate', 'arcelga': 'abacate' -> 'Alicate' -> 'arcelga'
+        
+        Parameters
+        ----------
+        layer : QgsVectorLayer
+            Camada vetorial fonte
+
+        Returns
+        -------
+        QgsVectorLayer or None
+            Nova layer com campos ordenados, ou None em caso de erro
+        """
+        logger = LogUtils(tool="untraceable", class_name="VectorLayerAttributes")
+        if not layer or not layer.isValid():
+            logger.error("Camada inválida para reordenar campos")
+            return None
+
+        fields = layer.fields()
+        if fields.count() <= 1:
+            return layer
+
+        field_names = [field.name() for field in fields]
+        sorted_names = sorted(field_names, key=lambda x: str(x).lower())
+
+        if sorted_names == field_names:
+            return layer
+
+        try:
+            # 1. Construir QgsFields na ordem alfabética
+            new_fields = QgsFields()
+            for name in sorted_names:
+                idx = fields.lookupField(name)
+                if idx != -1:
+                    new_fields.append(fields.at(idx))
+            if new_fields.count() != fields.count():
+                logger.error("Contagem de campos não corresponde após reordenação")
+                return None
+
+            # 2. Criar nova camada em memória com os campos ordenados
+            wkb_type = layer.wkbType()
+            crs = layer.crs()
+            geom_type = QgsWkbTypes.displayString(wkb_type)
+            new_uri = f"{geom_type}?crs={crs.authid()}"
+            new_layer = QgsVectorLayer(new_uri, layer.name(), "memory")
+            new_prov = new_layer.dataProvider()
+            new_prov.addAttributes(new_fields)
+            new_layer.updateFields()
+
+            # 3. Copiar features com atributos mapeados para a nova ordem
+            new_layer.startEditing()
+            for feat in layer.getFeatures():
+                new_feat = QgsFeature(new_fields)
+                new_feat.setGeometry(feat.geometry())
+                for field_name in sorted_names:
+                    attr_idx = fields.lookupField(field_name)
+                    if attr_idx != -1:
+                        new_feat[field_name] = feat.attributes()[attr_idx]
+                new_prov.addFeature(new_feat)
+            new_layer.commitChanges()
+
+            logger.debug("Nova layer criada com campos reordenados alfabeticamente")
+            return new_layer
+
+        except Exception as e:
+            logger.error(f"Erro ao reordenar campos: {e}")
+            return None
 
     @staticmethod
     def create_point_coordinate_fields(layer, field_map, precision: int = 8):

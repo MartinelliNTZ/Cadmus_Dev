@@ -9,6 +9,7 @@ from ..core.engine_tasks.PhotoMetadataStep import PhotoMetadataStep
 from ..core.engine_tasks.JsonVectorizationStep import JsonVectorizationStep
 from ..core.engine_tasks.ReportGenerationStep import ReportGenerationStep
 from ..utils.mrk.PhotoMetadata import PhotoMetadata
+from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
 from ..utils.ExplorerUtils import ExplorerUtils
@@ -532,6 +533,11 @@ class DroneCordinates(BasePluginMTL):
         if not layer or not layer.isValid():
             QgisMessageUtil.modal_error(self.iface, STR.ERROR_LAYER_NOT_FOUND)
             return
+
+        # Reordenar campos alfabeticamente antes de carregar
+        sorted_layer = VectorLayerAttributes.reorder_fields_alphabetically(layer)
+        if sorted_layer is not None:
+            layer = sorted_layer
 
         if not QgsProject.instance().mapLayer(layer.id()):
             QgsProject.instance().addMapLayer(layer)

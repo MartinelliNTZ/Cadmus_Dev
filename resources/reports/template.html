@@ -100,7 +100,6 @@
         }
         th {
             background: #2A2A2A;
-            text-transform: uppercase;
             letter-spacing: 1px;
             font-size: 12px;
         }
@@ -276,19 +275,19 @@
                         <td>{{ agg.general_info.capture_end }}</td>
                     </tr>
                     <tr>
+                        <th>Tempo de voo</th>
+                        <td>{{ agg.general_info.total_flight_time }}</td>
+                    </tr>
+                    <tr>
                         <th>Numero de voos</th>
                         <td>{{ agg.general_info.total_flights }}</td>
                     </tr>
                     <tr>
-                        <th>Horas de voo (total)</th>
-                        <td>{{ agg.general_info.total_flight_time }}</td>
-                    </tr>
-                    <tr>
-                        <th>Ultimo ShutterCount por camera</th>
+                        <th>Ultimo shutter count por camera</th>
                         <td>
                             {% if agg.general_info.last_shutter_per_camera %}
                                 {% for item in agg.general_info.last_shutter_per_camera %}
-                                    {{ item.camera_serial }}: {{ item.last_shutter_count }} ({{ item.file }} | {{ item.flight_id }}){% if not loop.last %}<br>{% endif %}
+                                    {{ item.camera_serial }}: {{ item.last_shutter_count }}{% if not loop.last %}<br>{% endif %}
                                 {% endfor %}
                             {% else %}
                                 -

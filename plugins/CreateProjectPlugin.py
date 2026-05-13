@@ -219,11 +219,14 @@ class CreateProjectPlugin(BasePluginMTL):
 
         if project_folder.exists():
             self.logger.warning(f"Pasta de projeto ja existe: {project_folder}")
-            QgisMessageUtil.modal_warning(
+            should_continue = QgisMessageUtil.confirm(
                 self.iface,
-                f"{STR.PROJECT_FOLDER_ALREADY_EXISTS}\n{project_folder}",
+                f"{STR.PROJECT_FOLDER_ALREADY_EXISTS}\n{project_folder}\n\n{STR.CONTINUE_ANYWAY}",
+                title=STR.PROJECT_FOLDER_ALREADY_EXISTS,
             )
-            return
+            if not should_continue:
+                self.logger.info("Usuario cancelou criacao do projeto existente")
+                return
 
         try:
             if not ExplorerUtils.ensure_folder_exists(

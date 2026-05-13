@@ -41,34 +41,28 @@
 
   rtk_std_lon:
     type: lower_better
-    levels: [0.012, 0.010, 0.007, 0.0045, inf]
+    levels: [0.050, 0.030, 0.020, 0.010, inf]
     messages:
-      - "RTK lon critico"
-      - "RTK lon ruim"
-      - "RTK lon OK"
-      - "RTK lon bom"
-      - "RTK lon excelente"
+      - "RTK lon critico"   # > 0.050 → float severo ou sem fix
+      - "RTK lon ruim"      # 0.030–0.050 → float instável
+      - "RTK lon OK"        # 0.020–0.030 → fix com degradação
+      - "RTK lon bom"       # 0.010–0.020 → fix normal de campo
+      - "RTK lon excelente" # < 0.010 → fix limpo, céu aberto
 
   rtk_std_lat:
     type: lower_better
-    levels: [0.011, 0.009, 0.007, 0.0045, inf]
-    messages:
-      - "RTK lat critico"
-      - "RTK lat ruim"
-      - "RTK lat OK"
-      - "RTK lat bom"
-      - "RTK lat excelente"
+    levels: [0.050, 0.030, 0.020, 0.010, inf]
+    # mesma lógica que lon
 
   rtk_std_hgt:
     type: lower_better
-    levels: [0.026, 0.020, 0.015, 0.010, inf]
+    levels: [0.100, 0.060, 0.040, 0.020, inf]
     messages:
-      - "RTK hgt critico"
-      - "RTK hgt ruim"
-      - "RTK hgt OK"
-      - "RTK hgt bom"
-      - "RTK hgt excelente"
-
+      - "RTK hgt critico"   # > 0.100 → inutilizável
+      - "RTK hgt ruim"      # 0.060–0.100 → float/degradado
+      - "RTK hgt OK"        # 0.040–0.060 → fix com multipath
+      - "RTK hgt bom"       # 0.020–0.040 → fix normal
+      - "RTK hgt excelente" # < 0.020 → fix excelente
   shutter_life_pct:
     type: lower_better
     levels: [60, 35, 20, 10, inf]

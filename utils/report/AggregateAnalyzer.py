@@ -872,21 +872,27 @@ class AggregateAnalyzer:
                 )
             )
 
-        # 3) RTK signal quality using StdLat/StdHgt thresholds.
+        # 3) RTK signal quality using thresholds from config.yaml (lower_better level 1 cutoff).
         rtk_std_lat_vals = AggregateAnalyzer._numeric_values_from_keys(results, ['RtkStdLat', 'rtk_std_lat'])
         rtk_std_hgt_vals = AggregateAnalyzer._numeric_values_from_keys(results, ['RtkStdHgt', 'rtk_std_hgt'])
-        poor_lat = [v for v in rtk_std_lat_vals if v > 0.011]
-        poor_hgt = [v for v in rtk_std_hgt_vals if v > 0.026]
+        lat_thresh = config.get_thresholds('rtk_std_lat') if config._config else None
+        hgt_thresh = config.get_thresholds('rtk_std_hgt') if config._config else None
+        lat_cut = lat_thresh['levels'][0] if lat_thresh and lat_thresh.get('levels') else 0.011
+        hgt_cut = hgt_thresh['levels'][0] if hgt_thresh and hgt_thresh.get('levels') else 0.026
+        poor_lat = [v for v in rtk_std_lat_vals if v > float(AggregateAnalyzer._parse_num(lat_cut))]
+        poor_hgt = [v for v in rtk_std_hgt_vals if v > float(AggregateAnalyzer._parse_num(hgt_cut))]
         poor_lat_pct = (len(poor_lat) / len(rtk_std_lat_vals) * 100.0) if rtk_std_lat_vals else 0.0
         poor_hgt_pct = (len(poor_hgt) / len(rtk_std_hgt_vals) * 100.0) if rtk_std_hgt_vals else 0.0
         if rtk_std_lat_vals and rtk_std_hgt_vals and (poor_lat_pct > 20.0 or poor_hgt_pct > 20.0):
+            lat_str = AggregateAnalyzer._fmt_num(AggregateAnalyzer._parse_num(lat_cut))
+            hgt_str = AggregateAnalyzer._fmt_num(AggregateAnalyzer._parse_num(hgt_cut))
             critical_alerts.append(
                 AggregateAnalyzer._severity_entry(
                     'CRITICO',
                     'Sinal GPS/RTK com qualidade insuficiente',
                     (
-                        f'RtkStdLat > 0.011 em {poor_lat_pct:.2f}% das imagens '
-                        f'e RtkStdHgt > 0.026 em {poor_hgt_pct:.2f}% das imagens.'
+                        f'RtkStdLat > {lat_str} em {poor_lat_pct:.2f}% das imagens '
+                        f'e RtkStdHgt > {hgt_str} em {poor_hgt_pct:.2f}% das imagens.'
                     ),
                     'Reduz precisao posicional e pode degradar alinhamento, georreferenciamento e qualidade final do produto.',
                     'Validar base RTK, radio/link, visibilidade GNSS e repetir trechos com altos desvios padrao.'

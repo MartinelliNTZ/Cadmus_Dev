@@ -126,19 +126,50 @@ class XmpUtil:
         return ordered
 
     @staticmethod
+    def _to_numeric(value: str):
+        """
+        Tenta converter valor string para int ou float.
+        Mantem string original se falhar.
+        
+        Lida com: '+123.4', '-89.90', '1.20000', '50', '-1', '0.000'
+        """
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            return value
+            
+        raw = value.strip().replace("+", "")
+        if not raw or raw.lower() in ("none", "null", "nan", "inf"):
+            return value
+        
+        # Tenta int primeiro (se nao tiver ponto decimal)
+        if "." not in raw:
+            try:
+                return int(raw)
+            except (ValueError, TypeError):
+                pass
+        
+        # Tenta float
+        try:
+            return float(raw)
+        except (ValueError, TypeError):
+            return value
+
+    @staticmethod
     def _sanitize_metadata(data: dict, logger: LogUtils) -> dict:
         """
         Valida e sanitiza metadata contra MetadataFields.
         
         Mapeia nomes de campos ilegais para campos canonicos usando MetadataFields.sanitize_field_name().
         Campos nao autorizados sao ignorados.
+        Converte valores numericos de string para float/int automaticamente.
         
         Args:
             data: Dicionario bruto com campos potencialmente ilegais
             logger: Logger para registrar campos rejeitados
             
         Returns:
-            Dicionario com apenas campos autorizados, com nomes sanitizados
+            Dicionario com apenas campos autorizados, com nomes sanitizados e valores convertidos
         """
         sanitized = {}
         rejected = []
@@ -148,9 +179,9 @@ class XmpUtil:
             canonical_name = MetadataFields.sanitize_field_name(field_name)
             
             if canonical_name:
-                # Campo e autorizado
-                if canonical_name not in sanitized:  # Evita sobrescrita de valores ja processados
-                    sanitized[canonical_name] = field_value
+                # Campo e autorizado - converte valor para numerico se possivel
+                if canonical_name not in sanitized:
+                    sanitized[canonical_name] = XmpUtil._to_numeric(field_value)
             else:
                 # Campo nao e autorizado - registra rejeicao
                 rejected.append(field_name)

@@ -78,6 +78,36 @@ class ExifUtil:
         return data
 
     @staticmethod
+    def _to_numeric(value):
+        """
+        Tenta converter valor string para int ou float.
+        Mantem tipo original se ja for numerico ou se falhar.
+        """
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return value
+        if not isinstance(value, str):
+            return value
+            
+        raw = value.strip().replace("+", "")
+        if not raw or raw.lower() in ("none", "null", "nan", "inf"):
+            return value
+        
+        # Tenta int primeiro
+        if "." not in raw:
+            try:
+                return int(raw)
+            except (ValueError, TypeError):
+                pass
+        
+        # Tenta float
+        try:
+            return float(raw)
+        except (ValueError, TypeError):
+            return value
+
+    @staticmethod
     def extract_metadata_exif(
         image_path: str, tool_key: str = ToolKey.UNTRACEABLE
     ) -> dict:
@@ -86,6 +116,7 @@ class ExifUtil:
         
         Apenas campos autorizados em MetadataFields sao retornados.
         Campos nao autorizados sao descartados (log em DEBUG).
+        Valores numericos em string sao convertidos para float/int.
         """
         logger = ExifUtil._get_logger(tool_key)
         data = {}
@@ -107,7 +138,8 @@ class ExifUtil:
                 for key, value in exif.items():
                     canonical_name = MetadataFields.sanitize_field_name(str(key))
                     if canonical_name:
-                        data[canonical_name] = value
+                        # Converte string numerica para float/int
+                        data[canonical_name] = ExifUtil._to_numeric(value)
                     else:
                         # Campo nao autorizado - log em DEBUG
                         logger.debug(f"Campo EXIF rejeitado (nao autorizado): {key}")

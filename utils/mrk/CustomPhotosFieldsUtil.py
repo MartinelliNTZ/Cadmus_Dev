@@ -959,6 +959,7 @@ class CustomPhotosFieldsUtil:
                 MetadataFieldKey.DISTANCE_3D_PREVIOUS.value: round(prev_seq.get("prev_distance_3d", 0.0), DECIMAL_PLACES),
                 MetadataFieldKey.AVG_VELOCITY_BETWEEN_PHOTOS.value: round(prev_seq.get("prev_avg_velocity", 0.0), DECIMAL_PLACES),
                 MetadataFieldKey.DISPLACEMENT_DIRECTION.value: round(prev_seq.get("prev_displacement_direction", 0.0), DECIMAL_PLACES),
+                MetadataFieldKey.F_OVERLAP.value: round(quality[MetadataFieldKey.PREDICTED_OVERLAP.value], DECIMAL_PLACES),
                 MetadataFieldKey.COVERAGE_WIDTH.value: round(coverage_width, DECIMAL_PLACES),
                 MetadataFieldKey.COVERAGE_HEIGHT.value: round(coverage_height, DECIMAL_PLACES),
                 MetadataFieldKey.TRAJECTORY_SMOOTHNESS.value: round(trajectory_smoothness, DECIMAL_PLACES),

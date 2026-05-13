@@ -100,6 +100,7 @@ class MetadataFieldKey(Enum):
     COVERAGE_WIDTH = "CoverageWidth"
     COVERAGE_HEIGHT = "CoverageHeight"
     PREDICTED_OVERLAP = "PredictedOverlap"
+    F_OVERLAP = "FOverlap"
     RTK_EFFECTIVE_PRECISION = "RtkEffectivePrecision"
     IS_IDEAL_OVERLAP = "IsIdealOverlap"
     ABRUPT_CHANGE_FLAG = "AbruptChangeFlag"

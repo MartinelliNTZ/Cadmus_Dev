@@ -247,11 +247,11 @@
                 <summary>Informacoes Gerais</summary>
                 <table>
                     <tr>
-                        <th>Modelo do equipamento</th>
+                        <th>Modelo do drone</th>
                         <td>{{ agg.general_info.equipment_models | join(', ') if agg.general_info.equipment_models else 'N/A' }}</td>
                     </tr>
                     <tr>
-                        <th>Serial equipamento</th>
+                        <th>Numero de serie do drone</th>
                         <td>{{ agg.general_info.equipment_serial_numbers | join(', ') if agg.general_info.equipment_serial_numbers else 'N/A' }}</td>
                     </tr>
                     <tr>
@@ -259,23 +259,23 @@
                         <td>{{ agg.general_info.camera_models | join(', ') if agg.general_info.camera_models else 'N/A' }}</td>
                     </tr>
                     <tr>
-                        <th>Serial camera</th>
+                        <th>Numero de serie da camera</th>
                         <td>{{ agg.general_info.camera_serial_numbers | join(', ') if agg.general_info.camera_serial_numbers else 'N/A' }}</td>
                     </tr>
                     <tr>
-                        <th>Firmware (Software)</th>
+                        <th>Versao do firmware</th>
                         <td>{{ agg.general_info.firmware_versions | join(', ') if agg.general_info.firmware_versions else 'N/A' }}</td>
                     </tr>
                     <tr>
-                        <th>Data inicio</th>
+                        <th>Data de inicio</th>
                         <td>{{ agg.general_info.capture_start }}</td>
                     </tr>
                     <tr>
-                        <th>Data fim</th>
+                        <th>Data de termino</th>
                         <td>{{ agg.general_info.capture_end }}</td>
                     </tr>
                     <tr>
-                        <th>Tempo de voo</th>
+                        <th>Tempo total de voo</th>
                         <td>{{ agg.general_info.total_flight_time }}</td>
                     </tr>
                     <tr>
@@ -283,7 +283,7 @@
                         <td>{{ agg.general_info.total_flights }}</td>
                     </tr>
                     <tr>
-                        <th>Ultimo shutter count por camera</th>
+                        <th>Ultimo disparo por camera</th>
                         <td>
                             {% if agg.general_info.last_shutter_per_camera %}
                                 {% for item in agg.general_info.last_shutter_per_camera %}
@@ -302,48 +302,92 @@
                 <summary>📊 Metricas Avancadas</summary>
                 <table>
                     <tr>
-                        <th>RTK Diff Age (media / max / p95)</th>
+                        <th>GSD medio (cm)</th>
                         <td>
-                            {{ agg.advanced_analysis.metrics.rtk_diff_age_mean if agg.advanced_analysis.metrics.rtk_diff_age_mean is not none else '-' }}
-                            /
-                            {{ agg.advanced_analysis.metrics.rtk_diff_age_max if agg.advanced_analysis.metrics.rtk_diff_age_max is not none else '-' }}
-                            /
-                            {{ agg.advanced_analysis.metrics.rtk_diff_age_p95 if agg.advanced_analysis.metrics.rtk_diff_age_p95 is not none else '-' }}
+                            {% if per_indicator.get('gsd_cm') and per_indicator.gsd_cm.value_mean is not none %}
+                                {{ '%.2f'|format(per_indicator.gsd_cm.value_mean) }}
+                            {% else %}
+                                -
+                            {% endif %}
                         </td>
                     </tr>
                     <tr>
-                        <th>Estabilidade RTK</th>
+                        <th>Idade do sinal RTK (media / max / p95)</th>
+                        <td>
+                            {% set rtk_mean = agg.advanced_analysis.metrics.rtk_diff_age_mean %}
+                            {% set rtk_max = agg.advanced_analysis.metrics.rtk_diff_age_max %}
+                            {% set rtk_p95 = agg.advanced_analysis.metrics.rtk_diff_age_p95 %}
+                            {% if rtk_mean is not none %}
+                                {{ '%.4f'|format(rtk_mean) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                            /
+                            {% if rtk_max is not none %}
+                                {{ '%.4f'|format(rtk_max) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                            /
+                            {% if rtk_p95 is not none %}
+                                {{ '%.4f'|format(rtk_p95) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Estabilidade do sinal RTK</th>
                         <td>
                             {{ agg.advanced_analysis.metrics.rtk_stability_class if agg.advanced_analysis.metrics.rtk_stability_class is not none else '-' }}
-                            (media {{ agg.advanced_analysis.metrics.rtk_stability_mean if agg.advanced_analysis.metrics.rtk_stability_mean is not none else '-' }})
+                            {% if agg.advanced_analysis.metrics.rtk_stability_mean is not none %}
+                                (media {{ '%.2f'|format(agg.advanced_analysis.metrics.rtk_stability_mean) }})
+                            {% endif %}
                         </td>
                     </tr>
                     <tr>
-                        <th>Gimbal Offset (media / desvio / max)</th>
+                        <th>Desalinhamento do gimbal (media / desvio / max)</th>
                         <td>
-                            {{ agg.advanced_analysis.metrics.gimbal_offset_mean if agg.advanced_analysis.metrics.gimbal_offset_mean is not none else '-' }}
+                            {% if agg.advanced_analysis.metrics.gimbal_offset_mean is not none %}
+                                {{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_mean) }}
+                            {% else %}
+                                -
+                            {% endif %}
                             /
-                            {{ agg.advanced_analysis.metrics.gimbal_offset_std if agg.advanced_analysis.metrics.gimbal_offset_std is not none else '-' }}
+                            {% if agg.advanced_analysis.metrics.gimbal_offset_std is not none %}
+                                {{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_std) }}
+                            {% else %}
+                                -
+                            {% endif %}
                             /
-                            {{ agg.advanced_analysis.metrics.gimbal_offset_max if agg.advanced_analysis.metrics.gimbal_offset_max is not none else '-' }}
+                            {% if agg.advanced_analysis.metrics.gimbal_offset_max is not none %}
+                                {{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_max) }}
+                            {% else %}
+                                -
+                            {% endif %}
                         </td>
                     </tr>
                     <tr>
-                        <th>YawAlignmentError >= 150°</th>
+                        <th>Direcao de voo inconsistente</th>
                         <td>{{ agg.advanced_analysis.metrics.yaw_inconsistent_pct if agg.advanced_analysis.metrics.yaw_inconsistent_pct is not none else '-' }}%</td>
                     </tr>
                     <tr>
-                        <th>Overlap < 60%</th>
+                        <th>Sobreposicao abaixo de 60%</th>
                         <td>
                             {{ agg.advanced_analysis.metrics.overlap_below_ideal_pct if agg.advanced_analysis.metrics.overlap_below_ideal_pct is not none else '-' }}%
-                            (media {{ agg.advanced_analysis.metrics.overlap_mean if agg.advanced_analysis.metrics.overlap_mean is not none else '-' }})
+                            {% if agg.advanced_analysis.metrics.overlap_mean is not none %}
+                                (media {{ '%.2f'|format(agg.advanced_analysis.metrics.overlap_mean) }})
+                            {% endif %}
                         </td>
                     </tr>
                     <tr>
-                        <th>Velocidade media vs recomendada</th>
+                        <th>Velocidade media (m/s)</th>
                         <td>
-                            {{ agg.advanced_analysis.metrics.speed_ms_mean if agg.advanced_analysis.metrics.speed_ms_mean is not none else '-' }} m/s
-                            ({{ agg.advanced_analysis.metrics.speed_ms_recommended if agg.advanced_analysis.metrics.speed_ms_recommended is not none else '-' }})
+                            {% if agg.advanced_analysis.metrics.speed_ms_mean is not none %}
+                                {{ '%.2f'|format(agg.advanced_analysis.metrics.speed_ms_mean) }}
+                            {% else %}
+                                -
+                            {% endif %}
                         </td>
                     </tr>
                 </table>

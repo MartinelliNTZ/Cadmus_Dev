@@ -228,6 +228,16 @@
       - "Mudanca baixa"
       - "Sem mudanca abrupta"
 
+  rtk_diff_age:
+    type: lower_better
+    levels: [5.0, 2.0, 1.0, 0.5, inf]
+    messages:
+      - "Idade do sinal RTK critica"
+      - "Idade do sinal RTK alta"
+      - "Idade do sinal RTK OK"
+      - "Idade do sinal RTK boa"
+      - "Idade do sinal RTK excelente"
+
   rtk_stability_score:
     type: higher_better
     levels: [90.0, 95.0, 98.0, 99.0, 99.9]

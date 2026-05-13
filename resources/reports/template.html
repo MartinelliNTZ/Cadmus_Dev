@@ -347,6 +347,27 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>Altura de voo media</th>
+                        <td>
+                            {% if agg.per_flight and agg.per_flight[0].avg_relative_altitude is not none %}
+                                {{ '%.2f'|format(agg.per_flight[0].avg_relative_altitude) }} m
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Altitude do solo media</th>
+                        <td>
+                            {% if agg.per_flight and agg.per_flight[0].avg_absolute_altitude is not none and agg.per_flight[0].avg_relative_altitude is not none %}
+                                {% set solo = agg.per_flight[0].avg_absolute_altitude - agg.per_flight[0].avg_relative_altitude %}
+                                {{ '%.2f'|format(solo) }} m
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
                         <th>Desalinhamento do gimbal (media / desvio / max)</th>
                         <td>
                             {% if agg.advanced_analysis.metrics.gimbal_offset_mean is not none %}

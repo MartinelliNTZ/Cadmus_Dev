@@ -1034,6 +1034,15 @@ class MetadataFields:
             level=5,
             key=MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX,
         ),
+        MetadataFieldKey.GROUND_ELEVATION: Field(
+            normalized="Custom:GroundElevation",
+            core="custom",
+            label="Ground Elevation",
+            attribute="GrndElev",
+            description="Altitude do solo (MSL) calculada como AbsoluteAltitude - RelativeAltitude. [GrndElev]",
+            level=5,
+            key=MetadataFieldKey.GROUND_ELEVATION,
+        ),
         MetadataFieldKey.STRIP_ID: Field(
             normalized="Custom:StripId",
             core="custom",

@@ -947,9 +947,15 @@ class CustomPhotosFieldsUtil:
                 prev_segment_dir = current_segment_dir
 
             # Monta dicionário custom apenas com campos mapeados em MetadataFields.CUSTOM_FIELDS
+            # GroundElevation = AbsoluteAltitude - RelativeAltitude
+            abs_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0)
+            rel_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0)
+            ground_elevation = abs_alt - rel_alt if rel_alt > 0 else 0.0
+
             custom = {
                 **individual,
                 **quality,
+                MetadataFieldKey.GROUND_ELEVATION.value: round(ground_elevation, DECIMAL_PLACES),
                 MetadataFieldKey.GIMBAL_OFFSET.value: round(gim_3d[MetadataFieldKey.GIMBAL_OFFSET.value], DECIMAL_PLACES),
                 MetadataFieldKey.THREE_D_SPEED.value: round(gim_3d[MetadataFieldKey.THREE_D_SPEED.value], DECIMAL_PLACES),
                 MetadataFieldKey.SPEED_3D_KMH.value: round(gim_3d[MetadataFieldKey.SPEED_3D_KMH.value], 1),

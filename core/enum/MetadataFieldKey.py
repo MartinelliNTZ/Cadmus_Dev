@@ -120,6 +120,7 @@ class MetadataFieldKey(Enum):
     SPEED_VARIATION_INDEX = "SpeedVariationIndex"
     RTK_STABILITY_SCORE = "RtkStabilityScore"
     CAPTURE_EFFICIENCY = "CaptureEfficiency"
+    GROUND_ELEVATION = "GroundElevation"
     PHOTOGRAMMETRY_QUALITY_INDEX = "PhotogrammetryQualityIndex"
     STRIP_ID = "StripId"
 

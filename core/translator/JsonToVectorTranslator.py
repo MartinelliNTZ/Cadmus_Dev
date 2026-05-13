@@ -72,8 +72,8 @@ class JsonToVectorTranslator:
         if not valid_records:
             raise ValueError(f"Nenhum registro com geometria válida encontrado")
 
-        # Construir schema
-        schema = self._build_schema(valid_records[0], selected_keys)
+        # Construir schema (usando todos os registros para inferir tipo corretamente)
+        schema = self._build_schema(valid_records[0], selected_keys, all_records=valid_records)
 
         # Preparar registros para VectorLayerGeometry
         points = []
@@ -118,36 +118,123 @@ class JsonToVectorTranslator:
         self,
         sample_record: Dict,
         selected_keys: Optional[List[str]],
+        all_records: Optional[List[Dict]] = None,
     ) -> List[Tuple[str, QVariant, str]]:
         """
-        Para cada chave do registro, busca o Field em MetadataFields
-        e usa field.attribute como nome do QgsField.
-        Chaves sem Field catalogado usam a própria chave truncada a 9 chars.
+        Para cada chave do registro, determina o tipo QVariant correto.
+        1. Tenta inferir do sample_record
+        2. Se for string, varre todos os records tentando converter para numérico
+        3. Usa field.attribute como nome do QgsField (MetadataFields)
+        4. Chaves sem Field catalogado usam a própria chave truncada
         """
         schema = []
 
         for key in sample_record.keys():
-            if key.startswith("_") or key in ["source"]:  # Campos internos
+            if key.startswith("_") or key in ["source"]:
                 continue
 
             if selected_keys is not None and key not in selected_keys:
                 continue
 
-            # Resolver nome do atributo
             attr_name = self._resolve_attribute_name(key)
 
-            # Determinar tipo QVariant
-            value = sample_record[key]
-            if isinstance(value, (int, float)):
-                qtype = QVariant.Double
-            elif isinstance(value, bool):
-                qtype = QVariant.Bool
-            else:
-                qtype = QVariant.String
+            # Determinar tipo QVariant - tenta converter string para númerico
+            qtype = self._infer_field_type(key, sample_record, all_records)
 
             schema.append((attr_name, qtype, attr_name))
 
         return schema
+
+    @staticmethod
+    def _try_parse_number(value: Any) -> Optional[type]:
+        """
+        Tenta converter valor para int ou float.
+        Retorna QVariant.Double, QVariant.Int ou None se não for numérico.
+        """
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return QVariant.Bool
+        if isinstance(value, int):
+            return QVariant.Int
+        if isinstance(value, float):
+            return QVariant.Double
+        if not isinstance(value, str):
+            return None
+
+        raw = value.strip().replace("+", "")
+        if not raw or raw.lower() in ("none", "null", "nan", "inf", "true", "false"):
+            return None
+
+        # Tenta int primeiro (valores sem ponto decimal, ex: "50", "-1", "0")
+        if "." not in raw:
+            try:
+                int(raw)
+                return QVariant.Int
+            except (ValueError, TypeError):
+                pass
+
+        # Tenta float (valores com ou sem ponto, ex: "72.0", "-89.90", "0.02591")
+        try:
+            float(raw)
+            return QVariant.Double
+        except (ValueError, TypeError):
+            return None
+
+    def _infer_field_type(
+        self,
+        key: str,
+        sample_record: Dict,
+        all_records: Optional[List[Dict]] = None,
+    ) -> QVariant:
+        """
+        Infere o tipo QVariant de um campo varrendo múltiplos registros.
+        """
+        value = sample_record.get(key)
+
+        # 1. Se o sample já é numérico, usa direto
+        native_type = self._try_parse_number(value)
+        if native_type is not None:
+            return native_type
+
+        # 2. Se é string no sample, varre todos os records em busca de valor numérico
+        is_string_but_numeric = False
+        has_real_float = False
+        has_real_int = False
+        has_non_numeric = False
+
+        if all_records and isinstance(value, str):
+            for record in all_records:
+                v = record.get(key)
+                if v is None:
+                    continue
+                t = self._try_parse_number(v)
+                if t == QVariant.Double:
+                    has_real_float = True
+                elif t == QVariant.Int:
+                    has_real_int = True
+                else:
+                    # É string de verdade (não numérica)
+                    if isinstance(v, str) and v.strip():
+                        has_non_numeric = True
+                        break
+
+            # Se pelo menos um registro tem float, o campo é Double
+            if has_real_float:
+                return QVariant.Double
+            # Se só tem ints, é Int
+            if has_real_int and not has_non_numeric:
+                return QVariant.Int
+            # Se encontrou string não numérica, fica String
+            if has_non_numeric:
+                return QVariant.String
+
+        # 3. Fallback: infere do sample
+        if isinstance(value, bool):
+            return QVariant.Bool
+        if isinstance(value, (int, float)):
+            return QVariant.Double
+        return QVariant.String
 
     def _resolve_geometry(self, record: Dict, source: str) -> Optional[QgsPointXY]:
         """

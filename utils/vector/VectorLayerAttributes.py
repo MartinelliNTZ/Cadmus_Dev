@@ -405,11 +405,12 @@ class VectorLayerAttributes:
             for feat in layer.getFeatures():
                 new_feat = QgsFeature(new_fields)
                 new_feat.setGeometry(feat.geometry())
+                # Atribuir valores na ordem alfabetica (por nome de campo)
                 for field_name in sorted_names:
                     attr_idx = fields.lookupField(field_name)
                     if attr_idx != -1:
                         new_feat[field_name] = feat.attributes()[attr_idx]
-                new_prov.addFeature(new_feat)
+                new_layer.addFeature(new_feat)
             new_layer.commitChanges()
 
             logger.debug("Nova layer criada com campos reordenados alfabeticamente")

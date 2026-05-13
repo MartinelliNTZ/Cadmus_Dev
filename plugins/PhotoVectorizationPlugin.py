@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
+from qgis.core import QgsProject
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..core.engine_tasks.ExecutionContext import ExecutionContext
@@ -13,6 +14,7 @@ from ..resources.IconManager import IconManager as im
 from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.ToolKeys import ToolKey
+from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 
 
 class PhotoVectorizationPlugin(BasePluginMTL):
@@ -145,6 +147,16 @@ class PhotoVectorizationPlugin(BasePluginMTL):
     def _on_pipeline_finished(self, context):
         """Callback chamado quando o pipeline de TASK é concluído com sucesso."""
         layer = context.get("layer")
+
+        # Reordenar campos alfabeticamente e substituir a layer no projeto
+        if layer and layer.isValid():
+            sorted_layer = VectorLayerAttributes.reorder_fields_alphabetically(layer)
+            if sorted_layer is not None:
+                QgsProject.instance().removeMapLayer(layer.id())
+                QgsProject.instance().addMapLayer(sorted_layer)
+                layer = sorted_layer
+                context.set("layer", layer)
+
         total_points = context.get("total_points", 0)
         json_path = context.get("json_path")
         report_payload = context.get("report_payload")

@@ -9,9 +9,13 @@ from ..adapter.StringAdapter import StringAdapter
 from ..mrk.MetadataFields import MetadataFields
 from .RangeMetadataManager import range_metadata_manager as config
 from ...core.enum.LightSourceEnum import LightSourceEnum
+from ...core.config.LogUtils import LogUtils
+from ..ToolKeys import ToolKey
 
 
 class AggregateAnalyzer:
+    logger = LogUtils(tool=ToolKey.REPORT_METADATA, class_name="AggregateAnalyzer")
+    logger.debug("AggregateAnalyzer class carregada")
     """Consolida resultados por indicador e gera visoes operacionais do relatorio."""
     FLIGHT_STATS_ROUND_DECIMALS = 2
     FIELD_FALLBACKS = {
@@ -211,6 +215,8 @@ class AggregateAnalyzer:
                 raw = r.level5_values.get(key)
                 if raw is None:
                     raw = r.values.get(key)
+                if raw is None:
+                    raw = r.get_indicator(key)
                 num = AggregateAnalyzer._to_float_or_none(raw)
                 if num is not None and num not in (math.inf, -math.inf):
                     values.append(num)
@@ -224,6 +230,8 @@ class AggregateAnalyzer:
             raw = r.level5_values.get(key)
             if raw is None:
                 raw = r.values.get(key)
+            if raw is None:
+                raw = r.get_indicator(key)
             num = AggregateAnalyzer._to_float_or_none(raw)
             if num is not None and num not in (math.inf, -math.inf):
                 return num
@@ -388,6 +396,7 @@ class AggregateAnalyzer:
     def analyze(results: List[IMGMetadata]) -> Dict[str, Any]:
         """Executa a agregacao completa para alimentar todas as secoes do relatorio."""
         if not results:
+            AggregateAnalyzer.logger.warning("analyze chamado com lista vazia de resultados")
             return {}
 
         if config._config is None:
@@ -764,11 +773,13 @@ class AggregateAnalyzer:
         agg['general_info']['dewarp_status_type'] = dewarp_status_type
         agg['general_info']['dewarp_status_message'] = dewarp_status_message
 
-        # Missing altitude checks (MRK Alt or AbsoluteAltitude).
+        # Missing altitude checks (MRK Alt and AbsoluteAltitude both missing).
+        # When source is photo_only (no MRK), alt_mrk is None, but AbsoluteAltitude may exist.
+        # Only flag if AMBAS as fontes de altitude estao ausentes.
         missing_alt_items = [
             r for r in results
             if AggregateAnalyzer._is_missing_value(r.alt_mrk)
-            or AggregateAnalyzer._is_missing_value(r.absolute_altitude)
+            and AggregateAnalyzer._is_missing_value(r.absolute_altitude)
         ]
         missing_alt_count = len(missing_alt_items)
         flights_with_missing_alt = sorted({r.flight_id or 'unknown' for r in missing_alt_items})

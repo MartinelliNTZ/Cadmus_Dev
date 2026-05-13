@@ -121,6 +121,8 @@ class IMGMetadata:
             return self._derive_incidence_angle()
         if norm == "sensor_temp_c":
             return self._to_float(self._first_value(["SensorTemperature", "LensTemperature", "sensor_temp_c"]))
+        if norm == "gsd_cm":
+            return self._to_float(self._first_value(["GroundSampleDistanceCm", "gsd_cm"]))
         return self._first_value([key, norm])
 
     @staticmethod

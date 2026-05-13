@@ -20,7 +20,7 @@ from ...core.enum.LightSourceEnum import LightSourceEnum
 from ..ToolKeys import ToolKey
 from .MetadataFields import MetadataFields
 
-DECIMAL_PLACES = 4
+DECIMAL_PLACES = 2
 
 
 class CustomPhotosFieldsUtil:

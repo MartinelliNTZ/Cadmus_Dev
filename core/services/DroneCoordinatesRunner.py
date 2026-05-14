@@ -3,7 +3,9 @@ import os
 from ..engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..engine_tasks.ExecutionContext import ExecutionContext
 from ..engine_tasks.MrkParseStep import MrkParseStep
-from ..engine_tasks.PhotoMetadataStep import PhotoMetadataStep
+from ..engine_tasks.PhotoEnrichmentStep import PhotoEnrichmentStep
+from ..engine_tasks.JsonVectorizationStep import JsonVectorizationStep
+from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
 from ...i18n.TranslationManager import STR
 from ...utils.ProjectUtils import ProjectUtils
 from ...utils.QgisMessageUtil import QgisMessageUtil
@@ -106,7 +108,13 @@ class DroneCoordinatesRunner:
         # Montar steps conforme preferências (mesmo que DroneCoordinates plugin)
         steps = [MrkParseStep()]
         if apply_photos:
-            steps.append(PhotoMetadataStep())
+            steps.append(PhotoEnrichmentStep())
+        steps.append(JsonVectorizationStep())
+
+        # Gerar relatório se configurado
+        generate_report = prefs.get("generate_report", False)
+        if generate_report:
+            steps.append(ReportGenerationStep())
 
         self._engine = AsyncPipelineEngine(
             steps=steps,

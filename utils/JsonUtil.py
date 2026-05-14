@@ -108,16 +108,14 @@ class JsonUtil:
             "base_folder": base_folder,
             "recursive": recursive,
             "generated_at": now_iso,
-            "quality": quality,
-            "groups": groups,
         }
 
-        # Adiciona timestamps se fornecidos
+        # Adiciona timestamps se fornecidos (logo apos generated_at, antes de quality/groups)
         if timestamps:
-            # Garante que pipeline_end seja preenchido se nao existir
-            if "pipeline_end" not in timestamps:
-                timestamps["pipeline_end"] = now_iso
             json_data["timestamps"] = timestamps
+
+        json_data["quality"] = quality
+        json_data["groups"] = groups
 
         logger.debug(f"Built JSON v2.0 with {len(groups)} groups and {len(normalized_records)} records")
         return json_data

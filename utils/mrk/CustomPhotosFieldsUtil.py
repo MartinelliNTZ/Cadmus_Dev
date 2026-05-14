@@ -447,7 +447,11 @@ class CustomPhotosFieldsUtil:
         dist_3d = math.sqrt(geo_dist**2 + alt_diff**2)
 
         avg_vel = dist_3d / dt_diff if dt_diff > 0 else 0.0
-        dir_displ = CustomPhotosFieldsUtil.bearing_angle(lat_curr, lon_curr, lat_other, lon_other)
+        # direction="prev": bearing from OTHER (previous photo) to CURRENT (flight direction)
+        if direction == "prev":
+            dir_displ = CustomPhotosFieldsUtil.bearing_angle(lat_other, lon_other, lat_curr, lon_curr)
+        else:
+            dir_displ = CustomPhotosFieldsUtil.bearing_angle(lat_curr, lon_curr, lat_other, lon_other)
 
         prefix = f"{direction}_"
         return {

@@ -1052,6 +1052,15 @@ class MetadataFields:
             level=5,
             key=MetadataFieldKey.STRIP_ID,
         ),
+        MetadataFieldKey.EV_CLASSIFICATION: Field(
+            normalized="Custom:EvClassification",
+            core="custom",
+            label="EV Classification",
+            attribute="EvClass",
+            description="Classificação textual da exposição baseada no EV. Valores: noite/escuro, indoor/sombra, nublado, luz solar normal, sol muito forte/neve. [EvClass]",
+            level=5,
+            key=MetadataFieldKey.EV_CLASSIFICATION,
+        ),
     }
 
     MRK_FIELDS = {

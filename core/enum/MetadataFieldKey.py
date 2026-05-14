@@ -123,6 +123,7 @@ class MetadataFieldKey(Enum):
     GROUND_ELEVATION = "GroundElevation"
     PHOTOGRAMMETRY_QUALITY_INDEX = "PhotogrammetryQualityIndex"
     STRIP_ID = "StripId"
+    EV_CLASSIFICATION = "EvClassification"
 
     # MRK_FIELDS
     FOTO = "Foto"

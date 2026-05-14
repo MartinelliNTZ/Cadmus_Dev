@@ -251,6 +251,21 @@
       - "RTK estabilidade boa"
       - "RTK estabilidade excelente"
 
+  ev_classification:
+    type: categorical
+    mapping:
+      noite/escuro: 1
+      indoor/sombra: 2
+      nublado: 3
+      luz solar normal: 4
+      sol muito forte/neve: 5
+    messages:
+      - "Exposicao muito baixa (noite/escuro)"
+      - "Exposicao baixa (indoor/sombra)"
+      - "Exposicao moderada (nublado)"
+      - "Exposicao boa (luz solar normal)"
+      - "Exposicao excelente (sol muito forte/neve)"
+
   light_source_classification:
     type: categorical
     mapping:

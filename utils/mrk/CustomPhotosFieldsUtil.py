@@ -15,7 +15,7 @@ import statistics
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 from ...core.config.LogUtils import LogUtils
-from ...core.enum import MetadataFieldKey
+from ...core.enum import MetadataFieldKey, EvClassEnum
 from ...core.enum.LightSourceEnum import LightSourceEnum
 from ..ToolKeys import ToolKey
 from ..report.RangeMetadataManager import range_metadata_manager
@@ -1055,10 +1055,15 @@ class CustomPhotosFieldsUtil:
             rel_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0)
             ground_elevation = abs_alt - rel_alt if rel_alt > 0 else 0.0
 
+            # EV Classification (texto)
+            ev_calculated = individual.get(MetadataFieldKey.EXPOSURE_VALUE_EV.value, 0.0)
+            ev_classification = EvClassEnum.get_label(ev_calculated)
+
             custom = {
                 **individual,
                 **quality,
                 MetadataFieldKey.GROUND_ELEVATION.value: round(ground_elevation, DECIMAL_PLACES),
+                MetadataFieldKey.EV_CLASSIFICATION.value: ev_classification,
                 MetadataFieldKey.GIMBAL_OFFSET.value: round(gim_3d[MetadataFieldKey.GIMBAL_OFFSET.value], DECIMAL_PLACES),
                 MetadataFieldKey.THREE_D_SPEED.value: round(gim_3d[MetadataFieldKey.THREE_D_SPEED.value], DECIMAL_PLACES),
                 MetadataFieldKey.SPEED_3D_KMH.value: round(gim_3d[MetadataFieldKey.SPEED_3D_KMH.value], 1),
@@ -1103,6 +1108,11 @@ class CustomPhotosFieldsUtil:
                 if speed_key in item and item[speed_key] is not None:
                     item[speed_key] = abs(CustomPhotosFieldsUtil.safe_float(item[speed_key], 0.0))
 
+        # Pós-processamento: classifica AbruptChangeFlag como texto usando RangeMetadataManager
+        try:
+            range_metadata_manager.load()
+        except Exception:
+            pass
         median_time = statistics.median(prev_time_values) if prev_time_values else 0.0
         median_geo = statistics.median(prev_geo_values) if prev_geo_values else 0.0
         for filename, item in result.items():
@@ -1116,6 +1126,8 @@ class CustomPhotosFieldsUtil:
                 geo_val = item.get(MetadataFieldKey.GEODESIC_DISTANCE_PREVIOUS.value, 0.0)
                 geo_ratio = geo_val / median_geo if geo_val > 0 else 1.0
             abrupt_ratio = max(time_ratio, geo_ratio)
-            item[MetadataFieldKey.ABRUPT_CHANGE_FLAG.value] = round(abrupt_ratio, DECIMAL_PLACES)
+            # Classifica o ratio conforme thresholds do config.yaml (texto)
+            _, abrupt_label = range_metadata_manager.classify("abrupt_change_flag", abrupt_ratio)
+            item[MetadataFieldKey.ABRUPT_CHANGE_FLAG.value] = abrupt_label
 
         return result

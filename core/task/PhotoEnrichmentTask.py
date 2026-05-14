@@ -41,6 +41,7 @@ class PhotoEnrichmentTask(BaseTask):
         selected_custom_fields: list = None,
         selected_mrk_fields: list = None,
         tool_key: str = None,
+        existing_timestamps: dict = None,
     ):
         super().__init__("Enriquecendo fotos", tool_key)
         self.base_folder = base_folder
@@ -51,6 +52,7 @@ class PhotoEnrichmentTask(BaseTask):
         self.selected_required_fields = selected_required_fields or []
         self.selected_custom_fields = selected_custom_fields or []
         self.selected_mrk_fields = selected_mrk_fields or []
+        self.existing_timestamps = existing_timestamps or {}
 
     def _get_selected_keys(self) -> set:
         """Constrói conjunto de chaves selecionadas pelo usuário."""
@@ -59,11 +61,35 @@ class PhotoEnrichmentTask(BaseTask):
         selected.update(self.selected_mrk_fields)
         return selected
 
+    def _build_timestamps(self, source: str) -> dict:
+        """
+        Monta o dict de timestamps mesclando timestamps existentes (do MrkParseStep)
+        com os timestamps recém-capturados do PhotoMetadata (EXIF/XMP/Custom).
+        """
+        timestamps = dict(self.existing_timestamps)
+
+        # Obtem timestamps do PhotoMetadata (preenchidos apos enrich/extract_photos_only)
+        photo_ts = PhotoMetadata.get_timestamps()
+
+        if photo_ts.get("exif_start"):
+            timestamps["exif_start"] = photo_ts["exif_start"]
+        if photo_ts.get("exif_xmp_end"):
+            timestamps["exif_xmp_end"] = photo_ts["exif_xmp_end"]
+        if photo_ts.get("custom_start"):
+            timestamps["custom_start"] = photo_ts["custom_start"]
+        if photo_ts.get("custom_end"):
+            timestamps["custom_end"] = photo_ts["custom_end"]
+
+        return timestamps
+
     def _run(self) -> bool:
         if self.isCanceled():
             return False
 
         logger = LogUtils(tool=self.tool_key, class_name=self.__class__.__name__)
+
+        # Limpa timestamps anteriores do PhotoMetadata
+        PhotoMetadata.clear_timestamps()
 
         # Determina modo
         has_mrk_data = bool(self.json_path) or bool(self.source_points) or bool(self.layer_id)
@@ -126,13 +152,17 @@ class PhotoEnrichmentTask(BaseTask):
                     json_record[mapped_key] = v
             json_records.append(json_record)
 
-        # Constrói JSON v2.0
+        # Constrói timestamps mesclados
+        timestamps = self._build_timestamps(source)
+
+        # Constrói JSON v2.0 com timestamps
         json_data = JsonUtil.build(
             records=json_records,
             source=source,
             base_folder=self.base_folder,
             tool_key=self.tool_key,
             recursive=self.recursive,
+            timestamps=timestamps if timestamps else None,
         )
 
         # Adiciona quality stats se vieram do modo photo_only
@@ -159,6 +189,7 @@ class PhotoEnrichmentTask(BaseTask):
             "json_path": json_path,
             "source": source,
             "total_points": len(json_records),
+            "timestamps": timestamps,
         }
 
         logger.info(

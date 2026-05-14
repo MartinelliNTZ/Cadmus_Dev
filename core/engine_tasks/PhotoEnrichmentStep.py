@@ -30,6 +30,9 @@ class PhotoEnrichmentStep(BaseStep):
         source = context.get("source", "")
         has_mrk_points = source == "mrk" or context.has("json_path")
 
+        # Obtem timestamps existentes do contexto (propagados pelo MrkParseStep)
+        existing_timestamps = context.get("timestamps", {})
+
         return PhotoEnrichmentTask(
             base_folder=context.get("base_folder"),
             recursive=context.get("recursive", True),
@@ -41,6 +44,7 @@ class PhotoEnrichmentStep(BaseStep):
             selected_custom_fields=context.get("selected_custom_fields", []),
             selected_mrk_fields=context.get("selected_mrk_fields", []),
             tool_key=context.get("tool_key"),
+            existing_timestamps=existing_timestamps,
         )
 
     def on_success(self, context: ExecutionContext, result):
@@ -62,6 +66,11 @@ class PhotoEnrichmentStep(BaseStep):
         was_mrk_enrich = result.get("source", "photo_only") == "mrk+photo"
         context.set("json_path", json_path)
         context.set("source", "mrk+photo" if was_mrk_enrich else "photo_only")
+
+        # Propaga timestamps atualizados no contexto
+        timestamps = result.get("timestamps", {})
+        if timestamps:
+            context.set("timestamps", timestamps)
 
         logger.info(
             "JSON enriquecido com metadados de foto",

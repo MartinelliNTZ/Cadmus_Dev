@@ -534,6 +534,9 @@ class PhotoFolderVectorizationService:
             data={"base_folder": base_folder, "recursive": recursive, "total_files": len(files)},
         )
 
+        # Timestamp: inicio extracao EXIF+XMP
+        exif_start = datetime.now().isoformat()
+
         all_records = []
         quality = {
             "total_files": len(files),
@@ -602,6 +605,12 @@ class PhotoFolderVectorizationService:
 
             all_records.append(record)
 
+        # Timestamp: fim extracao EXIF+XMP
+        exif_xmp_end = datetime.now().isoformat()
+
+        # Timestamp: inicio calculo campos custom
+        custom_start = datetime.now().isoformat()
+
         # Calcular campos custom
         try:
             custom_ready = {
@@ -634,13 +643,25 @@ class PhotoFolderVectorizationService:
         except Exception as exc:
             self.logger.warning(f"Falha ao calcular CUSTOM_FIELDS: {exc}")
 
-        # Gerar JSON v2.0
+        # Timestamp: fim calculo campos custom
+        custom_end = datetime.now().isoformat()
+
+        # Monta timestamps
+        timestamps = {
+            "exif_start": exif_start,
+            "exif_xmp_end": exif_xmp_end,
+            "custom_start": custom_start,
+            "custom_end": custom_end,
+        }
+
+        # Gerar JSON v2.0 com timestamps
         json_data = JsonUtil.build(
             records=all_records,
             source="photo_only",
             base_folder=base_folder,
             tool_key=self.tool_key,
-            recursive=recursive
+            recursive=recursive,
+            timestamps=timestamps,
         )
 
         # Atualizar quality no JSON

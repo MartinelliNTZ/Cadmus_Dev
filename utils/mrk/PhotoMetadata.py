@@ -15,11 +15,11 @@ from .XmpUtil import XmpUtil
 class PhotoMetadata:
     """
     Orquestrador puro de metadados de fotos.
-    
+
     RESPONSABILIDADE ÚNICA:
     Receber pontos (MRK ou vazios) + pasta de fotos → extrair metadados das fotos
     → fazer match por sequência → mesclar dados → retornar records enriquecidos.
-    
+
     NÃO faz:
     - Field filtering (responsabilidade do VectorLayerAttributes / pipeline)
     - JSON building (responsabilidade do JsonUtil / pipeline)
@@ -28,6 +28,19 @@ class PhotoMetadata:
     """
 
     DJI_RE = re.compile(r"_(\d{4})_[A-Z]\.JPG$", re.IGNORECASE)
+
+    # Cache de timestamps de extracao (preenchido apos enrich/extract_photos_only)
+    _timestamps: Dict[str, str] = {}
+
+    @staticmethod
+    def get_timestamps() -> Dict[str, str]:
+        """Retorna os timestamps capturados na ultima operacao."""
+        return dict(PhotoMetadata._timestamps)
+
+    @staticmethod
+    def clear_timestamps():
+        """Limpa os timestamps."""
+        PhotoMetadata._timestamps = {}
 
     @staticmethod
     def _get_logger(tool_key: str) -> LogUtils:
@@ -46,7 +59,7 @@ class PhotoMetadata:
     ) -> List[Dict[str, Any]]:
         """
         Cruza pontos MRK com metadados de fotos.
-        
+
         1. Indexa fotos da pasta por sequência (0001, 0002...)
         2. Extrai EXIF + XMP + GPS de cada foto
         3. Faz match com pontos MRK por número da foto
@@ -65,8 +78,14 @@ class PhotoMetadata:
             },
         )
 
-        # Indexa fotos da pasta
+        # Timestamps: inicio da extracao de metadados das fotos (EXIF + XMP)
+        exif_start = datetime.now().isoformat()
+
+        # Indexa fotos da pasta (chama _extract_photo_payload que faz EXIF + XMP)
         photo_index = PhotoMetadata._index_photos(base_folder, recursive, tool_key)
+
+        # Timestamps: fim da extracao de metadados (EXIF + XMP)
+        xmp_end = datetime.now().isoformat()
 
         # Indexa contexto MRK por sequência
         mrk_by_seq = PhotoMetadata._build_mrk_context_by_sequence(points)
@@ -121,6 +140,9 @@ class PhotoMetadata:
 
             all_records.append(merged)
 
+        # Timestamps: inicio calculo campos custom
+        custom_start = datetime.now().isoformat()
+
         # Calcula campos custom em lote
         try:
             custom_ready = {
@@ -140,6 +162,9 @@ class PhotoMetadata:
         except Exception as exc:
             logger.warning(f"Falha ao calcular campos custom no enrich: {exc}")
 
+        # Timestamps: fim calculo campos custom
+        custom_end = datetime.now().isoformat()
+
         logger.info(
             "Enrich concluido",
             data={
@@ -148,6 +173,14 @@ class PhotoMetadata:
                 "not_found": total_missing,
             },
         )
+
+        # Armazena timestamps para consumo externo
+        PhotoMetadata._timestamps = {
+            "exif_start": exif_start,
+            "exif_xmp_end": xmp_end,
+            "custom_start": custom_start,
+            "custom_end": custom_end,
+        }
 
         return all_records
 
@@ -159,12 +192,18 @@ class PhotoMetadata:
     ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
         """
         Extrai metadados de fotos SEM pontos MRK (modo photo_only).
-        
+
         Retorna (records, quality_stats).
         """
         logger = PhotoMetadata._get_logger(tool_key)
 
+        # Timestamps: inicio extracao EXIF + XMP
+        exif_start = datetime.now().isoformat()
+
         photo_index = PhotoMetadata._index_photos(base_folder, recursive, tool_key)
+
+        # Timestamps: fim extracao EXIF + XMP
+        xmp_end = datetime.now().isoformat()
 
         all_records = []
         quality = {
@@ -218,6 +257,9 @@ class PhotoMetadata:
 
             all_records.append(merged)
 
+        # Timestamps: inicio calculo campos custom
+        custom_start = datetime.now().isoformat()
+
         # Campos custom em lote
         try:
             custom_ready = {
@@ -237,10 +279,21 @@ class PhotoMetadata:
         except Exception as exc:
             logger.warning(f"Falha ao calcular campos custom: {exc}")
 
+        # Timestamps: fim calculo campos custom
+        custom_end = datetime.now().isoformat()
+
         logger.info(
             "Extracao de fotos concluida",
             data={"total": len(all_records), "quality": quality},
         )
+
+        # Armazena timestamps para consumo externo
+        PhotoMetadata._timestamps = {
+            "exif_start": exif_start,
+            "exif_xmp_end": xmp_end,
+            "custom_start": custom_start,
+            "custom_end": custom_end,
+        }
 
         return all_records, quality
 

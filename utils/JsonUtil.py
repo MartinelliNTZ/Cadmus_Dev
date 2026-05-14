@@ -2,9 +2,7 @@
 import json
 import os
 from datetime import datetime
-from typing import List, Dict, Any
-
-from ..core.config.LogUtils import LogUtils
+from typing import List, Dict, Any, Optional
 
 
 class JsonUtil:
@@ -19,7 +17,25 @@ class JsonUtil:
         base_folder: str,
         tool_key: str,
         recursive: bool = False,
+        timestamps: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
+        """
+        Constroi JSON v2.0 com records, metadados de qualidade e timestamps opcionais.
+
+        Args:
+            records: Lista de registros (pontos enriquecidos)
+            source: Fonte dos dados (mrk, mrk+photo, photo_only)
+            base_folder: Pasta base das fotos/MRK
+            tool_key: Chave da ferramenta
+            recursive: Se a busca foi recursiva
+            timestamps: Dict opcional com timestamps de cada extrator
+                       Ex: {"pipeline_start": "...", "mrk_start": "...", "mrk_end": "...",
+                            "exif_start": "...", "exif_end": "...",
+                            "xmp_start": "...", "xmp_end": "...",
+                            "custom_start": "...", "custom_end": "...",
+                            "pipeline_end": "..."}
+        """
+        from ..core.config.LogUtils import LogUtils
         logger = LogUtils(tool=tool_key, class_name="JsonUtil")
 
         normalized_records = records or []
@@ -83,22 +99,32 @@ class JsonUtil:
             groups[folder_key]["points_count"] += 1
             groups[folder_key]["indexed_count"] += 1
 
+        now_iso = datetime.now().isoformat()
+
         json_data = {
             "schema_version": "2.0",
             "source": source,
             "tool_key": tool_key,
             "base_folder": base_folder,
             "recursive": recursive,
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": now_iso,
             "quality": quality,
             "groups": groups,
         }
+
+        # Adiciona timestamps se fornecidos
+        if timestamps:
+            # Garante que pipeline_end seja preenchido se nao existir
+            if "pipeline_end" not in timestamps:
+                timestamps["pipeline_end"] = now_iso
+            json_data["timestamps"] = timestamps
 
         logger.debug(f"Built JSON v2.0 with {len(groups)} groups and {len(normalized_records)} records")
         return json_data
 
     @staticmethod
     def save(json_data: Dict[str, Any], output_path: str) -> str:
+        from ..core.config.LogUtils import LogUtils
         logger = LogUtils(tool=json_data.get("tool_key", "json_util"), class_name="JsonUtil")
         try:
             with open(output_path, "w", encoding="utf-8") as f:
@@ -111,6 +137,7 @@ class JsonUtil:
 
     @staticmethod
     def load_records(json_path: str) -> List[Dict[str, Any]]:
+        from ..core.config.LogUtils import LogUtils
         logger = LogUtils(tool="json_util", class_name="JsonUtil")
         try:
             with open(json_path, "r", encoding="utf-8") as f:

@@ -2,6 +2,7 @@
 from typing import List, Optional, Dict, Any
 import os
 import tempfile
+from datetime import datetime
 
 from .BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
@@ -23,6 +24,13 @@ class MrkParseTask(BaseTask):
         self.paths = paths
         self.recursive = recursive
         self.extra_fields = extra_fields or {}
+        self.pipeline_start = None
+        self.mrk_start = None
+        self.mrk_end = None
+
+    def set_pipeline_start(self, timestamp: str):
+        """Define o timestamp de inicio do pipeline (setado externamente)."""
+        self.pipeline_start = timestamp
 
     def _run(self) -> bool:
         if self.isCanceled():
@@ -32,6 +40,9 @@ class MrkParseTask(BaseTask):
         logger.info(
             f"Iniciando leitura de MRKs (paths={self.paths}, recursive={self.recursive})"
         )
+
+        # Registra inicio da extracao MRK
+        self.mrk_start = datetime.now().isoformat()
 
         all_records = []
         for path in self.paths:
@@ -52,6 +63,16 @@ class MrkParseTask(BaseTask):
 
             all_records.extend(records)
 
+        # Registra fim da extracao MRK
+        self.mrk_end = datetime.now().isoformat()
+
+        # Gera timestamps
+        timestamps = {}
+        if self.pipeline_start:
+            timestamps["pipeline_start"] = self.pipeline_start
+        timestamps["mrk_start"] = self.mrk_start
+        timestamps["mrk_end"] = self.mrk_end
+
         # Gerar JSON v2.0
         first_path = self.paths[0] if self.paths else None
         base_folder = None
@@ -65,7 +86,8 @@ class MrkParseTask(BaseTask):
             source="mrk",
             base_folder=base_folder or "",
             tool_key=self.tool_key,
-            recursive=self.recursive
+            recursive=self.recursive,
+            timestamps=timestamps,
         )
 
         # Salvar JSON em arquivo temporário
@@ -79,5 +101,6 @@ class MrkParseTask(BaseTask):
             "source": "mrk",
             "base_folder": base_folder,
             "points": all_records,
+            "timestamps": timestamps,
         }
         return True

@@ -157,22 +157,33 @@ class PhotoMetadata:
         # Timestamps: inicio calculo campos custom
         custom_start = datetime.now().isoformat()
 
-        # Calcula campos custom em lote
+        # Calcula campos custom em lote, AGRUPADO por FolderLevel1
+        # para evitar sequenciamento incorreto entre voos diferentes
         try:
-            custom_ready = {
-                r.get(MetadataFieldKey.FILE.value): r
-                for r in all_records
-                if r.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) not in (None, "")
-            }
-            if custom_ready:
-                enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
-                    custom_ready, tool_key=tool_key
+            # Agrupa records por FolderLevel1
+            grouped_records: Dict[str, List[Dict]] = {}
+            for r in all_records:
+                if r.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) in (None, ""):
+                    continue
+                group_key = str(r.get(MetadataFieldKey.FOLDER_LEVEL_1.value) or "__NO_FOLDER__")
+                if group_key not in grouped_records:
+                    grouped_records[group_key] = []
+                grouped_records[group_key].append(r)
+
+            for group_key, group in grouped_records.items():
+                logger.debug(
+                    f"Processando campos custom para grupo '{group_key}' ({len(group)} fotos)"
                 )
-                for fname, custom_values in enriched.items():
-                    for record in all_records:
-                        if record.get(MetadataFieldKey.FILE.value) == fname:
-                            record.update(custom_values)
-                            break
+                custom_ready = {r.get(MetadataFieldKey.FILE.value): r for r in group}
+                if custom_ready:
+                    enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
+                        custom_ready, tool_key=tool_key
+                    )
+                    for fname, custom_values in enriched.items():
+                        for record in all_records:
+                            if record.get(MetadataFieldKey.FILE.value) == fname:
+                                record.update(custom_values)
+                                break
         except Exception as exc:
             logger.warning(f"Falha ao calcular campos custom no enrich: {exc}")
 
@@ -207,6 +218,10 @@ class PhotoMetadata:
         """
         Extrai metadados de fotos SEM pontos MRK (modo photo_only).
 
+        Usa TODAS as fotos indexadas (por chave composta pasta::seq),
+        sem deduplicar por sequencia, para que múltiplos voos
+        com sequências 0001-9999 sejam todos incluídos.
+
         Retorna (records, quality_stats).
         """
         logger = PhotoMetadata._get_logger(tool_key)
@@ -219,15 +234,12 @@ class PhotoMetadata:
         # Timestamps: fim extracao EXIF + XMP
         xmp_end = datetime.now().isoformat()
 
-        # Extrai o indice simples por sequencia do photo_index composto
-        seq_only = photo_index.pop("__seq_only__", {})
-        if not seq_only:
-            # Fallback: se nao tem __seq_only__, usa o proprio photo_index
-            seq_only = photo_index
+        # Remove a chave interna __seq_only__ para nao iterar como registro
+        _ = photo_index.pop("__seq_only__", {})
 
         all_records = []
         quality = {
-            "total_files": len(seq_only),
+            "total_files": len(photo_index),
             "with_coords": 0,
             "without_coords": 0,
             "with_xmp": 0,
@@ -235,7 +247,8 @@ class PhotoMetadata:
             "missing_xmp_and_exif": 0,
         }
 
-        for seq, payload in seq_only.items():
+        # Itera sobre TODOS os composite_keys, mantendo todas as fotos
+        for composite_key, payload in photo_index.items():
             if not payload:
                 continue
 
@@ -280,22 +293,52 @@ class PhotoMetadata:
         # Timestamps: inicio calculo campos custom
         custom_start = datetime.now().isoformat()
 
-        # Campos custom em lote
+        # Campos custom em lote, AGRUPADO por FolderLevel1 (derivado do composite_key)
+        # para evitar sequenciamento incorreto entre voos/pastas diferentes
         try:
-            custom_ready = {
-                r.get(MetadataFieldKey.FILE.value): r
-                for r in all_records
-                if r.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) not in (None, "")
-            }
-            if custom_ready:
-                enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
-                    custom_ready, tool_key=tool_key
+            # Extrai FolderLevel1 do composite_key (primeira parte antes de ::)
+            # Para fotos sem MRK, o group_key vem do caminho relativo da pasta
+            grouped_records: Dict[str, List[Dict]] = {}
+            for r in all_records:
+                if r.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) in (None, ""):
+                    continue
+                # FolderLevel1 pode não estar definido sem MRK, usa o Path para inferir
+                folder = str(r.get(MetadataFieldKey.FOLDER_LEVEL_1.value) or "").strip()
+                if not folder:
+                    # Fallback: extrai da primeira subpasta do Path
+                    path = str(r.get(MetadataFieldKey.PATH.value) or "")
+                    if path:
+                        # Normaliza separadores e extrai o nome da pasta pai
+                        path_norm = path.replace("\\", "/").rstrip("/")
+                        parts = path_norm.split("/")
+                        # Procura a pasta IMAGEM e pega a subpasta seguinte ou usa a penúltima
+                        for idx, part in enumerate(parts):
+                            if part.upper() == "IMAGEM" and idx + 1 < len(parts):
+                                folder = parts[idx + 1]
+                                break
+                        if not folder and len(parts) >= 2:
+                            folder = parts[-2]
+                    if not folder:
+                        folder = "__NO_FOLDER__"
+                group_key = folder
+                if group_key not in grouped_records:
+                    grouped_records[group_key] = []
+                grouped_records[group_key].append(r)
+
+            for group_key, group in grouped_records.items():
+                logger.debug(
+                    f"Processando campos custom para grupo '{group_key}' ({len(group)} fotos)"
                 )
-                for fname, custom_values in enriched.items():
-                    for record in all_records:
-                        if record.get(MetadataFieldKey.FILE.value) == fname:
-                            record.update(custom_values)
-                            break
+                custom_ready = {r.get(MetadataFieldKey.FILE.value): r for r in group}
+                if custom_ready:
+                    enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
+                        custom_ready, tool_key=tool_key
+                    )
+                    for fname, custom_values in enriched.items():
+                        for record in all_records:
+                            if record.get(MetadataFieldKey.FILE.value) == fname:
+                                record.update(custom_values)
+                                break
         except Exception as exc:
             logger.warning(f"Falha ao calcular campos custom: {exc}")
 
@@ -414,7 +457,7 @@ class PhotoMetadata:
             if composite_key not in indexed:
                 indexed[composite_key] = PhotoMetadata._extract_photo_payload(file_path, tool_key)
 
-        # Indice simples por sequencia (para modo photo_only)
+        # Indice simples por sequencia (legado, para compatibilidade)
         seq_only_index = {}
         for composite_key, file_path in photo_files:
             seq = composite_key.split("::", 1)[-1]

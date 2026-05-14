@@ -660,16 +660,49 @@ class CustomPhotosFieldsUtil:
         return "Consistent" if low <= cct_value <= high else "Inconsistent"
 
     @staticmethod
+    def _calculate_rtk_stability_from_absolute(avg_std: float, rtk_flag: any) -> float:
+        """
+        Calcula RTK Stability Score baseado APENAS nos valores absolutos atuais
+        (fallback quando não há foto anterior válida).
+
+        Regras:
+          avg_std < 0.01  AND rtk_flag == "50" → 99.5  (fix excelente)
+          avg_std < 0.02  AND rtk_flag == "50" → 95.0  (fix normal)
+          avg_std < 0.02                       → 90.0  (fix sem confirmação)
+          avg_std < 0.05                       → 80.0  (fix com degradação)
+          avg_std < 0.10                       → 60.0  (float bom)
+          avg_std < 1.00                       → 30.0  (float ruim)
+          else                                 →  5.0  (sem RTK)
+        """
+        rtk_flag_str = str(rtk_flag or "").strip()
+        if rtk_flag_str == "50" and avg_std < 0.01:
+            return 99.5
+        if rtk_flag_str == "50" and avg_std < 0.02:
+            return 95.0
+        if avg_std < 0.02:
+            return 90.0
+        if avg_std < 0.05:
+            return 80.0
+        if avg_std < 0.10:
+            return 60.0
+        if avg_std < 1.00:
+            return 30.0
+        return 5.0
+
+    @staticmethod
     def _calculate_quality_scores(
         data: Dict,
         prev_data: Optional[Dict],
         valid_prev: bool,
         prev_seq: Optional[Dict] = None,
         coverage_width: float = 0.0,
+        coverage_height: float = 0.0,
         yaw_alignment_error: float = 0.0,
         motion_blur_risk: float = 0.0,
+        tool_key: str = ToolKey.UNTRACEABLE,
     ) -> Dict:
         """RTK precision, overlap, ortho score, estabilidade e índices."""
+        logger = CustomPhotosFieldsUtil._get_logger(tool_key)
         if prev_seq is None:
             prev_seq = {
                 "prev_time_since": 0.0,
@@ -693,7 +726,8 @@ class CustomPhotosFieldsUtil:
         ]
         avg_std = sum(rtk_stds) / 3
 
-        if rtk_flag == "50" and avg_std < 0.02:
+        rtk_flag_val = int(rtk_flag) if rtk_flag is not None else 0
+        if rtk_flag_val == 50 and avg_std < 0.02:
             rtk_prec = "Alta"
         elif avg_std < 0.1:
             rtk_prec = "Média"
@@ -703,7 +737,6 @@ class CustomPhotosFieldsUtil:
             rtk_prec = "Sem RTK"
 
         prev_avg_std = 0.0
-        rtk_stability_score = 0.0
         if valid_prev and prev_data is not None:
             prev_rtk_stds = [
                 CustomPhotosFieldsUtil._get_safe(
@@ -721,6 +754,19 @@ class CustomPhotosFieldsUtil:
                 0.0,
                 100.0 - min(100.0, abs(avg_std - prev_avg_std) * 100.0),
             )
+            logger.debug(
+                f"RTK Stability (comparativo): avg_std={avg_std:.4f}, prev_avg_std={prev_avg_std:.4f}, "
+                f"diff={abs(avg_std - prev_avg_std):.4f}, score={rtk_stability_score:.1f}"
+            )
+        else:
+            # Fallback absoluto: usa apenas os valores RTK atuais quando não há foto anterior válida
+            rtk_stability_score = CustomPhotosFieldsUtil._calculate_rtk_stability_from_absolute(
+                avg_std, rtk_flag
+            )
+            logger.debug(
+                f"RTK Stability (absoluto - fallback sem valid_prev): "
+                f"avg_std={avg_std:.4f}, rtk_flag={rtk_flag}, score={rtk_stability_score:.1f}"
+            )
 
         # Incidence angle
         gim_pitch = CustomPhotosFieldsUtil._get_safe(
@@ -729,18 +775,36 @@ class CustomPhotosFieldsUtil:
         flight_pitch = CustomPhotosFieldsUtil._get_safe(
             data, MetadataFieldKey.FLIGHT_PITCH_DEGREE, default=0
         )
-        inc_angle = round(abs(gim_pitch + flight_pitch), DECIMAL_PLACES)
+        # Effective pitch = gimbal pitch + flight pitch (DJI convention: -90° = nadir)
+        # Incidence angle = angle between camera LOS and vertical = |90° - |effective_pitch||
+        effective_pitch = gim_pitch + flight_pitch
+        inc_angle = round(abs(90.0 - abs(effective_pitch)), DECIMAL_PLACES)
 
-        # Predicted overlap
+        # Predicted overlap (forward overlap)
+        # Em orientação paisagem (landscape), a dimensão na direção do voo é sensor_h → coverage_height
         pred_overlap = 0.0
-        if valid_prev and coverage_width > 0:
-            pred_overlap = max(
-                0.0,
-                min(
-                    100.0,
-                    (1.0 - prev_seq.get("prev_geodesic_distance", 0.0) / coverage_width) * 100.0,
-                ),
-            )
+        if coverage_height > 0:
+            if valid_prev:
+                # Overlap real: calculado a partir da distância entre fotos consecutivas
+                prev_geo = prev_seq.get("prev_geodesic_distance", 0.0)
+                pred_overlap = max(
+                    0.0,
+                    min(
+                        100.0,
+                        (1.0 - prev_geo / coverage_height) * 100.0,
+                    ),
+                )
+                logger.debug(
+                    f"Predicted Overlap (real): geo_dist={prev_geo:.2f}m, cov_height={coverage_height:.2f}m, "
+                    f"overlap={pred_overlap:.1f}%"
+                )
+            else:
+                # Fallback sem foto anterior válida: assume 60% como valor esperado
+                pred_overlap = float(CustomPhotosFieldsUtil.IDEAL_OVERLAP)
+                logger.debug(
+                    f"Predicted Overlap (fallback - sem valid_prev): assumindo {pred_overlap:.0f}% "
+                    f"(coverage_height={coverage_height:.2f}m)"
+                )
 
         # Ortho score
         score = 0
@@ -814,8 +878,8 @@ class CustomPhotosFieldsUtil:
                 speed_variation_index = statistics.pstdev([prev_speed, current_speed]) / mean_speed
 
         capture_efficiency = (
-            prev_seq.get("prev_geodesic_distance", 0.0) / coverage_width
-            if valid_prev and coverage_width > 0
+            prev_seq.get("prev_geodesic_distance", 0.0) / coverage_height
+            if valid_prev and coverage_height > 0
             else 0.0
         )
 
@@ -830,7 +894,7 @@ class CustomPhotosFieldsUtil:
         return {
             MetadataFieldKey.RTK_EFFECTIVE_PRECISION.value: rtk_prec,
             MetadataFieldKey.INCIDENCE_ANGLE.value: inc_angle,
-            MetadataFieldKey.PREDICTED_OVERLAP.value: round(pred_overlap, DECIMAL_PLACES),
+            MetadataFieldKey.F_OVERLAP.value: round(pred_overlap, DECIMAL_PLACES),
             MetadataFieldKey.IS_IDEAL_OVERLAP.value: ideal_overlap,
             MetadataFieldKey.ABRUPT_CHANGE_FLAG.value: abrupt_flag,
             MetadataFieldKey.GIMBAL_ANGULAR_VELOCITY.value: round(gim_ang_vel, DECIMAL_PLACES),
@@ -908,6 +972,24 @@ class CustomPhotosFieldsUtil:
             # Validações sequência
             valid_prev = cls.is_valid_sequence(data, prev_data)
             valid_next = cls.is_valid_sequence(next_data, data) if next_data else False
+            
+            # Logging de diagnóstico para sequência inválida
+            if prev_data and not valid_prev:
+                voo_curr = cls.get_voo_id(data)
+                voo_prev = cls.get_voo_id(prev_data)
+                dt_curr, _ = cls.resolve_capture_datetime(data)
+                dt_prev, _ = cls.resolve_capture_datetime(prev_data)
+                alt_curr = cls._get_safe(data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0)
+                alt_prev = cls._get_safe(prev_data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0)
+                shutter_curr = cls._get_int(data, MetadataFieldKey.SHUTTER_COUNT, default=0)
+                shutter_prev = cls._get_int(prev_data, MetadataFieldKey.SHUTTER_COUNT, default=0)
+                logger.debug(
+                    f"Sequência inválida para '{filename}': "
+                    f"voo_curr={voo_curr}, voo_prev={voo_prev}, "
+                    f"dt_curr={dt_curr}, dt_prev={dt_prev}, "
+                    f"alt_curr={alt_curr:.1f}, alt_prev={alt_prev:.1f}, "
+                    f"shutter_curr={shutter_curr}, shutter_prev={shutter_prev}"
+                )
 
             # Sequência campos
             prev_seq = cls._calculate_sequence_fields(
@@ -934,8 +1016,10 @@ class CustomPhotosFieldsUtil:
                 valid_prev,
                 prev_seq,
                 coverage_width,
+                coverage_height,
                 gim_3d[MetadataFieldKey.YAW_ALIGNMENT_ERROR.value],
                 individual[MetadataFieldKey.MOTION_BLUR_RISK.value],
+                tool_key=tool_key,
             )
 
             current_segment_dir = prev_seq.get("prev_displacement_direction") if valid_prev else None
@@ -969,7 +1053,7 @@ class CustomPhotosFieldsUtil:
                 MetadataFieldKey.DISTANCE_3D_PREVIOUS.value: round(prev_seq.get("prev_distance_3d", 0.0), DECIMAL_PLACES),
                 MetadataFieldKey.AVG_VELOCITY_BETWEEN_PHOTOS.value: round(prev_seq.get("prev_avg_velocity", 0.0), DECIMAL_PLACES),
                 MetadataFieldKey.DISPLACEMENT_DIRECTION.value: round(prev_seq.get("prev_displacement_direction", 0.0), DECIMAL_PLACES),
-                MetadataFieldKey.F_OVERLAP.value: round(quality[MetadataFieldKey.PREDICTED_OVERLAP.value], DECIMAL_PLACES),
+                MetadataFieldKey.F_OVERLAP.value: round(quality[MetadataFieldKey.F_OVERLAP.value], DECIMAL_PLACES),
                 MetadataFieldKey.COVERAGE_WIDTH.value: round(coverage_width, DECIMAL_PLACES),
                 MetadataFieldKey.COVERAGE_HEIGHT.value: round(coverage_height, DECIMAL_PLACES),
                 MetadataFieldKey.TRAJECTORY_SMOOTHNESS.value: round(trajectory_smoothness, DECIMAL_PLACES),

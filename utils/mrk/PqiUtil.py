@@ -28,32 +28,30 @@ _range_manager = RangeMetadataManager()
 #   value_extractor: Função opcional callable(record) -> float para extrair/transformar valor
 
 PQI_INDICATORS: List[Dict] = [
-    # === ORIGINAIS (3 indicadores base) ===
     {
         "metadata_key": MetadataFieldKey.MOTION_BLUR_RISK,
         "threshold_name": "motion_blur_risk",
         "weight": 1.0,
     },
     {
-        # Forward overlap com peso 2x por ser crítico
         "metadata_key": MetadataFieldKey.F_OVERLAP,
         "threshold_name": "predicted_overlap",
         "weight": 1.0,
     },
-    # === POTENCIAL ORTORRETIFICAÇÃO ===
+    # === Indicadores com value_extractor que já retornam o LEVEL (1-5) ===
     {
-        # RTK precision usa o nível (texto) classificado pelo RangeMetadataManager
         "metadata_key": MetadataFieldKey.RTK_EFFECTIVE_PRECISION,
         "threshold_name": "rtk_effective_precision",
-        "weight": 1.0,
+        "weight": 1.5,
         "value_extractor": lambda r: _extract_rtk_level(r),
+        "bypass_classify": True,
     },
     {
-        # DewarpFlag: "0" = dewarp aplicado (bom), outro = ruim
         "metadata_key": MetadataFieldKey.DEWARP_FLAG,
         "threshold_name": "dewarp_flag",
         "weight": 1.0,
         "value_extractor": lambda r: _extract_dewarp_value(r),
+        "bypass_classify": True,
     },
     {
         "metadata_key": MetadataFieldKey.RTK_DIFF_AGE,
@@ -198,10 +196,17 @@ class PqiUtil:
             # Extrai o valor do record
             value = _extract_value(record, indicator)
 
+            # Verifica se o valor já é o nível (bypass_classify) ou precisa classificar
+            bypass = indicator.get("bypass_classify", False)
             if value is None:
                 # Valor não disponível → nível 3 (50%)
                 level = 3
                 threshold_msg = "Indisponivel (OK default)"
+            elif bypass:
+                # value já é o nível (1-5) — usa diretamente
+                level = int(round(value))
+                level = max(1, min(5, level))
+                threshold_msg = f"Nivel {level} (bypass)"
             else:
                 # Classifica usando RangeMetadataManager
                 level, threshold_msg = _range_manager.classify(threshold_name, value)

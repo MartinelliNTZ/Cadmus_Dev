@@ -395,7 +395,7 @@ class Strings_pt_BR:
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Gerar Vetor Sem MRK"
     PHOTO_FOLDER = "Pasta de fotos:"
     VECTORIZE_PHOTOS = "Gerar vetor de fotos"
-    PHOTOS_WITHOUT_MRK_LAYER_NAME = "Fotos_Sem_MRK"
+    PHOTOS_WITHOUT_MRK_LAYER_NAME = "Image_Points"
     NO_JSON_FOUND = "Nenhum JSON temporario encontrado."
 
     # plugins/SettingsPlugin.py

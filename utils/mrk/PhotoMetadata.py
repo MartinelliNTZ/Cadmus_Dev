@@ -101,7 +101,21 @@ class PhotoMetadata:
                 continue
 
             seq = f"{int(foto):04d}"
-            photo_payload = photo_index.get(seq)
+
+            # Tenta busca por chave composta: mrk_folder_rel (relativo a base_folder)::seq
+            mrk_folder_abs = str(point.get("MrkFolder") or point.get("mrk_folder") or "").strip()
+            if mrk_folder_abs:
+                # Normaliza o caminho para relativo ao base_folder
+                mrk_folder_rel = os.path.relpath(mrk_folder_abs, base_folder).replace("\\", "/")
+                composite_key = f"{mrk_folder_rel}::{seq}"
+                photo_payload = photo_index.get(composite_key)
+            else:
+                photo_payload = None
+
+            # Fallback: busca por sequencia simples (legado)
+            if not photo_payload:
+                photo_payload = photo_index.get(seq)
+
             if not photo_payload:
                 total_missing += 1
                 continue
@@ -205,9 +219,15 @@ class PhotoMetadata:
         # Timestamps: fim extracao EXIF + XMP
         xmp_end = datetime.now().isoformat()
 
+        # Extrai o indice simples por sequencia do photo_index composto
+        seq_only = photo_index.pop("__seq_only__", {})
+        if not seq_only:
+            # Fallback: se nao tem __seq_only__, usa o proprio photo_index
+            seq_only = photo_index
+
         all_records = []
         quality = {
-            "total_files": len(photo_index),
+            "total_files": len(seq_only),
             "with_coords": 0,
             "without_coords": 0,
             "with_xmp": 0,
@@ -215,7 +235,7 @@ class PhotoMetadata:
             "missing_xmp_and_exif": 0,
         }
 
-        for seq, payload in photo_index.items():
+        for seq, payload in seq_only.items():
             if not payload:
                 continue
 
@@ -367,8 +387,11 @@ class PhotoMetadata:
         base_folder: str, recursive: bool, tool_key: str
     ) -> Dict[str, dict]:
         """
-        Indexa fotos de uma pasta por sequência (0001, 0002...).
-        Retorna {seq: payload_merged}.
+        Indexa fotos de uma pasta por chave combinada (pasta_relativa::sequencia).
+        Ex: "DJI_202605101003_001_IRIA01::0001".
+        Isso permite múltiplos voos com a mesma sequência 0001 em subpastas diferentes.
+        Retorna {key_composite: payload_merged}.
+        Também cria "__seq_only__" com índice simples por sequência para modo photo_only.
         """
         logger = PhotoMetadata._get_logger(tool_key)
         photo_files = []
@@ -381,16 +404,37 @@ class PhotoMetadata:
                 match = PhotoMetadata.DJI_RE.search(fname)
                 if not match:
                     continue
-                photo_files.append((match.group(1), os.path.join(root, fname)))
+                # Chave composta: pasta_relativa::sequencia
+                rel_folder = os.path.relpath(root, base_folder).replace("\\", "/")
+                composite_key = f"{rel_folder}::{match.group(1)}"
+                photo_files.append((composite_key, os.path.join(root, fname)))
 
         indexed = {}
-        for seq, file_path in photo_files:
-            if seq not in indexed:
-                indexed[seq] = PhotoMetadata._extract_photo_payload(file_path, tool_key)
+        for composite_key, file_path in photo_files:
+            if composite_key not in indexed:
+                indexed[composite_key] = PhotoMetadata._extract_photo_payload(file_path, tool_key)
+
+        # Indice simples por sequencia (para modo photo_only)
+        seq_only_index = {}
+        for composite_key, file_path in photo_files:
+            seq = composite_key.split("::", 1)[-1]
+            if seq not in seq_only_index:
+                seq_only_index[seq] = (
+                    indexed[composite_key]
+                    if composite_key in indexed
+                    else PhotoMetadata._extract_photo_payload(file_path, tool_key)
+                )
+
+        indexed["__seq_only__"] = seq_only_index
 
         logger.info(
             "Fotos indexadas",
-            data={"base_folder": base_folder, "total": len(indexed), "files_scanned": len(photo_files)},
+            data={
+                "base_folder": base_folder,
+                "total_composite": len(indexed) - 1,  # exclui __seq_only__
+                "files_scanned": len(photo_files),
+                "unique_seqs": len(seq_only_index),
+            },
         )
 
         return indexed

@@ -169,8 +169,12 @@ class JsonToVectorTranslator:
         # Tenta int primeiro (valores sem ponto decimal, ex: "50", "-1", "0")
         if "." not in raw:
             try:
-                int(raw)
-                return QVariant.Int
+                val = int(raw)
+                # Limite QVariant.Int (32 bits signed): -2147483648 a 2147483647
+                if -2147483648 <= val <= 2147483647:
+                    return QVariant.Int
+                # Valor grande demais para Int32 → usa String para evitar overflow
+                return QVariant.String
             except (ValueError, TypeError):
                 pass
 

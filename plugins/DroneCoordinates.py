@@ -500,7 +500,7 @@ class DroneCordinates(BasePluginMTL):
         context.set("generate_report", self.checkbox_map["generate_report"].isChecked())
         context.set("tool_key", self.TOOL_KEY)
         context.set("iface", self.iface)
-        context.set("points_layer_name", "MRK_Pontos")
+        context.set("points_layer_name", "MRK_Points")
 
         steps = [MrkParseStep()]
         if apply_photos:

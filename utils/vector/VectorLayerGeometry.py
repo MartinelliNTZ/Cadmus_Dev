@@ -144,7 +144,7 @@ class VectorLayerGeometry:
     @staticmethod
     def create_point_layer_from_dicts(
         points: list,
-        name: str = "MRK_Pontos",
+        name: str = "MRK_Points",
         field_specs: Optional[list] = None,
         geometry_keys: tuple = ("lon", "lat"),
         extra_fields: Optional[dict] = None,
@@ -263,8 +263,8 @@ class VectorLayerGeometry:
                     return None
             return value
 
-        vl.startEditing()
         skipped_invalid_geometry = 0
+        features = []
         for p in points:
             x_val = p.get(x_key)
             y_val = p.get(y_key)
@@ -288,8 +288,9 @@ class VectorLayerGeometry:
                 for field_name in extra_fields.keys():
                     attrs.append(p.get(field_name))
             f.setAttributes(attrs)
-            vl.addFeature(f)
+            features.append(f)
 
+        vl.dataProvider().addFeatures(features)
         vl.commitChanges()
         vl.updateExtents()
         if skipped_invalid_geometry:

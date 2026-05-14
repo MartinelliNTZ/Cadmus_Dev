@@ -37,14 +37,35 @@ class JsonVectorizationStep(BaseStep):
         )
         source = context.get("source")
         translator = JsonToVectorTranslator(tool_key=context.get("tool_key"))
-        layer = translator.translate(
-            json_path=json_path,
-            layer_name=layer_name,
-            selected_keys=None,
-            source=source,
-        )
+        try:
+            layer = translator.translate(
+                json_path=json_path,
+                layer_name=layer_name,
+                selected_keys=None,
+                source=source,
+            )
+        except Exception as e:
+            logger.error(
+                "Falha na traducao do JSON para camada vetorial",
+                data={
+                    "json_path": json_path,
+                    "layer_name": layer_name,
+                    "source": source,
+                    "error": str(e),
+                },
+            )
+            raise RuntimeError(f"Falha ao criar camada via JsonToVectorTranslator: {e}")
+
         if not layer or not layer.isValid():
-            raise RuntimeError("Falha ao criar camada via JsonToVectorTranslator")
+            logger.error(
+                "Camada criada mas invalida",
+                data={
+                    "json_path": json_path,
+                    "layer_name": layer_name,
+                    "source": source,
+                },
+            )
+            raise RuntimeError("Falha ao criar camada via JsonToVectorTranslator: layer invalido")
 
         QgsProject.instance().addMapLayer(layer)
         context.set("layer", layer)

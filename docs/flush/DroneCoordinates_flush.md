@@ -49,7 +49,7 @@ O sistema DroneCoordinates segue uma **arquitetura de pipeline assíncrono** com
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                      PIPELINE ENGINE (Orquestrador)                      │
 │                                                                          │
-│   AsyncPipelineEngine ────► Steps [MrkParse, PhotoMetadata,              │
+│   AsyncPipelineEngine ────► Steps [MrkParse, PhotoEnrichment,            │
 │                              JsonVectorization, ReportGeneration]        │
 │                                                                          │
 │   ExecutionContext (compartilha dados entre steps)                       │
@@ -59,9 +59,10 @@ O sistema DroneCoordinates segue uma **arquitetura de pipeline assíncrono** com
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                         TASKS (Execução Real)                            │
 │                                                                          │
-│   QgsTask → MrkParseTask     → lê MRK → JSON v2.0                       │
-│   QgsTask → PhotoMetadataTask → cruza fotos → JSON enriquecido          │
-│   QgsTask → PhotoVectorizationTask → vetoriza fotos → JSON + layer      │
+│   QgsTask → MrkParseTask         → lê MRK → JSON v2.0 (mrk)            │
+│   QgsTask → PhotoEnrichmentTask  → enrich fotos + MRK → JSON v2.0      │
+│            (modos: mrk+photo / photo_only, unificado)                   │
+│   Inline  → JsonVectorizationStep → JSON → QgsVectorLayer              │
 │   QgsTask → ReportGenerationTask → gera HTML                            │
 └────────────────────────────────┬─────────────────────────────────────────┘
                                  │ Usam
@@ -72,6 +73,7 @@ O sistema DroneCoordinates segue uma **arquitetura de pipeline assíncrono** com
 │   MrkUtil  ExifUtil  XmpUtil  PhotoMetadata  MetadataFields              │
 │   JsonUtil  VectorLayerGeometry  VectorLayerSource  VectorLayerAttributes│
 │   CustomPhotosFieldsUtil  IMGMetadata  AggregateAnalyzer  RenderEngine   │
+│   JsonToVectorTranslator  PhotoEnrichmentTask/Step                       │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 

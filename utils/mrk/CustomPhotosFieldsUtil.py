@@ -18,6 +18,7 @@ from ...core.config.LogUtils import LogUtils
 from ...core.enum import MetadataFieldKey
 from ...core.enum.LightSourceEnum import LightSourceEnum
 from ..ToolKeys import ToolKey
+from ..report.RangeMetadataManager import range_metadata_manager
 from .MetadataFields import MetadataFields
 
 DECIMAL_PLACES = 2
@@ -711,7 +712,14 @@ class CustomPhotosFieldsUtil:
                 "prev_avg_velocity": 0.0,
                 "prev_displacement_direction": 0.0,
             }
-        # RTK Precision
+
+        # Garante que RangeMetadataManager está carregado
+        try:
+            range_metadata_manager.load()
+        except Exception:
+            pass
+
+        # RTK Precision classificada pelo config.yaml (5 níveis: Excelente, Alta, Média, Baixa, Critica)
         rtk_flag = CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RTK_FLAG)
         rtk_stds = [
             CustomPhotosFieldsUtil._get_safe(
@@ -726,15 +734,11 @@ class CustomPhotosFieldsUtil:
         ]
         avg_std = sum(rtk_stds) / 3
 
-        rtk_flag_val = int(rtk_flag) if rtk_flag is not None else 0
-        if rtk_flag_val == 50 and avg_std < 0.02:
-            rtk_prec = "Alta"
-        elif avg_std < 0.1:
-            rtk_prec = "Média"
-        elif avg_std < 1.0:
-            rtk_prec = "Baixa"
-        else:
-            rtk_prec = "Sem RTK"
+        # Usa avg_std como proxy da precisão RTK efetiva
+        rtk_level, rtk_prec = range_metadata_manager.classify("rtk_effective_precision", avg_std)
+        logger.debug(
+            f"RTK Effective Precision: avg_std={avg_std:.4f}, level={rtk_level}, label='{rtk_prec}'"
+        )
 
         prev_avg_std = 0.0
         if valid_prev and prev_data is not None:
@@ -806,24 +810,35 @@ class CustomPhotosFieldsUtil:
                     f"(coverage_height={coverage_height:.2f}m)"
                 )
 
-        # Ortho score
+        # Ortho score - usa os níveis do RangeMetadataManager (5 classes)
         score = 0
-        if rtk_prec == "Alta":
+        # rtk_level = 5 (Excelente) ou 4 (Alta)
+        if rtk_level >= 4:
             score += 30
+        elif rtk_level == 3:
+            score += 15
         if inc_angle < 5:
             score += 25
+        elif inc_angle < 15:
+            score += 15
         if str(CustomPhotosFieldsUtil._get(data, MetadataFieldKey.DEWARP_FLAG, default="")) == "0":
             score += 20
         if CustomPhotosFieldsUtil._get_safe(
             data, MetadataFieldKey.RTK_DIFF_AGE, default=999
         ) < 2:
             score += 15
+        elif CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.RTK_DIFF_AGE, default=999
+        ) < 5:
+            score += 8
         if pred_overlap > 70:
             score += 10
+        elif pred_overlap > 50:
+            score += 5
         ortho_potential = min(100, score)
 
         # Flags
-        abrupt_flag = False  # atualiza depois com mediana do conjunto
+        abrupt_flag = 1.0  # ratio default = 1.0 (sem mudança, atualizado no pós-processamento)
         ideal_overlap = pred_overlap >= CustomPhotosFieldsUtil.IDEAL_OVERLAP
 
         # Angular velocity gimbal
@@ -1091,13 +1106,16 @@ class CustomPhotosFieldsUtil:
         median_time = statistics.median(prev_time_values) if prev_time_values else 0.0
         median_geo = statistics.median(prev_geo_values) if prev_geo_values else 0.0
         for filename, item in result.items():
-            if (
-                median_time > 0
-                and item.get(MetadataFieldKey.TIME_SINCE_PREVIOUS.value, 0.0) > median_time * 2
-            ) or (
-                median_geo > 0
-                and item.get(MetadataFieldKey.GEODESIC_DISTANCE_PREVIOUS.value, 0.0) > median_geo * 2
-            ):
-                item[MetadataFieldKey.ABRUPT_CHANGE_FLAG.value] = True
+            # Calcula o maior ratio entre tempo e distância em relação à mediana
+            time_ratio = 1.0
+            geo_ratio = 1.0
+            if median_time > 0:
+                time_val = item.get(MetadataFieldKey.TIME_SINCE_PREVIOUS.value, 0.0)
+                time_ratio = time_val / median_time if time_val > 0 else 1.0
+            if median_geo > 0:
+                geo_val = item.get(MetadataFieldKey.GEODESIC_DISTANCE_PREVIOUS.value, 0.0)
+                geo_ratio = geo_val / median_geo if geo_val > 0 else 1.0
+            abrupt_ratio = max(time_ratio, geo_ratio)
+            item[MetadataFieldKey.ABRUPT_CHANGE_FLAG.value] = round(abrupt_ratio, DECIMAL_PLACES)
 
         return result

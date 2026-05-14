@@ -63,6 +63,17 @@
       - "RTK hgt OK"        # 0.040–0.060 → fix com multipath
       - "RTK hgt bom"       # 0.020–0.040 → fix normal
       - "RTK hgt excelente" # < 0.020 → fix excelente
+
+  rtk_effective_precision:
+    type: lower_better
+    levels: [0.100, 0.050, 0.020, 0.010, inf]
+    messages:
+      - "RTK Critica"       # avg_std > 0.100 → sem fix, float severo
+      - "RTK Baixa"         # 0.050–0.100 → float, fix degradado
+      - "RTK Média"         # 0.020–0.050 → fix com multipath/campo
+      - "RTK Alta"          # 0.010–0.020 → fix normal
+      - "RTK Excelente"     # < 0.010 → fix limpo
+
   shutter_life_pct:
     type: lower_better
     levels: [60, 35, 20, 10, inf]
@@ -211,16 +222,14 @@
       - "Sequencia seguinte valida"
 
   abrupt_change_flag:
-    type: categorical
-    mapping:
-      1: 1
-      0: 5
+    type: lower_better
+    levels: [3.0, 2.0, 1.5, 1.0, inf]
     messages:
-      - "Mudanca abrupta detectada"
-      - "Mudanca alta"
-      - "Mudanca moderada"
-      - "Mudanca baixa"
-      - "Sem mudanca abrupta"
+      - "Mudanca critica"       # ratio > 3.0x mediana
+      - "Mudanca alta"          # 2.0–3.0x
+      - "Mudanca moderada"      # 1.5–2.0x
+      - "Mudanca baixa"         # 1.0–1.5x
+      - "Sem mudanca abrupta"   # ratio <= 1.0x
 
   rtk_diff_age:
     type: lower_better

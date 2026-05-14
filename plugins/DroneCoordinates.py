@@ -8,11 +8,9 @@ from ..core.engine_tasks.MrkParseStep import MrkParseStep
 from ..core.engine_tasks.PhotoEnrichmentStep import PhotoEnrichmentStep
 from ..core.engine_tasks.JsonVectorizationStep import JsonVectorizationStep
 from ..core.engine_tasks.ReportGenerationStep import ReportGenerationStep
-from ..utils.mrk.PhotoMetadata import PhotoMetadata
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
-from ..utils.ExplorerUtils import ExplorerUtils
 from ..utils.StringManager import StringManager
 from ..utils.Preferences import load_tool_prefs, save_tool_prefs
 from ..utils.ToolKeys import ToolKey

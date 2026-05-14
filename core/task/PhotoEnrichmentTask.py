@@ -1,30 +1,33 @@
 # -*- coding: utf-8 -*-
 import json
-
-from qgis.core import QgsProject
+import os
 
 from .BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
-from ..services.PhotoFolderVectorizationService import PhotoFolderVectorizationService
+from ..enum import MetadataFieldKey
 from ...utils.mrk.PhotoMetadata import PhotoMetadata
 from ...utils.mrk.MetadataFields import MetadataFields
 from ...utils.JsonUtil import JsonUtil
+from ...utils.ExplorerUtils import ExplorerUtils
 
 
 class PhotoEnrichmentTask(BaseTask):
     """
     Task unificada para enriquecimento de metadados de fotos.
     
-    Modo 1 - "mrk+photo" (quando json_path é fornecido):
-      Carrega pontos MRK existentes e cruza com metadados das fotos
-      (EXIF + XMP + CustomFields + contexto MRK)
+    Modo 1 - "mrk+photo" (quando há pontos MRK):
+      Chama PhotoMetadata.enrich() para cruzar fotos com pontos MRK
+      → Gera JSON v2.0 com source="mrk+photo"
     
-    Modo 2 - "photo_only" (quando json_path é None):
-      Lê fotos diretamente da pasta, extrai EXIF/XMP/GPS,
-      calcula campos custom e gera JSON v2.0 puro
+    Modo 2 - "photo_only" (quando NÃO há MRK):
+      Chama PhotoMetadata.extract_photos_only() para extrair metadados direto
+      → Gera JSON v2.0 com source="photo_only"
     
-    Em ambos os casos, apenas o JSON é gerado (sem vetorização).
-    A vetorização é responsabilidade do JsonVectorizationStep posterior.
+    Em ambos os casos:
+    - Aplica filtro de campos selecionados (selected_keys)
+    - Constrói JSON via JsonUtil.build()
+    - Salva JSON via ExplorerUtils.create_temp_json()
+    - NÃO vetoriza (vetorização é do JsonVectorizationStep posterior)
     """
 
     def __init__(
@@ -49,131 +52,136 @@ class PhotoEnrichmentTask(BaseTask):
         self.selected_custom_fields = selected_custom_fields or []
         self.selected_mrk_fields = selected_mrk_fields or []
 
+    def _get_selected_keys(self) -> set:
+        """Constrói conjunto de chaves selecionadas pelo usuário."""
+        selected = set(self.selected_required_fields)
+        selected.update(self.selected_custom_fields)
+        selected.update(self.selected_mrk_fields)
+        return selected
+
     def _run(self) -> bool:
         if self.isCanceled():
             return False
 
         logger = LogUtils(tool=self.tool_key, class_name=self.__class__.__name__)
 
-        # Determina modo baseado na existência de JSON MRK prévio
+        # Determina modo
         has_mrk_data = bool(self.json_path) or bool(self.source_points) or bool(self.layer_id)
 
         if has_mrk_data:
-            # Modo "mrk+photo": enriquece pontos MRK existentes com metadados de fotos
-            logger.info(
-                "Modo mrk+photo: enriquecendo pontos MRK com metadados de fotos",
-                data={
-                    "base_folder": self.base_folder,
-                    "json_path": self.json_path,
-                    "has_layer": bool(self.layer_id),
-                    "has_source_points": len(self.source_points) > 0,
-                },
-            )
-            return self._run_enrich_mrk(logger)
+            logger.info("Modo mrk+photo", data={"base_folder": self.base_folder})
+            records = self._run_enrich_mrk(logger)
+            source = "mrk+photo"
         else:
-            # Modo "photo_only": extrai metadados diretamente das fotos
-            logger.info(
-                "Modo photo_only: extraindo metadados de fotos sem MRK",
-                data={"base_folder": self.base_folder, "recursive": self.recursive},
-            )
-            return self._run_photo_only(logger)
+            logger.info("Modo photo_only", data={"base_folder": self.base_folder})
+            records, quality = self._run_photo_only(logger)
+            source = "photo_only"
 
-    def _run_enrich_mrk(self, logger: LogUtils) -> bool:
-        """Modo mrk+photo: cruza pontos MRK com metadados de fotos."""
-        pontos = self._extract_source_points(logger)
+        if not records:
+            logger.error("Nenhum registro gerado no enriquecimento")
+            return False
 
-        logger.info(
-            "Pontos extraidos para enriquecimento",
-            data={
-                "total_pontos": len(pontos),
-                "com_mrk_folder": sum(1 for p in pontos if "mrk_folder" in p),
-            },
-        )
+        # Aplica filtro de campos selecionados
+        selected_keys = self._get_selected_keys()
+        if selected_keys:
+            filtered = []
+            skip_keys = {
+                MetadataFieldKey.COORD_SOURCE.value,
+                MetadataFieldKey.QUALITY_FLAG.value,
+                "HasXmp",
+                "HasExifGps",
+            }
+            for record in records:
+                filtered_record = {
+                    k: v
+                    for k, v in record.items()
+                    if k in selected_keys
+                    or k in skip_keys
+                }
+                if filtered_record:
+                    filtered.append(filtered_record)
+            records = filtered
 
-        # Completa atributos faltantes usando os pontos originais do parser
-        self._fill_missing_attributes(pontos, logger)
+        if not records:
+            logger.warning("Todos os registros foram filtrados pelas chaves selecionadas")
+            return False
 
-        # Cruza metadados das fotos com os pontos MRK
-        enrich_result = PhotoMetadata.enrich(
-            pontos,
+        # Converte records para PascalCase (formato JSON v2.0)
+        key_to_json_key = {
+            key: field.key.value
+            for key, field in MetadataFields.all_fields().items()
+            if field.key is not None
+        }
+        json_records = []
+        for record in records:
+            json_record = {}
+            for k, v in record.items():
+                if isinstance(v, dict):
+                    continue
+                if isinstance(k, MetadataFieldKey):
+                    json_record[k.value] = v
+                else:
+                    canonical_key = MetadataFields.resolve_key(str(k))
+                    mapped_key = key_to_json_key.get(canonical_key, canonical_key)
+                    json_record[mapped_key] = v
+            json_records.append(json_record)
+
+        # Constrói JSON v2.0
+        json_data = JsonUtil.build(
+            records=json_records,
+            source=source,
             base_folder=self.base_folder,
+            tool_key=self.tool_key,
             recursive=self.recursive,
-            selected_required_fields=self.selected_required_fields,
-            selected_custom_fields=self.selected_custom_fields,
-            selected_mrk_fields=self.selected_mrk_fields,
-            return_report=True,
         )
 
-        json_path = None
-        if isinstance(enrich_result, str):
-            json_path = enrich_result
+        # Adiciona quality stats se vieram do modo photo_only
+        if source == "photo_only":
+            json_data["quality"] = quality
 
-        if json_path:
-            logger.info(
-                "JSON enriquecido gerado (mrk+photo)",
-                code="PHOTO_METADATA_JSON_PATH",
-                data={"json_path": json_path},
-            )
+        # Salva JSON
+        prefix = "DPM" if source == "mrk+photo" else "PFM"
+        json_path = ExplorerUtils.create_temp_json(
+            json_data,
+            tool_key=self.tool_key,
+            prefix=prefix,
+            subfolder=os.path.join(
+                ExplorerUtils.REPORTS_TEMP_FOLDER,
+                ExplorerUtils.REPORTS_JSON_FOLDER,
+            ),
+            file_stem_hint=ExplorerUtils.build_report_json_stem(
+                base_folder=self.base_folder,
+                points_total=len(json_records),
+            ),
+        )
 
         self.result = {
             "json_path": json_path,
-            "source": "mrk+photo",
-            "total_points": len(pontos),
+            "source": source,
+            "total_points": len(json_records),
         }
+
+        logger.info(
+            "JSON enriquecido salvo",
+            data={
+                "json_path": json_path,
+                "source": source,
+                "total_points": len(json_records),
+            },
+        )
+
         return True
 
-    def _run_photo_only(self, logger: LogUtils) -> bool:
-        """Modo photo_only: extrai metadados diretamente das fotos."""
-        try:
-            service = PhotoFolderVectorizationService(tool_key=self.tool_key)
-            json_path = service.extract_to_json(
-                base_folder=self.base_folder,
-                recursive=self.recursive,
-                tool_key=self.tool_key,
-                selected_fields=None,
-            )
+    def _run_enrich_mrk(self, logger: LogUtils) -> list:
+        """Modo mrk+photo: cruza pontos MRK com metadados de fotos."""
+        from qgis.core import QgsProject
 
-            if not json_path:
-                logger.error("extract_to_json() nao retornou json_path valido")
-                return False
-
-            records = JsonUtil.load_records(json_path)
-            quality = {}
-            try:
-                with open(json_path, "r", encoding="utf-8") as f:
-                    quality = (json.load(f) or {}).get("quality", {})
-            except Exception:
-                quality = {}
-
-            self.result = {
-                "json_path": json_path,
-                "source": "photo_only",
-                "total_points": len(records),
-                "quality": quality,
-            }
-
-            logger.info(
-                "JSON photo_only gerado com sucesso",
-                data={"json_path": json_path, "total_points": len(records)},
-            )
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Erro na extracao photo_only: {e}")
-            raise
-
-    def _extract_source_points(self, logger: LogUtils) -> list:
-        """
-        Extrai pontos da camada QGIS, do JSON ou da lista fornecida.
-        """
         pontos = []
         layer = QgsProject.instance().mapLayer(self.layer_id) if self.layer_id else None
 
         if layer and layer.isValid():
             photo_field_name = MetadataFields.get_attribute("foto", "foto")
             mrk_folder_field_name = MetadataFields.get_attribute("mrk_folder", "mrk_folder")
-
             for feat in layer.getFeatures():
                 foto = feat.attribute(photo_field_name)
                 if foto is None:
@@ -181,69 +189,70 @@ class PhotoEnrichmentTask(BaseTask):
                 try:
                     foto_int = int(foto)
                 except Exception:
-                    logger.warning(
-                        f"Valor de foto nao inteiro: {foto} na feature {feat.id()}. Ignorando."
-                    )
                     continue
-
                 ponto = {"foto": foto_int}
                 for field in feat.fields():
                     name = field.name()
                     if name == photo_field_name:
                         continue
-                    normalized_name = MetadataFields.resolve_key(name)
-                    ponto[normalized_name] = feat.attribute(name)
-
+                    ponto[MetadataFields.resolve_key(name)] = feat.attribute(name)
                 if feat.fieldNameIndex(mrk_folder_field_name) != -1:
                     mrk_folder = feat.attribute(mrk_folder_field_name)
                     if mrk_folder:
                         ponto["mrk_folder"] = mrk_folder
                 pontos.append(ponto)
         else:
-            source_records = self.source_points
-            if not source_records and self.json_path:
-                source_records = JsonUtil.load_records(self.json_path)
-
-            for src in source_records:
-                canonical = MetadataFields.normalize_record_to_keys(src or {})
+            src = self.source_points
+            if not src and self.json_path:
+                src = JsonUtil.load_records(self.json_path)
+            for s in src:
+                canonical = MetadataFields.normalize_record_to_keys(s or {})
                 foto = canonical.get("Foto") or canonical.get("foto")
                 if foto is None:
                     continue
                 try:
-                    foto_int = int(foto)
+                    ponto = {"foto": int(foto)}
+                    for k, v in canonical.items():
+                        ponto[k] = v
+                    mrk_folder = canonical.get("MrkFolder")
+                    if mrk_folder:
+                        ponto["mrk_folder"] = mrk_folder
+                    pontos.append(ponto)
                 except Exception:
                     continue
-                ponto = {"foto": foto_int}
-                for key, value in canonical.items():
-                    ponto[key] = value
-                mrk_folder = canonical.get("MrkFolder")
-                if mrk_folder:
-                    ponto["mrk_folder"] = mrk_folder
-                pontos.append(ponto)
 
-        return pontos
-
-    def _fill_missing_attributes(self, pontos: list, logger: LogUtils):
-        """
-        Preenche atributos faltantes usando pontos do parser original.
-        """
+        # Preenche atributos faltantes dos source_points
         source_by_key = {}
-        source_by_foto = {}
         for p in self.source_points:
             try:
-                foto_src = int(p.get("foto"))
+                source_by_key[(str(p.get("mrk_folder", "")).strip(), int(p.get("foto")))] = p
             except Exception:
                 continue
-            mrk_src = str(p.get("mrk_folder") or "").strip()
-            source_by_key[(mrk_src, foto_src)] = p
-            source_by_foto.setdefault(foto_src, p)
-
         for p in pontos:
-            foto_src = p.get("foto")
-            mrk_src = str(p.get("mrk_folder") or "").strip()
-            src = source_by_key.get((mrk_src, foto_src)) or source_by_foto.get(foto_src)
-            if not src:
-                continue
-            for k, v in src.items():
-                if k not in p or p.get(k) in (None, ""):
-                    p[k] = v
+            key = (str(p.get("mrk_folder", "")).strip(), p.get("foto"))
+            src = source_by_key.get(key)
+            if src:
+                for k, v in src.items():
+                    if k not in p or p.get(k) in (None, ""):
+                        p[k] = v
+
+        logger.info("Pontos extraidos", data={"total": len(pontos)})
+
+        # Chama PhotoMetadata.enrich() — retorna records enriquecidos (puros, sem JSON)
+        records = PhotoMetadata.enrich(
+            pontos,
+            base_folder=self.base_folder,
+            recursive=self.recursive,
+            tool_key=self.tool_key,
+        )
+
+        return records
+
+    def _run_photo_only(self, logger: LogUtils) -> tuple:
+        """Modo photo_only: extrai metadados diretamente das fotos."""
+        records, quality = PhotoMetadata.extract_photos_only(
+            base_folder=self.base_folder,
+            recursive=self.recursive,
+            tool_key=self.tool_key,
+        )
+        return records, quality

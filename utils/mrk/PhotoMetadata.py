@@ -1,356 +1,266 @@
 ﻿# -*- coding: utf-8 -*-
 import os
 import re
+from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
-
-from qgis.PyQt.QtCore import QVariant
 
 from ...core.config.LogUtils import LogUtils
 from ...core.enum import MetadataFieldKey
-from ...core.enum.LightSourceEnum import LightSourceEnum
-from ..ExplorerUtils import ExplorerUtils
-from ..ToolKeys import ToolKey
 from .CustomPhotosFieldsUtil import CustomPhotosFieldsUtil
 from .ExifUtil import ExifUtil
 from .MetadataFields import MetadataFields
 from .XmpUtil import XmpUtil
 
-TOOL_KEY = ToolKey.DRONE_COORDINATES
-
 
 class PhotoMetadata:
-    """Manager de metadata de fotos para o fluxo DroneCoordinates."""
-    LAST_JSON_DUMP_PATH = None
-
-    # Mantido para compatibilidade com chamadas existentes.
-    FIELDS_PHOTO = {
-        "nome_arq": QVariant.String,
-        "tam_mb": QVariant.Double,
-        "tipo_arq": QVariant.String,
-        "dt_criacao": QVariant.String,
-        "dt_full": QVariant.String,
-        "dt_date": QVariant.String,
-        "dt_time": QVariant.String,
-        "cam_model": QVariant.String,
-        "bit_depth": QVariant.Int,
-        "larg_px": QVariant.Int,
-        "alt_px": QVariant.Int,
-        "res_h_dpi": QVariant.Double,
-        "res_v_dpi": QVariant.Double,
-        "focal_mm": QVariant.Double,
-        "focal35mm": QVariant.Int,
-        "iso": QVariant.Int,
-        "abert_f": QVariant.Double,
-    }
+    """
+    Orquestrador puro de metadados de fotos.
+    
+    RESPONSABILIDADE ÚNICA:
+    Receber pontos (MRK ou vazios) + pasta de fotos → extrair metadados das fotos
+    → fazer match por sequência → mesclar dados → retornar records enriquecidos.
+    
+    NÃO faz:
+    - Field filtering (responsabilidade do VectorLayerAttributes / pipeline)
+    - JSON building (responsabilidade do JsonUtil / pipeline)
+    - JSON saving (responsabilidade do ExplorerUtils / pipeline)
+    - Vetorização (responsabilidade do JsonVectorizationStep)
+    """
 
     DJI_RE = re.compile(r"_(\d{4})_[A-Z]\.JPG$", re.IGNORECASE)
 
     @staticmethod
-    def _to_float(value):
-        if value is None:
-            return None
-        if isinstance(value, (int, float)):
-            return float(value)
-        text = str(value).strip().replace("+", "")
-        if text in ("", "None", "null"):
-            return None
-        try:
-            return float(text)
-        except Exception:
-            return None
-
-    @staticmethod
-    def _extract_gps_decimal_from_dms(value, ref):
-        if value is None:
-            return None
-        parts = list(value) if isinstance(value, (list, tuple)) else None
-        if not parts or len(parts) < 3:
-            return None
-
-        def _part_to_float(p):
-            if isinstance(p, (int, float)):
-                return float(p)
-            text = str(p).strip()
-            if "/" in text:
-                num, den = text.split("/", 1)
-                return float(num) / float(den)
-            return float(text)
-
-        try:
-            deg = _part_to_float(parts[0])
-            minute = _part_to_float(parts[1])
-            sec = _part_to_float(parts[2])
-            dec = deg + (minute / 60.0) + (sec / 3600.0)
-            ref_txt = str(ref or "").strip().upper()
-            if ref_txt in ("S", "W"):
-                dec = -dec
-            return dec
-        except Exception:
-            return None
-
-    @staticmethod
-    def _extract_position(merged_payload):
-        canonical = MetadataFields.normalize_record_to_keys(merged_payload or {})
-        lat = PhotoMetadata._to_float(canonical.get("GpsLatitude"))
-        lon = PhotoMetadata._to_float(canonical.get("GpsLongitude"))
-        if lat is not None and lon is not None:
-            alt = PhotoMetadata._to_float(
-                canonical.get("AbsoluteAltitude") or canonical.get("GPSAltitude")
-            )
-            has_dji_xmp_marker = any("drone-dji:" in str(k) for k in (merged_payload or {}).keys())
-            source = "XMP" if has_dji_xmp_marker else "EXIF"
-            return lat, lon, alt, source
-
-        lat = PhotoMetadata._extract_gps_decimal_from_dms(
-            merged_payload.get("GPSLatitude"),
-            merged_payload.get("GPSLatitudeRef"),
-        )
-        lon = PhotoMetadata._extract_gps_decimal_from_dms(
-            merged_payload.get("GPSLongitude"),
-            merged_payload.get("GPSLongitudeRef"),
-        )
-        alt = PhotoMetadata._to_float(merged_payload.get("GPSAltitude"))
-        if lat is not None and lon is not None:
-            return lat, lon, alt, "EXIF"
-        return None, None, alt, "NONE"
-
-    @staticmethod
-    def _has_xmp_data(merged_payload, canonical_payload):
-        flag = str((merged_payload or {}).get("xmp_encontrado", "")).lower()
-        if flag == "sim":
-            return True
-        if any("drone-dji:" in str(k) for k in (merged_payload or {}).keys()):
-            return True
-        xmp_markers = (
-            MetadataFieldKey.ABSOLUTE_ALTITUDE.value,
-            "RelativeAltitude",
-            "GimbalYawDegree",
-            "FlightYawDegree",
-            "RtkFlag",
-            "UTCAtExposure",
-        )
-        return any(canonical_payload.get(k) not in (None, "", "None", "null") for k in xmp_markers)
-
-    @staticmethod
-    def _dump_allowed_keys() -> list:
-        """
-        Campos permitidos no JSON de dump por foto.
-        Inclui todos os campos catalogados no MetadataFields:
-        EXIF + XMP + CUSTOM + MRK.
-        """
-        return (
-            [k.value for k in MetadataFields.EXIF_FIELDS.keys()]
-            + [k.value for k in MetadataFields.DJI_XMP_FIELDS.keys()]
-            + [k.value for k in MetadataFields.CUSTOM_FIELDS.keys()]
-            + [k.value for k in MetadataFields.MRK_FIELDS.keys()]
-        )
-
-    @staticmethod
-    def _normalize_dump_records(raw_by_file: dict) -> dict:
-        """
-        Converte registros por arquivo para formato:
-            { "ARQUIVO.JPG": {campo: valor, ...} }
-        mantendo apenas campos permitidos no MetadataFields.
-        """
-        allowed_keys = PhotoMetadata._dump_allowed_keys()
-        normalized = {}
-        for fname, payload in (raw_by_file or {}).items():
-            canonical_payload = MetadataFields.normalize_record_to_keys(payload or {})
-            record = {}
-            for key in allowed_keys:
-                record[key] = canonical_payload.get(key)
-            normalized[fname] = record
-        return normalized
-
-    @staticmethod
-    def _extract_photo_sequence(file_name: str) -> str:
-        """Extrai sequencia de 4 digitos do padrao DJI (..._0001_X.JPG)."""
-        if not file_name:
-            return None
-        match = PhotoMetadata.DJI_RE.search(str(file_name))
-        if not match:
-            return None
-        return match.group(1)
-
-    @staticmethod
-    def _build_mrk_context_by_sequence(folder_points: list) -> dict:
-        """
-        Indexa contexto MRK por sequencia de foto (0001, 0002, ...).
-        """
-        index = {}
-        mrk_keys = [k.value for k in MetadataFields.MRK_FIELDS.keys()]
-        for point in folder_points or []:
-            canonical_point = MetadataFields.normalize_record_to_keys(point or {})
-            foto = canonical_point.get("Foto")
-            if foto is None:
-                continue
-            try:
-                seq = f"{int(foto):04d}"
-            except Exception:
-                continue
-            if seq in index:
-                continue
-            ctx = {key: canonical_point.get(key) for key in mrk_keys}
-            index[seq] = ctx
-        return index
-
-    @staticmethod
-    def _merge_mrk_into_dump_records(raw_records: dict, mrk_by_seq: dict) -> dict:
-        """
-        Mescla campos MRK no dump por arquivo, quando houver match de sequencia.
-        """
-        if not raw_records:
-            return raw_records
-        mrk_keys = [k.value for k in MetadataFields.MRK_FIELDS.keys()]
-        for fname, record in raw_records.items():
-            seq = PhotoMetadata._extract_photo_sequence(fname)
-            if not seq:
-                continue
-            mrk_ctx = mrk_by_seq.get(seq)
-            if not mrk_ctx:
-                continue
-            for key in mrk_keys:
-                record[key] = mrk_ctx.get(key)
-        return raw_records
-
-    @staticmethod
-    def _safe_parse_datetime(value):
-        if not value:
-            return None
-        raw = str(value).strip()
-        if not raw:
-            return None
-
-        # ISO-8601 (com/s/sem timezone e microssegundos)
-        try:
-            iso_raw = raw.replace("Z", "+00:00")
-            return datetime.fromisoformat(iso_raw)
-        except Exception:
-            pass
-
-        candidates = [
-            ("%Y:%m:%d %H:%M:%S", raw),
-            ("%Y-%m-%d %H:%M:%S", raw),
-            ("%Y-%m-%dT%H:%M:%S", raw),
-            ("%Y-%m-%dT%H:%M:%S.%f", raw),
-            ("%Y-%m-%dT%H:%M:%S%z", raw),
-            ("%Y-%m-%dT%H:%M:%S.%f%z", raw),
-            ("%Y%m%d%H%M", raw),
-            ("%Y%m%d", raw),
-        ]
-        for fmt, raw in candidates:
-            try:
-                return datetime.strptime(str(raw), fmt)
-            except Exception:
-                pass
-        return None
-
-    @staticmethod
-    def _get_logger(tool_key: str = TOOL_KEY) -> LogUtils:
+    def _get_logger(tool_key: str) -> LogUtils:
         return LogUtils(tool=tool_key, class_name="PhotoMetadata")
 
-    @staticmethod
-    def _translate_light_source_value(
-        light_source_raw,
-        logger: LogUtils,
-        image_path: str = "",
-    ) -> str:
-        if light_source_raw in (None, "", "None", "null"):
-            return None
-
-        try:
-            code = int(str(light_source_raw).strip())
-        except Exception as exc:
-            logger.error(
-                "Falha ao converter LightSource para inteiro",
-                code="LIGHT_SOURCE_PARSE_ERROR",
-                data={
-                    "image_path": image_path,
-                    "light_source_raw": light_source_raw,
-                    "error": str(exc),
-                },
-            )
-            return None
-
-        try:
-            return LightSourceEnum.get_label(code)
-        except Exception as exc:
-            logger.error(
-                "Falha ao traduzir LightSource com LightSourceEnum",
-                code="LIGHT_SOURCE_TRANSLATE_ERROR",
-                data={
-                    "image_path": image_path,
-                    "light_source_code": code,
-                    "error": str(exc),
-                },
-            )
-            return None
+    # ─────────────────────────────────────────────
+    # API PÚBLICA
+    # ─────────────────────────────────────────────
 
     @staticmethod
-    def _format_dates(dt: datetime) -> dict:
-        return {
-            "dt_criacao": dt.strftime("%Y-%m-%d %H:%M:%S"),
-            "dt_full": dt.strftime("%Y%m%d%H%M"),
-            "dt_date": dt.strftime("%Y%m%d"),
-            "dt_time": dt.strftime("%H%M"),
-        }
-
-    @staticmethod
-    def _extract_flight_context(point: dict) -> dict:
-        canonical_point = MetadataFields.normalize_record_to_keys(point or {})
-        return {
-            MetadataFieldKey.FLIGHT_NUMBER.value: canonical_point.get(MetadataFieldKey.FLIGHT_NUMBER.value),
-            MetadataFieldKey.FLIGHT_NAME.value: canonical_point.get(MetadataFieldKey.FLIGHT_NAME.value),
-            MetadataFieldKey.FOLDER_LEVEL_1.value: canonical_point.get(MetadataFieldKey.FOLDER_LEVEL_1.value),
-            MetadataFieldKey.FOLDER_LEVEL_2.value: canonical_point.get(MetadataFieldKey.FOLDER_LEVEL_2.value),
-            MetadataFieldKey.MRK_FILE.value: canonical_point.get(MetadataFieldKey.MRK_FILE.value),
-            MetadataFieldKey.MRK_PATH.value: canonical_point.get(MetadataFieldKey.MRK_PATH.value),
-            MetadataFieldKey.MRK_FOLDER.value: canonical_point.get(MetadataFieldKey.MRK_FOLDER.value),
-            MetadataFieldKey.DATE_NAME.value: canonical_point.get(MetadataFieldKey.DATE_NAME.value),
-            MetadataFieldKey.FOTO.value: canonical_point.get(MetadataFieldKey.FOTO.value),
-            MetadataFieldKey.LAT.value: canonical_point.get(MetadataFieldKey.LAT.value),
-            MetadataFieldKey.LON.value: canonical_point.get(MetadataFieldKey.LON.value),
-            MetadataFieldKey.ALT.value: canonical_point.get(MetadataFieldKey.ALT.value),
-        }
-
-    @staticmethod
-    def _build_selected_keys(
-        selected_required_fields=None,
-        selected_custom_fields=None,
-        selected_mrk_fields=None,
-    ) -> set:
-        selected = (
-            set(selected_required_fields or [])
-            | set(selected_custom_fields or [])
-            | set(selected_mrk_fields or [])
-        )
-        known_keys = set(MetadataFields.all_fields().keys())
-        return selected & known_keys
-
-    @staticmethod
-    def _filter_payload(payload: dict, selected_keys: set) -> dict:
-        if not selected_keys:
-            return payload
-        return {key: value for key, value in payload.items() if key in selected_keys}
-
-    @staticmethod
-    def _extract_photo_payload(image_path: str, tool_key: str = TOOL_KEY) -> dict:
+    def enrich(
+        points: List[Dict[str, Any]],
+        base_folder: str,
+        recursive: bool = True,
+        tool_key: str = "drone_coordinates",
+    ) -> List[Dict[str, Any]]:
+        """
+        Cruza pontos MRK com metadados de fotos.
+        
+        1. Indexa fotos da pasta por sequência (0001, 0002...)
+        2. Extrai EXIF + XMP + GPS de cada foto
+        3. Faz match com pontos MRK por número da foto
+        4. Mescla metadados das fotos com contexto MRK
+        5. Calcula campos custom (CustomPhotosFieldsUtil)
+        6. Retorna lista de records enriquecidos (sem JSON, sem filtro, sem save)
+        """
         logger = PhotoMetadata._get_logger(tool_key)
 
-        os_data = ExifUtil.extract_metadata_os(image_path, tool_key=tool_key)
-        image_data = ExifUtil.extract_metadata_image(image_path, tool_key=tool_key)
-        exif_data = ExifUtil.extract_metadata_exif(image_path, tool_key=tool_key)
-        xmp_data = XmpUtil.extract_metadata(image_path, tool_key=tool_key)
+        logger.info(
+            "Iniciando enrich de metadados",
+            data={
+                "base_folder": base_folder,
+                "recursive": recursive,
+                "total_points": len(points),
+            },
+        )
+
+        # Indexa fotos da pasta
+        photo_index = PhotoMetadata._index_photos(base_folder, recursive, tool_key)
+
+        # Indexa contexto MRK por sequência
+        mrk_by_seq = PhotoMetadata._build_mrk_context_by_sequence(points)
+
+        # Para cada ponto MRK, busca foto correspondente e mescla
+        all_records = []
+        total_found = 0
+        total_missing = 0
+
+        for point in points:
+            foto = point.get("foto")
+            if foto is None:
+                continue
+
+            seq = f"{int(foto):04d}"
+            photo_payload = photo_index.get(seq)
+            if not photo_payload:
+                total_missing += 1
+                continue
+
+            total_found += 1
+
+            # Mescla payload da foto com contexto MRK
+            merged = dict(photo_payload)
+            merged.update(PhotoMetadata._extract_flight_context(point))
+
+            # Normaliza tudo para chaves canônicas
+            merged = MetadataFields.normalize_record_to_keys(merged)
+
+            # Resolve posição GPS
+            lat, lon, alt, coord_source = PhotoMetadata._extract_position(merged)
+            merged[MetadataFieldKey.GPS_LATITUDE.value] = lat
+            merged[MetadataFieldKey.GPS_LONGITUDE.value] = lon
+            merged[MetadataFieldKey.ABSOLUTE_ALTITUDE.value] = alt or merged.get(
+                MetadataFieldKey.ABSOLUTE_ALTITUDE.value
+            )
+            merged[MetadataFieldKey.COORD_SOURCE.value] = coord_source
+            merged[MetadataFieldKey.QUALITY_FLAG.value] = "OK" if coord_source != "NONE" else "LOW"
+
+            # Detecta XMP
+            has_xmp = any(
+                k in merged
+                for k in [
+                    MetadataFieldKey.ABSOLUTE_ALTITUDE.value,
+                    MetadataFieldKey.RELATIVE_ALTITUDE.value,
+                    MetadataFieldKey.GIMBAL_YAW_DEGREE.value,
+                    MetadataFieldKey.RTK_FLAG.value,
+                ]
+            )
+            merged["HasXmp"] = has_xmp
+            merged["HasExifGps"] = bool(lat is not None and lon is not None)
+
+            all_records.append(merged)
+
+        # Calcula campos custom em lote
+        try:
+            custom_ready = {
+                r.get(MetadataFieldKey.FILE.value): r
+                for r in all_records
+                if r.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) not in (None, "")
+            }
+            if custom_ready:
+                enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
+                    custom_ready, tool_key=tool_key
+                )
+                for fname, custom_values in enriched.items():
+                    for record in all_records:
+                        if record.get(MetadataFieldKey.FILE.value) == fname:
+                            record.update(custom_values)
+                            break
+        except Exception as exc:
+            logger.warning(f"Falha ao calcular campos custom no enrich: {exc}")
+
+        logger.info(
+            "Enrich concluido",
+            data={
+                "total_points": len(points),
+                "matched": total_found,
+                "not_found": total_missing,
+            },
+        )
+
+        return all_records
+
+    @staticmethod
+    def extract_photos_only(
+        base_folder: str,
+        recursive: bool = True,
+        tool_key: str = "drone_coordinates",
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+        """
+        Extrai metadados de fotos SEM pontos MRK (modo photo_only).
+        
+        Retorna (records, quality_stats).
+        """
+        logger = PhotoMetadata._get_logger(tool_key)
+
+        photo_index = PhotoMetadata._index_photos(base_folder, recursive, tool_key)
+
+        all_records = []
+        quality = {
+            "total_files": len(photo_index),
+            "with_coords": 0,
+            "without_coords": 0,
+            "with_xmp": 0,
+            "with_exif_gps": 0,
+            "missing_xmp_and_exif": 0,
+        }
+
+        for seq, payload in photo_index.items():
+            if not payload:
+                continue
+
+            merged = MetadataFields.normalize_record_to_keys(payload)
+
+            lat, lon, alt, coord_source = PhotoMetadata._extract_position(merged)
+            merged[MetadataFieldKey.GPS_LATITUDE.value] = lat
+            merged[MetadataFieldKey.GPS_LONGITUDE.value] = lon
+            merged[MetadataFieldKey.ABSOLUTE_ALTITUDE.value] = alt or merged.get(
+                MetadataFieldKey.ABSOLUTE_ALTITUDE.value
+            )
+            merged[MetadataFieldKey.COORD_SOURCE.value] = coord_source
+            merged[MetadataFieldKey.QUALITY_FLAG.value] = "OK" if coord_source != "NONE" else "LOW"
+
+            has_xmp = any(
+                k in merged
+                for k in [
+                    MetadataFieldKey.ABSOLUTE_ALTITUDE.value,
+                    MetadataFieldKey.RELATIVE_ALTITUDE.value,
+                    MetadataFieldKey.GIMBAL_YAW_DEGREE.value,
+                    MetadataFieldKey.RTK_FLAG.value,
+                ]
+            )
+            has_exif_gps = bool(lat is not None and lon is not None)
+
+            merged["HasXmp"] = has_xmp
+            merged["HasExifGps"] = has_exif_gps
+
+            if coord_source == "NONE":
+                quality["without_coords"] += 1
+                if not has_xmp and not has_exif_gps:
+                    quality["missing_xmp_and_exif"] += 1
+            else:
+                quality["with_coords"] += 1
+            if has_xmp:
+                quality["with_xmp"] += 1
+            if has_exif_gps:
+                quality["with_exif_gps"] += 1
+
+            all_records.append(merged)
+
+        # Campos custom em lote
+        try:
+            custom_ready = {
+                r.get(MetadataFieldKey.FILE.value): r
+                for r in all_records
+                if r.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) not in (None, "")
+            }
+            if custom_ready:
+                enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
+                    custom_ready, tool_key=tool_key
+                )
+                for fname, custom_values in enriched.items():
+                    for record in all_records:
+                        if record.get(MetadataFieldKey.FILE.value) == fname:
+                            record.update(custom_values)
+                            break
+        except Exception as exc:
+            logger.warning(f"Falha ao calcular campos custom: {exc}")
+
+        logger.info(
+            "Extracao de fotos concluida",
+            data={"total": len(all_records), "quality": quality},
+        )
+
+        return all_records, quality
+
+    # ─────────────────────────────────────────────
+    # MÉTODOS INTERNOS
+    # ─────────────────────────────────────────────
+
+    @staticmethod
+    def _extract_photo_payload(image_path: str, tool_key: str) -> dict:
+        """Extrai metadados completos de uma foto (OS + PIL + EXIF + XMP + aliases)."""
+        logger = PhotoMetadata._get_logger(tool_key)
 
         payload = {}
-        payload.update(os_data)
-        payload.update(image_data)
-        payload.update(exif_data)
-        payload.update(xmp_data)
+        payload.update(ExifUtil.extract_metadata_os(image_path, tool_key=tool_key))
+        payload.update(ExifUtil.extract_metadata_image(image_path, tool_key=tool_key))
+        payload.update(ExifUtil.extract_metadata_exif(image_path, tool_key=tool_key))
+        payload.update(XmpUtil.extract_metadata(image_path, tool_key=tool_key))
 
-        # Aliases criticos para compatibilidade com campos esperados no calculo custom.
+        # Aliases DJI para compatibilidade
         alias_map = {
-            "drone-dji:AltitudeType": "AltitudeType",
             "drone-dji:AbsoluteAltitude": "AbsoluteAltitude",
             "drone-dji:RelativeAltitude": "RelativeAltitude",
             "drone-dji:GimbalRollDegree": "GimbalRollDegree",
@@ -369,329 +279,205 @@ class PhotoMetadata:
             "drone-dji:RtkDiffAge": "RtkDiffAge",
             "drone-dji:DewarpFlag": "DewarpFlag",
             "drone-dji:ShutterCount": "ShutterCount",
-            "drone-dji:FocusDistance": "FocusDistance",
-            "drone-dji:CameraSerialNumber": "CameraSerialNumber",
-            "drone-dji:DroneSerialNumber": "DroneSerialNumber",
             "drone-dji:DroneModel": "DroneModel",
+            "drone-dji:DroneSerialNumber": "DroneSerialNumber",
+            "drone-dji:CameraSerialNumber": "CameraSerialNumber",
             "drone-dji:CaptureUUID": "CaptureUUID",
-            "drone-dji:PictureQuality": "PictureQuality",
             "drone-dji:UTCAtExposure": "UTCAtExposure",
             "drone-dji:SensorTemperature": "SensorTemperature",
             "drone-dji:LensTemperature": "LensTemperature",
-            "drone-dji:SensorFPS": "SensorFPS",
-            "drone-dji:LensPosition": "LensPosition",
-            "drone-dji:LRFStatus": "LRFStatus",
-            "drone-dji:LRFTargetDistance": "LRFTargetDistance",
-            "drone-dji:LRFTargetLon": "LRFTargetLon",
-            "drone-dji:LRFTargetLat": "LRFTargetLat",
-            "drone-dji:LRFTargetAlt": "LRFTargetAlt",
-            "drone-dji:LRFTargetAbsAlt": "LRFTargetAbsAlt",
             "drone-dji:WhiteBalanceCCT": "WhiteBalanceCCT",
             "drone-dji:GpsStatus": "GpsStatus",
+            "drone-dji:GpsLatitude": "GpsLatitude",
+            "drone-dji:GpsLongitude": "GpsLongitude",
         }
-        for source_key, target_key in alias_map.items():
-            if target_key not in payload and source_key in payload:
-                payload[target_key] = payload.get(source_key)
+        for src_key, tgt_key in alias_map.items():
+            if tgt_key not in payload and src_key in payload:
+                payload[tgt_key] = payload.get(src_key)
 
-        canonical_payload = MetadataFields.normalize_record_to_keys(payload)
-        light_source_label = PhotoMetadata._translate_light_source_value(
-            canonical_payload.get(MetadataFieldKey.LIGHT_SOURCE.value),
-            logger=logger,
-            image_path=image_path,
-        )
-        if light_source_label:
-            payload[MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value] = light_source_label
-
-        # Campos solicitados no novo padrao
         payload["FileType"] = os.path.splitext(image_path)[1].upper()
 
-        # dt_* deve priorizar metadado da foto (DateTimeOriginal), com fallback para DateTime (OS).
-        dt = PhotoMetadata._safe_parse_datetime(payload.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value))
-        if dt is None:
-            dt = PhotoMetadata._safe_parse_datetime(payload.get("DateTime"))
-        if dt is None:
-            dt = PhotoMetadata._safe_parse_datetime(payload.get(MetadataFieldKey.UTC_AT_EXPOSURE.value))
-        if dt is None:
-            dt = PhotoMetadata._safe_parse_datetime(payload.get(MetadataFieldKey.DT_FULL.value))
+        # Datetime
+        dt = PhotoMetadata._safe_parse_datetime(
+            payload.get("DateTimeOriginal")
+            or payload.get("DateTime")
+            or payload.get("UTCAtExposure")
+        )
         if dt is not None:
-            payload.update(PhotoMetadata._format_dates(dt))
-            if payload.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) in (None, "", "None", "null"):
-                payload[MetadataFieldKey.DATE_TIME_ORIGINAL.value] = dt.strftime("%Y:%m:%d %H:%M:%S")
-        else:
-            logger.debug(f"Falha ao obter datetime para dt_* em {image_path}")
+            if payload.get("DateTimeOriginal") in (None, "", "None", "null"):
+                payload["DateTimeOriginal"] = dt.strftime("%Y:%m:%d %H:%M:%S")
 
         return payload
 
     @staticmethod
-    def _index_photos_complete(
-        base_folder: str,
-        recursive: bool,
-        tool_key: str = TOOL_KEY,
-    ) -> tuple:
+    def _index_photos(
+        base_folder: str, recursive: bool, tool_key: str
+    ) -> Dict[str, dict]:
+        """
+        Indexa fotos de uma pasta por sequência (0001, 0002...).
+        Retorna {seq: payload_merged}.
+        """
         logger = PhotoMetadata._get_logger(tool_key)
-
         photo_files = []
+
         walker = os.walk(base_folder) if recursive else [(base_folder, [], os.listdir(base_folder))]
         for root, _, files in walker:
             for fname in files:
                 if not fname.lower().endswith(".jpg"):
                     continue
-                if not PhotoMetadata.DJI_RE.search(fname):
+                match = PhotoMetadata.DJI_RE.search(fname)
+                if not match:
                     continue
-                photo_files.append(os.path.join(root, fname))
+                photo_files.append((match.group(1), os.path.join(root, fname)))
 
-        raw_by_file = {}
-        indexed_by_number = {}
-        raw_dump_records = {}
-        translated_light_source = 0
-        missing_light_source = 0
-        untranslated_light_source = 0
-
-        for file_path in photo_files:
-            fname = os.path.basename(file_path)
-            seq_match = PhotoMetadata.DJI_RE.search(fname)
-            if not seq_match:
-                continue
-            seq = seq_match.group(1)
-
-            payload = PhotoMetadata._extract_photo_payload(file_path, tool_key=tool_key)
-            raw_by_file[fname] = payload
-            indexed_by_number[seq] = payload
-
-            canonical_payload = MetadataFields.normalize_record_to_keys(payload)
-            light_source_code = canonical_payload.get(MetadataFieldKey.LIGHT_SOURCE.value)
-            light_source_label = canonical_payload.get(MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value)
-            if light_source_code in (None, "", "None", "null"):
-                missing_light_source += 1
-            elif light_source_label in (None, "", "None", "null"):
-                untranslated_light_source += 1
-            else:
-                translated_light_source += 1
+        indexed = {}
+        for seq, file_path in photo_files:
+            if seq not in indexed:
+                indexed[seq] = PhotoMetadata._extract_photo_payload(file_path, tool_key)
 
         logger.info(
-            "Indexacao completa de fotos finalizada",
-            data={
-                "base_folder": base_folder,
-                "total_photos": len(photo_files),
-                "indexed_keys": len(indexed_by_number),
-                "light_source_translated": translated_light_source,
-                "light_source_missing": missing_light_source,
-                "light_source_untranslated": untranslated_light_source,
-            },
+            "Fotos indexadas",
+            data={"base_folder": base_folder, "total": len(indexed), "files_scanned": len(photo_files)},
         )
-        raw_dump_records = PhotoMetadata._normalize_dump_records(raw_by_file)
-        return indexed_by_number, raw_dump_records
+
+        return indexed
 
     @staticmethod
-    def enrich(
-        points,
-        base_folder,
-        recursive=True,
-        mrk_folder=None,
-        selected_required_fields=None,
-        selected_custom_fields=None,
-        selected_mrk_fields=None,
-        return_report=False,
-    ):
-        """
-        Enriquecimento de metadados de fotos.
-        Gera JSON v2.0 com source: "mrk+photo".
-        Retorna caminho do JSON gerado.
-        """
-        from ...utils.JsonUtil import JsonUtil
-        from ...core.enum import MetadataFieldKey
+    def _build_mrk_context_by_sequence(points: List[Dict]) -> Dict[str, Dict]:
+        """Indexa contexto MRK por sequência de foto."""
+        index = {}
+        for point in points or []:
+            foto = point.get("foto")
+            if foto is None:
+                continue
+            try:
+                seq = f"{int(foto):04d}"
+            except Exception:
+                continue
+            if seq not in index:
+                canonical = MetadataFields.normalize_record_to_keys(point)
+                index[seq] = canonical
+        return index
 
-        logger = PhotoMetadata._get_logger(TOOL_KEY)
-        selected_keys = PhotoMetadata._build_selected_keys(
-            selected_required_fields=selected_required_fields,
-            selected_custom_fields=selected_custom_fields,
-            selected_mrk_fields=selected_mrk_fields,
-        )
-        if MetadataFieldKey.LIGHT_SOURCE.value in selected_keys and MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value not in selected_keys:
-            selected_keys.add(MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value)
-            logger.info(
-                "Dependencia de campo aplicada para LightSource",
-                code="LIGHT_SOURCE_DEPENDENCY_APPLIED",
-                data={
-                    "added_key": MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value,
-                    "reason": f"{MetadataFieldKey.LIGHT_SOURCE.value} selecionado sem campo textual",
-                },
+    @staticmethod
+    def _extract_flight_context(point: dict) -> dict:
+        """Extrai contexto de voo de um ponto MRK."""
+        canonical = MetadataFields.normalize_record_to_keys(point or {})
+        return {
+            MetadataFieldKey.FLIGHT_NUMBER.value: canonical.get(MetadataFieldKey.FLIGHT_NUMBER.value),
+            MetadataFieldKey.FLIGHT_NAME.value: canonical.get(MetadataFieldKey.FLIGHT_NAME.value),
+            MetadataFieldKey.FOLDER_LEVEL_1.value: canonical.get(MetadataFieldKey.FOLDER_LEVEL_1.value),
+            MetadataFieldKey.FOLDER_LEVEL_2.value: canonical.get(MetadataFieldKey.FOLDER_LEVEL_2.value),
+            MetadataFieldKey.MRK_FILE.value: canonical.get(MetadataFieldKey.MRK_FILE.value),
+            MetadataFieldKey.MRK_PATH.value: canonical.get(MetadataFieldKey.MRK_PATH.value),
+            MetadataFieldKey.MRK_FOLDER.value: canonical.get(MetadataFieldKey.MRK_FOLDER.value),
+            MetadataFieldKey.DATE_NAME.value: canonical.get(MetadataFieldKey.DATE_NAME.value),
+            MetadataFieldKey.FOTO.value: canonical.get(MetadataFieldKey.FOTO.value),
+            MetadataFieldKey.LAT.value: canonical.get(MetadataFieldKey.LAT.value),
+            MetadataFieldKey.LON.value: canonical.get(MetadataFieldKey.LON.value),
+            MetadataFieldKey.ALT.value: canonical.get(MetadataFieldKey.ALT.value),
+        }
+
+    # ─────────────────────────────────────────────
+    # UTILITÁRIOS
+    # ─────────────────────────────────────────────
+
+    @staticmethod
+    def _extract_position(merged_payload: dict) -> Tuple[Optional[float], Optional[float], Optional[float], str]:
+        """Extrai posição GPS do payload mesclado. Retorna (lat, lon, alt, source)."""
+        canonical = MetadataFields.normalize_record_to_keys(merged_payload or {})
+        lat = PhotoMetadata._to_float(canonical.get(MetadataFieldKey.GPS_LATITUDE.value))
+        lon = PhotoMetadata._to_float(canonical.get(MetadataFieldKey.GPS_LONGITUDE.value))
+        if lat is not None and lon is not None:
+            alt = PhotoMetadata._to_float(
+                canonical.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value)
+                or canonical.get("GPSAltitude")
             )
+            has_dji = any("drone-dji:" in str(k) for k in (merged_payload or {}).keys())
+            return lat, lon, alt, "XMP" if has_dji else "EXIF"
 
-        logger.info(
-            "Iniciando enriquecimento de metadados de fotos",
-            code="PHOTO_ENRICH_START",
-            data={
-                "base_folder": base_folder,
-                "recursive": recursive,
-                "mrk_folder": mrk_folder,
-                "total_points": len(points),
-                "selected_keys_count": len(selected_keys),
-                "selected_keys_sample": sorted(list(selected_keys))[:20],
-                "has_light_source_key": MetadataFieldKey.LIGHT_SOURCE.value in selected_keys,
-                "has_light_source_text_key": MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value in selected_keys,
-            },
+        lat = PhotoMetadata._extract_gps_decimal_from_dms(
+            merged_payload.get("GPSLatitude"),
+            merged_payload.get("GPSLatitudeRef"),
         )
+        lon = PhotoMetadata._extract_gps_decimal_from_dms(
+            merged_payload.get("GPSLongitude"),
+            merged_payload.get("GPSLongitudeRef"),
+        )
+        alt = PhotoMetadata._to_float(merged_payload.get("GPSAltitude"))
+        if lat is not None and lon is not None:
+            return lat, lon, alt, "EXIF"
 
-        # Processar pontos e gerar registros enriquecidos
-        all_records = []
-        total_found = 0
-        total_missing = 0
+        return None, None, None, "NONE"
 
-        points_by_folder = {}
-        for point in points:
-            folder = point.get("mrk_folder") or base_folder
-            if folder and not os.path.isabs(folder) and base_folder:
-                candidate = os.path.join(base_folder, folder)
-                if os.path.isdir(candidate):
-                    folder = candidate
-            if folder and not os.path.isdir(folder) and base_folder:
-                folder = base_folder
-            points_by_folder.setdefault(folder, []).append(point)
+    @staticmethod
+    def _extract_gps_decimal_from_dms(value, ref):
+        """Converte GPS DMS para decimal."""
+        if value is None:
+            return None
+        parts = list(value) if isinstance(value, (list, tuple)) else None
+        if not parts or len(parts) < 3:
+            return None
 
-        for folder, folder_points in points_by_folder.items():
-            photo_index, raw_records = PhotoMetadata._index_photos_complete(
-                folder,
-                recursive=False,
-                tool_key=TOOL_KEY,
-            )
-            mrk_by_seq = PhotoMetadata._build_mrk_context_by_sequence(folder_points)
+        def _part_to_float(p):
+            if isinstance(p, (int, float)):
+                return float(p)
+            text = str(p).strip()
+            if "/" in text:
+                num, den = text.split("/", 1)
+                return float(num) / float(den) if float(den) != 0 else 0.0
+            return float(text)
 
-            empty_filtered = 0
-            for point in folder_points:
-                foto = point.get("foto")
-                if foto is None:
-                    continue
-
-                key = f"{int(foto):04d}"
-                photo_payload = photo_index.get(key)
-                if not photo_payload:
-                    total_missing += 1
-                    continue
-
-                total_found += 1
-                merged_payload = {}
-                merged_payload.update(photo_payload)
-                merged_payload.update(PhotoMetadata._extract_flight_context(point))
-                # Normaliza aliases/snake_case para as chaves canonicas do MetadataFields
-                merged_payload = MetadataFields.normalize_record_to_keys(merged_payload)
-                has_xmp = PhotoMetadata._has_xmp_data(merged_payload, merged_payload)
-                has_exif_gps = bool(merged_payload.get("GPSLatitude") and merged_payload.get("GPSLongitude"))
-                lat, lon, alt, source = PhotoMetadata._extract_position(merged_payload)
-                merged_payload[MetadataFieldKey.GPS_LATITUDE.value] = lat if lat is not None else merged_payload.get(MetadataFieldKey.GPS_LATITUDE.value)
-                merged_payload["GpsLongitude"] = lon if lon is not None else merged_payload.get("GpsLongitude")
-                merged_payload[MetadataFieldKey.ABSOLUTE_ALTITUDE.value] = (
-                    alt if alt is not None else merged_payload.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value)
-                )
-                merged_payload["CoordSource"] = source
-                merged_payload["HasXmp"] = has_xmp
-                merged_payload["HasExifGps"] = has_exif_gps
-                merged_payload["QualityFlag"] = "LOW" if source == "NONE" else "OK"
-
-                # Converter para chaves PascalCase usando mapeamento explicito do catalogo.
-                key_to_json_key = {
-                    key: field.key.value
-                    for key, field in MetadataFields.all_fields().items()
-                    if field.key is not None
-                }
-                record = {}
-                for key, value in merged_payload.items():
-                    if isinstance(key, MetadataFieldKey):
-                        record[key.value] = value
-                        continue
-
-                    canonical_key = MetadataFields.resolve_key(str(key))
-                    mapped_key = key_to_json_key.get(canonical_key, canonical_key)
-                    record[mapped_key] = value
-
-                # Filtrar campos selecionados
-                if selected_keys:
-                    filtered_record = {}
-                    for k, v in record.items():
-                        if k in selected_keys or k in [
-                            MetadataFieldKey.COORD_SOURCE.value,
-                            MetadataFieldKey.QUALITY_FLAG.value,
-                            "HasXmp",
-                            "HasExifGps",
-                        ]:
-                            filtered_record[k] = v
-                    if not filtered_record:
-                        empty_filtered += 1
-                        continue
-                    record = filtered_record
-
-                all_records.append(record)
-
-            if selected_keys:
-                logger.info(
-                    "Resumo filtro grupo",
-                    data={
-                        "folder": folder,
-                        "selected_keys_count": len(selected_keys),
-                        "points_without_filtered_fields": empty_filtered,
-                    },
-                )
-
-        # Calcular campos custom sobre os mesmos records JSON (PascalCase),
-        # mantendo paridade com o fluxo photo_only.
         try:
-            custom_ready = {
-                key: value
-                for key, value in zip(
-                    [record.get(MetadataFieldKey.FILE.value) for record in all_records],
-                    all_records,
-                )
-                if key and value.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) not in (None, "")
-            }
-            if custom_ready:
-                enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
-                    custom_ready,
-                    tool_key=TOOL_KEY,
-                )
-                for key, value in enriched.items():
-                    for record in all_records:
-                        if record.get(MetadataFieldKey.FILE.value) == key:
-                            for custom_key, custom_value in value.items():
-                                canonical_custom_key = MetadataFields.resolve_key(str(custom_key))
-                                record[canonical_custom_key] = custom_value
-                            break
-        except Exception as exc:
-            logger.warning(f"Falha ao calcular CUSTOM_FIELDS no enrich: {exc}")
+            deg = _part_to_float(parts[0])
+            minute = _part_to_float(parts[1])
+            sec = _part_to_float(parts[2])
+            dec = deg + (minute / 60.0) + (sec / 3600.0)
+            ref_txt = str(ref or "").strip().upper()
+            if ref_txt in ("S", "W"):
+                dec = -dec
+            return dec
+        except Exception:
+            return None
 
-        # Gerar JSON v2.0
-        json_data = JsonUtil.build(
-            records=all_records,
-            source="mrk+photo",
-            base_folder=base_folder,
-            tool_key=TOOL_KEY,
-            recursive=recursive
-        )
+    @staticmethod
+    def _to_float(value):
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        text = str(value).strip().replace("+", "")
+        if text in ("", "None", "null"):
+            return None
+        try:
+            return float(text)
+        except Exception:
+            return None
 
-        # Salvar JSON
-        dump_path = ExplorerUtils.create_temp_json(
-            json_data,
-            tool_key=TOOL_KEY,
-            prefix="DPM",
-            subfolder=os.path.join(
-                ExplorerUtils.REPORTS_TEMP_FOLDER,
-                ExplorerUtils.REPORTS_JSON_FOLDER,
-            ),
-            file_stem_hint=ExplorerUtils.build_report_json_stem(
-                base_folder=base_folder,
-                points_total=len(points),
-            ),
-        )
-        PhotoMetadata.LAST_JSON_DUMP_PATH = dump_path
-
-        logger.info(
-            "Enriquecimento concluido",
-            code="PHOTO_ENRICH_COMPLETE",
-            data={
-                "total_points": len(points),
-                "matched": total_found,
-                "not_found": total_missing,
-                "json_path": dump_path,
-            },
-        )
-
-        return dump_path  # Retornar caminho do JSON em vez de points
+    @staticmethod
+    def _safe_parse_datetime(value):
+        if not value:
+            return None
+        raw = str(value).strip()
+        if not raw:
+            return None
+        try:
+            return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except Exception:
+            pass
+        formats = [
+            "%Y:%m:%d %H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%S%z",
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+            "%Y%m%d%H%M",
+            "%Y%m%d",
+        ]
+        for fmt in formats:
+            try:
+                return datetime.strptime(str(raw), fmt)
+            except Exception:
+                pass
+        return None

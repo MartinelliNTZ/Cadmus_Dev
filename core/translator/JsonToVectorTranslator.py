@@ -238,17 +238,33 @@ class JsonToVectorTranslator:
 
     def _resolve_geometry(self, record: Dict, source: str) -> Optional[QgsPointXY]:
         """
-        Resolve coordenadas conforme source e CoordSource do registro.
+        Resolve coordenadas conforme fonte dos dados.
+        
+        Regras:
+        1. Se o registro tem CoordSource individual, usa ele como primary
+        2. Se não, usa o source global do pipeline
+        3. "mrk" → usa LAT/LON (coordenadas originais do MRK)
+        4. "mrk+photo" → usa GPS_LATITUDE/GPS_LONGITUDE (coordenadas enriquecidas das fotos)
+        5. "photo_only" → usa GPS_LATITUDE/GPS_LONGITUDE (coordenadas das fotos)
+        6. "XMP" ou "EXIF" → usa GPS_LATITUDE/GPS_LONGITUDE (cada foto individual)
         """
         try:
-            if source == "mrk":
+            # Tenta CoordSource individual no registro primeiro
+            coord_source = str(record.get(MetadataFieldKey.COORD_SOURCE.value, "")).strip().upper()
+            
+            if coord_source in ("MRK",):
                 lat = record.get(MetadataFieldKey.LAT.value)
                 lon = record.get(MetadataFieldKey.LON.value)
-            elif source in ["mrk+photo", "photo_only"]:
-                lat = record.get(MetadataFieldKey.GPS_LATITUDE.value)
-                lon = record.get(MetadataFieldKey.GPS_LONGITUDE.value)
+            elif coord_source in ("XMP", "EXIF", "NONE", ""):
+                # Usa source global como fallback
+                if source == "mrk":
+                    lat = record.get(MetadataFieldKey.LAT.value)
+                    lon = record.get(MetadataFieldKey.LON.value)
+                else:
+                    lat = record.get(MetadataFieldKey.GPS_LATITUDE.value)
+                    lon = record.get(MetadataFieldKey.GPS_LONGITUDE.value)
             else:
-                # Fallback: procurar qualquer campo de coordenada
+                # Fallback genérico
                 lat = record.get(MetadataFieldKey.GPS_LATITUDE.value) or record.get(MetadataFieldKey.LAT.value)
                 lon = record.get(MetadataFieldKey.GPS_LONGITUDE.value) or record.get(MetadataFieldKey.LON.value)
 

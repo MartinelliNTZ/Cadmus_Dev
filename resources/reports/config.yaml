@@ -177,6 +177,16 @@
       - "Movimento angular baixo"
       - "Movimento angular minimo"
 
+  yaw_alignment_error:
+    type: lower_better
+    levels: [30, 15, 10, 5, inf]
+    messages:
+      - "Yaw alignment error critico"
+      - "Yaw alignment error alto"
+      - "Yaw alignment error OK"
+      - "Yaw alignment error baixo"
+      - "Yaw alignment error minimo"
+
   trajectory_smoothness:
     type: lower_better
     levels: [100, 50, 20, 5, inf]
@@ -265,6 +275,18 @@
       - "Exposicao moderada (nublado)"
       - "Exposicao boa (luz solar normal)"
       - "Exposicao excelente (sol muito forte/neve)"
+
+  dewarp_flag:
+    type: categorical
+    mapping:
+      0: 5     # dewarp aplicado = excelente
+      1: 1     # sem dewarp = critico
+    messages:
+      - "Dewarp nao aplicado (critico)"
+      - "Dewarp ausente (indisponivel)"
+      - "Dewarp aplicado (aceitavel)"
+      - "Dewarp aplicado (bom)"
+      - "Dewarp aplicado (excelente)"
 
   light_source_classification:
     type: categorical

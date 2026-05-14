@@ -20,6 +20,7 @@ from ...core.enum.LightSourceEnum import LightSourceEnum
 from ..ToolKeys import ToolKey
 from ..report.RangeMetadataManager import range_metadata_manager
 from .MetadataFields import MetadataFields
+from .PqiUtil import PqiUtil
 
 DECIMAL_PLACES = 2
 
@@ -898,13 +899,9 @@ class CustomPhotosFieldsUtil:
             else 0.0
         )
 
-        photogrammetry_quality_index = min(
-            100,
-            ortho_potential
-            + (10 if motion_blur_risk < CustomPhotosFieldsUtil.BLUR_THRESHOLD else 0)
-            + (10 if yaw_alignment_error < 5 else 0)
-            + (10 if pred_overlap >= CustomPhotosFieldsUtil.IDEAL_OVERLAP else 0),
-        )
+        # PQI será calculado pelo PqiUtil no pós-processamento (calculate_all_custom_fields)
+        # Placeholder: valor temporário que será sobrescrito
+        photogrammetry_quality_index = 0.0
 
         return {
             MetadataFieldKey.RTK_EFFECTIVE_PRECISION.value: rtk_prec,
@@ -918,9 +915,7 @@ class CustomPhotosFieldsUtil:
             MetadataFieldKey.SPEED_VARIATION_INDEX.value: round(speed_variation_index, DECIMAL_PLACES),
             MetadataFieldKey.RTK_STABILITY_SCORE.value: round(rtk_stability_score, DECIMAL_PLACES),
             MetadataFieldKey.CAPTURE_EFFICIENCY.value: round(capture_efficiency, DECIMAL_PLACES),
-            MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX.value: round(
-                photogrammetry_quality_index, DECIMAL_PLACES
-            ),
+            MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX.value: 0.0,  # placeholder, atualizado no pós-processamento
         }
 
     @classmethod
@@ -1108,7 +1103,7 @@ class CustomPhotosFieldsUtil:
                 if speed_key in item and item[speed_key] is not None:
                     item[speed_key] = abs(CustomPhotosFieldsUtil.safe_float(item[speed_key], 0.0))
 
-        # Pós-processamento: classifica AbruptChangeFlag como texto usando RangeMetadataManager
+        # Pós-processamento: PQI via PqiUtil e classifica AbruptChangeFlag
         try:
             range_metadata_manager.load()
         except Exception:
@@ -1116,7 +1111,15 @@ class CustomPhotosFieldsUtil:
         median_time = statistics.median(prev_time_values) if prev_time_values else 0.0
         median_geo = statistics.median(prev_geo_values) if prev_geo_values else 0.0
         for filename, item in result.items():
-            # Calcula o maior ratio entre tempo e distância em relação à mediana
+            # 1. Calcula PQI via PqiUtil (score orquestrado por indicadores com pesos)
+            try:
+                pqi_score, pqi_details = PqiUtil.calculate(item, tool_key=tool_key)
+                item[MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX.value] = pqi_score
+            except Exception as exc:
+                logger.warning(f"Falha ao calcular PQI para {filename}: {exc}")
+                item[MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX.value] = 0.0
+
+            # 2. Classifica AbruptChangeFlag como texto
             time_ratio = 1.0
             geo_ratio = 1.0
             if median_time > 0:
@@ -1126,7 +1129,6 @@ class CustomPhotosFieldsUtil:
                 geo_val = item.get(MetadataFieldKey.GEODESIC_DISTANCE_PREVIOUS.value, 0.0)
                 geo_ratio = geo_val / median_geo if geo_val > 0 else 1.0
             abrupt_ratio = max(time_ratio, geo_ratio)
-            # Classifica o ratio conforme thresholds do config.yaml (texto)
             _, abrupt_label = range_metadata_manager.classify("abrupt_change_flag", abrupt_ratio)
             item[MetadataFieldKey.ABRUPT_CHANGE_FLAG.value] = abrupt_label
 

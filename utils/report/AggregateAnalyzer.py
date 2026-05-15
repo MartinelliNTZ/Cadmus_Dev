@@ -918,7 +918,7 @@ class AggregateAnalyzer:
             )
 
         # 2) Overlap critical rule (<60 in >30%).
-        overlap_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.PREDICTED_OVERLAP.value, 'predicted_overlap'])
+        overlap_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.PREDICTED_OVERLAP.value, MFK.F_OVERLAP.value, 'predicted_overlap', 'f_overlap'])
         overlap_below_ideal = [v for v in overlap_values if v < AggregateAnalyzer.IDEAL_OVERLAP_PCT]
         overlap_below_pct = (len(overlap_below_ideal) / len(overlap_values) * 100.0) if overlap_values else 0.0
         if overlap_values and overlap_below_pct > 30.0:
@@ -1070,7 +1070,7 @@ class AggregateAnalyzer:
         for sid, items in sorted(strip_buckets.items()):
             s_scores = [it.overall_score for it in items]
             s_overlap_vals = [
-                AggregateAnalyzer._first_numeric_from_result(it, [MFK.PREDICTED_OVERLAP.value, 'predicted_overlap'])
+                AggregateAnalyzer._first_numeric_from_result(it, [MFK.PREDICTED_OVERLAP.value, MFK.F_OVERLAP.value, 'predicted_overlap', 'f_overlap'])
                 for it in items
             ]
             s_overlap_vals = [v for v in s_overlap_vals if v is not None]

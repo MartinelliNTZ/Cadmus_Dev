@@ -134,6 +134,37 @@ class JsonUtil:
             raise
 
     @staticmethod
+    def update_timestamps(json_path: str, new_timestamps: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Carrega um JSON existente, mescla novos timestamps e salva de volta.
+
+        Args:
+            json_path: Caminho do arquivo JSON a ser atualizado
+            new_timestamps: Dict com os novos pares chave:timestamp a adicionar
+
+        Returns:
+            O dict completo do JSON (com timestamps atualizados)
+        """
+        from ..core.config.LogUtils import LogUtils
+        logger = LogUtils(tool="json_util", class_name="JsonUtil")
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+
+            existing = json_data.get("timestamps", {})
+            existing.update(new_timestamps)
+            json_data["timestamps"] = existing
+
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+            logger.debug(f"Timestamps atualizados no JSON: {list(new_timestamps.keys())}")
+            return json_data
+        except Exception as e:
+            logger.error(f"Erro ao atualizar timestamps em {json_path}: {e}")
+            raise
+
+    @staticmethod
     def load_records(json_path: str) -> List[Dict[str, Any]]:
         from ..core.config.LogUtils import LogUtils
         logger = LogUtils(tool="json_util", class_name="JsonUtil")

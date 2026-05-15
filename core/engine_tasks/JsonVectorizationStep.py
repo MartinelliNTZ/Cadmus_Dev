@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
+
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext
 from ..config.LogUtils import LogUtils
+from ...utils.JsonUtil import JsonUtil
 
 
 class JsonVectorizationStep(BaseStep):
@@ -26,6 +29,9 @@ class JsonVectorizationStep(BaseStep):
         json_path = context.get("json_path")
         if not json_path:
             raise ValueError("JsonVectorizationStep: json_path ausente no contexto")
+
+        # Registra inicio da vetorizacao
+        vectorization_start = datetime.now().isoformat()
 
         from ..translator.JsonToVectorTranslator import JsonToVectorTranslator
         from qgis.core import QgsProject
@@ -71,6 +77,20 @@ class JsonVectorizationStep(BaseStep):
         context.set("layer", layer)
         context.set("total_points", int(layer.featureCount()))
 
+        # Registra fim da vetorizacao e persiste timestamps no JSON
+        vectorization_end = datetime.now().isoformat()
+        try:
+            JsonUtil.update_timestamps(json_path, {
+                "vectorization_start": vectorization_start,
+                "vectorization_end": vectorization_end,
+            })
+            logger.debug(f"Timestamps de vetorizacao salvos no JSON: {json_path}")
+        except Exception as e:
+            logger.warning(f"Nao foi possivel salvar timestamps de vetorizacao no JSON: {e}")
+
+        context.set("vectorization_start", vectorization_start)
+        context.set("vectorization_end", vectorization_end)
+
         logger.info(
             "Camada vetorial criada a partir do JSON",
             data={
@@ -78,5 +98,6 @@ class JsonVectorizationStep(BaseStep):
                 "json_path": json_path,
                 "total_points": int(layer.featureCount()),
                 "source": source,
+                "vectorization_end": vectorization_end,
             },
         )

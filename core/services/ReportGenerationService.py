@@ -1,9 +1,11 @@
 ﻿# -*- coding: utf-8 -*-
+from datetime import datetime
 from typing import Dict, Any, List
 
 from ..config.LogUtils import LogUtils
 from ...utils.ExplorerUtils import ExplorerUtils
 from ...utils.ToolKeys import ToolKey
+from ...utils.JsonUtil import JsonUtil
 from ...utils.report.AggregateAnalyzer import AggregateAnalyzer
 from ...utils.report.IMGMetadata import IMGMetadata
 from ...utils.report.JSONUtil import JSONUtil
@@ -25,6 +27,9 @@ class ReportGenerationService:
     ) -> Dict[str, Any]:
         """Gera relatorio HTML e retorna metadados da execucao."""
         self.logger.info(f"Iniciando geracao de report a partir de: {json_path}")
+
+        # Registra inicio da geracao do relatorio
+        report_start = datetime.now().isoformat()
 
         range_metadata_manager.load(tool_key=self.tool_key)
         records = JSONUtil.load_records(json_path=json_path, tool_key=self.tool_key)
@@ -52,11 +57,24 @@ class ReportGenerationService:
         )
         engine.save_report(html, target_path)
 
+        # Registra fim da geracao do relatorio e persiste timestamps no JSON
+        report_end = datetime.now().isoformat()
+        try:
+            JsonUtil.update_timestamps(json_path, {
+                "report_start": report_start,
+                "report_end": report_end,
+            })
+            self.logger.debug(f"Timestamps de report salvos no JSON: {json_path}")
+        except Exception as e:
+            self.logger.warning(f"Nao foi possivel salvar timestamps de report no JSON: {e}")
+
         payload = {
             "json_path": json_path,
             "html_path": target_path,
             "total_records": len(records),
             "total_scored": len(results),
+            "report_start": report_start,
+            "report_end": report_end,
         }
         self.logger.info(f"Report gerado com sucesso: {payload}")
         return payload

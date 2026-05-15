@@ -478,115 +478,97 @@
         </details>
     </div>
 
-    <div class="card">
-        <details open>
-            <summary>⏱️ Processamento</summary>
-            {% set p = agg.processing %}
-            <table>
-                <tr><th>Pipeline</th><th>Inicio</th><th>Fim</th><th>Duracao Total</th></tr>
-                <tr>
-                    <td><strong>Pipeline Completo</strong></td>
-                    <td>{{ p.pipeline_start[:19] if p.pipeline_start else 'N/A' }}</td>
-                    <td>{{ p.pipeline_end[:19] if p.pipeline_end else 'N/A' }}</td>
-                    <td>
-                        <strong style="font-size: 18px; color: var(--l5);">
-                            {{ p.total_formatted }}
-                        </strong>
-                        {% if p.total_seconds is not none %}
-                            <br><span class="muted">({{ '%.2f'|format(p.total_seconds) }}s)</span>
-                        {% endif %}
-                    </td>
-                </tr>
-            </table>
-            <br>
-            <table>
-                <tr>
-                    <th>Etapa</th>
-                    <th>Inicio</th>
-                    <th>Fim</th>
-                    <th>Duracao</th>
-                </tr>
-                {% for stage in p.stages %}
-                <tr>
-                    <td>
-                        <strong>{{ stage.label }}</strong>
-                        {% if not stage.present %}
-                            <span class="status-warn">(ausente)</span>
-                        {% endif %}
-                    </td>
-                    <td class="muted">{{ stage.start[:19] if stage.start else '-' }}</td>
-                    <td class="muted">{{ stage.end[:19] if stage.end else '-' }}</td>
-                    <td>
-                        {% if stage.duration_seconds is not none %}
-                            <span style="color: var(--l5); font-weight: 700;">{{ stage.duration_formatted }}</span>
-                            <span class="muted">({{ '%.2f'|format(stage.duration_seconds) }}s)</span>
-                        {% else %}
-                            <span class="muted">N/A</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
-            {% if p.missing_stages %}
-            <br>
-            <p class="status-warn">Etapas nao registradas: {{ p.missing_stages | join(', ') }}</p>
-            {% endif %}
-            {% if p.all_present and p.stages %}
-            {% set max_sec = p.stages | map(attribute='duration_seconds') | reject('none') | max %}
-            {% if max_sec and max_sec > 0 %}
-            <br>
-            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
-                <span class="muted" style="font-size: 12px;">Linha do tempo proporcional:</span>
-                {% for stage in p.stages if stage.duration_seconds is not none %}
-                {% set pct = (stage.duration_seconds / max_sec * 100) %}
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="min-width: 90px; font-size: 12px;">{{ stage.label }}</span>
-                    <div style="flex: 1; height: 20px; background: var(--border); border-radius: 4px; overflow: hidden;">
-                        <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, var(--l4), var(--l5)); border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; min-width: 40px;">
-                            <span style="font-size: 10px; color: #111; font-weight: 700;">{{ stage.duration_formatted }}</span>
+    <div class="summary-grid">
+        <div class="card">
+            <details open>
+                <summary>⏱️ Processamento</summary>
+                {% set p = agg.processing %}
+                {% if p.total_seconds is not none %}
+                <table>
+                    <tr>
+                        <th>Inicio Pipeline</th>
+                        <th>Fim Pipeline</th>
+                        <th>Tempo Total</th>
+                    </tr>
+                    <tr>
+                        <td class="muted">{{ p.pipeline_start[:19] if p.pipeline_start else 'N/A' }}</td>
+                        <td class="muted">{{ p.pipeline_end[:19] if p.pipeline_end else 'N/A' }}</td>
+                        <td>
+                            <strong style="font-size: 18px; color: var(--l5);">{{ p.total_formatted }}</strong>
+                            <span class="muted" style="font-size:12px;">({{ '%.2f'|format(p.total_seconds) }}s)</span>
+                        </td>
+                    </tr>
+                </table>
+                {% endif %}
+
+                {% if p.stages %}
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                    <span class="muted" style="font-size: 12px;">Etapas:</span>
+                    {% set max_sec = p.stages | map(attribute='duration_seconds') | reject('none') | max %}
+                    {% for stage in p.stages %}
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="min-width: 90px; font-size: 12px;">
+                            {{ stage.label }}
+                            {% if not stage.present %}
+                            <span class="status-warn" style="font-size:10px;">(ausente)</span>
+                            {% endif %}
+                        </span>
+                        <div style="flex: 1; height: 22px; background: var(--border); border-radius: 4px; overflow: hidden;">
+                            {% if stage.duration_seconds is not none and max_sec and max_sec > 0 %}
+                            {% set pct = (stage.duration_seconds / max_sec * 100) %}
+                            <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, var(--l4), var(--l5)); border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; min-width: 50px; transition: width 0.3s ease;">
+                                <span style="font-size: 10px; color: #111; font-weight: 700;">{{ stage.duration_formatted }}</span>
+                            </div>
+                            {% else %}
+                            <div style="height: 100%; width: 0%;"></div>
+                            {% endif %}
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endif %}
-        </details>
-    </div>
+                {% endif %}
 
-    <div class="card">
-        <details open>
-            <summary>🌱 Insights Agronomicos</summary>
-            <table>
-                <tr><th>Insight</th><th>Valor</th></tr>
-                <tr><td>Area estimada coberta (ha)</td><td>{{ agg.advanced_analysis.metrics.estimated_area_ha if agg.advanced_analysis.metrics.estimated_area_ha is not none else 'N/A (coordenadas insuficientes)' }}</td></tr>
-                <tr><td>Inconsistencia de iluminacao (LightConsistency)</td><td>{{ agg.advanced_analysis.metrics.light_inconsistent_pct }}%</td></tr>
-                <tr>
-                    <td>Tipo de luz predominante</td>
-                    <td>
-                        {% if agg.advanced_analysis.metrics.light_source_predominant %}
-                            {{ agg.advanced_analysis.metrics.light_source_predominant }}
-                            ({{ agg.advanced_analysis.metrics.light_source_predominant_count }})
-                            {{ agg.advanced_analysis.metrics.light_source_predominant_pct }}%
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Classes de luz presentes</td>
-                    <td>
-                        {% if agg.advanced_analysis.metrics.light_source_classes %}
-                            {% for c in agg.advanced_analysis.metrics.light_source_classes %}
-                                {{ c.label_pt }} ({{ c.count }}) {{ c.pct }}%{% if not loop.last %}<br>{% endif %}
-                            {% endfor %}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-                </tr>
-            </table>
-        </details>
+                {% if p.missing_stages %}
+                <p class="status-warn" style="margin-top:8px; font-size:12px;">
+                    Etapas nao registradas: {{ p.missing_stages | join(', ') }}
+                </p>
+                {% endif %}
+            </details>
+        </div>
+        <div class="card">
+            <details open>
+                <summary>🌱 Insights Agronomicos</summary>
+                <table>
+                    <tr><th>Insight</th><th>Valor</th></tr>
+                    <tr><td>Area estimada coberta (ha)</td><td>{{ agg.advanced_analysis.metrics.estimated_area_ha if agg.advanced_analysis.metrics.estimated_area_ha is not none else 'N/A (coordenadas insuficientes)' }}</td></tr>
+                    <tr><td>Inconsistencia de iluminacao (LightConsistency)</td><td>{{ agg.advanced_analysis.metrics.light_inconsistent_pct }}%</td></tr>
+                    <tr>
+                        <td>Tipo de luz predominante</td>
+                        <td>
+                            {% if agg.advanced_analysis.metrics.light_source_predominant %}
+                                {{ agg.advanced_analysis.metrics.light_source_predominant }}
+                                ({{ agg.advanced_analysis.metrics.light_source_predominant_count }})
+                                {{ agg.advanced_analysis.metrics.light_source_predominant_pct }}%
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Classes de luz presentes</td>
+                        <td>
+                            {% if agg.advanced_analysis.metrics.light_source_classes %}
+                                {% for c in agg.advanced_analysis.metrics.light_source_classes %}
+                                    {{ c.label_pt }} ({{ c.count }}) {{ c.pct }}%{% if not loop.last %}<br>{% endif %}
+                                {% endfor %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </details>
+        </div>
     </div>
 
     <div class="card">

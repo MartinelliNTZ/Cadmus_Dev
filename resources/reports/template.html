@@ -68,7 +68,7 @@
             margin-bottom: 12px;
         }
         .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-        .summary-grid { display: grid; gap: 16px; grid-template-columns: 1.2fr 1.2fr 1fr 1fr; align-items: stretch; }
+        .summary-grid { display: grid; gap: 16px; grid-template-columns: 1.2fr 1.2fr 1fr; align-items: stretch; }
         .half-grid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-items: stretch; }
         .report-header {
             display: flex;
@@ -116,6 +116,7 @@
         .stars { font-size: 22px; letter-spacing: 2px; }
         .chart-wrap { min-height: 220px; }
         #levelChart { max-height: 180px; }
+        #map { height: 800px !important; border-radius: 8px; }
         .dist-stack {
             display: flex;
             width: 100%;
@@ -213,11 +214,12 @@
         @media (max-width: 900px) {
             body { padding: 12px; }
             th, td { font-size: 12px; }
-            .summary-grid { grid-template-columns: 1fr; }
+            .summary-grid, .half-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body data-theme="dark">
+    <!-- TITULO -->
     <div class="card">
         <div class="report-header">
             <div class="report-title">
@@ -242,57 +244,27 @@
         </div>
     </div>
 
+    <!-- GERAL | METRICAS | INSIGHTS AGRO -->
     <div class="summary-grid">
         <div class="card">
             <details open>
-                <summary>Informacoes Gerais</summary>
+                <summary>GERAL</summary>
                 <table>
-                    <tr>
-                        <th>Modelo do drone</th>
-                        <td>{{ agg.general_info.equipment_models | join(', ') if agg.general_info.equipment_models else 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Numero de serie do drone</th>
-                        <td>{{ agg.general_info.equipment_serial_numbers | join(', ') if agg.general_info.equipment_serial_numbers else 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Modelo da camera</th>
-                        <td>{{ agg.general_info.camera_models | join(', ') if agg.general_info.camera_models else 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Numero de serie da camera</th>
-                        <td>{{ agg.general_info.camera_serial_numbers | join(', ') if agg.general_info.camera_serial_numbers else 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Versao do firmware</th>
-                        <td>{{ agg.general_info.firmware_versions | join(', ') if agg.general_info.firmware_versions else 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Data de inicio</th>
-                        <td>{{ agg.general_info.capture_start }}</td>
-                    </tr>
-                    <tr>
-                        <th>Data de termino</th>
-                        <td>{{ agg.general_info.capture_end }}</td>
-                    </tr>
-                    <tr>
-                        <th>Tempo total de voo</th>
-                        <td>{{ agg.general_info.total_flight_time }}</td>
-                    </tr>
-                    <tr>
-                        <th>Numero de voos</th>
-                        <td>{{ agg.general_info.total_flights }}</td>
-                    </tr>
-                    <tr>
-                        <th>Ultimo disparo por camera</th>
-                        <td>
-                            {% if agg.general_info.last_shutter_per_camera %}
+                    <tr><th>Modelo do drone</th><td>{{ agg.general_info.equipment_models | join(', ') if agg.general_info.equipment_models else 'N/A' }}</td></tr>
+                    <tr><th>Numero de serie do drone</th><td>{{ agg.general_info.equipment_serial_numbers | join(', ') if agg.general_info.equipment_serial_numbers else 'N/A' }}</td></tr>
+                    <tr><th>Modelo da camera</th><td>{{ agg.general_info.camera_models | join(', ') if agg.general_info.camera_models else 'N/A' }}</td></tr>
+                    <tr><th>Numero de serie da camera</th><td>{{ agg.general_info.camera_serial_numbers | join(', ') if agg.general_info.camera_serial_numbers else 'N/A' }}</td></tr>
+                    <tr><th>Versao do firmware</th><td>{{ agg.general_info.firmware_versions | join(', ') if agg.general_info.firmware_versions else 'N/A' }}</td></tr>
+                    <tr><th>Data de inicio</th><td>{{ agg.general_info.capture_start }}</td></tr>
+                    <tr><th>Data de termino</th><td>{{ agg.general_info.capture_end }}</td></tr>
+                    <tr><th>Tempo total de voo</th><td>{{ agg.general_info.total_flight_time }}</td></tr>
+                    <tr><th>Numero de voos</th><td>{{ agg.general_info.total_flights }}</td></tr>
+                    <tr><th>Ultimo disparo por camera</th>
+                        <td>{% if agg.general_info.last_shutter_per_camera %}
                                 {% for item in agg.general_info.last_shutter_per_camera %}
                                     {{ item.camera_serial }}: {{ item.last_shutter_count }}{% if not loop.last %}<br>{% endif %}
                                 {% endfor %}
-                            {% else %}
-                                -
-                            {% endif %}
+                            {% else %} - {% endif %}
                         </td>
                     </tr>
                 </table>
@@ -300,158 +272,76 @@
         </div>
         <div class="card">
             <details open>
-                <summary>📊 Metricas Avancadas</summary>
+                <summary>METRICAS</summary>
                 <table>
-                    <tr>
-                    <th>GSD medio</th>
-                        <td>
-                            {% if per_indicator.get('gsd_cm') and per_indicator['gsd_cm'].get('value_mean') is not none %}
-                                {{ '%.2f'|format(per_indicator['gsd_cm']['value_mean']) }} cm
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Idade do sinal RTK (media / max / p95)</th>
-                        <td>
-                            {% set rtk_mean = agg.advanced_analysis.metrics.rtk_diff_age_mean %}
+                    <tr><th>GSD medio</th><td>{% if per_indicator.get('gsd_cm') and per_indicator['gsd_cm'].get('value_mean') is not none %}{{ '%.2f'|format(per_indicator['gsd_cm']['value_mean']) }} cm{% else %}-{% endif %}</td></tr>
+                    <tr><th>Idade do sinal RTK (media / max / p95)</th>
+                        <td>{% set rtk_mean = agg.advanced_analysis.metrics.rtk_diff_age_mean %}
                             {% set rtk_max = agg.advanced_analysis.metrics.rtk_diff_age_max %}
                             {% set rtk_p95 = agg.advanced_analysis.metrics.rtk_diff_age_p95 %}
-                            {% if rtk_mean is not none %}
-                                {{ '%.2f'|format(rtk_mean) }}
-                            {% else %}
-                                -
-                            {% endif %}
-                            s /
-                            {% if rtk_max is not none %}
-                                {{ '%.2f'|format(rtk_max) }}
-                            {% else %}
-                                -
-                            {% endif %}
-                            s /
-                            {% if rtk_p95 is not none %}
-                                {{ '%.2f'|format(rtk_p95) }}
-                            {% else %}
-                                -
-                            {% endif %}
-                            s
-                        </td>
+                            {% if rtk_mean is not none %}{{ '%.2f'|format(rtk_mean) }}{% else %}-{% endif %}s /
+                            {% if rtk_max is not none %}{{ '%.2f'|format(rtk_max) }}{% else %}-{% endif %}s /
+                            {% if rtk_p95 is not none %}{{ '%.2f'|format(rtk_p95) }}{% else %}-{% endif %}s</td>
                     </tr>
-                    <tr>
-                        <th>Estabilidade do sinal RTK</th>
-                        <td>
-                            {{ agg.advanced_analysis.metrics.rtk_stability_class if agg.advanced_analysis.metrics.rtk_stability_class is not none else '-' }}
-                            {% if agg.advanced_analysis.metrics.rtk_stability_mean is not none %}
-                                (media {{ '%.2f'|format(agg.advanced_analysis.metrics.rtk_stability_mean) }}%)
-                            {% endif %}
-                        </td>
+                    <tr><th>Estabilidade do sinal RTK</th>
+                        <td>{{ agg.advanced_analysis.metrics.rtk_stability_class if agg.advanced_analysis.metrics.rtk_stability_class is not none else '-' }}
+                            {% if agg.advanced_analysis.metrics.rtk_stability_mean is not none %}(media {{ '%.2f'|format(agg.advanced_analysis.metrics.rtk_stability_mean) }}%){% endif %}</td>
                     </tr>
-                    <tr>
-                        <th>Altura de voo media</th>
-                        <td>
-                            {% if agg.per_flight and agg.per_flight[0].avg_relative_altitude is not none %}
-                                {{ '%.2f'|format(agg.per_flight[0].avg_relative_altitude) }} m
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
+                    <tr><th>Altura de voo media</th>
+                        <td>{% if agg.per_flight and agg.per_flight[0].avg_relative_altitude is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_relative_altitude) }} m{% else %}-{% endif %}</td>
                     </tr>
-                    <tr>
-                        <th>Altitude do solo media</th>
-                        <td>
-                            {% if agg.per_flight and agg.per_flight[0].avg_absolute_altitude is not none and agg.per_flight[0].avg_relative_altitude is not none %}
+                    <tr><th>Altitude do solo media</th>
+                        <td>{% if agg.per_flight and agg.per_flight[0].avg_absolute_altitude is not none and agg.per_flight[0].avg_relative_altitude is not none %}
                                 {% set solo = agg.per_flight[0].avg_absolute_altitude - agg.per_flight[0].avg_relative_altitude %}
-                                {{ '%.2f'|format(solo) }} m
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
+                                {{ '%.2f'|format(solo) }} m{% else %}-{% endif %}</td>
                     </tr>
-                    <tr>
-                        <th>Desalinhamento do gimbal (media / desvio / max)</th>
-                        <td>
-                            {% if agg.advanced_analysis.metrics.gimbal_offset_mean is not none %}
-                                {{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_mean) }}°
-                            {% else %}
-                                -
-                            {% endif %}
-                            /
-                            {% if agg.advanced_analysis.metrics.gimbal_offset_std is not none %}
-                                {{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_std) }}°
-                            {% else %}
-                                -
-                            {% endif %}
-                            /
-                            {% if agg.advanced_analysis.metrics.gimbal_offset_max is not none %}
-                                {{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_max) }}°
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
+                    <tr><th>Desalinhamento do gimbal (media / desvio / max)</th>
+                        <td>{% if agg.advanced_analysis.metrics.gimbal_offset_mean is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_mean) }}°{% else %}-{% endif %} /
+                            {% if agg.advanced_analysis.metrics.gimbal_offset_std is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_std) }}°{% else %}-{% endif %} /
+                            {% if agg.advanced_analysis.metrics.gimbal_offset_max is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_max) }}°{% else %}-{% endif %}</td>
                     </tr>
-                    <tr>
-                        <th>Direcao de voo inconsistente</th>
-                        <td>{{ agg.advanced_analysis.metrics.yaw_inconsistent_pct if agg.advanced_analysis.metrics.yaw_inconsistent_pct is not none else '-' }}%</td>
-                    </tr>
-                    <tr>
-                        <th>Sobreposicao frontal abaixo de 60%</th>
-                        <td>
-                            {% if agg.advanced_analysis.metrics.overlap_below_ideal_pct is not none %}
-                                {{ '%.2f'|format(agg.advanced_analysis.metrics.overlap_below_ideal_pct) }}%
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Sobreposicao frontal media</th>
-                        <td>
-                            {% if agg.advanced_analysis.metrics.overlap_mean is not none %}
-                                {{ '%.2f'|format(agg.advanced_analysis.metrics.overlap_mean) }} %
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Velocidade media</th>
-                        <td>
-                            {% if agg.advanced_analysis.metrics.speed_ms_mean is not none %}
-                                {{ '%.2f'|format(agg.advanced_analysis.metrics.speed_ms_mean) }} m/s
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
+                    <tr><th>Direcao de voo inconsistente</th><td>{{ agg.advanced_analysis.metrics.yaw_inconsistent_pct if agg.advanced_analysis.metrics.yaw_inconsistent_pct is not none else '-' }}%</td></tr>
+                    <tr><th>Sobreposicao frontal abaixo de 60%</th><td>{% if agg.advanced_analysis.metrics.overlap_below_ideal_pct is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.overlap_below_ideal_pct) }}%{% else %}-{% endif %}</td></tr>
+                    <tr><th>Sobreposicao frontal media</th><td>{% if agg.advanced_analysis.metrics.overlap_mean is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.overlap_mean) }} %{% else %}-{% endif %}</td></tr>
+                    <tr><th>Velocidade media</th><td>{% if agg.advanced_analysis.metrics.speed_ms_mean is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.speed_ms_mean) }} m/s{% else %}-{% endif %}</td></tr>
                 </table>
-            </details>
-        </div>
-        <div class="card chart-wrap">
-            <details open>
-                <summary>Distribuicao de Niveis (%)</summary>
-                <canvas id="levelChart"></canvas>
             </details>
         </div>
         <div class="card">
             <details open>
-                <summary>Mapa</summary>
-                {{ map_snippet | safe }}
+                <summary>INSIGHTS AGRO</summary>
+                <table>
+                    <tr><th>Area estimada coberta (ha)</th><td>{{ agg.advanced_analysis.metrics.estimated_area_ha if agg.advanced_analysis.metrics.estimated_area_ha is not none else 'N/A' }}</td></tr>
+                    <tr><th>Inconsistencia de iluminacao</th><td>{{ agg.advanced_analysis.metrics.light_inconsistent_pct }}%</td></tr>
+                    <tr><th>Tipo de luz predominante</th>
+                        <td>{% if agg.advanced_analysis.metrics.light_source_predominant %}
+                                {{ agg.advanced_analysis.metrics.light_source_predominant }}
+                                ({{ agg.advanced_analysis.metrics.light_source_predominant_pct }}%)
+                            {% else %}N/A{% endif %}</td>
+                    </tr>
+                    <tr><th>Classes de luz presentes</th>
+                        <td>{% if agg.advanced_analysis.metrics.light_source_classes %}
+                                {% for c in agg.advanced_analysis.metrics.light_source_classes %}
+                                    {{ c.label_pt }} ({{ c.count }}) {{ c.pct }}%{% if not loop.last %}<br>{% endif %}
+                                {% endfor %}
+                            {% else %}N/A{% endif %}</td>
+                    </tr>
+                </table>
             </details>
         </div>
     </div>
 
+    <!-- ALERTAS CRITICOS -->
     <div class="card">
         <details open>
-            <summary>⚠️ Alertas Criticos</summary>
+            <summary>ALERTAS CRITICOS</summary>
             <table>
                 <tr><th>Severidade</th><th>Titulo</th><th>Detalhe</th><th>Impacto</th><th>Acao</th></tr>
                 <tr>
                     <td class="{{ 'sev-critical' if agg.general_info.dewarp_status_type == 'critical' else ('sev-alerta' if agg.general_info.dewarp_status_type == 'warn' else 'sev-info') }}">
                         {{ 'CRITICO' if agg.general_info.dewarp_status_type == 'critical' else ('ALERTA' if agg.general_info.dewarp_status_type == 'warn' else 'INFO') }}
                     </td>
-                    <td>Dewarp</td>
-                    <td>{{ agg.general_info.dewarp_status_message }}</td>
+                    <td>Dewarp</td><td>{{ agg.general_info.dewarp_status_message }}</td>
                     <td>Impacta diretamente geometrias e qualidade radiométrica da reconstrução.</td>
                     <td>Garantir dewarping habilitado em 100% da missão.</td>
                 </tr>
@@ -459,8 +349,7 @@
                     <td class="{{ 'sev-alerta' if agg.general_info.altitude_status_type == 'warn' else 'sev-info' }}">
                         {{ 'ALERTA' if agg.general_info.altitude_status_type == 'warn' else 'INFO' }}
                     </td>
-                    <td>Altitude incompleta</td>
-                    <td>{{ agg.general_info.altitude_status_message }}</td>
+                    <td>Altitude incompleta</td><td>{{ agg.general_info.altitude_status_message }}</td>
                     <td>Afeta consistência altimétrica, GSD e sobreposição prevista.</td>
                     <td>Corrigir captura de Alt (MRK) e AbsoluteAltitude antes do processamento.</td>
                 </tr>
@@ -468,10 +357,7 @@
                 {% for a in agg.advanced_analysis.critical_alerts %}
                 <tr>
                     <td class="{{ 'sev-critical' if a.severity == 'CRITICO' else ('sev-alerta' if a.severity == 'ALERTA' else 'sev-info') }}">{{ a.severity }}</td>
-                    <td>{{ a.title }}</td>
-                    <td>{{ a.detail }}</td>
-                    <td>{{ a.impact }}</td>
-                    <td>{{ a.action }}</td>
+                    <td>{{ a.title }}</td><td>{{ a.detail }}</td><td>{{ a.impact }}</td><td>{{ a.action }}</td>
                 </tr>
                 {% endfor %}
                 {% endif %}
@@ -479,131 +365,72 @@
         </details>
     </div>
 
+    <!-- PROCESSAMENTO | NIVEIS -->
     <div class="half-grid">
         <div class="card">
             <details open>
-                <summary>⏱️ Processamento</summary>
+                <summary>PROCESSAMENTO</summary>
                 {% set p = agg.processing %}
                 {% if p.total_seconds is not none %}
                 <table>
+                    <tr><th>Inicio</th><th>Fim</th><th>Total</th></tr>
                     <tr>
-                        <th>Inicio Pipeline</th>
-                        <th>Fim Pipeline</th>
-                        <th>Tempo Total</th>
-                    </tr>
-                    <tr>
-                        <td class="muted">{{ p.pipeline_start[:19] if p.pipeline_start else 'N/A' }}</td>
-                        <td class="muted">{{ p.pipeline_end[:19] if p.pipeline_end else 'N/A' }}</td>
-                        <td>
-                            <strong style="font-size: 18px; color: var(--l5);">{{ p.total_formatted }}</strong>
-                            <span class="muted" style="font-size:12px;">({{ '%.2f'|format(p.total_seconds) }}s)</span>
-                        </td>
+                        <td class="muted" style="font-size:12px;">{{ p.pipeline_start[:19] if p.pipeline_start else 'N/A' }}</td>
+                        <td class="muted" style="font-size:12px;">{{ p.pipeline_end[:19] if p.pipeline_end else 'N/A' }}</td>
+                        <td><strong style="font-size: 18px; color: var(--l5);">{{ p.total_formatted }}</strong><br><span class="muted" style="font-size:11px;">({{ '%.2f'|format(p.total_seconds) }}s)</span></td>
                     </tr>
                 </table>
                 {% endif %}
-
                 {% if p.stages %}
                 <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
-                    <span class="muted" style="font-size: 12px;">Etapas:</span>
                     {% set max_sec = p.stages | map(attribute='duration_seconds') | reject('none') | max %}
                     {% set total_sec = p.total_seconds %}
                     {% for stage in p.stages %}
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="min-width: 90px; font-size: 12px;">
-                            {{ stage.label }}
-                            {% if not stage.present %}
-                            <span class="status-warn" style="font-size:10px;">(ausente)</span>
-                            {% endif %}
+                            {{ stage.label }}{% if not stage.present %}<span class="status-warn" style="font-size:9px;"> (x)</span>{% endif %}
                         </span>
                         <div style="flex: 1; height: 22px; background: var(--border); border-radius: 4px; overflow: hidden;">
                             {% if stage.duration_seconds is not none and max_sec and max_sec > 0 %}
                             {% set pct = (stage.duration_seconds / max_sec * 100) %}
                             {% set pct_total = (stage.duration_seconds / total_sec * 100) if total_sec and total_sec > 0 else 0 %}
-                            <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, var(--l4), var(--l5)); border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; min-width: 50px; transition: width 0.3s ease;">
+                            <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, var(--l4), var(--l5)); border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; min-width: 50px;">
                                 <span style="font-size: 10px; color: #111; font-weight: 700;">{{ stage.duration_formatted }} ({{ '%.0f'|format(pct_total) }}%)</span>
                             </div>
-                            {% else %}
-                            <div style="height: 100%; width: 0%;"></div>
                             {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                 </div>
                 {% endif %}
-
                 {% if p.missing_stages %}
-                <p class="status-warn" style="margin-top:8px; font-size:12px;">
-                    Etapas nao registradas: {{ p.missing_stages | join(', ') }}
-                </p>
+                <p class="status-warn" style="margin-top:8px;">Ausentes: {{ p.missing_stages | join(', ') }}</p>
                 {% endif %}
             </details>
         </div>
-        <div class="card">
+        <div class="card chart-wrap">
             <details open>
-                <summary>🌱 Insights Agronomicos</summary>
-                <table>
-                    <tr><th>Insight</th><th>Valor</th></tr>
-                    <tr><td>Area estimada coberta (ha)</td><td>{{ agg.advanced_analysis.metrics.estimated_area_ha if agg.advanced_analysis.metrics.estimated_area_ha is not none else 'N/A (coordenadas insuficientes)' }}</td></tr>
-                    <tr><td>Inconsistencia de iluminacao (LightConsistency)</td><td>{{ agg.advanced_analysis.metrics.light_inconsistent_pct }}%</td></tr>
-                    <tr>
-                        <td>Tipo de luz predominante</td>
-                        <td>
-                            {% if agg.advanced_analysis.metrics.light_source_predominant %}
-                                {{ agg.advanced_analysis.metrics.light_source_predominant }}
-                                ({{ agg.advanced_analysis.metrics.light_source_predominant_count }})
-                                {{ agg.advanced_analysis.metrics.light_source_predominant_pct }}%
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Classes de luz presentes</td>
-                        <td>
-                            {% if agg.advanced_analysis.metrics.light_source_classes %}
-                                {% for c in agg.advanced_analysis.metrics.light_source_classes %}
-                                    {{ c.label_pt }} ({{ c.count }}) {{ c.pct }}%{% if not loop.last %}<br>{% endif %}
-                                {% endfor %}
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        </td>
-                    </tr>
-                </table>
+                <summary>NIVEIS</summary>
+                <canvas id="levelChart"></canvas>
             </details>
         </div>
     </div>
 
+    <!-- AGRUPAMENTO POR VOO -->
     <div class="card">
         <details open>
-            <summary>✅ Recomendacoes</summary>
-            <ol>
-                {% for rec in agg.advanced_analysis.recommendations %}
-                <li>{{ rec }}</li>
-                {% endfor %}
-            </ol>
-        </details>
-    </div>
-
-    <div class="card">
-        <details open>
-            <summary>Agrupamento por Voo</summary>
+            <summary>AGRUPAMENTO POR VOO</summary>
             <table>
             <tr>
-                <th>Voo</th>
-                <th>Imagens</th>
-                <th>Score Medio</th>
-                <th>Inicio do voo</th>
-                <th>Fim do voo</th>
-                <th>Tempo de voo</th>
-                {% if agg.show_column_speed3d_kmh %}<th>Velocidade media (km/h)</th>{% endif %}
-                {% if agg.show_column_sensor_temp %}<th>SensorTemperature media (°C)</th>{% endif %}
-                {% if agg.show_column_lrf %}<th>LRFTargetDistance media (m)</th>{% endif %}
-                {% if agg.show_column_rel_alt %}<th title="Altura media do voo sobre o ponto de decolagem.">Altitude Relativa Media (m)</th>{% endif %}
-                {% if agg.show_column_abs_alt %}<th title="Altitude MSL (nivel medio do mar).">Altitude Absoluta Media (m)</th>{% endif %}
-                {% if agg.show_column_iso %}<th title="ISO medio das capturas do voo.">ISO Medio</th>{% endif %}
-                {% if agg.show_column_shutter %}<th title="Tempo medio do obturador e faixa observada no voo.">Velocidade do Obturador (media)</th>{% endif %}
-                {% if agg.show_column_wb_cct %}<th title="Temperatura de cor media (Kelvin).">WhiteBalanceCCT Medio</th>{% endif %}
+                <th>Voo</th><th>Imagens</th><th>Score Medio</th><th>Inicio</th><th>Fim</th><th>Tempo</th>
+                {% if agg.show_column_speed3d_kmh %}<th>Vel. media (km/h)</th>{% endif %}
+                {% if agg.show_column_sensor_temp %}<th>SensorTemp media</th>{% endif %}
+                {% if agg.show_column_lrf %}<th>LRF Dist. media (m)</th>{% endif %}
+                {% if agg.show_column_rel_alt %}<th>Alt. Relativa media (m)</th>{% endif %}
+                {% if agg.show_column_abs_alt %}<th>Alt. Absoluta media (m)</th>{% endif %}
+                {% if agg.show_column_iso %}<th>ISO Medio</th>{% endif %}
+                {% if agg.show_column_shutter %}<th>Obturador medio</th>{% endif %}
+                {% if agg.show_column_wb_cct %}<th>WBCCT Medio</th>{% endif %}
                 {% for col in agg.flight_level5_columns %}
                 {% if agg['show_column_level5_' ~ col.key] %}<th>{{ col.label }}</th>{% endif %}
                 {% endfor %}
@@ -614,90 +441,18 @@
                 <td>{{ f['images'] }}</td>
                 {% set flight_level = f['mean_score']|round(0)|int %}
                 <td class="{{ ('level-' ~ flight_level) if (flight_level >= 1 and flight_level <= 5) else 'level-na' }}">{{ f['mean_score'] }}</td>
-                <td>{{ f['start'] }}</td>
-                <td>{{ f['end'] }}</td>
-                <td>{{ f['flight_time'] }}</td>
-                {% if agg.show_column_speed3d_kmh %}
-                <td>
-                    {% if f['avg_speed3d_kmh'] is not none %}
-                        {{ '%.2f'|format(f['avg_speed3d_kmh']) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endif %}
-                {% if agg.show_column_sensor_temp %}
-                <td>
-                    {% if f['avg_sensor_temperature'] is not none %}
-                        {{ '%.2f'|format(f['avg_sensor_temperature']) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endif %}
-                {% if agg.show_column_lrf %}
-                <td>
-                    {% if f['avg_lrf_target_distance'] is not none %}
-                        {{ '%.2f'|format(f['avg_lrf_target_distance']) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endif %}
-                {% if agg.show_column_rel_alt %}
-                <td>
-                    {% if f['avg_relative_altitude'] is not none %}
-                        {{ '%.2f'|format(f['avg_relative_altitude']) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endif %}
-                {% if agg.show_column_abs_alt %}
-                <td>
-                    {% if f['avg_absolute_altitude'] is not none %}
-                        {{ '%.2f'|format(f['avg_absolute_altitude']) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endif %}
-                {% if agg.show_column_iso %}
-                <td>
-                    {% if f['avg_iso'] is not none %}
-                        {{ '%.0f'|format(f['avg_iso']) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endif %}
-                {% if agg.show_column_shutter %}
-                <td>
-                    {% if f['avg_shutter_speed_text'] and f['avg_shutter_speed_text'] != 'N/A' %}
-                        {{ f['avg_shutter_speed_text'] }} ({{ f['shutter_speed_range_text'] }})
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endif %}
-                {% if agg.show_column_wb_cct %}
-                <td>
-                    {% if f['avg_white_balance_cct'] is not none %}
-                        {{ '%.0f'|format(f['avg_white_balance_cct']) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                {% endif %}
+                <td>{{ f['start'] }}</td><td>{{ f['end'] }}</td><td>{{ f['flight_time'] }}</td>
+                {% if agg.show_column_speed3d_kmh %}<td>{% if f['avg_speed3d_kmh'] is not none %}{{ '%.2f'|format(f['avg_speed3d_kmh']) }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_sensor_temp %}<td>{% if f['avg_sensor_temperature'] is not none %}{{ '%.2f'|format(f['avg_sensor_temperature']) }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_lrf %}<td>{% if f['avg_lrf_target_distance'] is not none %}{{ '%.2f'|format(f['avg_lrf_target_distance']) }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_rel_alt %}<td>{% if f['avg_relative_altitude'] is not none %}{{ '%.2f'|format(f['avg_relative_altitude']) }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_abs_alt %}<td>{% if f['avg_absolute_altitude'] is not none %}{{ '%.2f'|format(f['avg_absolute_altitude']) }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_iso %}<td>{% if f['avg_iso'] is not none %}{{ '%.0f'|format(f['avg_iso']) }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_shutter %}<td>{% if f['avg_shutter_speed_text'] and f['avg_shutter_speed_text'] != 'N/A' %}{{ f['avg_shutter_speed_text'] }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_wb_cct %}<td>{% if f['avg_white_balance_cct'] is not none %}{{ '%.0f'|format(f['avg_white_balance_cct']) }}{% else %}-{% endif %}</td>{% endif %}
                 {% for col in agg.flight_level5_columns %}
                 {% if agg['show_column_level5_' ~ col.key] %}
-                <td>
-                    {% if f['level5_means'].get(col.key) is not none %}
-                        {{ '%.2f'|format(f['level5_means'].get(col.key)) }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
+                <td>{% if f['level5_means'].get(col.key) is not none %}{{ '%.2f'|format(f['level5_means'].get(col.key)) }}{% else %}-{% endif %}</td>
                 {% endif %}
                 {% endfor %}
             </tr>
@@ -706,9 +461,10 @@
         </details>
     </div>
 
+    <!-- AGREGADOS -->
     <div class="card">
         <details open>
-            <summary>Agregados por Indicador</summary>
+            <summary>AGREGADOS</summary>
             <div class="dist-legend">
                 <span class="legend-item"><span class="legend-dot l1"></span>N1</span>
                 <span class="legend-item"><span class="legend-dot l2"></span>N2</span>
@@ -719,21 +475,11 @@
             </div>
             <table>
             <tr>
-                <th>Indicador</th>
-                <th>Score</th>
-                <th>Media</th>
-                <th>Desvio Padrao</th>
-                <th>Maxima</th>
-                <th>Minima</th>
-                <th>Range</th>
-                <th>Distribuicao</th>
+                <th>Indicador</th><th>Score</th><th>Media</th><th>Desvio Padrao</th><th>Maxima</th><th>Minima</th><th>Range</th><th>Distribuicao</th>
             </tr>
             {% for ind, stat in per_indicator.items() %}
             <tr>
-                <td title="{{ stat.description }}">
-                    {{ stat.label }}
-                    <span class="rule-badge">{{ stat.threshold_type }}</span>
-                </td>
+                <td title="{{ stat.description }}">{{ stat.label }}<span class="rule-badge">{{ stat.threshold_type }}</span></td>
                 {% set stat_level = stat.mean|round(0)|int %}
                 <td class="{{ ('level-' ~ stat_level) if (stat_level >= 1 and stat_level <= 5) else 'level-na' }}">{{ stat.mean }}</td>
                 <td>{{ stat.value_mean if stat.value_mean is not none else '-' }}</td>
@@ -749,21 +495,11 @@
                     {% set d5 = stat.dist.get(5, 0) %}
                     {% set total = d1 + d2 + d3 + d4 + d5 %}
                     <div class="dist-stack">
-                        {% if d1 > 0 and total > 0 %}
-                        <div class="dist-bar l1" title="N1 | {{ stat.level_ranges.get('1', '-') }}" style="flex: {{ d1 }}">N1 {{ d1 }} ({{ ((d1 / total) * 100)|round(0)|int }}%)</div>
-                        {% endif %}
-                        {% if d2 > 0 and total > 0 %}
-                        <div class="dist-bar l2" title="N2 | {{ stat.level_ranges.get('2', '-') }}" style="flex: {{ d2 }}">N2 {{ d2 }} ({{ ((d2 / total) * 100)|round(0)|int }}%)</div>
-                        {% endif %}
-                        {% if d3 > 0 and total > 0 %}
-                        <div class="dist-bar l3" title="N3 | {{ stat.level_ranges.get('3', '-') }}" style="flex: {{ d3 }}">N3 {{ d3 }} ({{ ((d3 / total) * 100)|round(0)|int }}%)</div>
-                        {% endif %}
-                        {% if d4 > 0 and total > 0 %}
-                        <div class="dist-bar l4" title="N4 | {{ stat.level_ranges.get('4', '-') }}" style="flex: {{ d4 }}">N4 {{ d4 }} ({{ ((d4 / total) * 100)|round(0)|int }}%)</div>
-                        {% endif %}
-                        {% if d5 > 0 and total > 0 %}
-                        <div class="dist-bar l5" title="N5 | {{ stat.level_ranges.get('5', '-') }}" style="flex: {{ d5 }}">N5 {{ d5 }} ({{ ((d5 / total) * 100)|round(0)|int }}%)</div>
-                        {% endif %}
+                        {% if d1 > 0 and total > 0 %}<div class="dist-bar l1" title="N1 | {{ stat.level_ranges.get('1', '-') }}" style="flex: {{ d1 }}">N1 {{ d1 }} ({{ ((d1 / total) * 100)|round(0)|int }}%)</div>{% endif %}
+                        {% if d2 > 0 and total > 0 %}<div class="dist-bar l2" title="N2 | {{ stat.level_ranges.get('2', '-') }}" style="flex: {{ d2 }}">N2 {{ d2 }} ({{ ((d2 / total) * 100)|round(0)|int }}%)</div>{% endif %}
+                        {% if d3 > 0 and total > 0 %}<div class="dist-bar l3" title="N3 | {{ stat.level_ranges.get('3', '-') }}" style="flex: {{ d3 }}">N3 {{ d3 }} ({{ ((d3 / total) * 100)|round(0)|int }}%)</div>{% endif %}
+                        {% if d4 > 0 and total > 0 %}<div class="dist-bar l4" title="N4 | {{ stat.level_ranges.get('4', '-') }}" style="flex: {{ d4 }}">N4 {{ d4 }} ({{ ((d4 / total) * 100)|round(0)|int }}%)</div>{% endif %}
+                        {% if d5 > 0 and total > 0 %}<div class="dist-bar l5" title="N5 | {{ stat.level_ranges.get('5', '-') }}" style="flex: {{ d5 }}">N5 {{ d5 }} ({{ ((d5 / total) * 100)|round(0)|int }}%)</div>{% endif %}
                     </div>
                     <details class="range-details">
                         <summary>Ranges</summary>
@@ -782,9 +518,10 @@
         </details>
     </div>
 
+    <!-- DETALHES POR IMAGEM -->
     <div class="card">
         <details>
-            <summary>Detalhes por Imagem (Top 20)</summary>
+            <summary>DETALHES POR IMAGEM</summary>
             <table>
             <tr><th>Arquivo</th><th>Score</th><th>GSD</th><th>Motion Blur</th><th>Shutter</th></tr>
             {% for r in results[:20] %}
@@ -801,39 +538,29 @@
         </details>
     </div>
 
+    <!-- MAPA -->
+    <div class="card">
+        <details>
+            <summary>MAPA</summary>
+            {{ map_snippet | safe }}
+        </details>
+    </div>
+
     <script>
         const levelCfg = {{ charts.level_pie | tojson }};
         let levelChartInstance = null;
-
-        function cssVar(name) {
-            return getComputedStyle(document.body).getPropertyValue(name).trim();
-        }
-
-        function applyChartDefaults() {
-            Chart.defaults.color = cssVar('--muted');
-            Chart.defaults.borderColor = cssVar('--border');
-        }
-
+        function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
+        function applyChartDefaults() { Chart.defaults.color = cssVar('--muted'); Chart.defaults.borderColor = cssVar('--border'); }
         function renderLevelChart() {
             const ctx = document.getElementById('levelChart');
             if (!ctx || !levelCfg) return;
             if (levelChartInstance) levelChartInstance.destroy();
-
             applyChartDefaults();
             levelChartInstance = new Chart(ctx, {
                 type: 'pie',
-                data: {
-                    labels: levelCfg.labels,
-                    datasets: [{
-                        data: levelCfg.data,
-                        backgroundColor: [cssVar('--l1'), cssVar('--l2'), cssVar('--l3'), cssVar('--l4'), cssVar('--l5')],
-                        borderColor: cssVar('--card'),
-                        borderWidth: 1
-                    }]
-                }
+                data: { labels: levelCfg.labels, datasets: [{ data: levelCfg.data, backgroundColor: [cssVar('--l1'), cssVar('--l2'), cssVar('--l3'), cssVar('--l4'), cssVar('--l5')], borderColor: cssVar('--card'), borderWidth: 1 }] }
             });
         }
-
         function setTheme(theme) {
             document.body.setAttribute('data-theme', theme);
             localStorage.setItem('report_theme', theme);
@@ -841,7 +568,6 @@
             if (radio) radio.checked = true;
             renderLevelChart();
         }
-
         (function initTheme() {
             const stored = localStorage.getItem('report_theme');
             const theme = (stored === 'light' || stored === 'dark') ? stored : 'dark';

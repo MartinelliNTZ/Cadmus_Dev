@@ -114,6 +114,22 @@
         .level-5 { background: var(--l5); color: #111; font-weight: 700; }
         .level-na { background: #5f6b7a; color: #fff; font-weight: 700; }
         .stars { font-size: 22px; letter-spacing: 2px; }
+        .star-full { color: var(--l5); }
+        .star-half {
+            color: var(--l5);
+            position: relative;
+            display: inline-block;
+        }
+        .star-half::after {
+            content: "★";
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--muted);
+            clip-path: inset(0 0 0 50%);
+            -webkit-clip-path: inset(0 0 0 50%);
+        }
+        .star-empty { color: var(--muted); }
         .chart-wrap { min-height: 220px; }
         #levelChart { max-height: 180px; }
         #map { height: 800px !important; border-radius: 8px; }
@@ -227,19 +243,34 @@
                 <p class="muted">Total de imagens: <strong>{{ total_images }}</strong></p>
                 {% set pc = agg.pqi_classification %}
                 {% if pc %}
+                {% set pqi_score = agg.pqi_mean %}
+                {% if pqi_score is not none %}
+                {% set star_ratio = (pqi_score / 100.0 * 5.0) %}
+                {% set full_stars = star_ratio|int %}
+                {% set remainder = star_ratio - full_stars %}
+                {% set has_half = 1 if remainder >= 0.25 else 0 %}
+                {% set empty_stars = 5 - full_stars - has_half %}
+                {% else %}
+                {% set full_stars = pc.level %}
+                {% set has_half = 0 %}
+                {% set empty_stars = 5 - full_stars %}
+                {% endif %}
                 <p>
                     Score geral: <strong>{{ pc.score_display }}</strong> ({{ pc.label }})
                     <span class="stars">
-                        {% for _ in range(pc.level) %}★{% endfor %}
-                        {% for _ in range(5 - pc.level) %}☆{% endfor %}
+                        {% for _ in range(full_stars) %}<span class="star-full">★</span>{% endfor %}
+                        {% if has_half %}<span class="star-half">★</span>{% endif %}
+                        {% for _ in range(empty_stars) %}<span class="star-empty">☆</span>{% endfor %}
                     </span>
                 </p>
                 {% else %}
                 <p>
                     Score geral medio: <strong>{{ mean_overall }}/5</strong>
                     <span class="stars">
-                        {% for _ in range(mean_overall|round(0, 'floor')|int) %}★{% endfor %}
-                        {% for _ in range(5 - (mean_overall|round(0, 'floor')|int)) %}☆{% endfor %}
+                        {% for _ in range(mean_overall|round(0, 'floor')|int) %}<span class="star-full">★</span>{% endfor %}
+                        {% if (mean_overall - (mean_overall|round(0, 'floor')|int)) >= 0.25 %}<span class="star-half">★</span>{% endif %}
+                        {% set rem_stars = 5 - (mean_overall|round(0, 'floor')|int) - (1 if (mean_overall - (mean_overall|round(0, 'floor')|int)) >= 0.25 else 0) %}
+                        {% for _ in range(rem_stars) %}<span class="star-empty">☆</span>{% endfor %}
                     </span>
                 </p>
                 {% endif %}

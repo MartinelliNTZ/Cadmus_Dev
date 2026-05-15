@@ -485,12 +485,28 @@ class AggregateAnalyzer:
         parsed_dates = [AggregateAnalyzer._parse_capture_datetime(r.capture_datetime) for r in results]
         parsed_dates = sorted([d for d in parsed_dates if d is not None])
 
+        # GPS Datum e GPS Status (valores unicos)
+        gps_datum_values = sorted({
+            str(r.get_indicator('GPSMapDatum') or r.get_indicator('gps_map_datum') or '').strip()
+            for r in results
+            if str(r.get_indicator('GPSMapDatum') or r.get_indicator('gps_map_datum') or '').strip()
+            and str(r.get_indicator('GPSMapDatum') or r.get_indicator('gps_map_datum') or '').strip().lower() not in {'', 'none', 'null'}
+        })
+        gps_status_values = sorted({
+            str(r.get_indicator('GpsStatus') or r.get_indicator('gps_status') or '').strip()
+            for r in results
+            if str(r.get_indicator('GpsStatus') or r.get_indicator('gps_status') or '').strip()
+            and str(r.get_indicator('GpsStatus') or r.get_indicator('gps_status') or '').strip().lower() not in {'', 'none', 'null'}
+        })
+
         agg['general_info'] = {
             'equipment_models': equipment_models,
             'equipment_serial_numbers': equipment_serial_numbers,
             'camera_models': camera_models,
             'camera_serial_numbers': camera_serial_numbers,
             'firmware_versions': firmware_versions,
+            'gps_datum': gps_datum_values,
+            'gps_status': gps_status_values,
             'capture_start': parsed_dates[0].strftime('%Y-%m-%d %H:%M:%S') if parsed_dates else 'N/A',
             'capture_end': parsed_dates[-1].strftime('%Y-%m-%d %H:%M:%S') if parsed_dates else 'N/A'
         }
@@ -633,6 +649,25 @@ class AggregateAnalyzer:
             exposure_min = min(exposure_time_vals) if exposure_time_vals else None
             exposure_max = max(exposure_time_vals) if exposure_time_vals else None
 
+            # Novos campos por voo
+            dist3d_prev_vals = []
+            flight_roll_vals = []
+            flight_yaw_vals = []
+            flight_pitch_vals = []
+            for it in items:
+                v = AggregateAnalyzer._first_numeric_from_result(it, ['Distance3dPrevious', 'distance_3d_previous'])
+                if v is not None and v not in (math.inf, -math.inf):
+                    dist3d_prev_vals.append(v)
+                v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightRollDegree', 'flight_roll_degree'])
+                if v is not None and v not in (math.inf, -math.inf):
+                    flight_roll_vals.append(v)
+                v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightYawDegree', 'flight_yaw_degree'])
+                if v is not None and v not in (math.inf, -math.inf):
+                    flight_yaw_vals.append(v)
+                v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightPitchDegree', 'flight_pitch_degree'])
+                if v is not None and v not in (math.inf, -math.inf):
+                    flight_pitch_vals.append(v)
+
             flight_rows.append({
                 'flight_id': flight_id,
                 'images': len(items),
@@ -641,6 +676,22 @@ class AggregateAnalyzer:
                 'end': end_dt.strftime('%Y-%m-%d %H:%M:%S') if end_dt else 'N/A',
                 'flight_seconds': total_seconds,
                 'flight_time': AggregateAnalyzer._format_duration(total_seconds),
+                'avg_dist3d_previous': (
+                    round(statistics.mean(dist3d_prev_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if dist3d_prev_vals else None
+                ),
+                'avg_flight_roll': (
+                    round(statistics.mean(flight_roll_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if flight_roll_vals else None
+                ),
+                'avg_flight_yaw': (
+                    round(statistics.mean(flight_yaw_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if flight_yaw_vals else None
+                ),
+                'avg_flight_pitch': (
+                    round(statistics.mean(flight_pitch_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if flight_pitch_vals else None
+                ),
                 'avg_speed3d_kmh': (
                     round(statistics.mean(speed3d_kmh_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
                     if speed3d_kmh_vals else None
@@ -703,6 +754,10 @@ class AggregateAnalyzer:
                 for f in agg['per_flight']
             )
             all_none_wb_cct = all(_is_zero_or_none(f.get('avg_white_balance_cct')) for f in agg['per_flight'])
+            all_none_dist3d = all(_is_zero_or_none(f.get('avg_dist3d_previous')) for f in agg['per_flight'])
+            all_none_flight_roll = all(_is_zero_or_none(f.get('avg_flight_roll')) for f in agg['per_flight'])
+            all_none_flight_yaw = all(_is_zero_or_none(f.get('avg_flight_yaw')) for f in agg['per_flight'])
+            all_none_flight_pitch = all(_is_zero_or_none(f.get('avg_flight_pitch')) for f in agg['per_flight'])
 
             agg['show_column_speed3d_kmh'] = not all_none_speed3d
             agg['show_column_sensor_temp'] = not all_none_sensor_temp
@@ -712,6 +767,10 @@ class AggregateAnalyzer:
             agg['show_column_iso'] = not all_none_iso
             agg['show_column_shutter'] = not all_none_shutter
             agg['show_column_wb_cct'] = not all_none_wb_cct
+            agg['show_column_dist3d'] = not all_none_dist3d
+            agg['show_column_flight_roll'] = not all_none_flight_roll
+            agg['show_column_flight_yaw'] = not all_none_flight_yaw
+            agg['show_column_flight_pitch'] = not all_none_flight_pitch
 
             # level5 columns: hide if all flights have None or 0 for that field
             level5_keys = [col['key'] for col in agg.get('flight_level5_columns', [])]

@@ -244,7 +244,7 @@
         </div>
     </div>
 
-    <!-- GERAL | METRICAS | INSIGHTS AGRO -->
+    <!-- GERAL | METRICAS | INSIGHTS AGRO (10-11 linhas cada) -->
     <div class="summary-grid">
         <div class="card">
             <details open>
@@ -255,6 +255,8 @@
                     <tr><th>Modelo da camera</th><td>{{ agg.general_info.camera_models | join(', ') if agg.general_info.camera_models else 'N/A' }}</td></tr>
                     <tr><th>Numero de serie da camera</th><td>{{ agg.general_info.camera_serial_numbers | join(', ') if agg.general_info.camera_serial_numbers else 'N/A' }}</td></tr>
                     <tr><th>Versao do firmware</th><td>{{ agg.general_info.firmware_versions | join(', ') if agg.general_info.firmware_versions else 'N/A' }}</td></tr>
+                    <tr><th>GPS Datum</th><td>{{ agg.general_info.gps_datum | join(', ') if agg.general_info.gps_datum else 'N/A' }}</td></tr>
+                    <tr><th>GPS Status</th><td>{{ agg.general_info.gps_status | join(', ') if agg.general_info.gps_status else 'N/A' }}</td></tr>
                     <tr><th>Data de inicio</th><td>{{ agg.general_info.capture_start }}</td></tr>
                     <tr><th>Data de termino</th><td>{{ agg.general_info.capture_end }}</td></tr>
                     <tr><th>Tempo total de voo</th><td>{{ agg.general_info.total_flight_time }}</td></tr>
@@ -273,19 +275,17 @@
         <div class="card">
             <details open>
                 <summary>METRICAS</summary>
+                {% set m = agg.advanced_analysis.metrics %}
                 <table>
                     <tr><th>GSD medio</th><td>{% if per_indicator.get('gsd_cm') and per_indicator['gsd_cm'].get('value_mean') is not none %}{{ '%.2f'|format(per_indicator['gsd_cm']['value_mean']) }} cm{% else %}-{% endif %}</td></tr>
                     <tr><th>Idade do sinal RTK (media / max / p95)</th>
-                        <td>{% set rtk_mean = agg.advanced_analysis.metrics.rtk_diff_age_mean %}
-                            {% set rtk_max = agg.advanced_analysis.metrics.rtk_diff_age_max %}
-                            {% set rtk_p95 = agg.advanced_analysis.metrics.rtk_diff_age_p95 %}
-                            {% if rtk_mean is not none %}{{ '%.2f'|format(rtk_mean) }}{% else %}-{% endif %}s /
-                            {% if rtk_max is not none %}{{ '%.2f'|format(rtk_max) }}{% else %}-{% endif %}s /
-                            {% if rtk_p95 is not none %}{{ '%.2f'|format(rtk_p95) }}{% else %}-{% endif %}s</td>
+                        <td>{% if m.rtk_diff_age_mean is not none %}{{ '%.2f'|format(m.rtk_diff_age_mean) }}{% else %}-{% endif %}s /
+                            {% if m.rtk_diff_age_max is not none %}{{ '%.2f'|format(m.rtk_diff_age_max) }}{% else %}-{% endif %}s /
+                            {% if m.rtk_diff_age_p95 is not none %}{{ '%.2f'|format(m.rtk_diff_age_p95) }}{% else %}-{% endif %}s</td>
                     </tr>
                     <tr><th>Estabilidade do sinal RTK</th>
-                        <td>{{ agg.advanced_analysis.metrics.rtk_stability_class if agg.advanced_analysis.metrics.rtk_stability_class is not none else '-' }}
-                            {% if agg.advanced_analysis.metrics.rtk_stability_mean is not none %}(media {{ '%.2f'|format(agg.advanced_analysis.metrics.rtk_stability_mean) }}%){% endif %}</td>
+                        <td>{{ m.rtk_stability_class if m.rtk_stability_class is not none else '-' }}
+                            {% if m.rtk_stability_mean is not none %}(media {{ '%.2f'|format(m.rtk_stability_mean) }}%){% endif %}</td>
                     </tr>
                     <tr><th>Altura de voo media</th>
                         <td>{% if agg.per_flight and agg.per_flight[0].avg_relative_altitude is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_relative_altitude) }} m{% else %}-{% endif %}</td>
@@ -296,36 +296,47 @@
                                 {{ '%.2f'|format(solo) }} m{% else %}-{% endif %}</td>
                     </tr>
                     <tr><th>Desalinhamento do gimbal (media / desvio / max)</th>
-                        <td>{% if agg.advanced_analysis.metrics.gimbal_offset_mean is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_mean) }}°{% else %}-{% endif %} /
-                            {% if agg.advanced_analysis.metrics.gimbal_offset_std is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_std) }}°{% else %}-{% endif %} /
-                            {% if agg.advanced_analysis.metrics.gimbal_offset_max is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_max) }}°{% else %}-{% endif %}</td>
+                        <td>{% if m.gimbal_offset_mean is not none %}{{ '%.2f'|format(m.gimbal_offset_mean) }}°{% else %}-{% endif %} /
+                            {% if m.gimbal_offset_std is not none %}{{ '%.2f'|format(m.gimbal_offset_std) }}°{% else %}-{% endif %} /
+                            {% if m.gimbal_offset_max is not none %}{{ '%.2f'|format(m.gimbal_offset_max) }}°{% else %}-{% endif %}</td>
                     </tr>
-                    <tr><th>Direcao de voo inconsistente</th><td>{{ agg.advanced_analysis.metrics.yaw_inconsistent_pct if agg.advanced_analysis.metrics.yaw_inconsistent_pct is not none else '-' }}%</td></tr>
-                    <tr><th>Sobreposicao frontal abaixo de 60%</th><td>{% if agg.advanced_analysis.metrics.overlap_below_ideal_pct is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.overlap_below_ideal_pct) }}%{% else %}-{% endif %}</td></tr>
-                    <tr><th>Sobreposicao frontal media</th><td>{% if agg.advanced_analysis.metrics.overlap_mean is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.overlap_mean) }} %{% else %}-{% endif %}</td></tr>
-                    <tr><th>Velocidade media</th><td>{% if agg.advanced_analysis.metrics.speed_ms_mean is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.speed_ms_mean) }} m/s{% else %}-{% endif %}</td></tr>
+                    <tr><th>Dist3D media (m)</th>
+                        <td>{% if agg.per_flight and agg.per_flight[0].avg_dist3d_previous is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_dist3d_previous) }} m{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr><th>Drone Roll medio (°)</th>
+                        <td>{% if agg.per_flight and agg.per_flight[0].avg_flight_roll is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_flight_roll) }}°{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr><th>Drone Yaw medio (°)</th>
+                        <td>{% if agg.per_flight and agg.per_flight[0].avg_flight_yaw is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_flight_yaw) }}°{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr><th>Drone Pitch medio (°)</th>
+                        <td>{% if agg.per_flight and agg.per_flight[0].avg_flight_pitch is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_flight_pitch) }}°{% else %}-{% endif %}</td>
+                    </tr>
                 </table>
             </details>
         </div>
         <div class="card">
             <details open>
                 <summary>INSIGHTS AGRO</summary>
+                {% set m = agg.advanced_analysis.metrics %}
                 <table>
-                    <tr><th>Area estimada coberta (ha)</th><td>{{ agg.advanced_analysis.metrics.estimated_area_ha if agg.advanced_analysis.metrics.estimated_area_ha is not none else 'N/A' }}</td></tr>
-                    <tr><th>Inconsistencia de iluminacao</th><td>{{ agg.advanced_analysis.metrics.light_inconsistent_pct }}%</td></tr>
+                    <tr><th>Area estimada coberta (ha)</th><td>{{ m.estimated_area_ha if m.estimated_area_ha is not none else 'N/A' }}</td></tr>
+                    <tr><th>Inconsistencia de iluminacao</th><td>{{ m.light_inconsistent_pct }}%</td></tr>
                     <tr><th>Tipo de luz predominante</th>
-                        <td>{% if agg.advanced_analysis.metrics.light_source_predominant %}
-                                {{ agg.advanced_analysis.metrics.light_source_predominant }}
-                                ({{ agg.advanced_analysis.metrics.light_source_predominant_pct }}%)
-                            {% else %}N/A{% endif %}</td>
+                        <td>{% if m.light_source_predominant %}{{ m.light_source_predominant }} ({{ m.light_source_predominant_pct }}%){% else %}N/A{% endif %}</td>
                     </tr>
                     <tr><th>Classes de luz presentes</th>
-                        <td>{% if agg.advanced_analysis.metrics.light_source_classes %}
-                                {% for c in agg.advanced_analysis.metrics.light_source_classes %}
-                                    {{ c.label_pt }} ({{ c.count }}) {{ c.pct }}%{% if not loop.last %}<br>{% endif %}
-                                {% endfor %}
+                        <td>{% if m.light_source_classes %}
+                                {% for c in m.light_source_classes %}{{ c.label_pt }} ({{ c.count }}) {{ c.pct }}%{% if not loop.last %}<br>{% endif %}{% endfor %}
                             {% else %}N/A{% endif %}</td>
                     </tr>
+                    <tr><th>Sobreposicao frontal abaixo de 60%</th><td>{% if m.overlap_below_ideal_pct is not none %}{{ '%.2f'|format(m.overlap_below_ideal_pct) }}%{% else %}-{% endif %}</td></tr>
+                    <tr><th>Sobreposicao frontal media</th><td>{% if m.overlap_mean is not none %}{{ '%.2f'|format(m.overlap_mean) }} %{% else %}-{% endif %}</td></tr>
+                    <tr><th>Velocidade media</th><td>{% if m.speed_ms_mean is not none %}{{ '%.2f'|format(m.speed_ms_mean) }} m/s{% else %}-{% endif %}</td></tr>
+                    <tr><th>Direcao de voo inconsistente</th><td>{{ m.yaw_inconsistent_pct if m.yaw_inconsistent_pct is not none else '-' }}%</td></tr>
+                    <tr><th>Motion Blur medio</th><td>{% if m.motion_blur_mean is not none %}{{ '%.4f'|format(m.motion_blur_mean) }}{% else %}-{% endif %}</td></tr>
+                    <tr><th>Indice de qualidade (PQI)</th><td>{% if m.pqi_last_quartile_mean is not none %}{{ '%.2f'|format(m.pqi_last_quartile_mean) }}{% else %}-{% endif %}</td></tr>
+                    <tr><th>Tamanho medio do arquivo</th><td>{% if m.size_mb_mean is not none %}{{ '%.2f'|format(m.size_mb_mean) }} MB{% else %}-{% endif %}</td></tr>
                 </table>
             </details>
         </div>
@@ -387,7 +398,7 @@
                     {% set total_sec = p.total_seconds %}
                     {% for stage in p.stages %}
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="min-width: 90px; font-size: 12px;">
+                        <span style="min-width: 80px; font-size: 12px;">
                             {{ stage.label }}{% if not stage.present %}<span class="status-warn" style="font-size:9px;"> (x)</span>{% endif %}
                         </span>
                         <div style="flex: 1; height: 22px; background: var(--border); border-radius: 4px; overflow: hidden;">
@@ -420,29 +431,37 @@
     <div class="card">
         <details open>
             <summary>AGRUPAMENTO POR VOO</summary>
+            <div style="overflow-x: auto;">
             <table>
             <tr>
-                <th>Voo</th><th>Imagens</th><th>Score Medio</th><th>Inicio</th><th>Fim</th><th>Tempo</th>
-                {% if agg.show_column_speed3d_kmh %}<th>Vel. media (km/h)</th>{% endif %}
-                {% if agg.show_column_sensor_temp %}<th>SensorTemp media</th>{% endif %}
-                {% if agg.show_column_lrf %}<th>LRF Dist. media (m)</th>{% endif %}
-                {% if agg.show_column_rel_alt %}<th>Alt. Relativa media (m)</th>{% endif %}
-                {% if agg.show_column_abs_alt %}<th>Alt. Absoluta media (m)</th>{% endif %}
-                {% if agg.show_column_iso %}<th>ISO Medio</th>{% endif %}
-                {% if agg.show_column_shutter %}<th>Obturador medio</th>{% endif %}
-                {% if agg.show_column_wb_cct %}<th>WBCCT Medio</th>{% endif %}
+                <th>Voo</th><th>Imagens</th><th>Score</th><th>Inicio</th><th>Fim</th><th>Tempo</th>
+                {% if agg.show_column_speed3d_kmh %}<th>Vel. (km/h)</th>{% endif %}
+                {% if agg.show_column_dist3d %}<th>Dist3D (m)</th>{% endif %}
+                {% if agg.show_column_flight_roll %}<th>DroneRoll</th>{% endif %}
+                {% if agg.show_column_flight_yaw %}<th>DroneYaw</th>{% endif %}
+                {% if agg.show_column_flight_pitch %}<th>DronePitch</th>{% endif %}
+                {% if agg.show_column_sensor_temp %}<th>SensorTemp</th>{% endif %}
+                {% if agg.show_column_lrf %}<th>LRF Dist</th>{% endif %}
+                {% if agg.show_column_rel_alt %}<th title="Altitude Relativa Media">Alt. Rel (m)</th>{% endif %}
+                {% if agg.show_column_abs_alt %}<th title="Altitude Absoluta Media">Alt. Abs (m)</th>{% endif %}
+                {% if agg.show_column_iso %}<th>ISO</th>{% endif %}
+                {% if agg.show_column_shutter %}<th>Obturador</th>{% endif %}
+                {% if agg.show_column_wb_cct %}<th>WBCCT</th>{% endif %}
                 {% for col in agg.flight_level5_columns %}
                 {% if agg['show_column_level5_' ~ col.key] %}<th>{{ col.label }}</th>{% endif %}
                 {% endfor %}
             </tr>
             {% for f in agg.per_flight %}
             <tr>
-                <td>{{ f['flight_id'] }}</td>
-                <td>{{ f['images'] }}</td>
+                <td>{{ f['flight_id'] }}</td><td>{{ f['images'] }}</td>
                 {% set flight_level = f['mean_score']|round(0)|int %}
                 <td class="{{ ('level-' ~ flight_level) if (flight_level >= 1 and flight_level <= 5) else 'level-na' }}">{{ f['mean_score'] }}</td>
                 <td>{{ f['start'] }}</td><td>{{ f['end'] }}</td><td>{{ f['flight_time'] }}</td>
                 {% if agg.show_column_speed3d_kmh %}<td>{% if f['avg_speed3d_kmh'] is not none %}{{ '%.2f'|format(f['avg_speed3d_kmh']) }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_dist3d %}<td>{% if f['avg_dist3d_previous'] is not none %}{{ '%.2f'|format(f['avg_dist3d_previous']) }}{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_flight_roll %}<td>{% if f['avg_flight_roll'] is not none %}{{ '%.2f'|format(f['avg_flight_roll']) }}°{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_flight_yaw %}<td>{% if f['avg_flight_yaw'] is not none %}{{ '%.2f'|format(f['avg_flight_yaw']) }}°{% else %}-{% endif %}</td>{% endif %}
+                {% if agg.show_column_flight_pitch %}<td>{% if f['avg_flight_pitch'] is not none %}{{ '%.2f'|format(f['avg_flight_pitch']) }}°{% else %}-{% endif %}</td>{% endif %}
                 {% if agg.show_column_sensor_temp %}<td>{% if f['avg_sensor_temperature'] is not none %}{{ '%.2f'|format(f['avg_sensor_temperature']) }}{% else %}-{% endif %}</td>{% endif %}
                 {% if agg.show_column_lrf %}<td>{% if f['avg_lrf_target_distance'] is not none %}{{ '%.2f'|format(f['avg_lrf_target_distance']) }}{% else %}-{% endif %}</td>{% endif %}
                 {% if agg.show_column_rel_alt %}<td>{% if f['avg_relative_altitude'] is not none %}{{ '%.2f'|format(f['avg_relative_altitude']) }}{% else %}-{% endif %}</td>{% endif %}
@@ -458,6 +477,7 @@
             </tr>
             {% endfor %}
             </table>
+            </div>
         </details>
     </div>
 
@@ -475,7 +495,7 @@
             </div>
             <table>
             <tr>
-                <th>Indicador</th><th>Score</th><th>Media</th><th>Desvio Padrao</th><th>Maxima</th><th>Minima</th><th>Range</th><th>Distribuicao</th>
+                <th>Indicador</th><th>Score</th><th>Media</th><th>Desvio</th><th>Max</th><th>Min</th><th>Range</th><th>Distribuicao</th>
             </tr>
             {% for ind, stat in per_indicator.items() %}
             <tr>

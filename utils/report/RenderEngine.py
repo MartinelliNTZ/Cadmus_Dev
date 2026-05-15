@@ -181,6 +181,8 @@ class RenderEngine:
         """Renderiza o HTML final do relatorio com dados agregados e detalhes por imagem."""
         total_images = len(results)
         mean_overall = agg.get("mean_overall", 0)
+        # Piores resultados (menor overall_score primeiro) limitado a 30
+        worst_results = sorted(results, key=lambda r: r.overall_score)[:30]
         per_indicator = agg.get("per_indicator", {})
         cadmus_icon_path = Path(IM.icon_path(IM.CADMUS_PNG)).resolve()
         mtl_agro_icon_path = Path(IM.icon_path(IM.MTL_AGRO_PNG)).resolve()
@@ -206,6 +208,7 @@ class RenderEngine:
 
         return self.template.render(
             results=results,
+            worst_results=worst_results,
             agg=agg,
             charts=charts,
             map_snippet=map_data.get("leaflet_snippet", ""),

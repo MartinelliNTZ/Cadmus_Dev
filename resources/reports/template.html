@@ -696,23 +696,33 @@
         </details>
     </div>
 
-    <!-- DETALHES POR IMAGEM -->
+    <!-- DETALHES POR IMAGEM (piores primeiro) -->
     <div class="card">
         <details>
-            <summary>DETALHES POR IMAGEM</summary>
+            <summary>DETALHES POR IMAGEM (piores {{ (worst_results or results[:30])|length }})</summary>
+            <div style="overflow-x: auto;">
             <table>
-            <tr><th>Arquivo</th><th>Score</th><th>GSD</th><th>Motion Blur</th><th>Shutter</th></tr>
-            {% for r in results[:20] %}
             <tr>
-                <td>{{ r.filename }}</td>
+                <th>Arquivo</th><th>Score</th><th>PQI</th><th>GSD</th><th>Motion Blur</th><th>RTK Eff. Prec.</th><th>Gimbal Offset</th><th>Yaw Error</th><th>Overlap</th><th>Speed Variac.</th><th>Inc. Angle</th>
+            </tr>
+            {% for r in (worst_results or results[:30]) %}
+            <tr>
+                <td title="Voo: {{ r.flight_id or '-' }}">{{ r.filename }}</td>
                 {% set overall_level = r.overall_score|round(0)|int %}
                 <td class="{{ ('level-' ~ overall_level) if (overall_level >= 1 and overall_level <= 5) else 'level-na' }}">{{ r.overall_score }}</td>
-                <td class="level-{{ r.levels.get('gsd_cm', 3) }}">{{ r.levels.get('gsd_cm', '-') }}</td>
-                <td>{{ r.messages.get('motion_blur_risk', '-') }}</td>
-                <td>{{ r.messages.get('shutter_life_pct', '-') }}</td>
+                <td class="level-{{ r.levels.get('photogrammetry_quality_index', 3) }}">{{ r.level5_values.get('PhotogrammetryQualityIndex', r.values.get('photogrammetry_quality_index', '-')) }}</td>
+                <td class="level-{{ r.levels.get('gsd_cm', 3) }}">{{ r.values.get('gsd_cm', '-') }}</td>
+                <td class="level-{{ r.levels.get('motion_blur_risk', 3) }}">{{ r.messages.get('motion_blur_risk', '-') }}</td>
+                <td>{{ r.level5_values.get('RtkEffectivePrecision', '-') }}</td>
+                <td>{% set gim = r.level5_values.get('GimbalOffset') %}{% if gim is not none %}{{ '%.1f°'|format(gim|float) }}{% else %}-{% endif %}</td>
+                <td>{% set yaw = r.level5_values.get('YawAlignmentError') %}{% if yaw is not none %}{{ '%.1f°'|format(yaw|float) }}{% else %}-{% endif %}</td>
+                <td>{% set ov = r.level5_values.get('FOverlap') or r.level5_values.get('PredictedOverlap') %}{% if ov is not none %}{{ '%.0f%%'|format(ov|float) }}{% else %}-{% endif %}</td>
+                <td>{% set sv = r.level5_values.get('SpeedVariationIndex') %}{% if sv is not none %}{{ '%.3f'|format(sv|float) }}{% else %}-{% endif %}</td>
+                <td>{% set ia = r.level5_values.get('IncidenceAngle') %}{% if ia is not none %}{{ '%.1f°'|format(ia|float) }}{% else %}-{% endif %}</td>
             </tr>
             {% endfor %}
             </table>
+            </div>
         </details>
     </div>
 

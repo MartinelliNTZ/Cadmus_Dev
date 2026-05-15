@@ -20,9 +20,9 @@ class AggregateAnalyzer:
     """Consolida resultados por indicador e gera visoes operacionais do relatorio."""
     FLIGHT_STATS_ROUND_DECIMALS = 2
     FIELD_FALLBACKS = {
-        'gsd_cm': ['GroundSampleDistanceCm'],
-        'speed_3d_ms': ['3DSpeed', 'Speed3dKmh'],
-        'sensor_temp_c': ['SensorTemperature', 'LensTemperature'],
+        'gsd_cm': [MFK.GROUND_SAMPLE_DISTANCE_CM.value],
+        'speed_3d_ms': [MFK.THREE_D_SPEED.value, MFK.SPEED_3D_KMH.value],
+        'sensor_temp_c': [MFK.SENSOR_TEMPERATURE.value, MFK.LENS_TEMPERATURE.value],
     }
     FLIGHT_EXCLUDE_KEYWORDS = {
         'date', 'time', 'dt', 'lat', 'lon', 'latitude', 'longitude', 'gps',
@@ -76,14 +76,14 @@ class AggregateAnalyzer:
     @staticmethod
     def _resolve_light_source_label(result: IMGMetadata) -> tuple[str, str]:
         text_label = str(
-            result.level5_values.get('LightSourceClassification')
+            result.level5_values.get(MFK.LIGHT_SOURCE_CLASSIFICATION.value)
             or result.values.get('light_source_classification')
             or ''
         ).strip()
         if text_label:
             return text_label, 'text'
 
-        raw_code = result.get_indicator('LightSource')
+        raw_code = result.get_indicator(MFK.LIGHT_SOURCE.value)
         if raw_code in (None, '', 'None', 'null'):
             return '', 'missing'
 
@@ -477,10 +477,10 @@ class AggregateAnalyzer:
         camera_serial_numbers = sorted({r.camera_serial_number for r in results if r.camera_serial_number and r.camera_serial_number != 'unknown'})
         firmware_versions = sorted(
             {
-                str(r.get_indicator('Software') or r.get_indicator('Firmware') or '').strip()
+                str(r.get_indicator(MFK.SOFTWARE.value) or r.get_indicator('Firmware') or '').strip()
                 for r in results
-                if str(r.get_indicator('Software') or r.get_indicator('Firmware') or '').strip()
-                and str(r.get_indicator('Software') or r.get_indicator('Firmware') or '').strip().lower() not in {'unknown', 'none', 'null'}
+                if str(r.get_indicator(MFK.SOFTWARE.value) or r.get_indicator('Firmware') or '').strip()
+                and str(r.get_indicator(MFK.SOFTWARE.value) or r.get_indicator('Firmware') or '').strip().lower() not in {'unknown', 'none', 'null'}
             }
         )
         parsed_dates = [AggregateAnalyzer._parse_capture_datetime(r.capture_datetime) for r in results]
@@ -488,16 +488,16 @@ class AggregateAnalyzer:
 
         # GPS Datum e GPS Status (valores unicos)
         gps_datum_values = sorted({
-            str(r.get_indicator('GPSMapDatum') or r.get_indicator('gps_map_datum') or '').strip()
+            str(r.get_indicator(MFK.GPS_MAP_DATUM.value) or r.get_indicator('gps_map_datum') or '').strip()
             for r in results
-            if str(r.get_indicator('GPSMapDatum') or r.get_indicator('gps_map_datum') or '').strip()
-            and str(r.get_indicator('GPSMapDatum') or r.get_indicator('gps_map_datum') or '').strip().lower() not in {'', 'none', 'null'}
+            if str(r.get_indicator(MFK.GPS_MAP_DATUM.value) or r.get_indicator('gps_map_datum') or '').strip()
+            and str(r.get_indicator(MFK.GPS_MAP_DATUM.value) or r.get_indicator('gps_map_datum') or '').strip().lower() not in {'', 'none', 'null'}
         })
         gps_status_values = sorted({
-            str(r.get_indicator('GpsStatus') or r.get_indicator('gps_status') or '').strip()
+            str(r.get_indicator(MFK.GPS_STATUS.value) or r.get_indicator('gps_status') or '').strip()
             for r in results
-            if str(r.get_indicator('GpsStatus') or r.get_indicator('gps_status') or '').strip()
-            and str(r.get_indicator('GpsStatus') or r.get_indicator('gps_status') or '').strip().lower() not in {'', 'none', 'null'}
+            if str(r.get_indicator(MFK.GPS_STATUS.value) or r.get_indicator('gps_status') or '').strip()
+            and str(r.get_indicator(MFK.GPS_STATUS.value) or r.get_indicator('gps_status') or '').strip().lower() not in {'', 'none', 'null'}
         })
 
         agg['general_info'] = {
@@ -596,49 +596,49 @@ class AggregateAnalyzer:
             exposure_time_vals = []
             for it in items:
                 v_speed = AggregateAnalyzer._first_numeric_from_result(
-                    it, ['Speed3dKmh', 'speed_3d_kmh']
+                    it, [MFK.SPEED_3D_KMH.value, 'speed_3d_kmh']
                 )
                 if v_speed is not None and v_speed not in (math.inf, -math.inf):
                     speed3d_kmh_vals.append(v_speed)
 
                 v_sensor = AggregateAnalyzer._first_numeric_from_result(
-                    it, ['SensorTemperature', 'sensor_temp_c']
+                    it, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c']
                 )
                 if v_sensor is not None and v_sensor not in (math.inf, -math.inf):
                     sensor_temp_vals.append(v_sensor)
 
                 v_lrf = AggregateAnalyzer._first_numeric_from_result(
-                    it, ['LRFTargetDistance', 'lrf_target_distance']
+                    it, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance']
                 )
                 if v_lrf is not None and v_lrf not in (math.inf, -math.inf):
                     lrf_target_distance_vals.append(v_lrf)
 
                 v_rel_alt = AggregateAnalyzer._first_numeric_from_result(
-                    it, ['RelativeAltitude', 'relative_altitude']
+                    it, [MFK.RELATIVE_ALTITUDE.value, 'relative_altitude']
                 )
                 if v_rel_alt is not None and v_rel_alt not in (math.inf, -math.inf):
                     relative_altitude_vals.append(v_rel_alt)
 
                 v_abs_alt = AggregateAnalyzer._first_numeric_from_result(
-                    it, ['AbsoluteAltitude', 'absolute_altitude']
+                    it, [MFK.ABSOLUTE_ALTITUDE.value, 'absolute_altitude']
                 )
                 if v_abs_alt is not None and v_abs_alt not in (math.inf, -math.inf):
                     absolute_altitude_vals.append(v_abs_alt)
 
                 v_iso = AggregateAnalyzer._first_numeric_from_result(
-                    it, ['ISOSpeedRatings', 'iso', 'RecommendedExposureIndex']
+                    it, [MFK.ISO_SPEED_RATINGS.value, 'iso', MFK.RECOMMENDED_EXPOSURE_INDEX.value]
                 )
                 if v_iso is not None and v_iso not in (math.inf, -math.inf):
                     iso_vals.append(v_iso)
 
                 v_cct = AggregateAnalyzer._first_numeric_from_result(
-                    it, ['WhiteBalanceCCT', 'white_balance_cct']
+                    it, [MFK.WHITE_BALANCE_CCT.value, 'white_balance_cct']
                 )
                 if v_cct is not None and v_cct not in (math.inf, -math.inf):
                     white_balance_cct_vals.append(v_cct)
 
                 v_exposure = AggregateAnalyzer._first_numeric_from_result(
-                    it, ['ExposureTime', 'exposure_time']
+                    it, [MFK.EXPOSURE_TIME.value, 'exposure_time']
                 )
                 if v_exposure is not None and v_exposure not in (math.inf, -math.inf) and v_exposure > 0:
                     exposure_time_vals.append(v_exposure)
@@ -656,16 +656,16 @@ class AggregateAnalyzer:
             flight_yaw_vals = []
             flight_pitch_vals = []
             for it in items:
-                v = AggregateAnalyzer._first_numeric_from_result(it, ['Distance3dPrevious', 'distance_3d_previous'])
+                v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.DISTANCE_3D_PREVIOUS.value, 'distance_3d_previous'])
                 if v is not None and v not in (math.inf, -math.inf):
                     dist3d_prev_vals.append(v)
-                v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightRollDegree', 'flight_roll_degree'])
+                v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.FLIGHT_ROLL_DEGREE.value, 'flight_roll_degree'])
                 if v is not None and v not in (math.inf, -math.inf):
                     flight_roll_vals.append(abs(v))
-                v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightYawDegree', 'flight_yaw_degree'])
+                v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.FLIGHT_YAW_DEGREE.value, 'flight_yaw_degree'])
                 if v is not None and v not in (math.inf, -math.inf):
                     flight_yaw_vals.append(abs(v))
-                v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightPitchDegree', 'flight_pitch_degree'])
+                v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.FLIGHT_PITCH_DEGREE.value, 'flight_pitch_degree'])
                 if v is not None and v not in (math.inf, -math.inf):
                     flight_pitch_vals.append(abs(v))
 
@@ -918,7 +918,7 @@ class AggregateAnalyzer:
             )
 
         # 2) Overlap critical rule (<60 in >30%).
-        overlap_values = AggregateAnalyzer._numeric_values_from_keys(results, ['PredictedOverlap', 'predicted_overlap'])
+        overlap_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.PREDICTED_OVERLAP.value, 'predicted_overlap'])
         overlap_below_ideal = [v for v in overlap_values if v < AggregateAnalyzer.IDEAL_OVERLAP_PCT]
         overlap_below_pct = (len(overlap_below_ideal) / len(overlap_values) * 100.0) if overlap_values else 0.0
         if overlap_values and overlap_below_pct > 30.0:
@@ -933,8 +933,8 @@ class AggregateAnalyzer:
             )
 
         # 3) RTK signal quality using thresholds from config.yaml (lower_better level 1 cutoff).
-        rtk_std_lat_vals = AggregateAnalyzer._numeric_values_from_keys(results, ['RtkStdLat', 'rtk_std_lat'])
-        rtk_std_hgt_vals = AggregateAnalyzer._numeric_values_from_keys(results, ['RtkStdHgt', 'rtk_std_hgt'])
+        rtk_std_lat_vals = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_STD_LAT.value, 'rtk_std_lat'])
+        rtk_std_hgt_vals = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_STD_HGT.value, 'rtk_std_hgt'])
         lat_thresh = config.get_thresholds('rtk_std_lat') if config._config else None
         hgt_thresh = config.get_thresholds('rtk_std_hgt') if config._config else None
         lat_cut = lat_thresh['levels'][0] if lat_thresh and lat_thresh.get('levels') else 0.011
@@ -960,7 +960,7 @@ class AggregateAnalyzer:
             )
 
         # 4) Yaw direction inconsistency near opposite direction.
-        yaw_err_values = AggregateAnalyzer._numeric_values_from_keys(results, ['YawAlignmentError', 'yaw_alignment_error'])
+        yaw_err_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.YAW_ALIGNMENT_ERROR.value, 'yaw_alignment_error'])
         yaw_opposite = [v for v in yaw_err_values if v >= 150.0]
         yaw_opposite_pct = (len(yaw_opposite) / len(yaw_err_values) * 100.0) if yaw_err_values else 0.0
         if yaw_err_values and yaw_opposite_pct > 5.0:
@@ -975,14 +975,14 @@ class AggregateAnalyzer:
             )
 
         # Advanced metrics block.
-        rtk_diff_age = AggregateAnalyzer._numeric_values_from_keys(results, ['RtkDiffAge', 'rtk_diff_age'])
-        rtk_stab_score = AggregateAnalyzer._numeric_values_from_keys(results, ['RtkStabilityScore', 'rtk_stability_score'])
-        gimbal_offset = AggregateAnalyzer._numeric_values_from_keys(results, ['GimbalOffset', 'gimbal_offset'])
-        size_mb = AggregateAnalyzer._numeric_values_from_keys(results, ['SizeMb', 'size_mb'])
-        motion_blur = AggregateAnalyzer._numeric_values_from_keys(results, ['MotionBlurRisk', 'motion_blur_risk'])
-        speed_ms = AggregateAnalyzer._numeric_values_from_keys(results, ['3DSpeed', 'speed_3d_ms'])
-        speed_var = AggregateAnalyzer._numeric_values_from_keys(results, ['SpeedVariationIndex', 'speed_variation_index'])
-        light_consistency_vals = [str(r.level5_values.get('LightConsistency') or r.values.get('light_consistency') or '').strip() for r in results]
+        rtk_diff_age = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_DIFF_AGE.value, 'rtk_diff_age'])
+        rtk_stab_score = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_STABILITY_SCORE.value, 'rtk_stability_score'])
+        gimbal_offset = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.GIMBAL_OFFSET.value, 'gimbal_offset'])
+        size_mb = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.SIZE_MB.value, 'size_mb'])
+        motion_blur = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.MOTION_BLUR_RISK.value, 'motion_blur_risk'])
+        speed_ms = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.THREE_D_SPEED.value, 'speed_3d_ms'])
+        speed_var = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.SPEED_VARIATION_INDEX.value, 'speed_variation_index'])
+        light_consistency_vals = [str(r.level5_values.get(MFK.LIGHT_CONSISTENCY.value) or r.values.get('light_consistency') or '').strip() for r in results]
         light_inconsistent_pct = (
             sum(1 for v in light_consistency_vals if v.lower() == 'inconsistent') / len(light_consistency_vals) * 100.0
             if light_consistency_vals else 0.0
@@ -1046,7 +1046,7 @@ class AggregateAnalyzer:
         size_cv = (statistics.stdev(size_mb) / statistics.mean(size_mb)) if len(size_mb) > 1 and statistics.mean(size_mb) != 0 else 0.0
 
         # Temporal and quality trends
-        pqi_series = AggregateAnalyzer._series_by_time(results, ['PhotogrammetryQualityIndex', 'photogrammetry_quality_index'])
+        pqi_series = AggregateAnalyzer._series_by_time(results, [MFK.PHOTOGRAMMETRY_QUALITY_INDEX.value, 'photogrammetry_quality_index'])
         pqi_first = statistics.mean([v for _, v in pqi_series[:max(1, len(pqi_series)//4)]]) if pqi_series else None
         pqi_last = statistics.mean([v for _, v in pqi_series[-max(1, len(pqi_series)//4):]]) if pqi_series else None
         pqi_delta = (pqi_last - pqi_first) if pqi_first is not None and pqi_last is not None else None
@@ -1060,7 +1060,7 @@ class AggregateAnalyzer:
         # Strip analysis
         strip_buckets = defaultdict(list)
         for r in results:
-            strip = r.level5_values.get('StripId')
+            strip = r.level5_values.get(MFK.STRIP_ID.value)
             try:
                 strip_id = int(float(strip))
             except Exception:
@@ -1070,7 +1070,7 @@ class AggregateAnalyzer:
         for sid, items in sorted(strip_buckets.items()):
             s_scores = [it.overall_score for it in items]
             s_overlap_vals = [
-                AggregateAnalyzer._first_numeric_from_result(it, ['PredictedOverlap', 'predicted_overlap'])
+                AggregateAnalyzer._first_numeric_from_result(it, [MFK.PREDICTED_OVERLAP.value, 'predicted_overlap'])
                 for it in items
             ]
             s_overlap_vals = [v for v in s_overlap_vals if v is not None]
@@ -1092,8 +1092,8 @@ class AggregateAnalyzer:
         # Agronomic context: area estimate from coordinates.
         coords = []
         for r in results:
-            lat = AggregateAnalyzer._first_numeric_from_result(r, ['Lat', 'GpsLatitude'])
-            lon = AggregateAnalyzer._first_numeric_from_result(r, ['Lon', 'GpsLongitude'])
+            lat = AggregateAnalyzer._first_numeric_from_result(r, [MFK.LAT.value, MFK.GPS_LATITUDE.value])
+            lon = AggregateAnalyzer._first_numeric_from_result(r, [MFK.LON.value, MFK.GPS_LONGITUDE.value])
             if lat is None or lon is None:
                 continue
             if abs(lat) < 0.0001 and abs(lon) < 0.0001:

@@ -502,7 +502,7 @@
                     <tr>
                         <td class="muted" style="font-size:12px;">{{ p.pipeline_start[:19] if p.pipeline_start else 'N/A' }}</td>
                         <td class="muted" style="font-size:12px;">{{ p.pipeline_end[:19] if p.pipeline_end else 'N/A' }}</td>
-                        <td><strong style="font-size: 18px; color: var(--l5);">{{ p.total_formatted }}</strong><br><span class="muted" style="font-size:11px;">({{ '%.2f'|format(p.total_seconds) }}s)</span></td>
+                        <td><strong style="font-size: 18px; color: var(--l5);">{{ p.total_formatted }}</strong><br><span class="muted" style="font-size:11px;">({{ '%.0f'|format(p.total_seconds) }}s)</span></td>
                     </tr>
                 </table>
                 {% endif %}
@@ -578,7 +578,7 @@
                 <td>{{ f['start'] }}</td><td>{{ f['end'] }}</td><td>{{ f['flight_time'] }}</td>
                 <td>{% if f['avg_speed3d_kmh'] is not none %}{{ '%.2f'|format(f['avg_speed3d_kmh']) }}{% else %}-{% endif %}</td>
                 <td>{% if f['avg_speed3d_ms'] is not none %}{{ '%.2f'|format(f['avg_speed3d_ms']) }}{% else %}-{% endif %}</td>
-                <td>{% set m = agg.advanced_analysis.metrics %}{{ m.estimated_area_ha if m.estimated_area_ha is not none else '-' }}</td>
+                <td>{% if f['estimated_area_ha'] is not none %}{{ '%.2f'|format(f['estimated_area_ha']) }}{% else %}-{% endif %}</td>
                 <td>{% if f['avg_relative_altitude'] is not none %}{{ '%.2f'|format(f['avg_relative_altitude']) }}{% else %}-{% endif %}</td>
                 <td>{% if f['altitude_solo'] is not none %}{{ '%.2f'|format(f['altitude_solo']) }}{% else %}-{% endif %}</td>
                 <td>{% if f['level5_means'].get('GroundSampleDistanceCm') is not none %}{{ '%.2f'|format(f['level5_means'].get('GroundSampleDistanceCm')) }}{% else %}-{% endif %}</td>

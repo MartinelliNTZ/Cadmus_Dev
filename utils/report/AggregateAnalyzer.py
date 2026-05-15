@@ -19,6 +19,22 @@ class AggregateAnalyzer:
     logger = LogUtils(tool=ToolKey.REPORT_METADATA, class_name="AggregateAnalyzer")
     logger.debug("AggregateAnalyzer class carregada")
     """Consolida resultados por indicador e gera visoes operacionais do relatorio."""
+    
+    @staticmethod
+    def _debug_flight_area(items: List[Any], flight_id: str, gsd_val: Any, foverlap_val: Any, estimated_area_ha: Any):
+        """Log detalhado do calculo de area por voo para debug."""
+        AggregateAnalyzer.logger.debug(
+            f"CALC AREA VOO [{flight_id}]: gsd_val={gsd_val}, foverlap_val={foverlap_val}, "
+            f"estimated_area_ha={estimated_area_ha}, images={len(items)}",
+            code="FLIGHT_AREA_ESTIMATE"
+        )
+        if items:
+            w = AggregateAnalyzer._to_float_or_none(items[0].get_indicator(MFK.EXIF_IMAGE_WIDTH.value))
+            h = AggregateAnalyzer._to_float_or_none(items[0].get_indicator(MFK.EXIF_IMAGE_HEIGHT.value))
+            AggregateAnalyzer.logger.debug(
+                f"CALC AREA VOO [{flight_id}]: sample width={w}, height={h}",
+                code="FLIGHT_AREA_SAMPLE_DIMS"
+            )
     FLIGHT_STATS_ROUND_DECIMALS = 2
     FIELD_FALLBACKS = {
         'gsd_cm': [MFK.GROUND_SAMPLE_DISTANCE_CM.value],
@@ -724,7 +740,39 @@ class AggregateAnalyzer:
                 rel_mean = statistics.mean(relative_altitude_vals)
                 solo_altitude = abs_mean - rel_mean
 
+            # Calcular area estimada por voo (hectares)
+            # Formula: area_foto = (largura_px * gsd_m) * (altura_px * gsd_m) / 10000
+            # Com sobreposicao: area_efetiva = area_foto * (1 - overlap) * (1 - overlap)
+            estimated_area_ha = None
+            gsd_val = level5_means.get(MFK.GROUND_SAMPLE_DISTANCE_CM.value)
+            foverlap_val = level5_means.get(MFK.F_OVERLAP.value)
+            if gsd_val is not None and gsd_val > 0 and foverlap_val is not None and items:
+                # Dimensoes medias das imagens (EXIF) via get_indicator (acesso interno _data)
+                img_widths = []
+                img_heights = []
+                for it in items:
+                    w = AggregateAnalyzer._to_float_or_none(it.get_indicator(MFK.EXIF_IMAGE_WIDTH.value))
+                    h = AggregateAnalyzer._to_float_or_none(it.get_indicator(MFK.EXIF_IMAGE_HEIGHT.value))
+                    if w is not None and h is not None and w > 0 and h > 0:
+                        img_widths.append(w)
+                        img_heights.append(h)
+                if img_widths:
+                    avg_width_px = statistics.mean(img_widths)
+                    avg_height_px = statistics.mean(img_heights)
+                    gsd_m = gsd_val / 100.0
+                    overlap_dec = foverlap_val / 100.0
+                    # Area no solo de cada foto (m²)
+                    photo_area_m2 = (avg_width_px * gsd_m) * (avg_height_px * gsd_m)
+                    # Area efetiva considerando sobreposicao frontal e lateral (assume mesma %)
+                    effective_area_m2 = photo_area_m2 * (1.0 - overlap_dec) * (1.0 - overlap_dec)
+                    # Total do voo em hectares
+                    estimated_area_ha = (effective_area_m2 * len(items)) / 10000.0
+            
+            # Debug log
+            AggregateAnalyzer._debug_flight_area(items, flight_id, gsd_val, foverlap_val, estimated_area_ha)
+
             flight_rows.append({
+                'estimated_area_ha': round(estimated_area_ha, AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS) if estimated_area_ha is not None else None,
                 'flight_id': flight_id,
                 'images': len(items),
                 'mean_score': round(statistics.mean([it.overall_score for it in items]), 2),

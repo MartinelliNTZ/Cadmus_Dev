@@ -256,7 +256,7 @@
                 {% set empty_stars = 5 - full_stars %}
                 {% endif %}
                 <p>
-                    Score geral: <strong>{{ pc.score_display }}</strong> ({{ pc.label }})
+                    PQI geral: <strong>{{ pc.score_display }}</strong> ({{ pc.label }})
                     <span class="stars">
                         {% for _ in range(full_stars) %}<span class="star-full">★</span>{% endfor %}
                         {% if has_half %}<span class="star-half">★</span>{% endif %}
@@ -264,15 +264,7 @@
                     </span>
                 </p>
                 {% else %}
-                <p>
-                    Score geral medio: <strong>{{ mean_overall }}/5</strong>
-                    <span class="stars">
-                        {% for _ in range(mean_overall|round(0, 'floor')|int) %}<span class="star-full">★</span>{% endfor %}
-                        {% if (mean_overall - (mean_overall|round(0, 'floor')|int)) >= 0.25 %}<span class="star-half">★</span>{% endif %}
-                        {% set rem_stars = 5 - (mean_overall|round(0, 'floor')|int) - (1 if (mean_overall - (mean_overall|round(0, 'floor')|int)) >= 0.25 else 0) %}
-                        {% for _ in range(rem_stars) %}<span class="star-empty">☆</span>{% endfor %}
-                    </span>
-                </p>
+                <p class="muted">Classificacao PQI indisponivel</p>
                 {% endif %}
             </div>
             <div class="brand-logos">
@@ -653,13 +645,11 @@
             </div>
             <table>
             <tr>
-                <th>Indicador</th><th>Score</th><th>Media</th><th>Desvio</th><th>Max</th><th>Min</th><th>Range</th><th>Distribuicao</th>
+                <th>Indicador</th><th>Media</th><th>Desvio</th><th>Max</th><th>Min</th><th>Range</th><th>Distribuicao</th>
             </tr>
             {% for ind, stat in per_indicator.items() %}
             <tr>
                 <td title="{{ stat.description }}">{{ stat.label }}<span class="rule-badge">{{ stat.threshold_type }}</span></td>
-                {% set stat_level = stat.mean|round(0)|int %}
-                <td class="{{ ('level-' ~ stat_level) if (stat_level >= 1 and stat_level <= 5) else 'level-na' }}">{{ stat.mean }}</td>
                 <td>{{ stat.value_mean if stat.value_mean is not none else '-' }}</td>
                 <td>{{ stat.value_std if stat.value_std is not none else '-' }}</td>
                 <td>{{ stat.value_max if stat.value_max is not none else '-' }}</td>
@@ -703,13 +693,11 @@
             <div style="overflow-x: auto;">
             <table>
             <tr>
-                <th>Arquivo</th><th>Score</th><th>PQI</th><th>GSD</th><th>Motion Blur</th><th>RTK Eff. Prec.</th><th>Gimbal Offset</th><th>Yaw Error</th><th>Overlap</th><th>Speed Variac.</th><th>Inc. Angle</th>
+                <th>Arquivo</th><th>PQI</th><th>GSD</th><th>Motion Blur</th><th>RTK Eff. Prec.</th><th>Gimbal Offset</th><th>Yaw Error</th><th>Overlap</th><th>Speed Variac.</th><th>Inc. Angle</th>
             </tr>
             {% for r in (worst_results or results[:30]) %}
             <tr>
                 <td title="Voo: {{ r.flight_id or '-' }}">{{ r.filename }}</td>
-                {% set overall_level = r.overall_score|round(0)|int %}
-                <td class="{{ ('level-' ~ overall_level) if (overall_level >= 1 and overall_level <= 5) else 'level-na' }}">{{ r.overall_score }}</td>
                 <td class="level-{{ r.levels.get('photogrammetry_quality_index', 3) }}">{{ r.level5_values.get('PhotogrammetryQualityIndex', r.values.get('photogrammetry_quality_index', '-')) }}</td>
                 <td class="level-{{ r.levels.get('gsd_cm', 3) }}">{{ r.values.get('gsd_cm', '-') }}</td>
                 <td class="level-{{ r.levels.get('motion_blur_risk', 3) }}">{{ r.messages.get('motion_blur_risk', '-') }}</td>

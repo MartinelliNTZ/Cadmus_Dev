@@ -6,6 +6,7 @@ import jinja2
 from ...core.config.LogUtils import LogUtils
 from ...resources.IconManager import IconManager as IM
 from ..ToolKeys import ToolKey
+from ..ColorUtil import ColorUtil
 
 
 class RenderEngine:
@@ -53,6 +54,28 @@ class RenderEngine:
             "data": [ind_means[k] for k in bar_labels],
             "title": "Average Level per Indicator",
         }
+
+        # Temperature per photo series (line chart)
+        temp_series = agg_data.get("temp_chart_series", [])
+        if temp_series:
+            colors = ColorUtil.generate(len(temp_series))
+            temp_datasets = []
+            for idx, series in enumerate(temp_series):
+                color = colors[idx % len(colors)]
+                temp_datasets.append({
+                    "label": series["label"],
+                    "data": series["data"],
+                    "borderColor": color,
+                    "backgroundColor": ColorUtil.to_rgba(color, 0.1),
+                    "fill": False,
+                    "tension": 0.4,
+                    "pointRadius": 2,
+                })
+            charts["temp_line"] = {
+                "type": "line",
+                "datasets": temp_datasets,
+                "title": "Temperatura do Sensor por Foto (°C)",
+            }
 
         return charts
 

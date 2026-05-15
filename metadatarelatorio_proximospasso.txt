@@ -1,0 +1,140 @@
+
+Aqui vão 25 opções diretas:
+Gráficos
+
+Linha de velocidade 3D ao longo do tempo de voo por voo
+Linha de temperatura do sensor ao longo do tempo de voo
+Linha de WhiteBalanceCCT ao longo do tempo mostrando variações bruscas
+Histograma de distribuição de IncidenceAngle por faixa de valores
+Histograma de MotionBlurRisk mostrando cauda de fotos problemáticas
+Scatter plot de GimbalOffset vs MotionBlurRisk por foto
+Scatter plot de velocidade vs PQI para ver correlação
+Linha de LRFTargetDistance ao longo do voo mostrando variação de terreno
+Heatmap de densidade de fotos sobre o mapa por hectare
+Linha de RtkDiffAge ao longo do tempo para ver instabilidades pontuais
+Boxplot de PQI por voo para comparar distribuição entre voos
+Gráfico de barras empilhadas de IsIdealOverlap por voo — quantas fotos dentro e fora do ideal
+Linha de GroundElevation ao longo do trajeto mostrando perfil do terreno sobrevoado
+Radar chart comparando voos em múltiplas métricas simultaneamente
+Linha de ISOSpeedRatings ao longo do tempo indicando adaptação à luz
+
+Itens em tabela
+
+Tabela por StripId com sobreposição média, PQI médio e contagem de fotos por faixa
+Tabela de fotos com IsIdealOverlap falso agrupadas por voo e faixa
+Tabela com GSD real calculado por foto usando LRFTargetDistance no lugar da altitude relativa
+Tabela de gaps temporais entre fotos — identificar onde o drone pausou ou acelerou demais
+Tabela de fotos com LRFStatus diferente de Normal indicando leituras de laser inválidas
+Tabela por CameraSerialNumber com métricas comparativas entre câmeras do mesmo voo
+Tabela de fotos com GimbalOffset acima de 5° mostrando localização e voo afetado
+Tabela de inconsistências de LightConsistency por faixa horária do voo
+Tabela de fotos com RtkFlag diferente do padrão indicando degradação pontual do sinal
+Tabela comparativa de ShutterLifePct entre câmeras para alertar sobre desgaste diferencial
+
+
+
+OS 25 QUE VOCÊ JÁ TEM — MAS QUE PRECISAM IR ALÉM
+
+1. Índice de Risco de Reprocessamento por Voo
+Não é só listar alertas. É um score único por voo combinando dewarp + blur + sobreposição abaixo do ideal + gimbal offset + RTK instável. O piloto olha e sabe: esse voo vai precisar ser refeito ou não. Verde, amarelo, vermelho. Uma decisão, não dez métricas.
+2. Mapa de Calor de Qualidade Geoespacial
+Cada foto tem coordenada e PQI. Projete isso no mapa como heatmap de qualidade. O gestor vê exatamente qual pedaço da fazenda foi mal fotografado. Não é "5% das fotos estão ruins", é "esse talhão de 40ha está comprometido".
+3. Degradação de Qualidade ao Longo do Voo
+Linha temporal de PQI foto a foto dentro de cada voo. Você vai ver se a qualidade cai no início, no meio ou no fim. Baterias fracas, calor do sensor, vento aumentando. Isso muda protocolos operacionais.
+4. Matriz de Correlação entre Variáveis
+Velocidade vs PQI, temperatura vs blur, ISO vs EV, gimbal vs incidência. Uma matriz visual que mostra quais variáveis realmente afetam a qualidade nessa operação específica. Não teoria — dados desse voo.
+5. GSD Real por Foto via LRF
+LRFTargetDistance existe. GSD nominal assume altitude constante. GSD real varia com o terreno. Mostre as fotos onde o GSD real diverge mais de 15% do nominal — essas são as fotos que vão distorcer o mosaico mesmo com tudo certo no planejamento.
+6. Perfil de Terreno Sobrevoado com Alerta de GSD Crítico
+GroundElevation por foto permite reconstruir o relevo da área em seção transversal. Sobreponha a linha de voo e marque onde o GSD ultrapassa o limite aceitável por variação de terreno. Isso é o que separa um bom levantamento de um problemático em áreas com declividade.
+7. Análise de Deriva de Câmera por Serial
+Três câmeras, três seriais. Compare PQI médio, blur médio, temperatura média e ShutterLifePct entre elas. Se uma câmera sistematicamente entrega qualidade pior, é hardware, não planejamento.
+8. Timeline de Eventos Críticos
+Uma linha do tempo horizontal do voo inteiro. Marcadores visuais onde ocorreu: pico de blur, queda de RTK, temperatura acima do limite, gimbal instável, dewarp desativado. O supervisor vê em 10 segundos o que aconteceu e quando.
+9. Sobreposição Real vs. Planejada por Faixa
+FOverlap existe por foto, StripId existe. Calcule sobreposição real mediana por faixa e compare com o planejado. Mostre quais faixas estão abaixo do mínimo e o gap em percentual. Isso é onde o mosaico vai ter falha — antes de processar.
+10. Score de Confiabilidade Radiométrica
+Combine LightConsistency + CCT variação + ISO variação + LightSource ao longo do tempo. Um score que diz: esse voo vai gerar mosaico radiometricamente consistente ou vai ter variação de cor entre faixas. Fundamental para NDVI e análise multiespectral.
+11. Distribuição de Fotos por Classe de Risco
+Cinco classes: Excelente, Boa, Aceitável, Problemática, Crítica. Calculada por foto com critérios compostos. Pizza ou barras. Mas com drill-down: clique na fatia Crítica e veja quais fotos são, de qual voo, em qual coordenada.
+12. Análise de Eficiência Operacional por Voo
+Hectares cobertos dividido por minutos de voo, por bateria, por imagem capturada. Qual voo foi mais eficiente? Qual desperdiçou mais sobreposição? Isso alimenta o planejamento dos próximos levantamentos.
+13. Fingerprint de Cada Voo
+Radar chart com 8 dimensões: velocidade, altitude, blur, PQI, sobreposição, RTK, temperatura, gimbal. Cada voo vira um polígono. Você compara visualmente a "forma" de cada voo. Voos bem executados têm formas similares. Outliers aparecem imediatamente.
+14. Mapa de Gaps de Cobertura
+Com coordenada de cada foto e CoverageWidth/Height, calcule as regiões sem cobertura ou com cobertura insuficiente. Renderize no mapa como polígonos vermelhos. O gestor sabe onde precisa de voo complementar antes de mandar o dado para o processamento.
+15. Análise de Janela Temporal Ótima
+Com CCT, ISO, EV e LightConsistency ao longo do horário do voo, calcule qual janela horária produziu as melhores condições radiométricas. Retroalimenta o planejamento de horário de voo para a próxima missão.
+16. Curva de Degradação do Obturador
+ShutterLifePct por câmera ao longo dos voos históricos. Quando vai precisar de manutenção? Não espere a câmera falhar em campo. Isso é manutenção preditiva com dado que já existe.
+17. Análise de Impacto do Vento por Voo
+FlightRollDegree e FlightPitchDegree ao longo do tempo indicam perturbação atmosférica. Correlacione com blur e gimbal offset. Mostre os momentos de maior turbulência e o impacto na qualidade das fotos daquele período.
+18. Score de Prontidão para Processamento
+Um único número de 0 a 100 calculado para o conjunto inteiro de fotos. Abaixo de 70 não processa, investiga primeiro. Acima de 85 pode processar com confiança. Isso elimina o "vamos ver como sai" do processamento fotogramétrico.
+19. Análise de Consistência Inter-Faixa
+Fotos de faixas adjacentes que se sobrepõem deveriam ter PQI, CCT e EV similares. Se têm diferença grande, o mosaico vai ter emenda visível. Identifique os pares de faixas problemáticos antes do processamento.
+20. Distribuição Espacial de Erros de Gimbal
+Plote no mapa os pontos onde GimbalOffset ultrapassou 5°. Se os erros são aleatórios, é vento. Se são concentrados numa região, pode ser interferência magnética local ou obstáculo que forçou manobra. Isso muda o diagnóstico completamente.
+21. Análise de Altitude Relativa vs. Planejada
+RelativeAltitude por foto ao longo do voo. Desvio em relação à altitude de missão planejada. Onde o drone voou mais baixo ou mais alto que o previsto e o impacto direto no GSD real daquelas fotos.
+22. Índice de Homogeneidade de Iluminação da Missão
+Não é só dizer que teve 11% de inconsistência. É calcular se a inconsistência foi concentrada em horário específico, em faixa específica ou foi aleatória. Cada padrão tem uma causa e uma solução diferente.
+23. Tabela de Decisão Pós-Voo
+Para cada voo: processável sim/não, risco de reprocessamento alto/médio/baixo, faixas a revoo, alertas críticos pendentes, ação recomendada. Uma linha por voo, seis colunas. O supervisor decide em dois minutos o que fazer com cada voo.
+24. Análise de Repetibilidade entre Voos Simultâneos
+Três drones voaram ao mesmo tempo na mesma área. Compara parâmetros equivalentes entre eles. Se um drone sistematicamente produz blur maior na mesma condição de vento, o problema é o equipamento, não o ambiente.
+25. Score de Risco por Talhão ou Região
+Se você tiver o shapefile da fazenda, cruzar a qualidade das fotos com os talhões produtivos. Qual talhão teve cobertura insuficiente, qual teve iluminação inconsistente, qual teve GSD fora do padrão. O agrônomo sabe exatamente onde a análise de NDVI vai ser confiável ou não.
+
+OS 25 QUE FALTAM DADO — MAS VOCÊ PODE CALCULAR OU OBTER
+
+1. Temperatura Ambiente no Momento do Voo
+Você tem horário exato de cada foto. API de meteorologia histórica como Open-Meteo dá temperatura, umidade e velocidade do vento por hora para qualquer coordenada. Correlacione com blur, ISO e temperatura do sensor. Você vai saber qual condição climática degrada sua operação.
+2. Velocidade e Direção Real do Vento por Foto
+FlightRollDegree e FlightPitchDegree existem mas são efeito, não causa. Com dado meteorológico horário você separa o que é manobra programada do que é compensação de vento. Isso explica gimbal instável, blur concentrado em horário específico e deriva de trajetória.
+3. Índice de Qualidade de Sinal GPS no Momento
+RtkFlag existe mas não é a informação completa. O número de satélites visíveis, PDOP e HDOP no momento de cada foto determina a precisão posicional real. Esses dados ficam no log do controlador de voo e não estão sendo extraídos. Sem isso, você não sabe se o RTK "Alta" era realmente confiável.
+4. Distância Real à Estação Base RTK
+Você tem coordenada de cada foto. Se tiver a coordenada da base, calcula a distância base-rover em tempo real. Acima de 10km a precisão RTK degrada. Essa informação deveria estar em cada linha e gerar alerta automático.
+5. Calibração Radiométrica com Painel de Referência
+Você tem EV, ISO e CCT por foto mas não tem a calibração absoluta. Se o operador fotografou um painel de reflectância antes do voo, esse dado deveria entrar no pipeline. Sem ele, o índice NDVI de fotos capturadas com ISO diferente não é comparável entre si.
+6. Log de Bateria por Voo
+Tensão da bateria ao longo do voo existe no log do controlador mas não está nos metadados EXIF. Bateria abaixo de 20% afeta estabilização do gimbal e velocidade de processamento do controlador. Correlacionar nível de bateria com qualidade das últimas fotos de cada voo seria revelador.
+7. Temperatura da Bateria
+Baterias frias abaixo de 15°C e quentes acima de 45°C degradam a estabilidade do voo. Essa informação está no log do drone mas não é exportada para os metadados. No Cerrado com temperatura ambiente alta, baterias chegam ao fim do voo muito quentes.
+8. Posição Relativa ao Centro da Faixa Planejada
+Você tem trajetória real e pode inferir a trajetória planejada pela geometria das faixas. O desvio lateral de cada foto em relação ao eixo da faixa planejada determina a sobreposição real com maior precisão do que o cálculo geométrico atual. Isso requer o arquivo de missão do piloto automático.
+9. Número de Satélites por Foto
+Está no log interno do módulo RTK mas não é exportado automaticamente para XMP. Com isso você qualifica cada posição individualmente. Uma foto com 8 satélites e outra com 22 têm precisões posicionais completamente diferentes mas o relatório atual as trata igual.
+10. Histórico de Qualidade por Equipamento
+Você tem CameraSerialNumber e DroneSerialNumber. Se você agregar histórico de voos anteriores, consegue calcular se determinada câmera ou drone está degradando ao longo do tempo. Um voo ruim pode ser condição adversa ou pode ser sinal de falha iminente de equipamento.
+11. Índice de Névoa e Visibilidade Atmosférica
+Com a coordenada e o horário você acessa dados de AOD (Aerosol Optical Depth) de satélites como MODIS ou Sentinel via API. Alta névoa degrada contraste e afeta matching fotogramétrico. Você poderia saber antes de processar se a visibilidade estava comprometida.
+12. Ângulo Solar no Momento de Cada Foto
+Com coordenada e UTC de cada foto você calcula azimute e elevação solar exatos. Sombras longas com sol baixo degradam o mosaico e criam artefatos no NDVI. Um alerta de ângulo solar abaixo de 30° nas primeiras e últimas fotos do voo evita surpresas no processamento.
+13. Vibração do Gimbal por Foto
+GimbalAngularVelocity existe mas é calculado entre fotos consecutivas. A frequência real de vibração durante a exposição de cada foto existe no log interno do gimbal mas não é exportada. Isso diferencia blur causado por velocidade de translação de blur causado por vibração mecânica — que têm soluções diferentes.
+14. Perfil de Altitude da Missão Planejada vs. Executada
+O arquivo de missão do piloto automático tem a altitude planejada ponto a ponto. Comparar com RelativeAltitude real por foto mostra onde o drone desviou do plano — por vento, por obstáculo ou por falha de seguimento. Sem o arquivo de missão esse cálculo não é possível.
+15. Índice de Fragmentação de Faixas
+Se o drone precisou interromper e retomar uma faixa, há um gap temporal na sequência de fotos. Você consegue detectar isso por TimeSincePrevious acima do esperado. Mas sem o arquivo de missão você não sabe se foi planejado ou falha operacional. Com ele você classifica automaticamente.
+16. Aceleração Angular do Drone por Foto
+FlightRollDegree e FlightPitchDegree consecutivos permitem calcular variação angular entre frames mas não a aceleração instantânea durante a exposição. O IMU do drone registra isso a 400Hz mas os metadados EXIF só têm o valor no instante da foto. Com o log bruto do IMU você calcula o blur teórico com muito mais precisão.
+17. Mapa de Radiância Relativa entre Faixas
+Com EV, ISO, FNumber e tempo de exposição você tem todos os componentes para calcular a luminância relativa de cada foto. Isso permite equalização radiométrica antes do mosaico sem painel de referência — um cálculo que os softwares de processamento fazem internamente mas que você poderia antecipar e reportar como risco.
+18. Qualidade da Cobertura por Tipo de Vegetação
+Se você tiver um shapefile de uso do solo ou mapa de talhões, cruzar a cobertura fotogramétrica com o tipo de cultura muda completamente o significado dos alertas. Uma foto com PQI 65 sobre área de solo exposto é menos crítica que a mesma foto sobre cana em fase de desenvolvimento.
+19. Score de Matching Estimado
+Com sobreposição real, IncidenceAngle, blur e variação de iluminação entre faixas adjacentes você consegue estimar a densidade de pontos de controle que o software de fotogrametria vai encontrar. Isso prevê qualidade do DSM antes de processar. Nenhum sistema faz isso hoje.
+20. Distância entre Fotos Consecutivas vs. GSD
+Com coordenadas consecutivas você calcula a distância real percorrida entre disparos. Se essa distância é maior que 80% do CoverageWidth, há risco de gap de cobertura. Esse cálculo não está sendo feito e é mais confiável que a sobreposição estimada pelo planejamento.
+21. Índice de Qualidade Ponderado por Área Crítica
+Sem o shapefile de talhões você trata todas as fotos com o mesmo peso. Com ele, uma foto sobre um talhão de cana-de-açúcar em florescimento tem peso três vezes maior que uma foto sobre estrada interna. O PQI geral da missão passa a refletir o risco agronômico real, não só a qualidade técnica fotográfica.
+22. Detecção de Obstáculos por Variação de Altitude
+LRFTargetDistance com variação abrupta em terreno plano indica obstáculo — torre, árvore isolada, construção. Você tem os dados para detectar isso automaticamente e marcar no mapa. Além de segurança operacional, isso explica anomalias de gimbal e blur localizados.
+23. Estimativa de Precisão do Mosaico sem GCP
+Com RtkStdLat, RtkStdLon, RtkStdHgt e o número estimado de pontos de sobreposição, você consegue estimar o erro posicional esperado do mosaico final sem pontos de controle em solo. Isso é o que o cliente quer saber antes de decidir se vai ao campo coletar GCPs.
+24. Índice de Fadiga Operacional
+Você tem horário de início e fim de cada voo e a sequência de voos do dia. Voos executados depois de 4 horas de operação contínua têm estatisticamente mais erros operacionais — troca errada de bateria, configuração não verificada, missão carregada sem revisão. Com histórico de voos e qualidade resultante você prova ou refuta isso para a sua operação específica.
+25. Previsão de Qualidade para o Próximo Voo
+Com histórico de missões, condição climática, horário, equipamento e operador você consegue treinar um modelo simples de regressão que prevê o PQI esperado antes do voo acontecer. O planejador sabe com antecedência se as condições do dia são adequadas para a missão planejada ou se deve adiar. Isso fecha o ciclo — o relatório deixa de ser retrospectivo e passa a ser preditivo.

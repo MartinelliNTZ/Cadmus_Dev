@@ -9,6 +9,7 @@ from ..adapter.StringAdapter import StringAdapter
 from ..mrk.MetadataFields import MetadataFields
 from .RangeMetadataManager import range_metadata_manager as config
 from ...core.enum.LightSourceEnum import LightSourceEnum
+from ...core.enum import MetadataFieldKey as MFK
 from ...core.config.LogUtils import LogUtils
 from ..ToolKeys import ToolKey
 
@@ -660,13 +661,13 @@ class AggregateAnalyzer:
                     dist3d_prev_vals.append(v)
                 v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightRollDegree', 'flight_roll_degree'])
                 if v is not None and v not in (math.inf, -math.inf):
-                    flight_roll_vals.append(v)
+                    flight_roll_vals.append(abs(v))
                 v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightYawDegree', 'flight_yaw_degree'])
                 if v is not None and v not in (math.inf, -math.inf):
-                    flight_yaw_vals.append(v)
+                    flight_yaw_vals.append(abs(v))
                 v = AggregateAnalyzer._first_numeric_from_result(it, ['FlightPitchDegree', 'flight_pitch_degree'])
                 if v is not None and v not in (math.inf, -math.inf):
-                    flight_pitch_vals.append(v)
+                    flight_pitch_vals.append(abs(v))
 
             flight_rows.append({
                 'flight_id': flight_id,

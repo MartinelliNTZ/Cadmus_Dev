@@ -717,6 +717,13 @@ class AggregateAnalyzer:
                 if v is not None and v not in (math.inf, -math.inf):
                     flight_pitch_vals.append(abs(v))
 
+            # Calcular altitude do solo (absoluta - relativa)
+            solo_altitude = None
+            if absolute_altitude_vals and relative_altitude_vals:
+                abs_mean = statistics.mean(absolute_altitude_vals)
+                rel_mean = statistics.mean(relative_altitude_vals)
+                solo_altitude = abs_mean - rel_mean
+
             flight_rows.append({
                 'flight_id': flight_id,
                 'images': len(items),
@@ -725,6 +732,7 @@ class AggregateAnalyzer:
                 'end': end_dt.strftime('%Y-%m-%d %H:%M:%S') if end_dt else 'N/A',
                 'flight_seconds': total_seconds,
                 'flight_time': AggregateAnalyzer._format_duration(total_seconds),
+                'altitude_solo': round(solo_altitude, AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS) if solo_altitude is not None else None,
                 'avg_dist3d_previous': (
                     round(statistics.mean(dist3d_prev_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
                     if dist3d_prev_vals else None
@@ -743,6 +751,10 @@ class AggregateAnalyzer:
                 ),
                 'avg_speed3d_kmh': (
                     round(statistics.mean(speed3d_kmh_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
+                    if speed3d_kmh_vals else None
+                ),
+                'avg_speed3d_ms': (
+                    round(statistics.mean(speed3d_kmh_vals) / 3.6, AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
                     if speed3d_kmh_vals else None
                 ),
                 'avg_sensor_temperature': (

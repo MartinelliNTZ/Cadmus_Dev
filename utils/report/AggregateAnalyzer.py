@@ -456,14 +456,61 @@ class AggregateAnalyzer:
         )
 
         overall = [r.overall_score for r in results]
+        
+        # Compute PQI-based score for overall quality display (PQI-based classification).
+        pqi_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.PHOTOGRAMMETRY_QUALITY_INDEX.value, 'photogrammetry_quality_index'])
+        pqi_mean = statistics.mean(pqi_values) if pqi_values else None
+        pqi_levels = []
+        pqi_thresh = config.get_thresholds('photogrammetry_quality_index') if config._config else None
+        if pqi_thresh and pqi_values:
+            for v in pqi_values:
+                try:
+                    # count how many thresholds are met, then offset by +1
+                    # count=0 → level=1, count=1 → level=2, count=2 → level=3, etc.
+                    pqi_count = sum(1 for cut in pqi_thresh.get('levels', []) if v >= float(cut))
+                    pqi_level = max(1, min(5, pqi_count + 1))
+                except Exception:
+                    pqi_level = 3
+                pqi_levels.append(pqi_level)
+        else:
+            pqi_levels = [3] * len(results)
+        pqi_level_dist = defaultdict(int)
+        for lvl in pqi_levels:
+            pqi_level_dist[lvl] += 1
+        
         agg = {
             'total_images': len(results),
             'mean_overall': round(statistics.mean(overall), 2),
+            'pqi_mean': round(pqi_mean, 2) if pqi_mean is not None else None,
+            'pqi_level_distribution': dict(pqi_level_dist),
             'level_distribution': dict(level_dist),
             'per_indicator': stats,
             'top_models': defaultdict(list)
         }
 
+        # Add PQI-based classification message
+        if pqi_mean is not None:
+            # Classify PQI: count how many thresholds are met, then map to level.
+            # With higher_better levels [45, 60, 75, 85, 95]:
+            #   count=0 → level=1 (Critica: v < 45)
+            #   count=1 → level=2 (Baixa: 45 <= v < 60)
+            #   count=2 → level=3 (OK: 60 <= v < 75)
+            #   count=3 → level=4 (Boa: 75 <= v < 85)
+            #   count=4+ → level=5 (Excelente: v >= 85)
+            pqi_cuts = [float(c) for c in (pqi_thresh.get('levels', []) if pqi_thresh else [])]
+            count = sum(1 for cut in pqi_cuts if pqi_mean >= cut)
+            # Offset by +1 because level=1 encompasses both count=0 AND count=1
+            pqi_classify_level = max(1, min(5, count + 1))
+            pqi_classify_level = max(1, min(5, pqi_classify_level))
+            pqi_messages = pqi_thresh.get('messages', []) if pqi_thresh else []
+            pqi_label = pqi_messages[pqi_classify_level - 1] if pqi_classify_level - 1 < len(pqi_messages) else f'Nivel {pqi_classify_level}'
+            agg['pqi_classification'] = {
+                'level': pqi_classify_level,
+                'label': pqi_label,
+                'score_display': f'{pqi_mean:.0f}/100'
+            }
+        else:
+            agg['pqi_classification'] = None
         indicator_meta_source = {
             key: AggregateAnalyzer._resolve_field_meta(key)
             for key in stats.keys()

@@ -29,9 +29,10 @@ class RenderEngine:
         """Monta payload de graficos consumido pelo template (Chart.js)."""
         charts: Dict[str, Any] = {}
 
-        dist = agg_data.get("level_distribution", {})
+        dist = agg_data.get("pqi_level_distribution", agg_data.get("level_distribution", {}))
         total = sum(dist.values())
         labels = ["Critical (1)", "Poor (2)", "OK (3)", "Good (4)", "Excellent (5)"]
+        title = "PQI Level Distribution (%)" if "pqi_level_distribution" in agg_data else "Level Distribution (%)"
         if total == 0:
             pie_data = [0, 0, 0, 0, 0]
         else:
@@ -41,7 +42,7 @@ class RenderEngine:
             "type": "pie",
             "labels": labels,
             "data": pie_data,
-            "title": "Level Distribution (%)",
+            "title": title,
         }
 
         ind_means = {k: v["mean"] for k, v in agg_data.get("per_indicator", {}).items()}

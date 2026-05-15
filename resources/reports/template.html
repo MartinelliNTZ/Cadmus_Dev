@@ -13,11 +13,11 @@
             --text: #E0E0E0;
             --muted: #888888;
             --border: #333333;
-            --l1: #EF5350;
-            --l2: #FFB74D;
-            --l3: #FFD54F;
-            --l4: #81C784;
-            --l5: #4CAF50;
+            --l1: #FF1744;
+            --l2: #FF9100;
+            --l3: #FFEA00;
+            --l4: #00E676;
+            --l5: #00C853;
         }
         body[data-theme="light"] {
             --bg: #f7f8fa;
@@ -26,11 +26,11 @@
             --text: #202733;
             --muted: #637084;
             --border: #dce2ea;
-            --l1: #d73027;
-            --l2: #fc8d59;
-            --l3: #fee08b;
-            --l4: #91cf60;
-            --l5: #1a9850;
+            --l1: #D50000;
+            --l2: #FF6D00;
+            --l3: #FFD600;
+            --l4: #00C853;
+            --l5: #00A152;
         }
         * { box-sizing: border-box; }
         body {
@@ -225,6 +225,16 @@
             <div class="report-title">
                 <h1>Relatorio Fotogrametrico</h1>
                 <p class="muted">Total de imagens: <strong>{{ total_images }}</strong></p>
+                {% set pc = agg.pqi_classification %}
+                {% if pc %}
+                <p>
+                    Score geral: <strong>{{ pc.score_display }}</strong> ({{ pc.label }})
+                    <span class="stars">
+                        {% for _ in range(pc.level) %}★{% endfor %}
+                        {% for _ in range(5 - pc.level) %}☆{% endfor %}
+                    </span>
+                </p>
+                {% else %}
                 <p>
                     Score geral medio: <strong>{{ mean_overall }}/5</strong>
                     <span class="stars">
@@ -232,6 +242,7 @@
                         {% for _ in range(5 - (mean_overall|round(0, 'floor')|int)) %}☆{% endfor %}
                     </span>
                 </p>
+                {% endif %}
             </div>
             <div class="brand-logos">
                 <img src="{{ cadmus_icon_url }}" alt="Cadmus" class="brand-logo" onerror="this.onerror=null;this.src='{{ cadmus_icon_path }}';" />
@@ -322,9 +333,6 @@
                 <table>
                     <tr><th>Area estimada coberta (ha)</th><td>{{ m.estimated_area_ha if m.estimated_area_ha is not none else 'N/A' }}</td></tr>
                     <tr><th>Inconsistencia de iluminacao</th><td>{{ m.light_inconsistent_pct }}%</td></tr>
-                    <tr><th>Tipo de luz predominante</th>
-                        <td>{% if m.light_source_predominant %}{{ m.light_source_predominant }} ({{ m.light_source_predominant_pct }}%){% else %}N/A{% endif %}</td>
-                    </tr>
                     <tr><th>Classes de luz presentes</th>
                         <td>{% if m.light_source_classes %}
                                 {% for c in m.light_source_classes %}{{ c.label_pt }} ({{ c.count }}) {{ c.pct }}%{% if not loop.last %}<br>{% endif %}{% endfor %}
@@ -334,7 +342,17 @@
                     <tr><th>Sobreposicao frontal media</th><td>{% if m.overlap_mean is not none %}{{ '%.2f'|format(m.overlap_mean) }} %{% else %}-{% endif %}</td></tr>
                     <tr><th>Velocidade media</th><td>{% if m.speed_ms_mean is not none %}{{ '%.2f'|format(m.speed_ms_mean) }} m/s{% else %}-{% endif %}</td></tr>
                     <tr><th>Direcao de voo inconsistente</th><td>{{ m.yaw_inconsistent_pct if m.yaw_inconsistent_pct is not none else '-' }}%</td></tr>
-                    <tr><th>Motion Blur medio</th><td>{% if m.motion_blur_mean is not none %}{{ '%.4f'|format(m.motion_blur_mean) }}{% else %}-{% endif %}</td></tr>
+                    {% set mb_level = m.motion_blur_mean %}
+                    {% if mb_level is not none %}
+                        {% if mb_level <= 0.3 %}{% set mb_class = 'Baixo' %}
+                        {% elif mb_level <= 0.5 %}{% set mb_class = 'Moderado' %}
+                        {% elif mb_level <= 0.8 %}{% set mb_class = 'Alto' %}
+                        {% elif mb_level <= 1.2 %}{% set mb_class = 'Critico' %}
+                        {% else %}{% set mb_class = 'Critico' %}
+                        {% endif %}
+                    {% else %}{% set mb_class = '-' %}
+                    {% endif %}
+                    <tr><th>Motion Blur medio</th><td>{% if m.motion_blur_mean is not none %}{{ '%.2f'|format(m.motion_blur_mean) }} ({{ mb_class }}){% else %}-{% endif %}</td></tr>
                     <tr><th>Indice de qualidade (PQI)</th><td>{% if m.pqi_last_quartile_mean is not none %}{{ '%.2f'|format(m.pqi_last_quartile_mean) }}{% else %}-{% endif %}</td></tr>
                     <tr><th>Tamanho medio do arquivo</th><td>{% if m.size_mb_mean is not none %}{{ '%.2f'|format(m.size_mb_mean) }} MB{% else %}-{% endif %}</td></tr>
                 </table>
@@ -421,8 +439,19 @@
         </div>
         <div class="card chart-wrap">
             <details open>
-                <summary>NIVEIS</summary>
+                <summary>NIVEIS (PQI)</summary>
                 <canvas id="levelChart"></canvas>
+                {% set pqi_dist = agg.pqi_level_distribution %}
+                {% if pqi_dist %}
+                <div class="dist-legend" style="margin-top:8px;">
+                    Distribuicao por nivel de qualidade:
+                    <span class="legend-item"><span class="legend-dot l1"></span>{{ pqi_dist.get(1, 0) }}</span>
+                    <span class="legend-item"><span class="legend-dot l2"></span>{{ pqi_dist.get(2, 0) }}</span>
+                    <span class="legend-item"><span class="legend-dot l3"></span>{{ pqi_dist.get(3, 0) }}</span>
+                    <span class="legend-item"><span class="legend-dot l4"></span>{{ pqi_dist.get(4, 0) }}</span>
+                    <span class="legend-item"><span class="legend-dot l5"></span>{{ pqi_dist.get(5, 0) }}</span>
+                </div>
+                {% endif %}
             </details>
         </div>
     </div>

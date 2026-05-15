@@ -35,23 +35,28 @@ class ReportGenerationService:
         records = JSONUtil.load_records(json_path=json_path, tool_key=self.tool_key)
         results: List[IMGMetadata] = [IMGMetadata(record).score() for record in records]
 
-        # Carrega timestamps e computa sumario de processamento
+        # Carrega timestamps existentes do JSON e mescla com report_start atual
         timestamps = JSONUtil.load_timestamps(json_path=json_path, tool_key=self.tool_key)
+        timestamps["report_start"] = report_start
         processing_summary = JSONUtil.compute_processing_summary(timestamps)
 
-        agg = AggregateAnalyzer.analyze(results)
-        agg['processing'] = processing_summary
-        agg['timestamps'] = timestamps
         engine = RenderEngine(tool_key=self.tool_key)
-        charts = engine.generate_charts(agg)
-        map_data = engine.generate_map_data(results)
 
-        html = engine.render_report(
-            results=results,
-            agg=agg,
-            charts=charts,
-            map_data=map_data,
-        )
+        def _render(agg_extra: dict = None) -> str:
+            """Renderiza o HTML com agg atual."""
+            agg = AggregateAnalyzer.analyze(results)
+            agg['processing'] = processing_summary
+            agg['timestamps'] = timestamps
+            if agg_extra:
+                agg.update(agg_extra)
+            charts = engine.generate_charts(agg)
+            map_data = engine.generate_map_data(results)
+            return engine.render_report(
+                results=results,
+                agg=agg,
+                charts=charts,
+                map_data=map_data,
+            )
 
         target_path = html_output_path or ExplorerUtils.build_temp_file_path(
             ExplorerUtils.REPORTS_TEMP_FOLDER,
@@ -61,9 +66,12 @@ class ReportGenerationService:
             extension=".html",
             file_stem_hint=ExplorerUtils.build_report_html_stem(json_path),
         )
+
+        # Primeira renderizacao (pode ter "Relatorio" ausente ainda)
+        html = _render()
         engine.save_report(html, target_path)
 
-        # Registra fim da geracao do relatorio e persiste timestamps no JSON
+        # Registra fim e persiste timestamps no JSON
         report_end = datetime.now().isoformat()
         try:
             JsonUtil.update_timestamps(json_path, {
@@ -73,6 +81,22 @@ class ReportGenerationService:
             self.logger.debug(f"Timestamps de report salvos no JSON: {json_path}")
         except Exception as e:
             self.logger.warning(f"Nao foi possivel salvar timestamps de report no JSON: {e}")
+
+        # Recarrega timestamps agora com report_end e re-renderiza
+        timestamps = JSONUtil.load_timestamps(json_path=json_path, tool_key=self.tool_key)
+        processing_summary = JSONUtil.compute_processing_summary(timestamps)
+        agg = AggregateAnalyzer.analyze(results)
+        agg['processing'] = processing_summary
+        agg['timestamps'] = timestamps
+        charts = engine.generate_charts(agg)
+        map_data = engine.generate_map_data(results)
+        html = engine.render_report(
+            results=results,
+            agg=agg,
+            charts=charts,
+            map_data=map_data,
+        )
+        engine.save_report(html, target_path)
 
         payload = {
             "json_path": json_path,

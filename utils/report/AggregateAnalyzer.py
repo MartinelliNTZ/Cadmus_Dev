@@ -1197,26 +1197,12 @@ class AggregateAnalyzer:
             or (s['overlap_below_ideal_pct'] is not None and s['overlap_below_ideal_pct'] > 30.0)
         ]
 
-        # Agronomic context: area estimate from coordinates.
-        coords = []
-        for r in results:
-            lat = AggregateAnalyzer._first_numeric_from_result(r, [MFK.LAT.value, MFK.GPS_LATITUDE.value])
-            lon = AggregateAnalyzer._first_numeric_from_result(r, [MFK.LON.value, MFK.GPS_LONGITUDE.value])
-            if lat is None or lon is None:
-                continue
-            if abs(lat) < 0.0001 and abs(lon) < 0.0001:
-                continue
-            coords.append((lat, lon))
+        # Agronomic context: area estimate from per-flight calculation (soma das areas de cada voo)
         area_ha = None
-        if coords:
-            lats = [c[0] for c in coords]
-            lons = [c[1] for c in coords]
-            lat_min, lat_max = min(lats), max(lats)
-            lon_min, lon_max = min(lons), max(lons)
-            mean_lat_rad = math.radians((lat_min + lat_max) / 2.0)
-            height_m = (lat_max - lat_min) * 111320.0
-            width_m = (lon_max - lon_min) * 111320.0 * math.cos(mean_lat_rad)
-            area_ha = max(0.0, (height_m * width_m) / 10000.0)
+        if agg.get('per_flight'):
+            flight_areas = [f.get('estimated_area_ha') for f in agg['per_flight'] if f.get('estimated_area_ha') is not None]
+            if flight_areas:
+                area_ha = sum(flight_areas)
 
         # RTK Effective Precision para metricas avancadas
         rtk_effective_precision = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_EFFECTIVE_PRECISION.value, 'rtk_effective_precision'])

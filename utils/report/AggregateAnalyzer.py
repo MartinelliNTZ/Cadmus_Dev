@@ -8,6 +8,7 @@ import math
 from ..adapter.StringAdapter import StringAdapter
 from ..mrk.MetadataFields import MetadataFields
 from .RangeMetadataManager import range_metadata_manager as config
+from .AlertManager import AlertManager, AlertRecord
 from ...core.enum.LightSourceEnum import LightSourceEnum
 from ...core.enum import MetadataFieldKey as MFK
 from ...core.config.LogUtils import LogUtils
@@ -1217,5 +1218,53 @@ class AggregateAnalyzer:
             },
             'recommendations': recommendations,
         }
+
+        # ===================================================================
+        # ALERTAS CENTRALIZADOS - AlertManager
+        # Processa todos os alertas unificados e adiciona ao agg para auditoria
+        # ===================================================================
+        try:
+            unified_alerts = AlertManager.analyze(results, agg)
+            if unified_alerts:
+                # Converter para dict list para serializacao
+                alerts_dict_list = AlertManager.to_dict_list(unified_alerts)
+                agg['alerts'] = alerts_dict_list
+                agg['alerts_count'] = len(unified_alerts)
+                agg['alerts_summary'] = AlertManager.summary_by_category(unified_alerts)
+
+                # Contagem por severidade
+                severity_counts = defaultdict(int)
+                for a in unified_alerts:
+                    severity_counts[a.severity] += 1
+                agg['alerts_severity'] = dict(severity_counts)
+
+                # Log do total de alertas gerados
+                AggregateAnalyzer.logger.info(
+                    f"AlertManager gerou {len(unified_alerts)} alertas unificados",
+                    code="ALERT_MANAGER_ANALYSIS",
+                    data={
+                        "total_alerts": len(unified_alerts),
+                        "severity": dict(severity_counts),
+                        "categories": list(set(a.category for a in unified_alerts)),
+                    }
+                )
+
+                # Manter compatibilidade com template legado via critical_alerts
+                # Adicionar alertas que ainda nao estao no critical_alerts original
+                existing_titles = {a.get('title') for a in critical_alerts}
+                for alert in unified_alerts:
+                    legacy_entry = AlertManager.to_severity_entry(alert)
+                    if legacy_entry['title'] not in existing_titles:
+                        critical_alerts.append(legacy_entry)
+                        existing_titles.add(legacy_entry['title'])
+
+                agg['advanced_analysis']['critical_alerts'] = critical_alerts
+        except Exception as e:
+            AggregateAnalyzer.logger.error(
+                f"Erro ao executar AlertManager.analyze: {e}",
+                code="ALERT_MANAGER_ERROR",
+            )
+            agg['alerts'] = []
+            agg['alerts_count'] = 0
 
         return agg

@@ -391,12 +391,75 @@
         </div>
     </div>
 
-    <!-- ALERTAS CRITICOS -->
+    <!-- RESUMO DE ALERTAS -->
     <div class="card">
         <details open>
-            <summary>ALERTAS CRITICOS</summary>
+            <summary>RESUMO DE ALERTAS ({{ agg.alerts_count if agg.alerts_count is not none else agg.advanced_analysis.critical_alerts|length }})</summary>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 12px;">
+                {% set severity_data = agg.alerts_severity if agg.alerts_severity else {} %}
+                {% set s_crit = severity_data.get('CRITICO', 0) %}
+                {% set s_alert = severity_data.get('ALERTA', 0) %}
+                {% set s_info = severity_data.get('INFO', 0) %}
+                {% if s_crit > 0 or s_alert > 0 or s_info > 0 %}
+                <div style="display: flex; gap: 16px; align-items: center;">
+                    <span style="background: #c62828; color: #fff; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 14px;">
+                        Criticos: {{ s_crit }}
+                    </span>
+                    <span style="background: #b35c00; color: #fff; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 14px;">
+                        Alertas: {{ s_alert }}
+                    </span>
+                    <span style="background: #1e88e5; color: #fff; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 14px;">
+                        Info: {{ s_info }}
+                    </span>
+                    <span class="muted" style="font-size: 12px;">Total: {{ agg.alerts_count }}</span>
+                </div>
+                {% endif %}
+                {% set summary = agg.alerts_summary if agg.alerts_summary else {} %}
+                {% if summary %}
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    {% for cat, counts in summary.items() %}
+                    <span class="range-chip" style="font-size: 11px; padding: 2px 8px;">
+                        {{ cat }}: {{ counts.get('total', 0) }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% if agg.alerts and agg.alerts|length > 0 %}
+            <table>
+                <tr><th>Severidade</th><th>Categoria</th><th>Titulo</th><th>Detalhe</th><th>Impacto</th><th>Acao</th><th>Afilhados (%)</th></tr>
+                {% for a in agg.alerts %}
+                <tr>
+                    <td class="{{ 'sev-critical' if a.severity == 'CRITICO' else ('sev-alerta' if a.severity == 'ALERTA' else 'sev-info') }}">{{ a.severity }}</td>
+                    <td><span class="range-chip" style="font-size: 10px;">{{ a.category }}</span></td>
+                    <td>{{ a.title }}</td>
+                    <td>{{ a.detail }}</td>
+                    <td>{{ a.impact }}</td>
+                    <td>{{ a.action }}</td>
+                    <td>
+                        {% if a.total_count > 0 %}
+                        {{ a.affected_count }}/{{ a.total_count }}
+                        <span class="muted">({{ a.affected_pct }}%)</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if a.flight_ids and a.flight_ids|length > 0 %}
+                <tr style="background: transparent;">
+                    <td colspan="7" style="padding: 2px 8px 8px 8px; border: none;">
+                        <span class="muted" style="font-size: 11px;">Voos afetados: {{ a.flight_ids | join(', ') }}</span>
+                        {% if a.photos and a.photos|length > 0 %}
+                        <br><span class="muted" style="font-size: 11px;">Fotos: {{ a.photos | join(', ') }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </table>
+            {% else %}
+            <!-- Fallback para alertas legados -->
             <table>
                 <tr><th>Severidade</th><th>Titulo</th><th>Detalhe</th><th>Impacto</th><th>Acao</th></tr>
+                {% if agg.general_info %}
                 <tr>
                     <td class="{{ 'sev-critical' if agg.general_info.dewarp_status_type == 'critical' else ('sev-alerta' if agg.general_info.dewarp_status_type == 'warn' else 'sev-info') }}">
                         {{ 'CRITICO' if agg.general_info.dewarp_status_type == 'critical' else ('ALERTA' if agg.general_info.dewarp_status_type == 'warn' else 'INFO') }}
@@ -413,7 +476,8 @@
                     <td>Afeta consistência altimétrica, GSD e sobreposição prevista.</td>
                     <td>Corrigir captura de Alt (MRK) e AbsoluteAltitude antes do processamento.</td>
                 </tr>
-                {% if agg.advanced_analysis.critical_alerts %}
+                {% endif %}
+                {% if agg.advanced_analysis and agg.advanced_analysis.critical_alerts %}
                 {% for a in agg.advanced_analysis.critical_alerts %}
                 <tr>
                     <td class="{{ 'sev-critical' if a.severity == 'CRITICO' else ('sev-alerta' if a.severity == 'ALERTA' else 'sev-info') }}">{{ a.severity }}</td>
@@ -422,6 +486,7 @@
                 {% endfor %}
                 {% endif %}
             </table>
+            {% endif %}
         </details>
     </div>
 

@@ -65,6 +65,8 @@ class AlertManager:
     YAW_CRITICAL_PCT = 5.0           # % maxima aceitavel de yaw oposto
     RTK_STD_LAT_CRITICAL_PCT = 20.0  # % maxima aceitavel de lat com desvio alto
     ALTITUDE_MISSING_WARN_PCT = 10.0 # % maxima aceitavel de altitude ausente
+    RTK_EFFECTIVE_PRECISION_ALERT = 0.100  # RTK Effective Precision > 0.100 (critico)
+    RTK_EFFECTIVE_PRECISION_WARN = 0.050   # RTK Effective Precision > 0.050 (alerta)
 
     @staticmethod
     def _parse_num(value: Any) -> Optional[float]:
@@ -149,7 +151,8 @@ class AlertManager:
         # ===================================================================
         dewarp_zero_count = agg.get('general_info', {}).get('dewarp_zero_count', 0)
         if dewarp_zero_count > 0:
-            severity = AlertManager.SEVERITY_CRITICAL if dewarp_zero_count == total_images else AlertManager.SEVERITY_ALERT
+            # Dewarp é sempre CRITICO - qualquer imagem sem dewarp compromete o bloco
+            severity = AlertManager.SEVERITY_CRITICAL
             flights_affected = []
             for r in results:
                 try:
@@ -160,35 +163,24 @@ class AlertManager:
                     pass
             flights_affected = sorted(set(flights_affected))
 
-            if dewarp_zero_count == total_images:
-                alerts.append(AlertManager._make_record(
-                    severity=AlertManager.SEVERITY_CRITICAL,
-                    category=AlertManager.CAT_DEWARP,
-                    title='Dewarp desativado em 100% das imagens',
-                    detail=f'{dewarp_zero_count}/{total_images} imagens com DewarpFlag=0.',
-                    impact='Risco elevado de distorcao sistematica e degradacao da aerotriangulacao.',
-                    action='Reprocessar com dewarping habilitado e validar calibracao interna da camera.',
-                    affected_count=dewarp_zero_count,
-                    total_count=total_images,
-                    threshold_value=1,
-                    actual_value=0,
-                    flight_ids=flights_affected,
-                ))
-            else:
-                flight_detail = f'Voo(s): {", ".join(flights_affected)}' if flights_affected else ''
-                alerts.append(AlertManager._make_record(
-                    severity=AlertManager.SEVERITY_ALERT,
-                    category=AlertManager.CAT_DEWARP,
-                    title=f'{dewarp_zero_count} foto(s) sem dewarping',
-                    detail=f'{dewarp_zero_count}/{total_images} imagens com DewarpFlag=0. {flight_detail}',
-                    impact='Distorcao localizada pode comprometer precisao geometrica nas areas afetadas.',
-                    action='Reprocessar imagens afetadas com dewarping habilitado.',
-                    affected_count=dewarp_zero_count,
-                    total_count=total_images,
-                    threshold_value=1,
-                    actual_value=0,
-                    flight_ids=flights_affected,
-                ))
+            flight_detail = f'Voo(s): {", ".join(flights_affected)}' if flights_affected else ''
+            detail_msg = (
+                f'{dewarp_zero_count}/{total_images} imagens com DewarpFlag=0. '
+                f'{flight_detail}'
+            )
+            alerts.append(AlertManager._make_record(
+                severity=AlertManager.SEVERITY_CRITICAL,
+                category=AlertManager.CAT_DEWARP,
+                title=f'Dewarp desativado em {dewarp_zero_count} foto(s) - CRITICO',
+                detail=detail_msg,
+                impact='Distorcao sistematica compromete aerotriangulacao, geometria e qualidade radiometrica da reconstrucao.',
+                action='Reprocessar 100% das imagens com dewarping habilitado e validar calibracao interna da camera.',
+                affected_count=dewarp_zero_count,
+                total_count=total_images,
+                threshold_value=1,
+                actual_value=0,
+                flight_ids=flights_affected,
+            ))
 
         # ===================================================================
         # 2. ALTITUDE - Altitude incompleta
@@ -557,9 +549,10 @@ class AlertManager:
             ))
 
         # ===================================================================
-        # 9. RTK STD - Sinal GPS/RTK com qualidade insuficiente
+        # 9. RTK STD - Sinal GPS/RTK com qualidade insuficiente (Lat/Lon/Hgt)
         # ===================================================================
         rtk_lat_vals = []
+        rtk_lon_vals = []
         rtk_hgt_vals = []
         for r in results:
             lat = AlertManager._parse_num(r.level5_values.get(MFK.RTK_STD_LAT.value) or r.values.get('rtk_std_lat'))
@@ -569,6 +562,13 @@ class AlertManager:
             if lat is not None:
                 rtk_lat_vals.append(lat)
 
+            lon = AlertManager._parse_num(r.level5_values.get(MFK.RTK_STD_LON.value) or r.values.get('rtk_std_lon'))
+            if lon is None:
+                lon = r.get_indicator(MFK.RTK_STD_LON.value) if hasattr(r, 'get_indicator') else None
+                lon = AlertManager._parse_num(lon)
+            if lon is not None:
+                rtk_lon_vals.append(lon)
+
             hgt = AlertManager._parse_num(r.level5_values.get(MFK.RTK_STD_HGT.value) or r.values.get('rtk_std_hgt'))
             if hgt is None:
                 hgt = r.get_indicator(MFK.RTK_STD_HGT.value) if hasattr(r, 'get_indicator') else None
@@ -577,37 +577,113 @@ class AlertManager:
                 rtk_hgt_vals.append(hgt)
 
         lat_thresh = config.get_thresholds('rtk_std_lat') if config._config else None
+        lon_thresh = config.get_thresholds('rtk_std_lon') if config._config else None
         hgt_thresh = config.get_thresholds('rtk_std_hgt') if config._config else None
         lat_cut = AlertManager._parse_num(lat_thresh['levels'][0]) if lat_thresh and lat_thresh.get('levels') else 0.050
+        lon_cut = AlertManager._parse_num(lon_thresh['levels'][0]) if lon_thresh and lon_thresh.get('levels') else 0.050
         hgt_cut = AlertManager._parse_num(hgt_thresh['levels'][0]) if hgt_thresh and hgt_thresh.get('levels') else 0.100
 
         poor_lat = [v for v in rtk_lat_vals if v > lat_cut] if lat_cut else []
+        poor_lon = [v for v in rtk_lon_vals if v > lon_cut] if lon_cut else []
         poor_hgt = [v for v in rtk_hgt_vals if v > hgt_cut] if hgt_cut else []
         poor_lat_pct = (len(poor_lat) / len(rtk_lat_vals) * 100.0) if rtk_lat_vals else 0.0
+        poor_lon_pct = (len(poor_lon) / len(rtk_lon_vals) * 100.0) if rtk_lon_vals else 0.0
         poor_hgt_pct = (len(poor_hgt) / len(rtk_hgt_vals) * 100.0) if rtk_hgt_vals else 0.0
 
-        if rtk_lat_vals and rtk_hgt_vals and (poor_lat_pct > AlertManager.RTK_STD_LAT_CRITICAL_PCT or poor_hgt_pct > AlertManager.RTK_STD_LAT_CRITICAL_PCT):
+        # Alerta combinado: se algum dos 3 componentes estiver degradado
+        any_poor_rtk = (rtk_lat_vals and poor_lat_pct > AlertManager.RTK_STD_LAT_CRITICAL_PCT) or \
+                       (rtk_lon_vals and poor_lon_pct > AlertManager.RTK_STD_LAT_CRITICAL_PCT) or \
+                       (rtk_hgt_vals and poor_hgt_pct > AlertManager.RTK_STD_LAT_CRITICAL_PCT)
+        if any_poor_rtk:
             lat_str = f'{lat_cut:.3f}' if lat_cut else 'N/A'
+            lon_str = f'{lon_cut:.3f}' if lon_cut else 'N/A'
             hgt_str = f'{hgt_cut:.3f}' if hgt_cut else 'N/A'
-            severity = AlertManager.SEVERITY_CRITICAL if (poor_lat_pct > 50.0 or poor_hgt_pct > 50.0) else AlertManager.SEVERITY_ALERT
+            max_pct = max(
+                poor_lat_pct if rtk_lat_vals else 0,
+                poor_lon_pct if rtk_lon_vals else 0,
+                poor_hgt_pct if rtk_hgt_vals else 0
+            )
+            severity = AlertManager.SEVERITY_CRITICAL if max_pct > 50.0 else AlertManager.SEVERITY_ALERT
+
+            # Montar detail com apenas os componentes que tem dados
+            detail_parts = []
+            if rtk_lat_vals:
+                detail_parts.append(f'RtkStdLat > {lat_str}: {poor_lat_pct:.2f}%')
+            if rtk_lon_vals:
+                detail_parts.append(f'RtkStdLon > {lon_str}: {poor_lon_pct:.2f}%')
+            if rtk_hgt_vals:
+                detail_parts.append(f'RtkStdHgt > {hgt_str}: {poor_hgt_pct:.2f}%')
+
+            total_affected = len(poor_lat) + len(poor_lon) + len(poor_hgt)
+            total_counted = len(rtk_lat_vals) + len(rtk_lon_vals) + len(rtk_hgt_vals)
+
             alerts.append(AlertManager._make_record(
                 severity=severity,
                 category=AlertManager.CAT_RTK,
                 title='Sinal GPS/RTK com qualidade insuficiente',
-                detail=(
-                    f'RtkStdLat > {lat_str} em {poor_lat_pct:.2f}% '
-                    f'e RtkStdHgt > {hgt_str} em {poor_hgt_pct:.2f}% das imagens.'
-                ),
+                detail=' | '.join(detail_parts),
                 impact='Reduz precisao posicional e pode degradar alinhamento, georreferenciamento e qualidade final do produto.',
                 action='Validar base RTK, radio/link, visibilidade GNSS e repetir trechos com altos desvios padrao.',
-                affected_count=len(poor_lat) + len(poor_hgt),
-                total_count=len(rtk_lat_vals) + len(rtk_hgt_vals),
+                affected_count=total_affected,
+                total_count=total_counted,
                 threshold_value=lat_cut,
-                actual_value=max(poor_lat + poor_hgt) if (poor_lat or poor_hgt) else None,
             ))
 
         # ===================================================================
-        # 10. TEMPERATURE - Sensor com temperatura elevada
+        # 10. RTK EFFECTIVE PRECISION - Precisao efetiva do RTK
+        # ===================================================================
+        rtk_precision_vals = []
+        rtk_precision_photos: List[str] = []
+        rtk_precision_flights: List[str] = []
+        for r in results:
+            val = AlertManager._parse_num(r.level5_values.get(MFK.RTK_EFFECTIVE_PRECISION.value) or r.values.get('rtk_effective_precision'))
+            if val is None:
+                val = r.get_indicator(MFK.RTK_EFFECTIVE_PRECISION.value) if hasattr(r, 'get_indicator') else None
+                val = AlertManager._parse_num(val)
+            if val is not None:
+                rtk_precision_vals.append(val)
+                if val > AlertManager.RTK_EFFECTIVE_PRECISION_ALERT:
+                    rtk_precision_photos.append(r.filename)
+                    rtk_precision_flights.append(r.flight_id or 'unknown')
+
+        if rtk_precision_vals:
+            rtk_prec_mean = statistics.mean(rtk_precision_vals)
+            rtk_prec_max = max(rtk_precision_vals)
+            rtk_prec_alert_count = len(rtk_precision_photos)
+            rtk_prec_warn_count = sum(1 for v in rtk_precision_vals if v > AlertManager.RTK_EFFECTIVE_PRECISION_WARN)
+
+            if rtk_prec_alert_count > 0 or rtk_prec_warn_count > 0:
+                severity = AlertManager.SEVERITY_CRITICAL if rtk_prec_alert_count > 0 else AlertManager.SEVERITY_ALERT
+                rtk_precision_flights_unique = sorted(set(rtk_precision_flights))
+
+                detail_parts = [
+                    f'RTK Effective Precision medio: {rtk_prec_mean:.4f}.',
+                    f'Maximo: {rtk_prec_max:.4f}.',
+                ]
+                if rtk_prec_warn_count > 0:
+                    detail_parts.append(f'{rtk_prec_warn_count}/{len(rtk_precision_vals)} imagens com precisao > {AlertManager.RTK_EFFECTIVE_PRECISION_WARN} (alerta).')
+                if rtk_prec_alert_count > 0:
+                    detail_parts.append(f'{rtk_prec_alert_count} com precisao > {AlertManager.RTK_EFFECTIVE_PRECISION_ALERT} (critico).')
+                if rtk_precision_flights_unique:
+                    detail_parts.append(f'Voo(s): {", ".join(rtk_precision_flights_unique)}.')
+
+                alerts.append(AlertManager._make_record(
+                    severity=severity,
+                    category=AlertManager.CAT_RTK,
+                    title='Precisao efetiva do RTK degradada',
+                    detail=' '.join(detail_parts),
+                    impact='Precisao RTK efetiva alta indica perda de qualidade posicional que compromete o georreferenciamento.',
+                    action='Verificar base RTK, qualidade do link de correcao e condicoes de visibilidade GNSS.',
+                    affected_count=rtk_prec_alert_count,
+                    total_count=len(rtk_precision_vals),
+                    threshold_value=AlertManager.RTK_EFFECTIVE_PRECISION_ALERT,
+                    actual_value=rtk_prec_mean,
+                    flight_ids=rtk_precision_flights_unique,
+                    photos=rtk_precision_photos[:20],
+                ))
+
+        # ===================================================================
+        # 11. TEMPERATURE - Sensor com temperatura elevada
         # ===================================================================
         temp_values = []
         for r in results:

@@ -1158,12 +1158,17 @@ class AggregateAnalyzer:
             width_m = (lon_max - lon_min) * 111320.0 * math.cos(mean_lat_rad)
             area_ha = max(0.0, (height_m * width_m) / 10000.0)
 
+        # RTK Effective Precision para metricas avancadas
+        rtk_effective_precision = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_EFFECTIVE_PRECISION.value, 'rtk_effective_precision'])
+
         advanced_metrics = {
             'rtk_diff_age_mean': round(statistics.mean(rtk_diff_age), 4) if rtk_diff_age else None,
             'rtk_diff_age_max': round(max(rtk_diff_age), 4) if rtk_diff_age else None,
             'rtk_diff_age_p95': round(sorted(rtk_diff_age)[int(0.95*(len(rtk_diff_age)-1))], 4) if rtk_diff_age else None,
             'rtk_stability_mean': round(mean_rtk_stab, 4) if mean_rtk_stab is not None else None,
             'rtk_stability_class': rtk_class,
+            'rtk_effective_precision_mean': round(statistics.mean(rtk_effective_precision), 4) if rtk_effective_precision else None,
+            'rtk_effective_precision_max': round(max(rtk_effective_precision), 4) if rtk_effective_precision else None,
             'gimbal_offset_mean': round(statistics.mean(gimbal_offset), 4) if gimbal_offset else None,
             'gimbal_offset_std': round(statistics.stdev(gimbal_offset), 4) if len(gimbal_offset) > 1 else 0.0 if gimbal_offset else None,
             'gimbal_offset_max': round(max(gimbal_offset), 4) if gimbal_offset else None,

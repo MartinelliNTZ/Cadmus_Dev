@@ -562,15 +562,15 @@
                 <th>Voo</th><th>Imagens</th><th>Inicio</th><th>Fim</th><th>Tempo</th>
                 <th>km/h</th><th>m/s</th>
                 <th>Hectares</th>
-                <th>Alt.Rel (m)</th><th>Alt.Solo (m)</th>
-                <th>GSD</th>
-                {% if agg.show_column_lrf %}<th>LRF Dist</th>{% endif %}
-                <th>Temp. total</th>
-                <th>Gimbal Offset</th>
-                <th>Sobrepos.</th>
+                <th>Altura Relativa</th><th>Altitude</th>
+                <th>GSD (cm)</th>
+                {% if agg.show_column_lrf %}<th>Distancia Solo</th>{% endif %}
+                <th>Temperatura Sensor</th>
+                <th>Gimbal Offset (°)</th>
+                <th>Sobreposição (%)</th>
                 <th>Estab. RTK</th>
                 <th>Motion Blur</th>
-                <th>Dist3DP (m)</th>
+                <th>Distancia (m)</th>
             </tr>
             {% for f in agg.per_flight %}
             <tr>
@@ -584,10 +584,12 @@
                 <td>{% if f['level5_means'].get('GroundSampleDistanceCm') is not none %}{{ '%.2f'|format(f['level5_means'].get('GroundSampleDistanceCm')) }}{% else %}-{% endif %}</td>
                 {% if agg.show_column_lrf %}<td>{% if f['avg_lrf_target_distance'] is not none %}{{ '%.2f'|format(f['avg_lrf_target_distance']) }}{% else %}-{% endif %}</td>{% endif %}
                 <td>{% if f['avg_sensor_temperature'] is not none %}{{ '%.2f'|format(f['avg_sensor_temperature']) }}{% else %}-{% endif %}</td>
-                <td>{% if agg.advanced_analysis.metrics.gimbal_offset_mean is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.gimbal_offset_mean) }}°{% else %}-{% endif %}</td>
-                <td>{% if agg.advanced_analysis.metrics.overlap_mean is not none %}{{ '%.2f'|format(agg.advanced_analysis.metrics.overlap_mean) }}%{% else %}-{% endif %}</td>
-                <td>{{ agg.advanced_analysis.metrics.rtk_stability_class if agg.advanced_analysis.metrics.rtk_stability_class is not none else '-' }}</td>
-                <td>{% if agg.advanced_analysis.metrics.motion_blur_mean is not none %}{{ '%.3f'|format(agg.advanced_analysis.metrics.motion_blur_mean) }}{% else %}-{% endif %}</td>
+                <td>{% if f['level5_means'].get('GimbalOffset') is not none %}{{ '%.2f'|format(f['level5_means'].get('GimbalOffset')) }}°{% else %}-{% endif %}</td>
+                <td>{% if f['level5_means'].get('PredictedOverlap') is not none %}{{ '%.2f'|format(f['level5_means'].get('PredictedOverlap')) }}%{% else %}
+                    {%- if f['level5_means'].get('FOverlap') is not none %}{{ '%.2f'|format(f['level5_means'].get('FOverlap')) }}%{% else %}-{% endif %}
+                {% endif %}</td>
+                <td>{% if f['level5_means'].get('RtkStabilityScore') is not none and f['level5_means'].get('RtkStabilityScore') >= 95 %}Estavel{% elif f['level5_means'].get('RtkStabilityScore') is not none and f['level5_means'].get('RtkStabilityScore') >= 85 %}Moderado{% elif f['level5_means'].get('RtkStabilityScore') is not none %}Instavel{% else %}-{% endif %}</td>
+                <td>{% if f['level5_means'].get('MotionBlurRisk') is not none %}{{ '%.3f'|format(f['level5_means'].get('MotionBlurRisk')) }}{% else %}-{% endif %}</td>
                 <td>{% if f['avg_dist3d_previous'] is not none %}{{ '%.2f'|format(f['avg_dist3d_previous']) }}{% else %}-{% endif %}</td>
             </tr>
             {% endfor %}
@@ -596,50 +598,37 @@
         </details>
     </div>
 
-    <!-- AGRUPAMENTO POR VOO AVANÇADO -->
+    <!-- AGRUPAMENTO POR VOO AVANÇADO (apenas campos NAO exibidos no SIMPLES) -->
+    {% set simple_level5_keys = ['GroundSampleDistanceCm', 'GimbalOffset', 'PredictedOverlap', 'FOverlap', 'RtkStabilityScore', 'MotionBlurRisk'] %}
+    {% set advanced_exclude_level5_keys = ['3DSpeed', 'Alt', 'GroundElevation', 'OrthorectificationPotential', 'Foto', 'PhotogrammetryQualityIndex', 'Speed3dKmh'] %}
     <div class="card">
         <details>
-            <summary >AGRUPAMENTO POR VOO - AVANÇADO</summary>
+            <summary>AGRUPAMENTO POR VOO - AVANÇADO</summary>
             <div style="overflow-x: auto;">
             <table>
             <tr>
-                <th>Voo</th><th>Imagens</th><th>Score</th><th>Inicio</th><th>Fim</th><th>Tempo</th>
-                {% if agg.show_column_speed3d_kmh %}<th>Vel. (km/h)</th>{% endif %}
-                {% if agg.show_column_dist3d %}<th>Dist3D (m)</th>{% endif %}
-                {% if agg.show_column_flight_roll %}<th>DroneRoll</th>{% endif %}
-                {% if agg.show_column_flight_yaw %}<th>DroneYaw</th>{% endif %}
-                {% if agg.show_column_flight_pitch %}<th>DronePitch</th>{% endif %}
-                {% if agg.show_column_sensor_temp %}<th>SensorTemp</th>{% endif %}
-                {% if agg.show_column_lrf %}<th>LRF Dist</th>{% endif %}
-                {% if agg.show_column_rel_alt %}<th title="Altitude Relativa Media">Alt. Rel (m)</th>{% endif %}
-                {% if agg.show_column_abs_alt %}<th title="Altitude Absoluta Media">Alt. Abs (m)</th>{% endif %}
+                <th>Voo</th>
+                {% if agg.show_column_flight_roll %}<th>Drone Roll</th>{% endif %}
+                {% if agg.show_column_flight_yaw %}<th>Drone Yaw</th>{% endif %}
+                {% if agg.show_column_flight_pitch %}<th>Drone Pitch</th>{% endif %}
                 {% if agg.show_column_iso %}<th>ISO</th>{% endif %}
                 {% if agg.show_column_shutter %}<th>Obturador</th>{% endif %}
-                {% if agg.show_column_wb_cct %}<th>WBCCT</th>{% endif %}
+                {% if agg.show_column_wb_cct %}<th>Temp Cor (K)</th>{% endif %}
                 {% for col in agg.flight_level5_columns %}
-                {% if agg['show_column_level5_' ~ col.key] %}<th>{{ col.label }}</th>{% endif %}
+                {% if agg['show_column_level5_' ~ col.key] and col.key not in simple_level5_keys and col.key not in advanced_exclude_level5_keys %}<th>{{ col.label }}</th>{% endif %}
                 {% endfor %}
             </tr>
             {% for f in agg.per_flight %}
             <tr>
-                <td>{{ f['flight_id'] }}</td><td>{{ f['images'] }}</td>
-                {% set flight_level = f['mean_score']|round(0)|int %}
-                <td class="{{ ('level-' ~ flight_level) if (flight_level >= 1 and flight_level <= 5) else 'level-na' }}">{{ f['mean_score'] }}</td>
-                <td>{{ f['start'] }}</td><td>{{ f['end'] }}</td><td>{{ f['flight_time'] }}</td>
-                {% if agg.show_column_speed3d_kmh %}<td>{% if f['avg_speed3d_kmh'] is not none %}{{ '%.2f'|format(f['avg_speed3d_kmh']) }}{% else %}-{% endif %}</td>{% endif %}
-                {% if agg.show_column_dist3d %}<td>{% if f['avg_dist3d_previous'] is not none %}{{ '%.2f'|format(f['avg_dist3d_previous']) }}{% else %}-{% endif %}</td>{% endif %}
+                <td>{{ f['flight_id'] }}</td>
                 {% if agg.show_column_flight_roll %}<td>{% if f['avg_flight_roll'] is not none %}{{ '%.2f'|format(f['avg_flight_roll']) }}°{% else %}-{% endif %}</td>{% endif %}
                 {% if agg.show_column_flight_yaw %}<td>{% if f['avg_flight_yaw'] is not none %}{{ '%.2f'|format(f['avg_flight_yaw']) }}°{% else %}-{% endif %}</td>{% endif %}
                 {% if agg.show_column_flight_pitch %}<td>{% if f['avg_flight_pitch'] is not none %}{{ '%.2f'|format(f['avg_flight_pitch']) }}°{% else %}-{% endif %}</td>{% endif %}
-                {% if agg.show_column_sensor_temp %}<td>{% if f['avg_sensor_temperature'] is not none %}{{ '%.2f'|format(f['avg_sensor_temperature']) }}{% else %}-{% endif %}</td>{% endif %}
-                {% if agg.show_column_lrf %}<td>{% if f['avg_lrf_target_distance'] is not none %}{{ '%.2f'|format(f['avg_lrf_target_distance']) }}{% else %}-{% endif %}</td>{% endif %}
-                {% if agg.show_column_rel_alt %}<td>{% if f['avg_relative_altitude'] is not none %}{{ '%.2f'|format(f['avg_relative_altitude']) }}{% else %}-{% endif %}</td>{% endif %}
-                {% if agg.show_column_abs_alt %}<td>{% if f['avg_absolute_altitude'] is not none %}{{ '%.2f'|format(f['avg_absolute_altitude']) }}{% else %}-{% endif %}</td>{% endif %}
                 {% if agg.show_column_iso %}<td>{% if f['avg_iso'] is not none %}{{ '%.0f'|format(f['avg_iso']) }}{% else %}-{% endif %}</td>{% endif %}
                 {% if agg.show_column_shutter %}<td>{% if f['avg_shutter_speed_text'] and f['avg_shutter_speed_text'] != 'N/A' %}{{ f['avg_shutter_speed_text'] }}{% else %}-{% endif %}</td>{% endif %}
                 {% if agg.show_column_wb_cct %}<td>{% if f['avg_white_balance_cct'] is not none %}{{ '%.0f'|format(f['avg_white_balance_cct']) }}{% else %}-{% endif %}</td>{% endif %}
                 {% for col in agg.flight_level5_columns %}
-                {% if agg['show_column_level5_' ~ col.key] %}
+                {% if agg['show_column_level5_' ~ col.key] and col.key not in simple_level5_keys and col.key not in advanced_exclude_level5_keys %}
                 <td>{% if f['level5_means'].get(col.key) is not none %}{{ '%.2f'|format(f['level5_means'].get(col.key)) }}{% else %}-{% endif %}</td>
                 {% endif %}
                 {% endfor %}

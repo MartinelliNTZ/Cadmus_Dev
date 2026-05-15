@@ -855,6 +855,21 @@ class AggregateAnalyzer:
                 })
         agg['temp_chart_series'] = temp_chart_series
 
+        # LRF Target Distance series per flight (for chart)
+        lrf_chart_series = []
+        for flight_id, items in sorted(flights.items(), key=lambda kv: kv[0].lower()):
+            series = []
+            for idx, it in enumerate(items):
+                v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
+                if v is not None and v not in (math.inf, -math.inf):
+                    series.append({'x': idx + 1, 'y': round(v, 2)})
+            if series:
+                lrf_chart_series.append({
+                    'label': flight_id,
+                    'data': series
+                })
+        agg['lrf_chart_series'] = lrf_chart_series
+
         def _is_zero_or_none(val):
             """Check if a value is None, zero, or empty."""
             if val is None:

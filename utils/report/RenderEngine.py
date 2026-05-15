@@ -77,6 +77,28 @@ class RenderEngine:
                 "title": "Temperatura do Sensor por Foto (°C)",
             }
 
+        # LRF Target Distance per photo series (line chart)
+        lrf_series = agg_data.get("lrf_chart_series", [])
+        if lrf_series:
+            lrf_colors = ColorUtil.generate(len(lrf_series))
+            lrf_datasets = []
+            for idx, series in enumerate(lrf_series):
+                color = lrf_colors[idx % len(lrf_colors)]
+                lrf_datasets.append({
+                    "label": series["label"],
+                    "data": series["data"],
+                    "borderColor": color,
+                    "backgroundColor": ColorUtil.to_rgba(color, 0.1),
+                    "fill": False,
+                    "tension": 0.4,
+                    "pointRadius": 2,
+                })
+            charts["lrf_line"] = {
+                "type": "line",
+                "datasets": lrf_datasets,
+                "title": "LRF Target Distance ao Longo do Voo (m)",
+            }
+
         return charts
 
     @staticmethod

@@ -3,7 +3,7 @@ Aqui vão 25 opções diretas:
 Gráficos
 
 Linha de velocidade 3D ao longo do tempo de voo por voo
-Linha de temperatura do sensor ao longo do tempo de voo
+
 Linha de WhiteBalanceCCT ao longo do tempo mostrando variações bruscas
 Histograma de distribuição de IncidenceAngle por faixa de valores
 Histograma de MotionBlurRisk mostrando cauda de fotos problemáticas

@@ -132,7 +132,7 @@
         .star-empty { color: var(--muted); }
         .chart-wrap { min-height: 220px; }
         #levelChart { max-height: 180px; }
-        #tempChart { min-height: 300px; max-height: 450px; }
+        #tempChart, #lrfChart { min-height: 250px; max-height: 380px; }
         #map { height: 800px !important; border-radius: 8px; }
         .dist-stack {
             display: flex;
@@ -718,12 +718,36 @@
         </details>
     </div>
 
-    <!-- TEMPERATURA DO SENSOR -->
-    {% if charts.temp_line %}
+    <!-- TEMPERATURA DO SENSOR + LRF TARGET DISTANCE (50% cada linha) -->
+    {% set has_temp = charts.temp_line is defined %}
+    {% set has_lrf = charts.lrf_line is defined %}
+    {% if has_temp and has_lrf %}
+    <div class="half-grid">
+        <div class="card chart-wrap">
+            <details open>
+                <summary>TEMPERATURA DO SENSOR POR FOTO (°C)</summary>
+                <canvas id="tempChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+        <div class="card chart-wrap">
+            <details open>
+                <summary>LRF TARGET DISTANCE AO LONGO DO VOO (m) - Relevo</summary>
+                <canvas id="lrfChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+    </div>
+    {% elif has_temp %}
     <div class="card chart-wrap">
         <details open>
             <summary>TEMPERATURA DO SENSOR POR FOTO (°C)</summary>
             <canvas id="tempChart" style="width:100%;"></canvas>
+        </details>
+    </div>
+    {% elif has_lrf %}
+    <div class="card chart-wrap">
+        <details open>
+            <summary>LRF TARGET DISTANCE AO LONGO DO VOO (m) - Relevo</summary>
+            <canvas id="lrfChart" style="width:100%;"></canvas>
         </details>
     </div>
     {% endif %}
@@ -776,6 +800,31 @@
         }
         {% endif %}
 
+        {% if charts.lrf_line %}
+        const lrfCfg = {{ charts.lrf_line | tojson }};
+        let lrfChartInstance = null;
+        function renderLrfChart() {
+            const ctx = document.getElementById('lrfChart');
+            if (!ctx || !lrfCfg) return;
+            if (lrfChartInstance) lrfChartInstance.destroy();
+            applyChartDefaults();
+            lrfChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: lrfCfg.datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    parsing: false,
+                    scales: {
+                        x: { type: 'linear', title: { display: true, text: 'Foto #' } },
+                        y: { title: { display: true, text: 'Distância (m)' } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+        {% endif %}
+
         function setTheme(theme) {
             document.body.setAttribute('data-theme', theme);
             localStorage.setItem('report_theme', theme);
@@ -792,6 +841,9 @@
             });
             {% if charts.temp_line %}
             renderTempChart();
+            {% endif %}
+            {% if charts.lrf_line %}
+            renderLrfChart();
             {% endif %}
         })();
     </script>

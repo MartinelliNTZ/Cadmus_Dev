@@ -35,7 +35,13 @@ class ReportGenerationService:
         records = JSONUtil.load_records(json_path=json_path, tool_key=self.tool_key)
         results: List[IMGMetadata] = [IMGMetadata(record).score() for record in records]
 
+        # Carrega timestamps e computa sumario de processamento
+        timestamps = JSONUtil.load_timestamps(json_path=json_path, tool_key=self.tool_key)
+        processing_summary = JSONUtil.compute_processing_summary(timestamps)
+
         agg = AggregateAnalyzer.analyze(results)
+        agg['processing'] = processing_summary
+        agg['timestamps'] = timestamps
         engine = RenderEngine(tool_key=self.tool_key)
         charts = engine.generate_charts(agg)
         map_data = engine.generate_map_data(results)

@@ -480,6 +480,82 @@
 
     <div class="card">
         <details open>
+            <summary>⏱️ Processamento</summary>
+            {% set p = agg.processing %}
+            <table>
+                <tr><th>Pipeline</th><th>Inicio</th><th>Fim</th><th>Duracao Total</th></tr>
+                <tr>
+                    <td><strong>Pipeline Completo</strong></td>
+                    <td>{{ p.pipeline_start[:19] if p.pipeline_start else 'N/A' }}</td>
+                    <td>{{ p.pipeline_end[:19] if p.pipeline_end else 'N/A' }}</td>
+                    <td>
+                        <strong style="font-size: 18px; color: var(--l5);">
+                            {{ p.total_formatted }}
+                        </strong>
+                        {% if p.total_seconds is not none %}
+                            <br><span class="muted">({{ '%.2f'|format(p.total_seconds) }}s)</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+            <br>
+            <table>
+                <tr>
+                    <th>Etapa</th>
+                    <th>Inicio</th>
+                    <th>Fim</th>
+                    <th>Duracao</th>
+                </tr>
+                {% for stage in p.stages %}
+                <tr>
+                    <td>
+                        <strong>{{ stage.label }}</strong>
+                        {% if not stage.present %}
+                            <span class="status-warn">(ausente)</span>
+                        {% endif %}
+                    </td>
+                    <td class="muted">{{ stage.start[:19] if stage.start else '-' }}</td>
+                    <td class="muted">{{ stage.end[:19] if stage.end else '-' }}</td>
+                    <td>
+                        {% if stage.duration_seconds is not none %}
+                            <span style="color: var(--l5); font-weight: 700;">{{ stage.duration_formatted }}</span>
+                            <span class="muted">({{ '%.2f'|format(stage.duration_seconds) }}s)</span>
+                        {% else %}
+                            <span class="muted">N/A</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% if p.missing_stages %}
+            <br>
+            <p class="status-warn">Etapas nao registradas: {{ p.missing_stages | join(', ') }}</p>
+            {% endif %}
+            {% if p.all_present and p.stages %}
+            {% set max_sec = p.stages | map(attribute='duration_seconds') | reject('none') | max %}
+            {% if max_sec and max_sec > 0 %}
+            <br>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                <span class="muted" style="font-size: 12px;">Linha do tempo proporcional:</span>
+                {% for stage in p.stages if stage.duration_seconds is not none %}
+                {% set pct = (stage.duration_seconds / max_sec * 100) %}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="min-width: 90px; font-size: 12px;">{{ stage.label }}</span>
+                    <div style="flex: 1; height: 20px; background: var(--border); border-radius: 4px; overflow: hidden;">
+                        <div style="height: 100%; width: {{ pct }}%; background: linear-gradient(90deg, var(--l4), var(--l5)); border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; min-width: 40px;">
+                            <span style="font-size: 10px; color: #111; font-weight: 700;">{{ stage.duration_formatted }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endif %}
+        </details>
+    </div>
+
+    <div class="card">
+        <details open>
             <summary>🌱 Insights Agronomicos</summary>
             <table>
                 <tr><th>Insight</th><th>Valor</th></tr>

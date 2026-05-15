@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ...core.config.LogUtils import LogUtils
 from ..ToolKeys import ToolKey
@@ -56,6 +56,177 @@ class JSONUtil:
             data = json.load(f)
         logger.info(f"JSON carregado: {json_path}")
         return data
+
+    @staticmethod
+    def load_timestamps(
+        json_path: str,
+        tool_key: str = ToolKey.UNTRACEABLE,
+    ) -> Dict[str, str]:
+        """Carrega apenas o bloco de timestamps do JSON v2.0.
+
+        Retorna dict vazio se nao houver timestamps ou se o JSON nao for v2.0.
+        """
+        logger = JSONUtil._get_logger(tool_key)
+        try:
+            path = Path(json_path)
+            if not path.exists():
+                logger.warning(f"JSON nao encontrado para extrair timestamps: {json_path}")
+                return {}
+
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            version = data.get("schema_version")
+            if version != "2.0":
+                logger.debug(f"JSON com schema_version='{version}' nao possui timestamps v2.0")
+                return {}
+
+            timestamps = data.get("timestamps", {})
+            if not isinstance(timestamps, dict) or not timestamps:
+                logger.debug("Nenhum timestamp encontrado no JSON")
+                return {}
+
+            logger.info(f"Timestamps carregados: {len(timestamps)} entradas")
+            return dict(timestamps)
+
+        except Exception as e:
+            logger.warning(f"Erro ao carregar timestamps: {e}")
+            return {}
+
+    @staticmethod
+    def compute_processing_summary(timestamps: Dict[str, str]) -> Dict[str, Any]:
+        """Calcula tempos de processamento a partir do dicionario de timestamps.
+
+        Args:
+            timestamps: Dict com chaves como pipeline_start, mrk_start, mrk_end, etc.
+
+        Returns:
+            Dict com:
+                - total_seconds: float (tempo total pipeline_start -> report_end)
+                - total_formatted: str (HH:MM:SS)
+                - stages: List[Dict] com nome, inicio, fim, duracao_seg, duracao_formatada
+                - all_present: bool (se todos os timestones esperados existem)
+                - missing_stages: List[str] (etapas que faltam)
+        """
+        from datetime import datetime
+
+        def _parse_ts(ts_str: str) -> Optional[datetime]:
+            if not ts_str:
+                return None
+            try:
+                return datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                return None
+
+        # Define etapas esperadas no pipeline
+        stage_defs = [
+            ("mrk_start", "mrk_end", "MRK"),
+            ("exif_start", "exif_xmp_end", "EXIF+XMP"),
+            ("custom_start", "custom_end", "Custom"),
+            ("vectorization_start", "vectorization_end", "Vetorizacao"),
+            ("report_start", "report_end", "Relatorio"),
+        ]
+
+        parsed = {k: _parse_ts(v) for k, v in timestamps.items()}
+
+        stages = []
+        missing_stages = []
+        total_stage_seconds = 0.0
+
+        for start_key, end_key, label in stage_defs:
+            start_dt = parsed.get(start_key)
+            end_dt = parsed.get(end_key)
+
+            if start_dt is None or end_dt is None:
+                missing_stages.append(label)
+                stages.append({
+                    "label": label,
+                    "start": timestamps.get(start_key, ""),
+                    "end": timestamps.get(end_key, ""),
+                    "duration_seconds": None,
+                    "duration_formatted": "N/A",
+                    "present": False,
+                })
+                continue
+
+            duration = (end_dt - start_dt).total_seconds()
+            total_stage_seconds += duration
+
+            hours = int(duration // 3600)
+            minutes = int((duration % 3600) // 60)
+            seconds = duration % 60
+
+            if hours > 0:
+                dur_fmt = f"{hours}h {minutes:02d}m {seconds:05.2f}s"
+            elif minutes > 0:
+                dur_fmt = f"{minutes}m {seconds:05.2f}s"
+            else:
+                dur_fmt = f"{seconds:.2f}s"
+
+            stages.append({
+                "label": label,
+                "start": timestamps.get(start_key, ""),
+                "end": timestamps.get(end_key, ""),
+                "duration_seconds": round(duration, 3),
+                "duration_formatted": dur_fmt,
+                "present": True,
+            })
+
+        # Tempo total pipeline_start -> report_end
+        pipeline_start = parsed.get("pipeline_start")
+        report_end = parsed.get("report_end")
+
+        if pipeline_start and report_end:
+            total_seconds = (report_end - pipeline_start).total_seconds()
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            secs = total_seconds % 60
+
+            if hours > 0:
+                total_formatted = f"{hours}h {minutes:02d}m {secs:05.2f}s"
+            elif minutes > 0:
+                total_formatted = f"{minutes}m {secs:05.2f}s"
+            else:
+                total_formatted = f"{secs:.2f}s"
+        else:
+            total_seconds = total_stage_seconds if total_stage_seconds > 0 else None
+            if total_seconds is not None:
+                hours = int(total_seconds // 3600)
+                minutes = int((total_seconds % 3600) // 60)
+                secs = total_seconds % 60
+                if hours > 0:
+                    total_formatted = f"{hours}h {minutes:02d}m {secs:05.2f}s"
+                elif minutes > 0:
+                    total_formatted = f"{minutes}m {secs:05.2f}s"
+                else:
+                    total_formatted = f"{secs:.2f}s"
+            else:
+                total_formatted = "N/A"
+
+        # Timestamps individuais formatados sem timezone para exibicao
+        formatted_individual = {}
+        for key, dt in parsed.items():
+            if dt is not None:
+                formatted_individual[key] = dt.strftime("%H:%M:%S.%f")[:-3]
+            else:
+                formatted_individual[key] = timestamps.get(key, "N/A")
+
+        # Pipeline start/end formatados
+        pipeline_start_str = timestamps.get("pipeline_start", "")
+        report_end_str = timestamps.get("report_end", "")
+
+        all_present = len(missing_stages) == 0
+
+        return {
+            "total_seconds": round(total_seconds, 3) if total_seconds is not None else None,
+            "total_formatted": total_formatted,
+            "stages": stages,
+            "missing_stages": missing_stages,
+            "all_present": all_present,
+            "pipeline_start": pipeline_start_str,
+            "pipeline_end": report_end_str,
+            "formatted_individual": formatted_individual,
+        }
 
     @staticmethod
     def load_records(

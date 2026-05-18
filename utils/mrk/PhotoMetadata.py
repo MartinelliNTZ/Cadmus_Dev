@@ -97,8 +97,7 @@ class PhotoMetadata:
         skeleton = PhotoMetadata._build_file_skeleton(base_folder, recursive, tool_key)
         if not skeleton:
             logger.warning("Nenhuma foto encontrada no diretorio")
-            return [], {"total_files": 0, "with_coords": 0, "without_coords": 0,
-                         "with_xmp": 0, "with_exif_gps": 0, "missing_xmp_and_exif": 0}
+            return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
 
         # ── Etapa 2: Enriquecimento MRK (opcional) ──
         if enable_mrk and points:
@@ -121,15 +120,13 @@ class PhotoMetadata:
         # Timestamps: fim da extracao de metadados (EXIF + XMP)
         xmp_end = datetime.now().isoformat()
 
-        # Converte dict para lista de records, normaliza, resolve coordenadas
+        # Converte dict para lista de records e normaliza coordenadas
         all_records = []
         quality = {
             "total_files": len(skeleton),
-            "with_coords": 0,
-            "without_coords": 0,
             "with_xmp": 0,
+            "with_mrk": 0,
             "with_exif_gps": 0,
-            "missing_xmp_and_exif": 0,
         }
 
         for filename, payload in skeleton.items():
@@ -138,30 +135,30 @@ class PhotoMetadata:
 
             merged = MetadataFields.normalize_record_to_keys(payload)
 
-            # Mapeia campos MRK (Lat/Lon/Alt) para GPS (GpsLatitude/GpsLongitude/AbsoluteAltitude)
-            # se GPS ainda não estiver preenchido
-            if merged.get(MetadataFieldKey.GPS_LATITUDE.value) in (None, ""):
-                mrk_lat = merged.get(MetadataFieldKey.LAT.value)
-                if mrk_lat is not None:
-                    merged[MetadataFieldKey.GPS_LATITUDE.value] = mrk_lat
-            if merged.get(MetadataFieldKey.GPS_LONGITUDE.value) in (None, ""):
-                mrk_lon = merged.get(MetadataFieldKey.LON.value)
-                if mrk_lon is not None:
-                    merged[MetadataFieldKey.GPS_LONGITUDE.value] = mrk_lon
-            if merged.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value) in (None, ""):
-                mrk_alt = merged.get(MetadataFieldKey.ALT.value)
-                if mrk_alt is not None:
-                    merged[MetadataFieldKey.ABSOLUTE_ALTITUDE.value] = mrk_alt
+            # MRK já vem em Lat/Lon/Alt (decimais) - mantém como está
+            # EXIF DMS→decimal já foi convertido em _enrich_exif() (GpsLatRef/GpsLongRef)
+            # XMP GpsLatitude/GpsLongitude (float) já sobrescreveu se existir
 
-            lat, lon, alt, coord_source = PhotoMetadata._extract_position(merged)
-            merged[MetadataFieldKey.GPS_LATITUDE.value] = lat
-            merged[MetadataFieldKey.GPS_LONGITUDE.value] = lon
-            merged[MetadataFieldKey.ABSOLUTE_ALTITUDE.value] = alt or merged.get(
-                MetadataFieldKey.ABSOLUTE_ALTITUDE.value
-            )
-            merged[MetadataFieldKey.COORD_SOURCE.value] = coord_source
-            merged[MetadataFieldKey.QUALITY_FLAG.value] = "OK" if coord_source != "NONE" else "LOW"
+            # Se GpsLatitude/GpsLongitude ainda são tupla DMS (sem XMP para coordenadas),
+            # converte para float decimal usando GpsLatitudeRef/GpsLongitudeRef
+            gps_lat = merged.get(MetadataFieldKey.GPS_LATITUDE.value)
+            gps_lon = merged.get(MetadataFieldKey.GPS_LONGITUDE.value)
+            
+            if isinstance(gps_lat, (list, tuple)):
+                dec_val = PhotoMetadata._to_float(
+                    merged.get(MetadataFieldKey.GPS_LATITUDE_REF.value)
+                )
+                if dec_val is not None:
+                    merged[MetadataFieldKey.GPS_LATITUDE.value] = dec_val
+            if isinstance(gps_lon, (list, tuple)):
+                dec_val = PhotoMetadata._to_float(
+                    merged.get(MetadataFieldKey.GPS_LONGITUDE_REF.value)
+                )
+                if dec_val is not None:
+                    merged[MetadataFieldKey.GPS_LONGITUDE.value] = dec_val
 
+            # Heurísticas de qualidade
+            has_mrk = merged.get(MetadataFieldKey.COORD_SOURCE.value) == "MRK"
             has_xmp = any(
                 k in merged
                 for k in [
@@ -171,19 +168,18 @@ class PhotoMetadata:
                     MetadataFieldKey.RTK_FLAG.value,
                 ]
             )
-            has_exif_gps = bool(lat is not None and lon is not None)
+            has_exif_gps = (
+                merged.get(MetadataFieldKey.GPS_LATITUDE.value) is not None
+                or merged.get(MetadataFieldKey.GPS_LONGITUDE.value) is not None
+            )
 
             merged["HasXmp"] = has_xmp
             merged["HasExifGps"] = has_exif_gps
 
-            if coord_source == "NONE":
-                quality["without_coords"] += 1
-                if not has_xmp and not has_exif_gps:
-                    quality["missing_xmp_and_exif"] += 1
-            else:
-                quality["with_coords"] += 1
             if has_xmp:
                 quality["with_xmp"] += 1
+            if has_mrk:
+                quality["with_mrk"] += 1
             if has_exif_gps:
                 quality["with_exif_gps"] += 1
 
@@ -414,6 +410,17 @@ class PhotoMetadata:
     ) -> Dict[str, dict]:
         """
         Etapa 3 – Extração EXIF.
+        
+        Além da extração padrão, converte coordenadas DMS (EXIF bruto) para decimal.
+        
+        Mapeamento final:
+        - GpsLatitude (atributo "GpsLat"): mantém tupla DMS do EXIF (RAW)
+        - GpsLatitudeRef (atributo "GpsLatRef"): S/N → convertido para decimal com sinal
+        - GpsLongitude (atributo "GPSLong"): mantém tupla DMS do EXIF (RAW)
+        - GpsLongitudeRef (atributo "GpsLongRef"): E/W → convertido para decimal com sinal
+        
+        A conversão é feita AQUI, ANTES do XMP, para que o XMP possa sobrescrever
+        GpsLatitude/GpsLongitude sem perder a coordenada decimal do EXIF.
         """
         logger = PhotoMetadata._get_logger(tool_key)
 
@@ -431,6 +438,10 @@ class PhotoMetadata:
                     for k, v in payload.items():
                         if k not in record or record.get(k) in (None, "", "None", "null"):
                             record[k] = v
+
+                # A conversão DMS→decimal já é feita pelo ExifUtil.extract_metadata_exif()
+                # GpsLatRef / GpsLongRef já vêm como decimal com sinal
+                # GpsLat / GpsLong mantêm a tupla DMS original (RAW)
 
                 dt = PhotoMetadata._safe_parse_datetime(
                     record.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value)
@@ -460,6 +471,13 @@ class PhotoMetadata:
         Lê os metadados XMP de cada foto (quando disponíveis) e incorpora
         informações como altitude relativa, guinada do gimbal, flag RTK, etc.
         Os aliases DJI são resolvidos pelo XmpUtil.extract_metadata.
+
+        Regras de sobrescrita:
+        - GpsLat (GpsLatitude) / GPSLong (GpsLongitude): 
+            SEMPRE sobrescritos pelo XMP se disponíveis (float).
+            Se não houver XMP, mantém a tupla DMS do EXIF.
+        - GpsLatRef (GpsLatitudeRef) / GpsLongRef (GpsLongitudeRef):
+            NUNCA sobrescritos pelo XMP. São EXCLUSIVOS do EXIF (decimal com sinal).
         """
         logger = PhotoMetadata._get_logger(tool_key)
 
@@ -472,15 +490,18 @@ class PhotoMetadata:
                 xmp_payload = XmpUtil.extract_metadata(image_path, tool_key=tool_key)
                 # XmpUtil já resolve os aliases internamente
 
-                # Mescla campos XMP no registro (sem sobrescrever MRK/EXIF já preenchidos)
+                # Mescla campos XMP (APENAS campos que não são do EXIF)
+                # GpsLatRef/GpsLongRef são EXCLUSIVOS do EXIF, NUNCA sobrescritos
+                exif_exclusive = {"GpsLatRef", "GpsLongRef"}
+                
                 for k, v in xmp_payload.items():
-                    if k not in record or record.get(k) in (None, "", "None", "null"):
+                    if k in exif_exclusive:
+                        continue  # NUNCA sobrescreve campos exclusivos do EXIF
+                    # Sobrescreve GpsLat/GPSLong com XMP (float sobrescreve tupla DMS)
+                    if k in ("GpsLat", "GPSLong") and v is not None:
                         record[k] = v
-
-                # Se XMP trouxe GpsLatitude/GpsLongitude, mas já temos MRK, preserva MRK
-                if record.get(MetadataFieldKey.COORD_SOURCE.value) == "MRK":
-                    if MetadataFieldKey.GPS_LATITUDE.value in xmp_payload:
-                        pass  # Não sobrescreve
+                    elif k not in record or record.get(k) in (None, "", "None", "null"):
+                        record[k] = v
 
             except Exception as exc:
                 logger.warning(f"Falha ao extrair XMP de {filename}: {exc}")

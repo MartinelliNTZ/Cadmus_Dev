@@ -108,15 +108,63 @@ class ExifUtil:
             return value
 
     @staticmethod
+    def _dms_to_decimal(dms_tuple, ref):
+        """
+        Converte tupla DMS (graus, minutos, segundos) para decimal com sinal.
+        
+        Args:
+            dms_tuple: Tupla/list com 3 valores (graus, minutos, segundos)
+            ref: Referencia 'N'/'S' para latitude ou 'E'/'W' para longitude
+        
+        Returns:
+            float: Valor decimal com sinal (negativo para S/W), ou None se invalido
+        """
+        if dms_tuple is None:
+            return None
+        try:
+            parts = list(dms_tuple)
+            if len(parts) < 3:
+                return None
+            
+            def _to_float(p):
+                if isinstance(p, (int, float)):
+                    return float(p)
+                text = str(p).strip()
+                if "/" in text:
+                    num, den = text.split("/", 1)
+                    return float(num) / float(den) if float(den) != 0 else 0.0
+                return float(text)
+            
+            deg = _to_float(parts[0])
+            minute = _to_float(parts[1])
+            sec = _to_float(parts[2])
+            decimal = deg + (minute / 60.0) + (sec / 3600.0)
+            
+            ref_txt = str(ref or "").strip().upper()
+            if ref_txt in ("S", "W"):
+                decimal = -decimal
+            return decimal
+        except Exception:
+            return None
+
+    @staticmethod
     def extract_metadata_exif(
         image_path: str, tool_key: str = ToolKey.UNTRACEABLE
     ) -> dict:
         """
         Extrai e sanitiza campos EXIF disponiveis.
         
+        Converte automaticamente coordenadas DMS (GPSLatitude/GPSLongitude) para
+        decimal com sinal, armazenando o resultado em GpsLatitudeRef/GpsLongitudeRef.
+        
+        Campos retornados:
+        - GpsLatitude: tupla DMS original (RAW) - pode ser sobrescrito pelo XMP
+        - GpsLatitudeRef: decimal com sinal (ex: -13.11816) - EXCLUSIVO do EXIF
+        - GpsLongitude: tupla DMS original (RAW) - pode ser sobrescrito pelo XMP
+        - GpsLongitudeRef: decimal com sinal (ex: -54.79313) - EXCLUSIVO do EXIF
+        
         Apenas campos autorizados em MetadataFields sao retornados.
         Campos nao autorizados sao descartados (log em DEBUG).
-        Valores numericos em string sao convertidos para float/int.
         """
         logger = ExifUtil._get_logger(tool_key)
         data = {}
@@ -125,7 +173,7 @@ class ExifUtil:
                 exif_raw = img._getexif() or {}
                 exif = {ExifTags.TAGS.get(k, k): v for k, v in exif_raw.items()}
                 
-                # Expande GPSInfo para chaves individuais (GPSLatitude, GPSLongitude, GPSMapDatum, etc.).
+                # Expande GPSInfo para chaves individuais
                 gps_info = exif.get("GPSInfo")
                 if isinstance(gps_info, dict):
                     gps_named = {
@@ -138,11 +186,26 @@ class ExifUtil:
                 for key, value in exif.items():
                     canonical_name = MetadataFields.sanitize_field_name(str(key))
                     if canonical_name:
-                        # Converte string numerica para float/int
                         data[canonical_name] = ExifUtil._to_numeric(value)
                     else:
-                        # Campo nao autorizado - log em DEBUG
                         logger.debug(f"Campo EXIF rejeitado (nao autorizado): {key}")
+                
+                # ── Converte DMS → decimal com sinal ──
+                # GpsLat (tupla DMS) + GpsLatRef ("S"/"N") → GpsLatRef (decimal)
+                # GpsLong (tupla DMS) + GpsLongRef ("E"/"W") → GpsLongRef (decimal)
+                lat_raw = data.get("GpsLat")  # tupla DMS
+                lat_ref = data.get("GpsLatRef", "")  # "S" ou "N"
+                lon_raw = data.get("GPSLong")  # tupla DMS  
+                lon_ref = data.get("GpsLongRef", "")  # "W" ou "E"
+                
+                if isinstance(lat_raw, (list, tuple)):
+                    dec_lat = ExifUtil._dms_to_decimal(lat_raw, lat_ref)
+                    if dec_lat is not None:
+                        data["GpsLatRef"] = dec_lat
+                if isinstance(lon_raw, (list, tuple)):
+                    dec_lon = ExifUtil._dms_to_decimal(lon_raw, lon_ref)
+                    if dec_lon is not None:
+                        data["GpsLongRef"] = dec_lon
                         
         except Exception as exc:
             logger.warning(f"Erro ao extrair EXIF de {image_path}: {exc}")

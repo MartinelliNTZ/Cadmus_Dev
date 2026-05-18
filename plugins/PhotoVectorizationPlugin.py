@@ -13,10 +13,9 @@ from ..plugins.BasePlugin import BasePluginMTL
 from ..resources.IconManager import IconManager as im
 from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
+from ..utils.StringManager import StringManager
 from ..utils.ToolKeys import ToolKey
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
-
-
 class PhotoVectorizationPlugin(BasePluginMTL):
     """Ferramenta dedicada para geração de vetores a partir de imagens."""
 
@@ -45,6 +44,44 @@ class PhotoVectorizationPlugin(BasePluginMTL):
             separator_bottom=False,
         )
 
+        # ====== OPÇÕES (CollapsibleParametersWidget) ======
+        opts_layout, self.opts_collapsible = (
+            WidgetFactory.create_collapsible_parameters(
+                parent=self,
+                title=STR.OPTIONS,
+                expanded_by_default=False,
+            )
+        )
+
+        # ====== LOGO / IMAGE SELECTOR ======
+        logo_layout, self.logo_selector = WidgetFactory.create_save_file_selector(
+            parent=self,
+            file_filter=StringManager.FILTER_IMAGES,
+            checkbox_text=STR.USE_LOGO,
+            label_text=STR.LOGO_LABEL,
+            separator_top=False,
+            separator_bottom=False,
+            mode="file",
+        )
+        self.opts_collapsible.add_content_layout(logo_layout)
+
+        # ====== PROJETO TITLE ======
+        title_fields = {
+            "project_title": {
+                "title": STR.PROJECT_TITLE,
+                "description": STR.PROJECT_TITLE_HINT,
+                "type": "text",
+                "default": "",
+            }
+        }
+        title_layout, self.title_input = WidgetFactory.create_input_fields_widget(
+            fields_dict=title_fields,
+            parent=self,
+            separator_top=False,
+            separator_bottom=False,
+        )
+        self.opts_collapsible.add_content_layout(title_layout)
+
         photo_opts_layout, self.photo_opts_map = WidgetFactory.create_checkbox_grid(
             options_data={
                 "photo_recursive": STR.RECURSIVE_SEARCH,
@@ -55,6 +92,7 @@ class PhotoVectorizationPlugin(BasePluginMTL):
             separator_top=False,
             separator_bottom=False,
         )
+        self.opts_collapsible.add_content_layout(photo_opts_layout)
 
         buttons_layout, _ = WidgetFactory.create_bottom_action_buttons(
             parent=self,
@@ -68,7 +106,7 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         self.layout.add_items(
             [
                 folder_layout,
-                photo_opts_layout,
+                opts_layout,
                 buttons_layout,
             ]
         )
@@ -83,6 +121,11 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         self.preferences[self.PREF_PHOTO_GENERATE_REPORT] = bool(
             self.photo_opts_map["photo_generate_report"].isChecked()
         )
+        # Logo e titulo do projeto
+        project_title_values = self.title_input.get_values()
+        self.preferences["project_title"] = project_title_values.get("project_title", "")
+        self.preferences["logo_path"] = self.logo_selector.get_file_path().strip()
+        self.preferences["logo_enabled"] = self.logo_selector.is_enabled()
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
 
     def _load_prefs(self):
@@ -95,6 +138,13 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         self.photo_opts_map["photo_generate_report"].setChecked(
             self.preferences.get(self.PREF_PHOTO_GENERATE_REPORT, True)
         )
+        # Logo e titulo do projeto
+        if self.preferences.get("logo_path", ""):
+            self.logo_selector.set_file_path(self.preferences.get("logo_path", ""))
+            self.logo_selector.set_enabled(self.preferences.get("logo_enabled", False))
+        title_val = self.preferences.get("project_title", "")
+        if title_val:
+            self.title_input.set_values({"project_title": title_val})
 
     def execute_tool(self):
         self._run_photo_vectorization_with_task()
@@ -112,6 +162,11 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         try:
             self._save_prefs()
 
+            # Projeto e logotipo
+            project_title_values = self.title_input.get_values()
+            project_title = project_title_values.get("project_title", "")
+            logo_path = self.logo_selector.get_file_path().strip() if self.logo_selector.is_enabled() else ""
+
             context = ExecutionContext()
             context.set("base_folder", photo_folder)
             context.set("recursive", recursive)
@@ -119,6 +174,8 @@ class PhotoVectorizationPlugin(BasePluginMTL):
             context.set("layer_name", STR.PHOTOS_WITHOUT_MRK_LAYER_NAME)
             context.set("tool_key", self.TOOL_KEY)
             context.set("iface", self.iface)
+            context.set("project_title", project_title)
+            context.set("logo_path", logo_path)
 
             steps = [PhotoEnrichmentStep(), JsonVectorizationStep()]
 

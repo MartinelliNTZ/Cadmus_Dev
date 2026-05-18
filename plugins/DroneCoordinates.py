@@ -83,7 +83,7 @@ class DroneCordinates(BasePluginMTL):
             label_text=STR.LOGO_LABEL,
             separator_top=False,
             separator_bottom=False,
-            mode=WidgetFactory.MODE_FILE,
+            mode="file",
         )
         self.opts_collapsible.add_content_layout(logo_layout)
 
@@ -446,6 +446,14 @@ class DroneCordinates(BasePluginMTL):
         self.save_track_selector.set_enabled(self.preferences.get("save_file", False))
         self.save_track_selector.set_file_path(self.preferences.get("output_path", ""))
 
+        # Logo e titulo do projeto
+        if self.preferences.get("logo_path", ""):
+            self.logo_selector.set_file_path(self.preferences.get("logo_path", ""))
+            self.logo_selector.set_enabled(self.preferences.get("logo_enabled", False))
+        title_val = self.preferences.get("project_title", "")
+        if title_val:
+            self.title_input.set_values({"project_title": title_val})
+
         # Estilo (QML)
         self.qml_points_selector.set_enabled(
             self.preferences.get("apply_style_points", False)
@@ -505,6 +513,12 @@ class DroneCordinates(BasePluginMTL):
         self.preferences["save_file_pts"] = self.save_points_selector.is_enabled()
         self.preferences["output_path"] = self.save_track_selector.get_file_path()
         self.preferences["output_path_pts"] = self.save_points_selector.get_file_path()
+        # Logo e titulo do projeto
+        project_title_values = self.title_input.get_values()
+        self.preferences["project_title"] = project_title_values.get("project_title", "")
+        self.preferences["logo_path"] = self.logo_selector.get_file_path().strip()
+        self.preferences["logo_enabled"] = self.logo_selector.is_enabled()
+
         self.preferences["apply_style_track"] = self.qml_track_selector.is_enabled()
         self.preferences["qml_path_track"] = self.qml_track_selector.get_file_path()
         self.preferences["apply_style_points"] = self.qml_points_selector.is_enabled()

@@ -560,12 +560,27 @@ class PhotoMetadata:
         Retorna (lat, lon, alt, source).
         
         Ordem de resolução:
-        1. GpsLatitude/GpsLongitude (podem vir de XMP ou MRK mapeado)
-        2. GPSLatitude/GPSLongitude em DMS (EXIF bruto)
+        1. MRK (Lat/Lon) → já mapeado para GpsLatitude/GpsLongitude pelo pipeline
+        2. XMP (drone-dji:AbsoluteAltitude, etc) → já mapeado para GpsLatitude/GpsLongitude
+        3. EXIF DMS (tupla graus/min/seg) → convertido para decimal usando GpsLatitudeRef/GpsLongitudeRef
         """
         canonical = MetadataFields.normalize_record_to_keys(merged_payload or {})
-        lat = PhotoMetadata._to_float(canonical.get(MetadataFieldKey.GPS_LATITUDE.value))
-        lon = PhotoMetadata._to_float(canonical.get(MetadataFieldKey.GPS_LONGITUDE.value))
+        
+        # --- Tentativa 1: Valor já é float (XMP ou MRK) ---
+        lat_val = canonical.get(MetadataFieldKey.GPS_LATITUDE.value)
+        lon_val = canonical.get(MetadataFieldKey.GPS_LONGITUDE.value)
+        
+        lat = PhotoMetadata._to_float(lat_val)
+        lon = PhotoMetadata._to_float(lon_val)
+        
+        # --- Tentativa 2: Se é tupla/list (DMS do EXIF bruto), converte ---
+        if lat is None and isinstance(lat_val, (list, tuple)) and len(lat_val) >= 3:
+            lat_ref = canonical.get(MetadataFieldKey.GPS_LATITUDE_REF.value, "")
+            lat = PhotoMetadata._extract_gps_decimal_from_dms(lat_val, lat_ref)
+        if lon is None and isinstance(lon_val, (list, tuple)) and len(lon_val) >= 3:
+            lon_ref = canonical.get(MetadataFieldKey.GPS_LONGITUDE_REF.value, "")
+            lon = PhotoMetadata._extract_gps_decimal_from_dms(lon_val, lon_ref)
+            
         if lat is not None and lon is not None:
             alt = PhotoMetadata._to_float(
                 canonical.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value)
@@ -581,7 +596,7 @@ class PhotoMetadata:
                 source = "EXIF"
             return lat, lon, alt, source
 
-        # Fallback: EXIF DMS
+        # --- Tentativa 3: Fallback DMS usando chaves RAW do merged_payload (para compatibilidade) ---
         lat = PhotoMetadata._extract_gps_decimal_from_dms(
             merged_payload.get("GPSLatitude"),
             merged_payload.get("GPSLatitudeRef"),

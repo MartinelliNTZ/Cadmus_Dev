@@ -29,6 +29,8 @@ class MetadataFieldKey(Enum):
     LENS_SPECIFICATION = "LensSpecification"
     DIGITAL_ZOOM_RATIO = "DigitalZoomRatio"
     GPS_STATUS = "GpsStatus"
+    GPS_LATITUDE_REF = "GpsLatitudeRef"
+    GPS_LONGITUDE_REF = "GpsLongitudeRef"
     ALTITUDE_TYPE = "AltitudeType"
     GPS_LATITUDE = "GpsLatitude"
     GPS_LONGITUDE = "GpsLongitude"

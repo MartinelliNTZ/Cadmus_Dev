@@ -108,8 +108,10 @@ class PhotoMetadata:
         )
 
         PhotoMetadata.clear_timestamps()
+        pipeline_start = datetime.now().isoformat()
 
         # ── Etapa 1: Esqueleto inicial via InitialParamsUtil (dict em memoria) ──
+        initial_start = datetime.now().isoformat()
         initial_result = InitialParamsUtil.build_initial_json(
             base_folder=base_folder,
             tool_key=tool_key,
@@ -126,13 +128,15 @@ class PhotoMetadata:
         if not skeleton:
             logger.warning("Nenhum registro valido no JSON inicial")
             return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
-
+        initial_end = datetime.now().isoformat()
+        mrk_start = datetime.now().isoformat()
         # ── Etapa 2: Enriquecimento MRK (opcional) ──
         if enable_mrk and points:
             skeleton = PhotoMetadata._enrich_with_mrk(skeleton, points, base_folder, tool_key)
             source = "mrk+photo"
         else:
             source = "photo"
+        mrk_end = datetime.now().isoformat()
 
         # Timestamps: inicio da extracao de metadados das fotos (EXIF)
         exif_start = datetime.now().isoformat()
@@ -140,11 +144,12 @@ class PhotoMetadata:
         # ── Etapa 3: EXIF (opcional, padrão: True) ──
         if enable_exif:
             skeleton = PhotoMetadata._enrich_exif(skeleton, tool_key)
-
+        exif_end = datetime.now().isoformat()
+        xmp_start = datetime.now().isoformat()
         # ── Etapa 4: XMP (opcional, padrão: True) ──
         if enable_xmp:
             skeleton = PhotoMetadata._enrich_xmp(skeleton, tool_key)
-
+        
         # Timestamps: fim da extracao de metadados (EXIF + XMP)
         xmp_end = datetime.now().isoformat()
 
@@ -233,8 +238,11 @@ class PhotoMetadata:
         )
 
         PhotoMetadata._timestamps = {
-            "initial_start": _initial_timestamps.get("initial_start"),
-            "initial_end": _initial_timestamps.get("initial_end"),
+            "pipeline_start": pipeline_start,
+            "initial_start": initial_start,
+            "initial_end": initial_end,
+            "mrk_start": mrk_start,
+            "mrk_end": mrk_end,
             "exif_start": exif_start,
             "exif_xmp_end": xmp_end,
             "custom_start": custom_start,

@@ -250,7 +250,7 @@ class PhotoMetadata:
                 if not match:
                     continue
 
-                abs_path = os.path.join(root, fname)
+                abs_path = os.path.join(root, fname)#
 
                 # Calcula FolderLevels subindo a hierarquia de pastas
                 rel_path = os.path.relpath(root, base_folder)

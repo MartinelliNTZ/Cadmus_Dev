@@ -673,6 +673,90 @@ class MetadataFields:
 
     REQUIRED_FIELDS = {**EXIF_FIELDS, **DJI_XMP_FIELDS}
 
+    INITIAL_FIELDS = {
+        MetadataFieldKey.FILE: Field(
+            normalized="File",
+            core="initial",
+            label="File",
+            attribute="File",
+            description="Nome do arquivo de imagem. [File]",
+            level=3,
+            key=MetadataFieldKey.FILE,
+        ),
+        MetadataFieldKey.PATH: Field(
+            normalized="Path",
+            core="initial",
+            label="Path",
+            attribute="Path",
+            description="Caminho completo do arquivo de imagem. [Path]",
+            level=3,
+            key=MetadataFieldKey.PATH,
+        ),
+        MetadataFieldKey.FOLDER_LEVEL_1: Field(
+            normalized="FolderLevel1",
+            core="initial",
+            label="Folder Level 1",
+            attribute="FolderL1",
+            description="Primeiro nivel de pasta do voo. [FolderL1]",
+            level=3,
+            key=MetadataFieldKey.FOLDER_LEVEL_1,
+        ),
+        MetadataFieldKey.FOLDER_LEVEL_2: Field(
+            normalized="FolderLevel2",
+            core="initial",
+            label="Folder Level 2",
+            attribute="FolderL2",
+            description="Segundo nivel de pasta do voo. [FolderL2]",
+            level=3,
+            key=MetadataFieldKey.FOLDER_LEVEL_2,
+        ),
+        MetadataFieldKey.FOLDER_LEVEL_3: Field(
+            normalized="FolderLevel3",
+            core="initial",
+            label="Folder Level 3",
+            attribute="FolderL3",
+            description="Terceiro nivel de pasta do voo. [FolderL3]",
+            level=3,
+            key=MetadataFieldKey.FOLDER_LEVEL_3,
+        ),
+        MetadataFieldKey.FOLDER_LEVEL_4: Field(
+            normalized="FolderLevel4",
+            core="initial",
+            label="Folder Level 4",
+            attribute="FolderL4",
+            description="Quarto nivel de pasta do voo. [FolderL4]",
+            level=3,
+            key=MetadataFieldKey.FOLDER_LEVEL_4,
+        ),
+        MetadataFieldKey.FOLDER_LEVEL_5: Field(
+            normalized="FolderLevel5",
+            core="initial",
+            label="Folder Level 5",
+            attribute="FolderL5",
+            description="Quinto nivel de pasta do voo. [FolderL5]",
+            level=3,
+            key=MetadataFieldKey.FOLDER_LEVEL_5,
+        ),
+        MetadataFieldKey.FLIGHT_NUMBER: Field(
+            normalized="FlightNumber",
+            core="initial",
+            label="Flight Number",
+            attribute="FlyNum",
+            description="Numero do voo derivado do MRK. [FlyNum]",
+            level=3,
+            key=MetadataFieldKey.FLIGHT_NUMBER,
+        ),
+        MetadataFieldKey.FLIGHT_NAME: Field(
+            normalized="FlightName",
+            core="initial",
+            label="Flight Name",
+            attribute="FlyNam",
+            description="Nome do voo derivado do MRK. [FlyNam]",
+            level=3,
+            key=MetadataFieldKey.FLIGHT_NAME,
+        ),
+    }
+
     CUSTOM_FIELDS = {
         MetadataFieldKey.FILE_TYPE: Field(
             normalized="Custom:FileType",
@@ -709,69 +793,6 @@ class MetadataFields:
             description="Horario compacto no formato HHMM. [TimeOnly]",
             level=5,
             key=MetadataFieldKey.DT_TIME,
-        ),
-        MetadataFieldKey.FLIGHT_NUMBER: Field(
-            normalized="Custom:FlightNumber",
-            core="custom",
-            label="Flight Number",
-            attribute="FlyNum",
-            description="Numero do voo derivado do MRK. [FlyNum]",
-            level=5,
-            key=MetadataFieldKey.FLIGHT_NUMBER,
-        ),
-        MetadataFieldKey.FLIGHT_NAME: Field(
-            normalized="Custom:FlightName",
-            core="custom",
-            label="Flight Name",
-            attribute="FlyNam",
-            description="Nome do voo derivado do MRK. [FlyNam]",
-            level=5,
-            key=MetadataFieldKey.FLIGHT_NAME,
-        ),
-        MetadataFieldKey.FOLDER_LEVEL_1: Field(
-            normalized="Custom:FolderLevel1",
-            core="custom",
-            label="Folder Level 1",
-            attribute="FolderL1",
-            description="Primeiro nivel de pasta do voo. [FolderL1]",
-            level=5,
-            key=MetadataFieldKey.FOLDER_LEVEL_1,
-        ),
-        MetadataFieldKey.FOLDER_LEVEL_2: Field(
-            normalized="Custom:FolderLevel2",
-            core="custom",
-            label="Folder Level 2",
-            attribute="FolderL2",
-            description="Segundo nivel de pasta do voo. [FolderL2]",
-            level=5,
-            key=MetadataFieldKey.FOLDER_LEVEL_2,
-        ),
-        MetadataFieldKey.FOLDER_LEVEL_3: Field(
-            normalized="Custom:FolderLevel3",
-            core="custom",
-            label="Folder Level 3",
-            attribute="FolderL3",
-            description="Terceiro nivel de pasta do voo. [FolderL3]",
-            level=5,
-            key=MetadataFieldKey.FOLDER_LEVEL_3,
-        ),
-        MetadataFieldKey.FOLDER_LEVEL_4: Field(
-            normalized="Custom:FolderLevel4",
-            core="custom",
-            label="Folder Level 4",
-            attribute="FolderL4",
-            description="Quarto nivel de pasta do voo. [FolderL4]",
-            level=5,
-            key=MetadataFieldKey.FOLDER_LEVEL_4,
-        ),
-        MetadataFieldKey.FOLDER_LEVEL_5: Field(
-            normalized="Custom:FolderLevel5",
-            core="custom",
-            label="Folder Level 5",
-            attribute="FolderL5",
-            description="Quinto nivel de pasta do voo. [FolderL5]",
-            level=5,
-            key=MetadataFieldKey.FOLDER_LEVEL_5,
         ),
         MetadataFieldKey.GIMBAL_OFFSET: Field(
             normalized="xmp_bloco_1:drone-dji:GimbalOffset",
@@ -1463,6 +1484,7 @@ class MetadataFields:
     @classmethod
     def all_fields(cls) -> Dict[str, Field]:
         fields: Dict[str, Field] = {}
+        fields.update({key.value: field for key, field in cls.INITIAL_FIELDS.items()})
         fields.update({key.value: field for key, field in cls.EXIF_FIELDS.items()})
         fields.update({key.value: field for key, field in cls.DJI_XMP_FIELDS.items()})
         fields.update({key.value: field for key, field in cls.CUSTOM_FIELDS.items()})
@@ -1499,6 +1521,10 @@ class MetadataFields:
     @classmethod
     def mrk_keys(cls) -> List[str]:
         return [key.value for key in cls.MRK_FIELDS.keys()]
+
+    @classmethod
+    def initial_keys(cls) -> List[str]:
+        return [key.value for key in cls.INITIAL_FIELDS.keys()]
 
     @classmethod
     def key_to_attribute_map(cls) -> Dict[str, str]:

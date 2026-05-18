@@ -1,13 +1,16 @@
 ﻿# -*- coding: utf-8 -*-
 import os
 import re
-from typing import List, Dict, Any, Tuple, Optional, Set
+from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
 
 from ...core.config.LogUtils import LogUtils
 from ...core.enum import MetadataFieldKey
+from ...utils.ExplorerUtils import ExplorerUtils
+from ...utils.JsonUtil import JsonUtil
 from .CustomPhotosFieldsUtil import CustomPhotosFieldsUtil
 from .ExifUtil import ExifUtil
+from .InitialParamsUtil import InitialParamsUtil
 from .MetadataFields import MetadataFields
 from .XmpUtil import XmpUtil
 
@@ -21,27 +24,23 @@ class PhotoMetadata:
     Cada etapa do pipeline pode ser ativada/desativada via flags.
 
     PIPELINE:
-      Etapa 1 – Esqueleto inicial (sempre): varre fotos, cria dict {filename: {Path, FolderLevel1..5, FlightNumber, FlightName}}
+      Etapa 1 – Esqueleto inicial (sempre): delega para InitialParamsUtil que gera JSON em disco.
       Etapa 2 – Enriquecimento MRK (opcional): cruza com pontos MRK
       Etapa 3 – EXIF (opcional): extrai metadados EXIF
       Etapa 4 – XMP (opcional): extrai metadados XMP
       Etapa 5 – Campos customizados (opcional): calcula campos derivados
 
+    A Etapa 1 agora escreve em disco (JSON) para evitar consumo excessivo de memória
+    com milhares de fotos. As etapas seguintes carregam o JSON, processam em memória
+    e salvam de volta.
+
     NÃO faz:
     - Field filtering (responsabilidade do VectorLayerAttributes / pipeline)
-    - JSON building (responsabilidade do JsonUtil / pipeline)
     - JSON saving (responsabilidade do ExplorerUtils / pipeline)
     - Vetorização (responsabilidade do JsonVectorizationStep)
     """
 
     DJI_RE = re.compile(r"_(\d{4})_[A-Z]\.JPG$", re.IGNORECASE)
-
-    # Regex para extrair FlightNumber e FlightName do nome da pasta
-    # Ex: "DJI_202605101003_001_IRIA01" → number=1, name=IRIA01
-    FLIGHT_FOLDER_RE = re.compile(
-        r"DJI_\d+_(?P<flight_number>\d+?)_(?P<flight_name>[^_]+)",
-        re.IGNORECASE,
-    )
 
     # Cache de timestamps de extracao
     _timestamps: Dict[str, str] = {}
@@ -69,6 +68,7 @@ class PhotoMetadata:
         recursive: bool = True,
         tool_key: str = "drone_coordinates",
         *,
+        json_path: Optional[str] = None,
         enable_mrk: bool = False,
         enable_exif: bool = True,
         enable_xmp: bool = True,
@@ -76,6 +76,21 @@ class PhotoMetadata:
     ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
         """
         Pipeline unificado de enriquecimento de fotos.
+
+        Args:
+            base_folder: Pasta raiz onde as fotos estão localizadas
+            points: Lista de pontos MRK (opcional)
+            recursive: Se deve varrer subpastas recursivamente
+            tool_key: Chave da ferramenta para logging
+            json_path: Caminho para salvar/carregar JSON intermediário.
+                       Se None, usa arquivo temporário.
+            enable_mrk: Habilita enriquecimento MRK
+            enable_exif: Habilita extração EXIF
+            enable_xmp: Habilita extração XMP
+            enable_custom_fields: Habilita campos customizados
+
+        Returns:
+            Tuple de (lista de registros, dict de qualidade)
         """
         logger = PhotoMetadata._get_logger(tool_key)
         logger.info(
@@ -84,6 +99,7 @@ class PhotoMetadata:
                 "base_folder": base_folder,
                 "recursive": recursive,
                 "has_points": len(points) if points else 0,
+                "json_path": json_path,
                 "enable_mrk": enable_mrk,
                 "enable_exif": enable_exif,
                 "enable_xmp": enable_xmp,
@@ -93,10 +109,60 @@ class PhotoMetadata:
 
         PhotoMetadata.clear_timestamps()
 
-        # ── Etapa 1: Esqueleto inicial (sempre executada) ──
-        skeleton = PhotoMetadata._build_file_skeleton(base_folder, recursive, tool_key)
-        if not skeleton:
+        # ── Etapa 1: Esqueleto inicial via InitialParamsUtil (retorna dict) ──
+        initial_data = InitialParamsUtil.build_initial_json(
+            base_folder=base_folder,
+            tool_key=tool_key,
+            recursive=recursive,
+        )
+
+        if not initial_data:
+            logger.error("Falha ao gerar JSON inicial")
+            return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
+
+        total_files = initial_data.get("quality", {}).get("total_files", 0)
+        if total_files == 0:
             logger.warning("Nenhuma foto encontrada no diretorio")
+            return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
+
+        # ── Salva JSON inicial em disco via ExplorerUtils ──
+        if json_path is None:
+            # Gera caminho padrao: Temp/cadmus/reports/json/
+            base_name = ExplorerUtils.build_report_json_stem(
+                base_folder=base_folder,
+                points_total=total_files,
+            )
+            json_path = ExplorerUtils.build_temp_file_path(
+                ExplorerUtils.REPORTS_TEMP_FOLDER,
+                ExplorerUtils.REPORTS_JSON_FOLDER,
+                tool_key=tool_key,
+                prefix="cadmus_initial",
+                extension=".json",
+                file_stem_hint=base_name,
+            )
+        else:
+            # Garante que a pasta do caminho fornecido existe
+            ExplorerUtils.ensure_folder_exists(
+                os.path.dirname(json_path), tool_key=tool_key
+            )
+
+        # Usa JsonUtil para salvar com a estrutura padrao
+        try:
+            JsonUtil.save(initial_data, json_path)
+            logger.info("JSON inicial salvo", data={"path": json_path})
+        except Exception as exc:
+            logger.error(f"Falha ao salvar JSON inicial em {json_path}: {exc}")
+            return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
+
+        # ── Extrai registros do dict para processamento em memória ──
+        skeleton = {}
+        for group in initial_data.get("groups", {}).values():
+            for filename, record in group.get("records", {}).items():
+                if filename:
+                    skeleton[filename] = record
+
+        if not skeleton:
+            logger.warning("Nenhum registro valido no JSON inicial")
             return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
 
         # ── Etapa 2: Enriquecimento MRK (opcional) ──
@@ -213,131 +279,6 @@ class PhotoMetadata:
 
         return all_records, quality
 
-
-    # ─────────────────────────────────────────────
-    # ETAPA 1: Esqueleto inicial
-    # ─────────────────────────────────────────────
-
-    @staticmethod
-    def _build_file_skeleton(
-        base_folder: str,
-        recursive: bool,
-        tool_key: str,
-    ) -> Dict[str, dict]:
-        """
-        Etapa 1 – Esqueleto inicial.
-
-        Varre o diretório de fotos e cria um dicionário onde cada chave
-        é o nome do arquivo da foto (filename). Para cada registro, já
-        são calculados e armazenados:
-
-        - File, Path
-        - FolderLevel1..FolderLevel5 (determinístico pelo path real)
-        - FlightNumber, FlightName (extraídos do nome da pasta mais profunda
-          que segue o padrão DJI_YYYYMMDD_HHMMSS_NNN_NAME)
-        """
-        
-
-        logger = PhotoMetadata._get_logger(tool_key)
-        skeleton: Dict[str, dict] = {}
-
-        walker = os.walk(base_folder) if recursive else [(base_folder, [], os.listdir(base_folder))]
-        for root, _, files in walker:
-            for fname in files:
-                if not fname.lower().endswith(".jpg"):
-                    continue
-                match = PhotoMetadata.DJI_RE.search(fname)
-                if not match:
-                    continue
-
-                abs_path = os.path.join(root, fname)#
-
-                # Calcula FolderLevels subindo a hierarquia de pastas
-                rel_path = os.path.relpath(root, base_folder)
-                folder_levels = PhotoMetadata._extract_folder_levels(rel_path)
-
-                # ── Correcão: quando rel_path == "." (fotos diretamente na base_folder) ──
-                # O caminho relativo vira "." e _extract_folder_levels retorna vazio.
-                # Precisamos usar o nome da pasta atual para garantir FolderLevel1 e
-                # a extração de FlightNumber/FlightName.
-                current_folder_name = os.path.basename(root)
-
-                # Se rel_path for ".", força FolderLevel1 como o nome da pasta atual
-                # (a própria pasta do voo) e prepara path_parts para extração de voo
-                if rel_path == ".":
-                    if not folder_levels.get("FolderLevel1"):
-                        folder_levels["FolderLevel1"] = current_folder_name
-                    path_parts = [current_folder_name]
-                else:
-                    path_parts = rel_path.replace("\\", "/").strip("/").split("/")
-
-                # Extrai FlightNumber e FlightName do nome da pasta mais específica
-                # que segue o padrão DJI_*_NNN_NAME (última subpasta que casa)
-                flight_number = None
-                flight_name = None
-                for part in reversed(path_parts):
-                    fm = PhotoMetadata.FLIGHT_FOLDER_RE.search(part)
-                    if fm:
-                        try:
-                            flight_number = int(fm.group("flight_number"))
-                        except (ValueError, TypeError):
-                            flight_number = None
-                        flight_name = fm.group("flight_name")
-                        break
-
-                record = {
-                    MetadataFieldKey.FILE.value: fname,
-                    MetadataFieldKey.PATH.value: abs_path,
-                    MetadataFieldKey.FOLDER_LEVEL_1.value: folder_levels.get("FolderLevel1", ""),
-                    MetadataFieldKey.FOLDER_LEVEL_2.value: folder_levels.get("FolderLevel2", ""),
-                    MetadataFieldKey.FOLDER_LEVEL_3.value: folder_levels.get("FolderLevel3", ""),
-                    MetadataFieldKey.FOLDER_LEVEL_4.value: folder_levels.get("FolderLevel4", ""),
-                    MetadataFieldKey.FOLDER_LEVEL_5.value: folder_levels.get("FolderLevel5", ""),
-                    MetadataFieldKey.FLIGHT_NUMBER.value: flight_number,
-                    MetadataFieldKey.FLIGHT_NAME.value: flight_name,
-                }
-
-                # Usa o nome do arquivo como chave primária
-                skeleton[fname] = record
-
-        logger.info(
-            "Esqueleto inicial criado",
-            data={
-                "base_folder": base_folder,
-                "total_photos": len(skeleton),
-            },
-        )
-
-        return skeleton
-
-    @staticmethod
-    def _extract_folder_levels(rel_path: str) -> Dict[str, str]:
-        """
-        Extrai FolderLevel1..FolderLevel5 de um caminho relativo.
-
-        A lógica inverte a ordem das pastas: FolderLevel1 é a pasta mais
-        próxima do arquivo (immediate parent), FolderLevel2 é a pai desta,
-        e assim sucessivamente.
-
-        Exemplo:
-            Path: "10052026/M3E/IMAGEM/DJI_202605101003_001_IRIA01"
-            FolderLevel1 = "DJI_202605101003_001_IRIA01" (pasta da foto)
-            FolderLevel2 = "IMAGEM"
-            FolderLevel3 = "M3E"
-            FolderLevel4 = "10052026"
-        """
-        if not rel_path or rel_path == ".":
-            return {}
-
-        parts = rel_path.replace("\\", "/").strip("/").split("/")
-        # Inverte para que FolderLevel1 seja a pasta mais próxima da foto
-        reversed_parts = list(reversed(parts))
-
-        levels = {}
-        for i in range(min(len(reversed_parts), 5)):
-            levels[f"FolderLevel{i + 1}"] = reversed_parts[i]
-
-        return levels
 
     # ─────────────────────────────────────────────
     # ETAPA 2: Enriquecimento MRK

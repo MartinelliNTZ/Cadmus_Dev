@@ -343,6 +343,10 @@ class JsonToVectorTranslator:
         Resolve o nome do atributo usando MetadataFields.
         """
         # Procurar field por key.value
+        for field_key, field in MetadataFields.INITIAL_FIELDS.items():
+            if field_key.value == key and field.key:
+                return field.attribute
+
         for field_key, field in MetadataFields.EXIF_FIELDS.items():
             if field_key.value == key and field.key:
                 return field.attribute

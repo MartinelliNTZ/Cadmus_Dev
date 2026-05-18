@@ -33,6 +33,7 @@ class DroneCordinates(BasePluginMTL):
         "generate_report": STR.GENERATE_REPORT,
     }
 
+    PREF_INITIAL_FIELDS = "initial_fields_selected"
     PREF_EXIF_FIELDS = "exif_fields_selected"
     PREF_XMP_FIELDS = "xmp_fields_selected"
     PREF_CUSTOM_FIELDS = "custom_fields_selected"
@@ -152,6 +153,25 @@ class DroneCordinates(BasePluginMTL):
         )
         self.custom_fields_collapsible.add_content_layout(custom_grid_layout)
 
+        # ====== METADATA INITIAL FIELDS ======
+        initial_layout, self.initial_fields_collapsible = (
+            WidgetFactory.create_collapsible_parameters(
+                parent=self,
+                title="Initial Fields",
+                expanded_by_default=False,
+            )
+        )
+        initial_items = StringAdapter.to_key_label_description(MetadataFields.INITIAL_FIELDS)
+        initial_grid_layout, self.initial_fields_grid = WidgetFactory.create_checkbox_grid(
+            options_data=initial_items,
+            items_per_row=2,
+            checked_by_default=True,
+            return_widget=True,
+            separator_bottom=False,
+            show_control_buttons=True,
+        )
+        self.initial_fields_collapsible.add_content_layout(initial_grid_layout)
+
         # ====== METADATA MRK FIELDS ======
         mrk_layout, self.mrk_fields_collapsible = (
             WidgetFactory.create_collapsible_parameters(
@@ -254,6 +274,7 @@ class DroneCordinates(BasePluginMTL):
                 exif_layout,
                 xmp_layout,
                 custom_layout,
+                initial_layout,
                 mrk_layout,
                 save_layout,
                 styles_layout,
@@ -310,6 +331,12 @@ class DroneCordinates(BasePluginMTL):
             allowed_keys=MetadataFields.custom_keys(),
         )
 
+    def _get_selected_initial_fields(self):
+        return MetadataFields.normalize_selected_keys(
+            self.initial_fields_grid.get_checked_keys(),
+            allowed_keys=MetadataFields.initial_keys(),
+        )
+
     def _get_selected_mrk_fields(self):
         return MetadataFields.normalize_selected_keys(
             self.mrk_fields_grid.get_checked_keys(),
@@ -337,11 +364,19 @@ class DroneCordinates(BasePluginMTL):
         )
 
         # Filtros de campos de metadata
+        initial_selected = self.preferences.get(self.PREF_INITIAL_FIELDS)
         exif_selected = self.preferences.get(self.PREF_EXIF_FIELDS)
         xmp_selected = self.preferences.get(self.PREF_XMP_FIELDS)
         custom_selected = self.preferences.get(self.PREF_CUSTOM_FIELDS)
         mrk_selected = self.preferences.get(self.PREF_MRK_FIELDS)
 
+        if isinstance(initial_selected, list):
+            self.initial_fields_grid.set_checked_keys(
+                MetadataFields.normalize_selected_keys(
+                    initial_selected,
+                    allowed_keys=MetadataFields.initial_keys(),
+                )
+            )
         if isinstance(exif_selected, list):
             self.exif_fields_grid.set_checked_keys(
                 MetadataFields.normalize_selected_keys(
@@ -406,6 +441,9 @@ class DroneCordinates(BasePluginMTL):
         self.custom_fields_collapsible.set_expanded(
             self.preferences.get("custom_expanded", False)
         )
+        self.initial_fields_collapsible.set_expanded(
+            self.preferences.get("initial_expanded", False)
+        )
         self.mrk_fields_collapsible.set_expanded(
             self.preferences.get("mrk_expanded", False)
         )
@@ -428,6 +466,7 @@ class DroneCordinates(BasePluginMTL):
         self.preferences["generate_report"] = self.checkbox_map[
             "generate_report"
         ].isChecked()
+        self.preferences[self.PREF_INITIAL_FIELDS] = self._get_selected_initial_fields()
         self.preferences[self.PREF_EXIF_FIELDS] = self._get_selected_exif_fields()
         self.preferences[self.PREF_XMP_FIELDS] = self._get_selected_xmp_fields()
         self.preferences[self.PREF_CUSTOM_FIELDS] = self._get_selected_custom_fields()
@@ -447,6 +486,7 @@ class DroneCordinates(BasePluginMTL):
         self.preferences["custom_expanded"] = (
             self.custom_fields_collapsible.is_expanded()
         )
+        self.preferences["initial_expanded"] = self.initial_fields_collapsible.is_expanded()
         self.preferences["mrk_expanded"] = self.mrk_fields_collapsible.is_expanded()
         self.preferences["save_expanded"] = self.save_collapsible.is_expanded()
         self.preferences["styles_expanded"] = self.styles_collapsible.is_expanded()
@@ -495,6 +535,7 @@ class DroneCordinates(BasePluginMTL):
             self._get_selected_exif_fields() + self._get_selected_xmp_fields()
         )
         context.set("selected_required_fields", selected_required_fields)
+        context.set("selected_initial_fields", self._get_selected_initial_fields())
         context.set("selected_custom_fields", self._get_selected_custom_fields())
         context.set("selected_mrk_fields", self._get_selected_mrk_fields())
         context.set("generate_report", self.checkbox_map["generate_report"].isChecked())

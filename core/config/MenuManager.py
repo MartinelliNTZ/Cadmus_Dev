@@ -106,6 +106,20 @@ class MenuManager:
 
     def create_toolbar(self):
         self.logger.debug(f"Iniciando toolbar:Total de ferramentas: {len(self.tools)}")
+
+        existing_toolbar = self.iface.mainWindow().findChild(QToolBar, "Cadmus_Toolbar")
+        if existing_toolbar:
+            self.logger.warning(
+                "Toolbar Cadmus existente encontrada antes de criar nova toolbar; removendo para evitar duplicação"
+            )
+            try:
+                self.iface.mainWindow().removeToolBar(existing_toolbar)
+                existing_toolbar.hide()
+                existing_toolbar.setParent(None)
+                existing_toolbar.deleteLater()
+            except Exception as e:
+                self.logger.error(f"Erro ao remover toolbar existente: {e}")
+
         self.toolbar = QToolBar("Cadmus", self.iface.mainWindow())
         self.toolbar.setObjectName("Cadmus_Toolbar")
         self.iface.addToolBar(self.toolbar)
@@ -247,9 +261,15 @@ class MenuManager:
 
         # Remover toolbar anterior se existe
         if self.toolbar:
-            self.iface.mainWindow().removeToolBar(self.toolbar)
-            self.toolbar.deleteLater()
-            self.toolbar = None
+            try:
+                self.iface.mainWindow().removeToolBar(self.toolbar)
+                self.toolbar.hide()
+                self.toolbar.setParent(None)
+                self.toolbar.deleteLater()
+            except Exception as e:
+                self.logger.error(f"Erro ao remover toolbar anterior durante reconstrução: {e}")
+            finally:
+                self.toolbar = None
 
         # Recarregar visibilidade de categorias
         self.prefs = Preferences.load_tool_prefs(self.TOOLKEY)
@@ -279,11 +299,15 @@ class MenuManager:
 
         # Remover toolbar - MÉTODO CORRETO
         if self.toolbar:
-            # Remove da interface
-            self.iface.mainWindow().removeToolBar(self.toolbar)
-            # Força a destruição do objeto
-            self.toolbar.deleteLater()
-            # self.toolbar = None
+            try:
+                self.iface.mainWindow().removeToolBar(self.toolbar)
+                self.toolbar.hide()
+                self.toolbar.setParent(None)
+                self.toolbar.deleteLater()
+            except Exception as e:
+                self.logger.error(f"Erro ao remover toolbar durante unload: {e}")
+            finally:
+                self.toolbar = None
 
         self.submenus.clear()
         self.logger.debug("MenuManager unloaded")

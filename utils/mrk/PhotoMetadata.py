@@ -110,13 +110,6 @@ class PhotoMetadata:
         PhotoMetadata.clear_timestamps()
         pipeline_start = datetime.now().isoformat()
 
-        # ── Etapa 0: Parsing MRK (se mrk_paths fornecido e MRK habilitado) ──
-        mrk_start = datetime.now().isoformat()
-        mrk_points = points or []
-        if enable_mrk and mrk_paths and not mrk_points:
-            mrk_points = PhotoMetadata._parse_mrk_paths(mrk_paths, recursive, tool_key)
-        mrk_end = datetime.now().isoformat()
-
         # ── Etapa 1: Esqueleto inicial via InitialParamsUtil (dict em memoria) ──
         initial_start = datetime.now().isoformat()
         initial_result = InitialParamsUtil.build_initial_json(
@@ -127,34 +120,48 @@ class PhotoMetadata:
 
         if not initial_result or initial_result.get("total_files", 0) == 0:
             logger.warning("Nenhuma foto encontrada no diretorio")
-            return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
+            return [], {
+                "total_files": 0,
+                "with_xmp": 0,
+                "with_mrk": 0,
+                "with_exif_gps": 0,
+            }
 
         skeleton = initial_result.get("skeleton", {})
-        _initial_timestamps = initial_result.get("timestamps", {})
 
         if not skeleton:
             logger.warning("Nenhum registro valido no JSON inicial")
-            return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
+            return [], {
+                "total_files": 0,
+                "with_xmp": 0,
+                "with_mrk": 0,
+                "with_exif_gps": 0,
+            }
         initial_end = datetime.now().isoformat()
 
         # ── Etapa 2: Enriquecimento MRK (opcional) ──
-        if enable_mrk and mrk_points:
-            skeleton = PhotoMetadata._enrich_with_mrk(skeleton, mrk_points, base_folder, tool_key)
+        mrk_start = datetime.now().isoformat()
+        mrk_points = points or []
+        if enable_mrk and mrk_paths and not mrk_points:
+            mrk_points = PhotoMetadata._parse_mrk_paths(mrk_paths, recursive, tool_key)
 
-        # Timestamps: inicio da extracao de metadados das fotos (EXIF)
+        if enable_mrk and mrk_points:
+            skeleton = PhotoMetadata._enrich_with_mrk(
+                skeleton, mrk_points, base_folder, tool_key
+            )
+        mrk_end = datetime.now().isoformat()
         exif_start = datetime.now().isoformat()
 
         # ── Etapa 3: EXIF (opcional, padrão: True) ──
         if enable_exif:
             skeleton = PhotoMetadata._enrich_exif(skeleton, tool_key)
         exif_end = datetime.now().isoformat()
+
         xmp_start = datetime.now().isoformat()
 
         # ── Etapa 4: XMP (opcional, padrão: True) ──
         if enable_xmp:
             skeleton = PhotoMetadata._enrich_xmp(skeleton, tool_key)
-
-        # Timestamps: fim da extracao de metadados (EXIF + XMP)
         xmp_end = datetime.now().isoformat()
 
         # Converte dict para lista de records e normaliza coordenadas
@@ -227,7 +234,9 @@ class PhotoMetadata:
 
         # ── Etapa 5: Campos customizados (opcional, padrão: True) ──
         if enable_custom_fields:
-            all_records = PhotoMetadata._calculate_custom_fields(all_records, tool_key, logger)
+            all_records = PhotoMetadata._calculate_custom_fields(
+                all_records, tool_key, logger
+            )
 
         # Timestamps: fim calculo campos custom
         custom_end = datetime.now().isoformat()
@@ -247,13 +256,14 @@ class PhotoMetadata:
 
         PhotoMetadata._timestamps = {
             "pipeline_start": pipeline_start,
-            "mrk_start": mrk_start,
-            "mrk_end": mrk_end,
             "initial_start": initial_start,
             "initial_end": initial_end,
+            "mrk_start": mrk_start,
+            "mrk_end": mrk_end,
             "exif_start": exif_start,
+            "exif_end": exif_end,
             "xmp_start": xmp_start,
-            "exif_xmp_end": xmp_end,
+            "xmp_end": xmp_end,
             "custom_start": custom_start,
             "custom_end": custom_end,
         }
@@ -472,13 +482,22 @@ class PhotoMetadata:
                 continue
 
             try:
-                exif_payload = ExifUtil.extract_metadata_exif(image_path, tool_key=tool_key)
+                exif_payload = ExifUtil.extract_metadata_exif(
+                    image_path, tool_key=tool_key
+                )
                 os_payload = ExifUtil.extract_metadata_os(image_path, tool_key=tool_key)
-                image_payload = ExifUtil.extract_metadata_image(image_path, tool_key=tool_key)
+                image_payload = ExifUtil.extract_metadata_image(
+                    image_path, tool_key=tool_key
+                )
 
                 for payload in [exif_payload, os_payload, image_payload]:
                     for k, v in payload.items():
-                        if k not in record or record.get(k) in (None, "", "None", "null"):
+                        if k not in record or record.get(k) in (
+                            None,
+                            "",
+                            "None",
+                            "null",
+                        ):
                             record[k] = v
 
                 # A conversão DMS→decimal já é feita pelo ExifUtil.extract_metadata_exif()
@@ -490,8 +509,15 @@ class PhotoMetadata:
                     or record.get("DateTime")
                 )
                 if dt is not None:
-                    if record.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) in (None, "", "None", "null"):
-                        record[MetadataFieldKey.DATE_TIME_ORIGINAL.value] = dt.strftime("%Y:%m:%d %H:%M:%S")
+                    if record.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) in (
+                        None,
+                        "",
+                        "None",
+                        "null",
+                    ):
+                        record[MetadataFieldKey.DATE_TIME_ORIGINAL.value] = dt.strftime(
+                            "%Y:%m:%d %H:%M:%S"
+                        )
 
             except Exception as exc:
                 logger.warning(f"Falha ao extrair EXIF de {filename}: {exc}")
@@ -570,7 +596,9 @@ class PhotoMetadata:
             for r in all_records:
                 if r.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) in (None, ""):
                     continue
-                group_key = str(r.get(MetadataFieldKey.FOLDER_LEVEL_1.value) or "__NO_FOLDER__")
+                group_key = str(
+                    r.get(MetadataFieldKey.FOLDER_LEVEL_1.value) or "__NO_FOLDER__"
+                )
                 if group_key not in grouped_records:
                     grouped_records[group_key] = []
                 grouped_records[group_key].append(r)
@@ -604,12 +632,24 @@ class PhotoMetadata:
         """Extrai contexto de voo de um ponto MRK."""
         canonical = MetadataFields.normalize_record_to_keys(point or {})
         return {
-            MetadataFieldKey.FLIGHT_NUMBER.value: canonical.get(MetadataFieldKey.FLIGHT_NUMBER.value),
-            MetadataFieldKey.FLIGHT_NAME.value: canonical.get(MetadataFieldKey.FLIGHT_NAME.value),
-            MetadataFieldKey.MRK_FILE.value: canonical.get(MetadataFieldKey.MRK_FILE.value),
-            MetadataFieldKey.MRK_PATH.value: canonical.get(MetadataFieldKey.MRK_PATH.value),
-            MetadataFieldKey.MRK_FOLDER.value: canonical.get(MetadataFieldKey.MRK_FOLDER.value),
-            MetadataFieldKey.DATE_NAME.value: canonical.get(MetadataFieldKey.DATE_NAME.value),
+            MetadataFieldKey.FLIGHT_NUMBER.value: canonical.get(
+                MetadataFieldKey.FLIGHT_NUMBER.value
+            ),
+            MetadataFieldKey.FLIGHT_NAME.value: canonical.get(
+                MetadataFieldKey.FLIGHT_NAME.value
+            ),
+            MetadataFieldKey.MRK_FILE.value: canonical.get(
+                MetadataFieldKey.MRK_FILE.value
+            ),
+            MetadataFieldKey.MRK_PATH.value: canonical.get(
+                MetadataFieldKey.MRK_PATH.value
+            ),
+            MetadataFieldKey.MRK_FOLDER.value: canonical.get(
+                MetadataFieldKey.MRK_FOLDER.value
+            ),
+            MetadataFieldKey.DATE_NAME.value: canonical.get(
+                MetadataFieldKey.DATE_NAME.value
+            ),
             MetadataFieldKey.FOTO.value: canonical.get(MetadataFieldKey.FOTO.value),
             MetadataFieldKey.LAT.value: canonical.get(MetadataFieldKey.LAT.value),
             MetadataFieldKey.LON.value: canonical.get(MetadataFieldKey.LON.value),
@@ -617,7 +657,9 @@ class PhotoMetadata:
         }
 
     @staticmethod
-    def _extract_position(merged_payload: dict) -> Tuple[Optional[float], Optional[float], Optional[float], str]:
+    def _extract_position(
+        merged_payload: dict,
+    ) -> Tuple[Optional[float], Optional[float], Optional[float], str]:
         """
         Extrai posição GPS do payload mesclado.
         Retorna (lat, lon, alt, source).

@@ -12,15 +12,21 @@ from ..config.LogUtils import LogUtils
 from .ReportGenerationService import ReportGenerationService
 from ...utils.ExplorerUtils import ExplorerUtils
 from ...utils.ToolKeys import ToolKey
-from ...utils.mrk.ExifUtil import ExifUtil
 from ...utils.mrk.MetadataFields import MetadataFields
 from ...utils.mrk.CustomPhotosFieldsUtil import CustomPhotosFieldsUtil
-from ...utils.mrk.XmpUtil import XmpUtil
 from ...utils.vector.VectorLayerGeometry import VectorLayerGeometry
 
 
 class PhotoFolderVectorizationService:
-    """Gera camada vetorial e diagnostico a partir de pasta de fotos (sem MRK)."""
+    """
+    [LEGADO - MANTIDO PARA COMPATIBILIDADE]
+    
+    Gera camada vetorial a partir de pasta de fotos (sem MRK).
+    Agora delega para PhotoMetadata.run_pipeline() para o processamento
+    de metadados, mantendo apenas a lógica de vetorização e schema.
+    
+    Novos fluxos devem usar PhotoEnrichmentStep + JsonVectorizationStep diretamente.
+    """
     DJI_PHOTO_RE = re.compile(r"_(\d{4})_[A-Z]\.JPG$", re.IGNORECASE)
     FLIGHT_FOLDER_RE = re.compile(
         r"DJI_\d+_(?P<flight_number>\d+?)_(?P<flight_name>[^_\\\/]+)",
@@ -47,7 +53,6 @@ class PhotoFolderVectorizationService:
 
     @staticmethod
     def _normalize_attr_value(value: Any) -> Any:
-        """Normaliza valores para escrita segura em atributos QGIS."""
         if isinstance(value, (list, tuple, dict)):
             try:
                 return json.dumps(value, ensure_ascii=False)
@@ -56,10 +61,6 @@ class PhotoFolderVectorizationService:
         return value
 
     def _build_output_record_from_catalog(self, canonical: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Monta registro de saida somente com campos catalogados em MetadataFields,
-        garantindo mesmo padrao de atributos do DroneCoordinates.
-        """
         output_record: Dict[str, Any] = {}
         mrk_keys = set(MetadataFields.mrk_keys())
         for key in MetadataFields.all_fields().keys():
@@ -82,232 +83,6 @@ class PhotoFolderVectorizationService:
                 continue
             filtered[key] = value
         return filtered
-
-    @staticmethod
-    def _safe_parse_datetime(value: Any) -> datetime:
-        if value in (None, ""):
-            return None
-        text = str(value).strip()
-        for fmt in ("%Y:%m:%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
-            try:
-                return datetime.strptime(text, fmt)
-            except Exception:
-                continue
-        return None
-
-    @staticmethod
-    def _format_dates(dt: datetime) -> Dict[str, str]:
-        return {
-            "dt_criacao": dt.strftime("%Y-%m-%d %H:%M:%S"),
-            "dt_full": dt.strftime("%Y%m%d%H%M"),
-            "dt_date": dt.strftime("%Y%m%d"),
-            "dt_time": dt.strftime("%H%M"),
-        }
-
-    def _extract_photo_number(self, file_path: str) -> Any:
-        fname = os.path.basename(file_path)
-        match = self.DJI_PHOTO_RE.search(fname)
-        if not match:
-            return None
-        try:
-            return int(match.group(1))
-        except Exception:
-            return None
-
-    def _extract_flight_context(self, file_path: str, base_folder: str) -> Dict[str, Any]:
-        folder_path = os.path.dirname(file_path)
-        folder_level_1 = os.path.basename(folder_path) or ""
-        folder_level_2 = os.path.basename(os.path.dirname(folder_path)) or ""
-
-        if not folder_level_1 and os.path.isdir(base_folder):
-            folder_level_1 = os.path.basename(base_folder)
-
-        return {
-            "FolderLevel1": folder_level_1,
-            "FolderLevel2": folder_level_2,
-        }
-
-    def _extract_photo_payload(self, image_path: str) -> Dict[str, Any]:
-        """
-        Extracao de metadados no mesmo padrao do fluxo DroneCoordinates.
-        """
-        os_data = ExifUtil.extract_metadata_os(image_path, tool_key=self.tool_key)
-        image_data = ExifUtil.extract_metadata_image(image_path, tool_key=self.tool_key)
-        exif_data = ExifUtil.extract_metadata_exif(image_path, tool_key=self.tool_key)
-        xmp_data = XmpUtil.extract_metadata(image_path, tool_key=self.tool_key)
-
-        payload: Dict[str, Any] = {}
-        payload.update(os_data)
-        payload.update(image_data)
-        payload.update(exif_data)
-        payload.update(xmp_data)
-
-        alias_map = {
-            "drone-dji:AltitudeType": "AltitudeType",
-            "drone-dji:AbsoluteAltitude": "AbsoluteAltitude",
-            "drone-dji:RelativeAltitude": "RelativeAltitude",
-            "drone-dji:GimbalRollDegree": "GimbalRollDegree",
-            "drone-dji:GimbalYawDegree": "GimbalYawDegree",
-            "drone-dji:GimbalPitchDegree": "GimbalPitchDegree",
-            "drone-dji:FlightRollDegree": "FlightRollDegree",
-            "drone-dji:FlightYawDegree": "FlightYawDegree",
-            "drone-dji:FlightPitchDegree": "FlightPitchDegree",
-            "drone-dji:FlightXSpeed": "FlightXSpeed",
-            "drone-dji:FlightYSpeed": "FlightYSpeed",
-            "drone-dji:FlightZSpeed": "FlightZSpeed",
-            "drone-dji:RtkFlag": "RtkFlag",
-            "drone-dji:RtkStdLon": "RtkStdLon",
-            "drone-dji:RtkStdLat": "RtkStdLat",
-            "drone-dji:RtkStdHgt": "RtkStdHgt",
-            "drone-dji:RtkDiffAge": "RtkDiffAge",
-            "drone-dji:DewarpFlag": "DewarpFlag",
-            "drone-dji:ShutterCount": "ShutterCount",
-            "drone-dji:FocusDistance": "FocusDistance",
-            "drone-dji:CameraSerialNumber": "CameraSerialNumber",
-            "drone-dji:DroneSerialNumber": "DroneSerialNumber",
-            "drone-dji:DroneModel": "DroneModel",
-            "drone-dji:CaptureUUID": "CaptureUUID",
-            "drone-dji:PictureQuality": "PictureQuality",
-            "drone-dji:UTCAtExposure": "UTCAtExposure",
-            "drone-dji:SensorTemperature": "SensorTemperature",
-            "drone-dji:LensTemperature": "LensTemperature",
-            "drone-dji:SensorFPS": "SensorFPS",
-            "drone-dji:LensPosition": "LensPosition",
-            "drone-dji:LRFStatus": "LRFStatus",
-            "drone-dji:LRFTargetDistance": "LRFTargetDistance",
-            "drone-dji:LRFTargetLon": "LRFTargetLon",
-            "drone-dji:LRFTargetLat": "LRFTargetLat",
-            "drone-dji:LRFTargetAlt": "LRFTargetAlt",
-            "drone-dji:LRFTargetAbsAlt": "LRFTargetAbsAlt",
-            "drone-dji:WhiteBalanceCCT": "WhiteBalanceCCT",
-            "drone-dji:GpsStatus": "GpsStatus",
-            "drone-dji:GpsLatitude": "GpsLatitude",
-            "drone-dji:GpsLongitude": "GpsLongitude",
-        }
-        for source_key, target_key in alias_map.items():
-            if target_key not in payload and source_key in payload:
-                payload[target_key] = payload.get(source_key)
-
-        payload["FileType"] = os.path.splitext(image_path)[1].upper()
-        dt = self._safe_parse_datetime(
-            payload.get("DateTimeOriginal") or payload.get("DateTime") or payload.get("os_date")
-        )
-        if dt is not None:
-            payload.update(self._format_dates(dt))
-            payload["DateTimeOriginal"] = dt.strftime("%Y:%m:%d %H:%M:%S")
-
-        return payload
-
-    @staticmethod
-    def _extract_gps_decimal_from_dms(value, ref):
-        if value is None:
-            return None
-
-        parts = []
-        if isinstance(value, (list, tuple)):
-            parts = list(value)
-        else:
-            return None
-
-        if len(parts) < 3:
-            return None
-
-        def _part_to_float(p):
-            if isinstance(p, (int, float)):
-                return float(p)
-            text = str(p).strip()
-            if "/" in text:
-                num, den = text.split("/", 1)
-                return float(num) / float(den)
-            return float(text)
-
-        try:
-            deg = _part_to_float(parts[0])
-            minute = _part_to_float(parts[1])
-            sec = _part_to_float(parts[2])
-            dec = deg + (minute / 60.0) + (sec / 3600.0)
-            ref_txt = str(ref or "").upper().strip()
-            if ref_txt in ("S", "W"):
-                dec = -dec
-            return dec
-        except Exception:
-            return None
-
-    def _extract_position(self, merged_payload: Dict[str, Any]) -> Tuple[Any, Any, Any, str]:
-        """Retorna lat/lon/alt e fonte principal usada."""
-        # Prioridade 0: payload canônico (já normalizado para MetadataFieldKey.value).
-        canonical = MetadataFields.normalize_record_to_keys(merged_payload or {})
-        lat = self._to_float(canonical.get("GpsLatitude"))
-        lon = self._to_float(canonical.get("GpsLongitude"))
-        if lat is not None and lon is not None:
-            alt = self._to_float(
-                canonical.get("AbsoluteAltitude") or canonical.get("GPSAltitude")
-            )
-            has_dji_xmp_marker = any("drone-dji:" in str(k) for k in (merged_payload or {}).keys())
-            source = "XMP" if has_dji_xmp_marker else "EXIF"
-            return lat, lon, alt, source
-
-        # Prioridade 1: XMP DJI decimal
-        lat = self._to_float(merged_payload.get("drone-dji:GpsLatitude") or merged_payload.get("GpsLatitude"))
-        lon = self._to_float(merged_payload.get("drone-dji:GpsLongitude") or merged_payload.get("GpsLongitude"))
-        if lat is not None and lon is not None:
-            alt = self._to_float(
-                merged_payload.get("drone-dji:AbsoluteAltitude")
-                or merged_payload.get("AbsoluteAltitude")
-                or merged_payload.get("GPSAltitude")
-            )
-            return lat, lon, alt, "XMP"
-
-        # Prioridade 2: EXIF DMS
-        lat = self._extract_gps_decimal_from_dms(
-            merged_payload.get("GPSLatitude"),
-            merged_payload.get("GPSLatitudeRef"),
-        )
-        lon = self._extract_gps_decimal_from_dms(
-            merged_payload.get("GPSLongitude"),
-            merged_payload.get("GPSLongitudeRef"),
-        )
-        alt = self._to_float(merged_payload.get("GPSAltitude"))
-        if lat is not None and lon is not None:
-            return lat, lon, alt, "EXIF"
-
-        return None, None, alt, "NONE"
-
-    @staticmethod
-    def _has_xmp_data(merged_payload: Dict[str, Any], canonical_payload: Dict[str, Any]) -> bool:
-        """
-        Detecta XMP de forma robusta, sem depender apenas de `xmp_encontrado`.
-        """
-        flag = str((merged_payload or {}).get("xmp_encontrado", "")).lower()
-        if flag == "sim":
-            return True
-
-        if any("drone-dji:" in str(k) for k in (merged_payload or {}).keys()):
-            return True
-
-        # Campos tipicamente fornecidos por DJI XMP.
-        xmp_markers = (
-            "AbsoluteAltitude",
-            "RelativeAltitude",
-            "GimbalYawDegree",
-            "FlightYawDegree",
-            "RtkFlag",
-            "UTCAtExposure",
-        )
-        return any(canonical_payload.get(k) not in (None, "", "None", "null") for k in xmp_markers)
-
-    @staticmethod
-    def _date_name_from_payload(payload: Dict[str, Any]) -> str:
-        raw = payload.get("DateTimeOriginal") or payload.get("DateTime")
-        if not raw:
-            return ""
-        text = str(raw).strip()
-        for fmt in ("%Y:%m:%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
-            try:
-                return datetime.strptime(text, fmt).strftime("%Y%m%d")
-            except Exception:
-                pass
-        return ""
 
     def _list_photo_files(self, base_folder: str, recursive: bool) -> List[str]:
         output = []
@@ -335,6 +110,13 @@ class PhotoFolderVectorizationService:
         generate_report: bool = True,
         layer_name: str = "Fotos_Sem_MRK",
     ) -> Dict[str, Any]:
+        """
+        Gera camada vetorial e relatório a partir de pastas de fotos (sem MRK).
+        
+        Utiliza PhotoMetadata.run_pipeline() para todo o processamento
+        de metadados (esqueleto → EXIF → XMP → custom fields).
+        Apenas a vetorização e schema são feitos aqui.
+        """
         if not os.path.isdir(base_folder):
             raise ValueError(f"Pasta invalida: {base_folder}")
 
@@ -344,16 +126,32 @@ class PhotoFolderVectorizationService:
             data={"base_folder": base_folder, "recursive": recursive, "total_files": len(files)},
         )
 
-        points = []
-        raw_records = {}
-        quality = {
-            "total_files": len(files),
-            "with_coords": 0,
-            "without_coords": 0,
-            "with_xmp": 0,
-            "with_exif_gps": 0,
-            "missing_xmp_and_exif": 0,
-        }
+        # Utiliza PhotoMetadata.run_pipeline() para processar metadados
+        from ...utils.mrk.PhotoMetadata import PhotoMetadata
+
+        records, quality = PhotoMetadata.run_pipeline(
+            base_folder=base_folder,
+            points=None,
+            recursive=recursive,
+            tool_key=self.tool_key,
+            enable_mrk=False,
+            enable_exif=True,
+            enable_xmp=True,
+            enable_custom_fields=True,
+        )
+
+        if not records:
+            self.logger.warning("Nenhum registro gerado pelo pipeline", data={"quality": quality})
+            return {
+                "layer": None,
+                "json_path": None,
+                "report_payload": None,
+                "quality": quality,
+                "total_points": 0,
+                "total_files": len(files),
+            }
+
+        # Converte records para formato de saída (remove campos MRK)
         key_to_json_key = {
             key: field.key.value
             for key, field in MetadataFields.all_fields().items()
@@ -362,69 +160,19 @@ class PhotoFolderVectorizationService:
         x_geom_key = MetadataFields.resolve_output_name("GpsLongitude")
         y_geom_key = MetadataFields.resolve_output_name("GpsLatitude")
 
-        for file_path in files:
-            merged = self._extract_photo_payload(file_path)
-            canonical = MetadataFields.normalize_record_to_keys(merged)
-
-            has_xmp = self._has_xmp_data(merged, canonical)
-            if has_xmp:
-                quality["with_xmp"] += 1
-            has_exif_gps = bool(merged.get("GPSLatitude") and merged.get("GPSLongitude"))
-            if has_exif_gps:
-                quality["with_exif_gps"] += 1
-
-            lat, lon, alt, source = self._extract_position(merged)
-            if source == "NONE":
-                quality["without_coords"] += 1
-                if (not has_xmp) and (not has_exif_gps):
-                    quality["missing_xmp_and_exif"] += 1
-            else:
-                quality["with_coords"] += 1
-
-            canonical.update(self._extract_flight_context(file_path, base_folder))
-            canonical["GpsLatitude"] = lat if lat is not None else canonical.get("GpsLatitude")
-            canonical["GpsLongitude"] = lon if lon is not None else canonical.get("GpsLongitude")
-            canonical["AbsoluteAltitude"] = (
-                alt if alt is not None else canonical.get("AbsoluteAltitude")
-            )
-            canonical["CoordSource"] = source
-            canonical["HasXmp"] = has_xmp
-            canonical["HasExifGps"] = has_exif_gps
-            canonical["QualityFlag"] = "LOW" if source == "NONE" else "OK"
-
-            canonical = self._filter_out_mrk_fields(canonical)
-            file_key = os.path.basename(file_path)
+        points = []
+        raw_records = {}
+        for record in records:
+            canonical = self._filter_out_mrk_fields(record)
+            file_key = canonical.get("File") or os.path.basename(canonical.get("Path", ""))
             raw_records[file_key] = canonical
 
-        # Calcula campos custom em lote para manter paridade com DroneCoordinates.
-        try:
-            custom_ready = {
-                key: value
-                for key, value in raw_records.items()
-                if value.get("DateTimeOriginal") not in (None, "")
-            }
-            if custom_ready:
-                enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
-                    custom_ready,
-                    tool_key=self.tool_key,
-                )
-                for key, value in enriched.items():
-                    raw_records[key].update(value)
-        except Exception as exc:
-            self.logger.warning(f"Falha ao calcular CUSTOM_FIELDS no modo sem MRK: {exc}")
-
-        for key, value in list(raw_records.items()):
-            raw_records[key] = MetadataFields.normalize_record_to_keys(value or {})
-
-        for canonical in raw_records.values():
-            canonical = self._filter_out_mrk_fields(canonical)
             lat = self._to_float(canonical.get("GpsLatitude"))
             lon = self._to_float(canonical.get("GpsLongitude"))
             if lat is None or lon is None:
                 continue
 
             output_record = self._build_output_record_from_catalog(canonical)
-            # Garantir chaves de geometria exatamente no nome esperado pela camada.
             output_record[x_geom_key] = lon
             output_record[y_geom_key] = lat
             points.append(output_record)
@@ -453,6 +201,7 @@ class PhotoFolderVectorizationService:
             if layer and layer.isValid():
                 QgsProject.instance().addMapLayer(layer)
 
+        # Gera JSON dump
         full_dump_payload = {
             "base_folder": base_folder,
             "recursive": recursive,
@@ -512,13 +261,16 @@ class PhotoFolderVectorizationService:
         selected_fields: List[str] = None,
     ) -> str:
         """
-        Extrai metadata das fotos e salva JSON v2.0.
-        Não cria QgsVectorLayer.
-        Retorna caminho do JSON gerado.
-        source: "photo_only"
-        CoordSource e QualityFlag obrigatórios em cada registro.
+        [NOVO] Extrai metadata das fotos e salva JSON v2.0 via pipeline.
+        
+        Utiliza PhotoMetadata.run_pipeline() com todas as etapas exceto MRK.
+        source: "photo"
+        
+        Returns:
+            Caminho do JSON gerado
         """
         from ...utils.JsonUtil import JsonUtil
+        from ...utils.mrk.PhotoMetadata import PhotoMetadata
         from ...core.enum import MetadataFieldKey
 
         if tool_key:
@@ -530,144 +282,81 @@ class PhotoFolderVectorizationService:
 
         files = self._list_photo_files(base_folder, recursive)
         self.logger.info(
-            "Iniciando extração de metadados para JSON v2.0",
+            "Iniciando extração de metadados para JSON v2.0 via pipeline",
             data={"base_folder": base_folder, "recursive": recursive, "total_files": len(files)},
         )
 
-        # Timestamp: inicio extracao EXIF+XMP
-        exif_start = datetime.now().isoformat()
+        # Usa o pipeline para processar metadados
+        records, quality = PhotoMetadata.run_pipeline(
+            base_folder=base_folder,
+            points=None,
+            recursive=recursive,
+            tool_key=self.tool_key,
+            enable_mrk=False,
+            enable_exif=True,
+            enable_xmp=True,
+            enable_custom_fields=True,
+        )
 
-        all_records = []
-        quality = {
-            "total_files": len(files),
-            "with_coords": 0,
-            "without_coords": 0,
-            "with_xmp": 0,
-            "with_exif_gps": 0,
-            "missing_xmp_and_exif": 0,
-        }
+        if not records:
+            self.logger.warning("Nenhum registro gerado pelo pipeline")
+            return ""
+
+        # Converte records para JSON v2.0
         key_to_json_key = {
             key: field.key.value
             for key, field in MetadataFields.all_fields().items()
             if field.key is not None
         }
 
-        for file_path in files:
-            merged = self._extract_photo_payload(file_path)
-            canonical = MetadataFields.normalize_record_to_keys(merged)
+        all_records = []
+        for record in records:
+            # Remove campos MRK
+            filtered = self._filter_out_mrk_fields(record)
 
-            has_xmp = self._has_xmp_data(merged, canonical)
-            if has_xmp:
-                quality["with_xmp"] += 1
-            has_exif_gps = bool(merged.get("GPSLatitude") and merged.get("GPSLongitude"))
-            if has_exif_gps:
-                quality["with_exif_gps"] += 1
-
-            lat, lon, alt, source = self._extract_position(merged)
-            if source == "NONE":
-                quality["without_coords"] += 1
-                if (not has_xmp) and (not has_exif_gps):
-                    quality["missing_xmp_and_exif"] += 1
-            else:
-                quality["with_coords"] += 1
-
-            canonical.update(self._extract_flight_context(file_path, base_folder))
-            canonical["GpsLatitude"] = lat if lat is not None else canonical.get("GpsLatitude")
-            canonical["GpsLongitude"] = lon if lon is not None else canonical.get("GpsLongitude")
-            canonical["AbsoluteAltitude"] = (
-                alt if alt is not None else canonical.get("AbsoluteAltitude")
-            )
-            canonical["CoordSource"] = source
-            canonical["HasXmp"] = has_xmp
-            canonical["HasExifGps"] = has_exif_gps
-            canonical["QualityFlag"] = "LOW" if source == "NONE" else "OK"
-
-            canonical = self._filter_out_mrk_fields(canonical)
-
-            # Converter para chaves PascalCase usando mapeamento explicito do catalogo.
-            record = {}
-            for key, value in canonical.items():
+            # Converter para chaves PascalCase
+            json_record = {}
+            for key, value in filtered.items():
                 if isinstance(key, MetadataFieldKey):
-                    record[key.value] = value
+                    json_record[key.value] = value
                     continue
 
                 canonical_key = MetadataFields.resolve_key(str(key))
                 mapped_key = key_to_json_key.get(canonical_key, canonical_key)
-                record[mapped_key] = value
+                json_record[mapped_key] = value
 
             # Filtrar campos selecionados se especificado
             if selected_fields:
-                filtered_record = {}
-                for k, v in record.items():
-                    if k in selected_fields or k in [MetadataFieldKey.COORD_SOURCE.value, MetadataFieldKey.QUALITY_FLAG.value]:
-                        filtered_record[k] = v
-                record = filtered_record
+                skip_keys = {
+                    MetadataFieldKey.COORD_SOURCE.value,
+                    MetadataFieldKey.QUALITY_FLAG.value,
+                }
+                filtered_record = {
+                    k: v for k, v in json_record.items()
+                    if k in selected_fields or k in skip_keys
+                }
+                json_record = filtered_record
 
-            all_records.append(record)
+            all_records.append(json_record)
 
-        # Timestamp: fim extracao EXIF+XMP
-        exif_xmp_end = datetime.now().isoformat()
+        # Gera timestamps
+        from ...utils.mrk.PhotoMetadata import PhotoMetadata
+        timestamps = dict(PhotoMetadata.get_timestamps())
 
-        # Timestamp: inicio calculo campos custom
-        custom_start = datetime.now().isoformat()
-
-        # Calcular campos custom
-        try:
-            custom_ready = {
-                key: value
-                for key, value in zip([os.path.basename(f) for f in files], all_records)
-                if value.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value) not in (None, "")
-            }
-            if custom_ready:
-                enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
-                    custom_ready,
-                    tool_key=self.tool_key,
-                )
-                for key, value in enriched.items():
-                    # Encontrar o record correspondente
-                    for record in all_records:
-                        if record.get(MetadataFieldKey.FILE.value) == key:
-                            # Adicionar campos custom com chaves PascalCase via catalogo.
-                            for custom_key, custom_value in value.items():
-                                if isinstance(custom_key, MetadataFieldKey):
-                                    record[custom_key.value] = custom_value
-                                    continue
-
-                                canonical_custom_key = MetadataFields.resolve_key(str(custom_key))
-                                mapped_custom_key = key_to_json_key.get(
-                                    canonical_custom_key,
-                                    canonical_custom_key,
-                                )
-                                record[mapped_custom_key] = custom_value
-                            break
-        except Exception as exc:
-            self.logger.warning(f"Falha ao calcular CUSTOM_FIELDS: {exc}")
-
-        # Timestamp: fim calculo campos custom
-        custom_end = datetime.now().isoformat()
-
-        # Monta timestamps
-        timestamps = {
-            "exif_start": exif_start,
-            "exif_xmp_end": exif_xmp_end,
-            "custom_start": custom_start,
-            "custom_end": custom_end,
-        }
-
-        # Gerar JSON v2.0 com timestamps
+        # Constroi JSON v2.0
         json_data = JsonUtil.build(
             records=all_records,
-            source="photo_only",
+            source="photo",
             base_folder=base_folder,
             tool_key=self.tool_key,
             recursive=recursive,
-            timestamps=timestamps,
+            timestamps=timestamps if timestamps else None,
         )
 
-        # Atualizar quality no JSON
+        # Adiciona quality stats
         json_data["quality"] = quality
 
-        # Salvar JSON
+        # Salva JSON
         json_path = ExplorerUtils.create_temp_json(
             json_data,
             tool_key=self.tool_key,
@@ -683,12 +372,12 @@ class PhotoFolderVectorizationService:
         )
 
         self.logger.info(
-            "Extração para JSON v2.0 concluída",
+            "Extração para JSON v2.0 concluída via pipeline",
             data={
                 "json_path": json_path,
                 "total_records": len(all_records),
-                "quality": quality
-            }
+                "quality": quality,
+            },
         )
 
         return json_path

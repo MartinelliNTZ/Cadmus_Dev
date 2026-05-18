@@ -37,7 +37,7 @@ class DroneCoordinatesRunner:
         on_finished=None,
         on_error=None,
     ) -> bool:
-        if not ExplorerUtils.is_file(file_path):
+        if not ExplorerUtils.has_extension(file_path, [".mrk"]):
             return False
 
         self._on_finished = on_finished
@@ -105,11 +105,32 @@ class DroneCoordinatesRunner:
         context.set("auto_track_output_path", track_path)
         context.set("source_mrk_file", file_path)
 
-        # Montar steps conforme preferências (mesmo que DroneCoordinates plugin)
-        steps = [MrkParseStep()]
-        if apply_photos:
-            steps.append(PhotoEnrichmentStep())
-        steps.append(JsonVectorizationStep())
+        # ─────────────────────────────────────────────────────────
+        # Pipeline flags - mesmo padrão do DroneCoordinates plugin
+        # ─────────────────────────────────────────────────────────
+        # apply_photos=True (com Pillow):
+        #   → Etapas 1 (esqueleto), 2 (MRK), 3 (EXIF), 4 (XMP), 5 (custom)
+        # apply_photos=False:
+        #   → Etapas 1 (esqueleto), 2 (MRK) apenas
+        #     = Sem EXIF, XMP ou custom fields
+        # ─────────────────────────────────────────────────────────
+
+        enable_exif = apply_photos
+        enable_xmp = apply_photos
+        enable_custom_fields = apply_photos and (
+            len(MetadataFields.normalize_selected_keys(
+                prefs.get("custom_fields_selected", []),
+                allowed_keys=MetadataFields.custom_keys(),
+            )) > 0
+        )
+
+        context.set("enable_mrk", True)
+        context.set("enable_exif", enable_exif)
+        context.set("enable_xmp", enable_xmp)
+        context.set("enable_custom_fields", enable_custom_fields)
+
+        # Montar steps (PhotoEnrichmentStep sempre presente, controlado por flags)
+        steps = [MrkParseStep(), PhotoEnrichmentStep(), JsonVectorizationStep()]
 
         # Gerar relatório se configurado
         generate_report = prefs.get("generate_report", False)

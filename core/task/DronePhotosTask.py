@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
 
 from qgis.core import QgsTask
-from utils.mrk.PhotoMetadata import PhotoMetadata
-from core.config.LogUtils import LogUtils
-from utils.ToolKeys import ToolKey
+from ...utils.mrk.PhotoMetadata import PhotoMetadata
+from ..config.LogUtils import LogUtils
+from ...utils.ToolKeys import ToolKey
 
 
 class DronePhotosTask(QgsTask):
+    """
+    [LEGADO - MANTIDO PARA COMPATIBILIDADE]
+    
+    Task legado que usava PhotoMetadata.enrich() diretamente.
+    Agora delega para PhotoMetadata.run_pipeline() com flags completas.
+    Esta task será removida em versões futuras.
+    """
+
     TOOL_KEY = ToolKey.DRONE_COORDINATES
 
     def __init__(self, description, points, base_folder, recursive=True, callback=None):
@@ -19,16 +27,23 @@ class DronePhotosTask(QgsTask):
         self.result_points = None
         self.callback = callback
 
-    # ---------- RUN SEM ARGUMENTOS ----------
     def run(self):
         self._logger.info(
             f"ENTRANDO NO RUN DA TASK: cruzando fotos em {self.base_folder}"
         )
         try:
-            self.result_points = PhotoMetadata.enrich(
-                self.points, base_folder=self.base_folder, recursive=self.recursive
+            # Delegates for PhotoMetadata.run_pipeline() (novo pipeline)
+            self.result_points, _ = PhotoMetadata.run_pipeline(
+                base_folder=self.base_folder,
+                points=self.points,
+                recursive=self.recursive,
+                tool_key=self.TOOL_KEY,
+                enable_mrk=True,
+                enable_exif=True,
+                enable_xmp=True,
+                enable_custom_fields=True,
             )
-            self.setProgress(100)  # atualiza progresso no QGIS
+            self.setProgress(100)
             self._logger.info(
                 f"Cruzamento concluído ({len(self.result_points)} pontos)"
             )
@@ -38,7 +53,6 @@ class DronePhotosTask(QgsTask):
             self._logger.exception(e)
             return False
 
-    # ---------- CALLBACK FINAL ----------
     def finished(self, result):
         self._logger.info(f"FINALIZANDO TASK: {self.description()}")
         if result and self.callback:

@@ -502,10 +502,35 @@ class DroneCordinates(BasePluginMTL):
         context.set("iface", self.iface)
         context.set("points_layer_name", "MRK_Points")
 
-        steps = [MrkParseStep()]
-        if apply_photos:
-            steps.append(PhotoEnrichmentStep())
-        steps.append(JsonVectorizationStep())
+        # ─────────────────────────────────────────────────────────
+        # Pipeline flags - controle explicito das etapas
+        # ─────────────────────────────────────────────────────────
+        # Sempre adiciona PhotoEnrichmentStep, mas controla suas
+        # etapas internas via flags no contexto.
+        #
+        # Cenário "photos" (chk_photos True, Pillow disponível):
+        #   → Etapas 1, 2 (MRK), 3 (EXIF), 4 (XMP), 5 (custom)
+        #     = Pipeline completo (mrk+photo)
+        #
+        # Cenário "sem metadados" (chk_photos False):
+        #   → Etapas 1 (esqueleto) e 2 (MRK)
+        #     = Apenas coordenadas MRK + estrutura de pastas
+        #     = Sem EXIF, XMP ou campos custom
+        # ─────────────────────────────────────────────────────────
+
+        enable_exif = apply_photos
+        enable_xmp = apply_photos
+        enable_custom_fields = apply_photos and (
+            len(self._get_selected_custom_fields()) > 0
+        )
+
+        context.set("enable_mrk", True)
+        context.set("enable_exif", enable_exif)
+        context.set("enable_xmp", enable_xmp)
+        context.set("enable_custom_fields", enable_custom_fields)
+
+        # Steps do pipeline
+        steps = [MrkParseStep(), PhotoEnrichmentStep(), JsonVectorizationStep()]
 
         # Adicionar step de geração de relatório se solicitado
         if self.checkbox_map["generate_report"].isChecked():
@@ -516,6 +541,12 @@ class DroneCordinates(BasePluginMTL):
             code="PIPELINE_START",
             steps=[s.name() for s in steps],
             base_folder=base_folder,
+            pipeline_flags={
+                "enable_mrk": True,
+                "enable_exif": enable_exif,
+                "enable_xmp": enable_xmp,
+                "enable_custom_fields": enable_custom_fields,
+            },
         )
 
         engine = AsyncPipelineEngine(

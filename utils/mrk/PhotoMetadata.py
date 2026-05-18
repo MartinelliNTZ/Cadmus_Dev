@@ -350,19 +350,27 @@ class PhotoMetadata:
         """
         Extrai FolderLevel1..FolderLevel5 de um caminho relativo.
 
-        A lógica é determinística e baseada exclusivamente no path real:
-        - FolderLevel1 é a pasta imediata onde o arquivo está
-        - FolderLevel2 é a pasta pai dessa
-        - ... até FolderLevel5
+        A lógica inverte a ordem das pastas: FolderLevel1 é a pasta mais
+        próxima do arquivo (immediate parent), FolderLevel2 é a pai desta,
+        e assim sucessivamente.
+
+        Exemplo:
+            Path: "10052026/M3E/IMAGEM/DJI_202605101003_001_IRIA01"
+            FolderLevel1 = "DJI_202605101003_001_IRIA01" (pasta da foto)
+            FolderLevel2 = "IMAGEM"
+            FolderLevel3 = "M3E"
+            FolderLevel4 = "10052026"
         """
         if not rel_path or rel_path == ".":
             return {}
 
         parts = rel_path.replace("\\", "/").strip("/").split("/")
+        # Inverte para que FolderLevel1 seja a pasta mais próxima da foto
+        reversed_parts = list(reversed(parts))
 
         levels = {}
-        for i in range(min(len(parts), 5)):
-            levels[f"FolderLevel{i + 1}"] = parts[i]
+        for i in range(min(len(reversed_parts), 5)):
+            levels[f"FolderLevel{i + 1}"] = reversed_parts[i]
 
         return levels
 

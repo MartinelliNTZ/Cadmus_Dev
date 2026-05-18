@@ -242,43 +242,101 @@ class JsonToVectorTranslator:
 
     def _resolve_geometry(self, record: Dict, source: str) -> Optional[QgsPointXY]:
         """
-        Resolve coordenadas conforme fonte dos dados.
+        Resolve coordenadas por tentativas (fallback chain).
         
-        Regras:
-        1. Se o registro tem CoordSource individual, usa ele como primary
-        2. Se não, usa o source global do pipeline
-        3. "mrk" → usa LAT/LON (coordenadas originais do MRK)
-        4. "mrk+photo" → usa GPS_LATITUDE/GPS_LONGITUDE (coordenadas enriquecidas das fotos)
-        5. "photo_only" → usa GPS_LATITUDE/GPS_LONGITUDE (coordenadas das fotos)
-        6. "XMP" ou "EXIF" → usa GPS_LATITUDE/GPS_LONGITUDE (cada foto individual)
+        Tenta fontes de coordenada em ordem decrescente de precisão,
+        usando exclusivamente as chaves do MetadataFieldKey.
+        
+        Ordem de tentativas:
+        1. GpsLatitude/GpsLongitude (XMP do drone, ou mapeado de MRK via pipeline)
+        2. Lat/Lon (coordenada original do MRK, não enriquecida)
+        3. DMS tuple em GpsLatitude/GpsLongitude (EXIF bruto, safety net)
+        4. Nenhuma válida → retorna None
         """
-        try:
-            # Tenta CoordSource individual no registro primeiro
-            coord_source = str(record.get(MetadataFieldKey.COORD_SOURCE.value, "")).strip().upper()
-            
-            if coord_source in ("MRK",):
-                lat = record.get(MetadataFieldKey.LAT.value)
-                lon = record.get(MetadataFieldKey.LON.value)
-            elif coord_source in ("XMP", "EXIF", "NONE", ""):
-                # Usa source global como fallback
-                if source == "mrk":
-                    lat = record.get(MetadataFieldKey.LAT.value)
-                    lon = record.get(MetadataFieldKey.LON.value)
-                else:
-                    lat = record.get(MetadataFieldKey.GPS_LATITUDE.value)
-                    lon = record.get(MetadataFieldKey.GPS_LONGITUDE.value)
-            else:
-                # Fallback genérico
-                lat = record.get(MetadataFieldKey.GPS_LATITUDE.value) or record.get(MetadataFieldKey.LAT.value)
-                lon = record.get(MetadataFieldKey.GPS_LONGITUDE.value) or record.get(MetadataFieldKey.LON.value)
+        lat, lon = None, None
 
-            if lat is not None and lon is not None:
-                return QgsPointXY(float(lon), float(lat))
+        # ── Tentativa 1: GpsLatitude/GpsLongitude (XMP + EXIF decimal) ──
+        lat = self._try_get_float(record, MetadataFieldKey.GPS_LATITUDE.value)
+        lon = self._try_get_float(record, MetadataFieldKey.GPS_LONGITUDE.value)
 
-        except (ValueError, TypeError):
-            pass
+        # ── Tentativa 2: Lat/Lon (MRK original, fallback sem pipeline) ──
+        if lat is None or lon is None:
+            lat = self._try_get_float(record, MetadataFieldKey.LAT.value)
+            lon = self._try_get_float(record, MetadataFieldKey.LON.value)
+
+        # ── Tentativa 3: DMS tuple em GpsLatitude/GpsLongitude (safety net) ──
+        if lat is None or lon is None:
+            raw_lat = record.get(MetadataFieldKey.GPS_LATITUDE.value)
+            raw_lon = record.get(MetadataFieldKey.GPS_LONGITUDE.value)
+
+            dms_lat = self._dms_tuple_to_float(raw_lat)
+            dms_lon = self._dms_tuple_to_float(raw_lon)
+
+            if dms_lat is not None and dms_lon is not None:
+                # Tenta ref de sinal (GPSLatitudeRef / GPSLongitudeRef) se existir
+                ref_lat = record.get("GPSLatitudeRef") or record.get("GpsLatitudeRef")
+                ref_lon = record.get("GPSLongitudeRef") or record.get("GpsLongitudeRef")
+                if str(ref_lat or "").strip().upper() == "S":
+                    dms_lat = -dms_lat
+                if str(ref_lon or "").strip().upper() == "W":
+                    dms_lon = -dms_lon
+                lat = dms_lat
+                lon = dms_lon
+
+        if lat is not None and lon is not None:
+            return QgsPointXY(float(lon), float(lat))
 
         return None
+
+    @staticmethod
+    def _try_get_float(record: Dict, key: str) -> Optional[float]:
+        """Tenta extrair valor float de um campo do registro."""
+        try:
+            value = record.get(key)
+            if value is None:
+                return None
+            if isinstance(value, bool):
+                return None
+            return float(value)
+        except (ValueError, TypeError, OverflowError):
+            return None
+
+    @staticmethod
+    def _dms_tuple_to_float(value) -> Optional[float]:
+        """
+        Converte tupla DMS do EXIF (ex: ((13,1), (5,1), (1583,100))) para
+        graus decimais.
+        """
+        if value is None:
+            return None
+        if not isinstance(value, (list, tuple)):
+            return None
+        parts = list(value)
+        if len(parts) < 3:
+            return None
+
+        def _part(p):
+            if isinstance(p, (int, float)):
+                return float(p)
+            if isinstance(p, (list, tuple)):
+                p_list = list(p)
+                if len(p_list) >= 2:
+                    try:
+                        return float(p_list[0]) / float(p_list[1]) if float(p_list[1]) != 0 else 0.0
+                    except (ValueError, ZeroDivisionError):
+                        return 0.0
+            try:
+                return float(p)
+            except (ValueError, TypeError):
+                return 0.0
+
+        try:
+            deg = _part(parts[0])
+            minute = _part(parts[1])
+            sec = _part(parts[2])
+            return deg + (minute / 60.0) + (sec / 3600.0)
+        except Exception:
+            return None
 
     def _resolve_attribute_name(self, key: str) -> str:
         """

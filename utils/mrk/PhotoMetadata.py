@@ -217,51 +217,6 @@ class PhotoMetadata:
 
         return all_records, quality
 
-    # ─────────────────────────────────────────────
-    # API PÚBLICA LEGADO (delegação para pipeline)
-    # ─────────────────────────────────────────────
-
-    @staticmethod
-    def enrich(
-        points: List[Dict[str, Any]],
-        base_folder: str,
-        recursive: bool = True,
-        tool_key: str = "drone_coordinates",
-    ) -> List[Dict[str, Any]]:
-        """
-        [LEGADO] → run_pipeline(enable_mrk=True)
-        """
-        records, _ = PhotoMetadata.run_pipeline(
-            base_folder=base_folder,
-            points=points,
-            recursive=recursive,
-            tool_key=tool_key,
-            enable_mrk=True,
-            enable_exif=True,
-            enable_xmp=True,
-            enable_custom_fields=True,
-        )
-        return records
-
-    @staticmethod
-    def extract_photos_only(
-        base_folder: str,
-        recursive: bool = True,
-        tool_key: str = "drone_coordinates",
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
-        """
-        [LEGADO] → run_pipeline(enable_mrk=False)
-        """
-        return PhotoMetadata.run_pipeline(
-            base_folder=base_folder,
-            points=None,
-            recursive=recursive,
-            tool_key=tool_key,
-            enable_mrk=False,
-            enable_exif=True,
-            enable_xmp=True,
-            enable_custom_fields=True,
-        )
 
     # ─────────────────────────────────────────────
     # ETAPA 1: Esqueleto inicial
@@ -285,7 +240,7 @@ class PhotoMetadata:
         - FlightNumber, FlightName (extraídos do nome da pasta mais profunda
           que segue o padrão DJI_YYYYMMDD_HHMMSS_NNN_NAME)
         """
-        from ...utils.mrk.MrkUtil import MrkUtil
+        
 
         logger = PhotoMetadata._get_logger(tool_key)
         skeleton: Dict[str, dict] = {}

@@ -73,6 +73,8 @@ class PhotoEnrichmentStep(BaseStep):
             enable_exif=enable_exif,
             enable_xmp=enable_xmp,
             enable_custom_fields=enable_custom_fields,
+            project_title=context.get("project_title", ""),
+            logo_path=context.get("logo_path", ""),
         )
 
     def on_success(self, context: ExecutionContext, result):

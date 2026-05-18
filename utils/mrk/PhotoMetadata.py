@@ -278,6 +278,8 @@ class PhotoMetadata:
         tool_key: str,
         recursive: bool = False,
         quality: Optional[Dict[str, Any]] = None,
+        project_title: str = "",
+        logo_path: str = "",
     ) -> str:
         """
         Constrói o JSON v2.0 a partir dos records enriquecidos e salva em disco.
@@ -289,6 +291,8 @@ class PhotoMetadata:
             tool_key: Chave da ferramenta
             recursive: Se a busca foi recursiva
             quality: Dict opcional com estatísticas de qualidade
+            project_title: Título do projeto (ex: "Fazenda Esperança")
+            logo_path: Caminho da imagem/logo do projeto
 
         Returns:
             Caminho absoluto do arquivo JSON salvo
@@ -304,6 +308,8 @@ class PhotoMetadata:
             tool_key=tool_key,
             recursive=recursive,
             timestamps=timestamps if timestamps else None,
+            project_title=project_title,
+            logo_path=logo_path,
         )
 
         # Adiciona quality stats se fornecidas

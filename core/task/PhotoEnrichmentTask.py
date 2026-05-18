@@ -46,6 +46,8 @@ class PhotoEnrichmentTask(BaseTask):
         enable_exif: bool = True,
         enable_xmp: bool = True,
         enable_custom_fields: bool = True,
+        project_title: str = "",
+        logo_path: str = "",
     ):
         super().__init__("Enriquecendo fotos", tool_key)
         self.base_folder = base_folder
@@ -58,6 +60,8 @@ class PhotoEnrichmentTask(BaseTask):
         self.selected_required_fields = selected_required_fields or []
         self.selected_custom_fields = selected_custom_fields or []
         self.selected_mrk_fields = selected_mrk_fields or []
+        self.project_title = project_title
+        self.logo_path = logo_path
 
         # Flags do pipeline
         self.enable_mrk = enable_mrk
@@ -184,6 +188,8 @@ class PhotoEnrichmentTask(BaseTask):
             tool_key=self.tool_key,
             recursive=self.recursive,
             quality=quality,
+            project_title=self.project_title,
+            logo_path=self.logo_path,
         )
 
         if not json_path:

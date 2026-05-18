@@ -171,6 +171,7 @@ class StringManager:
 
     # Filtros de arquivos
     FILTER_ALL = "All files (*.*)"
+    FILTER_IMAGES = "Images (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff)"
     FILTER_VECTOR = "Shapefile (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson *.json);;KML (*.kml);;CSV (*.csv)"
     FILTER_QGIS_STYLE = "QML files (*.qml)"
     SHP_EXTENSIONS = [".shp", ".shx", ".dbf", ".prj", ".cpg", ".qix"]

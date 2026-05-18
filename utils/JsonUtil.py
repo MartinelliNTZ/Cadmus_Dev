@@ -18,6 +18,8 @@ class JsonUtil:
         tool_key: str,
         recursive: bool = False,
         timestamps: Optional[Dict[str, str]] = None,
+        project_title: str = "",
+        logo_path: str = "",
     ) -> Dict[str, Any]:
         """
         Constroi JSON v2.0 com records, metadados de qualidade e timestamps opcionais.
@@ -29,6 +31,8 @@ class JsonUtil:
             tool_key: Chave da ferramenta
             recursive: Se a busca foi recursiva
             timestamps: Dict opcional com timestamps de cada extrator
+            project_title: Título do projeto (ex: "Fazenda Esperança")
+            logo_path: Caminho da imagem/logo do projeto
                        Ex: {"pipeline_start": "...", "mrk_start": "...", "mrk_end": "...",
                             "exif_start": "...", "exif_end": "...",
                             "xmp_start": "...", "xmp_end": "...",
@@ -109,6 +113,12 @@ class JsonUtil:
             "recursive": recursive,
             "generated_at": now_iso,
         }
+
+        # Adiciona titulo do projeto e logotipo se fornecidos
+        if project_title:
+            json_data["titulo"] = project_title
+        if logo_path:
+            json_data["logotipo"] = logo_path
 
         # Adiciona timestamps se fornecidos (logo apos generated_at, antes de quality/groups)
         if timestamps:

@@ -75,6 +75,37 @@ class DroneCordinates(BasePluginMTL):
             )
         )
 
+        # ====== LOGO / IMAGE SELECTOR ======
+        logo_layout, self.logo_selector = WidgetFactory.create_save_file_selector(
+            parent=self,
+            file_filter=StringManager.FILTER_IMAGES,
+            checkbox_text=STR.USE_LOGO,
+            label_text=STR.LOGO_LABEL,
+            separator_top=False,
+            separator_bottom=False,
+            mode=WidgetFactory.MODE_FILE,
+        )
+        self.opts_collapsible.add_content_layout(logo_layout)
+
+        # ====== PROJETO TITLE ======
+        title_fields = {
+            "project_title": {
+                "title": STR.PROJECT_TITLE,
+                "description": STR.PROJECT_TITLE_HINT,
+                "type": "text",
+                "default": "",
+            }
+        }
+        title_layout, self.title_input = WidgetFactory.create_input_fields_widget(
+            fields_dict=title_fields,
+            parent=self,
+            separator_top=False,
+            separator_bottom=False,
+        )
+        self.opts_collapsible.add_content_layout(title_layout)
+
+        # ====== OPÃ‡Ã•ES (CollapsibleParametersWidget) ======
+
         # Criar checkboxes
         opts_checkbox_layout, self.checkbox_map = WidgetFactory.create_checkbox_grid(
             options_data=self.CHECKBOX_OPTIONS,
@@ -569,6 +600,13 @@ class DroneCordinates(BasePluginMTL):
         context.set("enable_exif", enable_exif)
         context.set("enable_xmp", enable_xmp)
         context.set("enable_custom_fields", enable_custom_fields)
+
+        # Projeto e logotipo
+        project_title_values = self.title_input.get_values()
+        project_title = project_title_values.get("project_title", "")
+        logo_path = self.logo_selector.get_file_path().strip() if self.logo_selector.is_enabled() else ""
+        context.set("project_title", project_title)
+        context.set("logo_path", logo_path)
 
         # Steps do pipeline - PhotoEnrichmentStep faz parsing MRK internamente via PhotoMetadata
         steps = [PhotoEnrichmentStep(), JsonVectorizationStep()]

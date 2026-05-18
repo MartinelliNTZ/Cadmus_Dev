@@ -1,4 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
+import json as json_mod
 import os
 import re
 from typing import List, Dict, Any, Tuple, Optional
@@ -7,7 +8,6 @@ from datetime import datetime
 from ...core.config.LogUtils import LogUtils
 from ...core.enum import MetadataFieldKey
 from ...utils.ExplorerUtils import ExplorerUtils
-from ...utils.JsonUtil import JsonUtil
 from .CustomPhotosFieldsUtil import CustomPhotosFieldsUtil
 from .ExifUtil import ExifUtil
 from .InitialParamsUtil import InitialParamsUtil
@@ -109,57 +109,19 @@ class PhotoMetadata:
 
         PhotoMetadata.clear_timestamps()
 
-        # ── Etapa 1: Esqueleto inicial via InitialParamsUtil (retorna dict) ──
-        initial_data = InitialParamsUtil.build_initial_json(
+        # ── Etapa 1: Esqueleto inicial via InitialParamsUtil (dict em memoria) ──
+        initial_result = InitialParamsUtil.build_initial_json(
             base_folder=base_folder,
             tool_key=tool_key,
             recursive=recursive,
         )
 
-        if not initial_data:
-            logger.error("Falha ao gerar JSON inicial")
-            return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
-
-        total_files = initial_data.get("quality", {}).get("total_files", 0)
-        if total_files == 0:
+        if not initial_result or initial_result.get("total_files", 0) == 0:
             logger.warning("Nenhuma foto encontrada no diretorio")
             return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
 
-        # ── Salva JSON inicial em disco via ExplorerUtils ──
-        if json_path is None:
-            # Gera caminho padrao: Temp/cadmus/reports/json/
-            base_name = ExplorerUtils.build_report_json_stem(
-                base_folder=base_folder,
-                points_total=total_files,
-            )
-            json_path = ExplorerUtils.build_temp_file_path(
-                ExplorerUtils.REPORTS_TEMP_FOLDER,
-                ExplorerUtils.REPORTS_JSON_FOLDER,
-                tool_key=tool_key,
-                prefix="cadmus_initial",
-                extension=".json",
-                file_stem_hint=base_name,
-            )
-        else:
-            # Garante que a pasta do caminho fornecido existe
-            ExplorerUtils.ensure_folder_exists(
-                os.path.dirname(json_path), tool_key=tool_key
-            )
-
-        # Usa JsonUtil para salvar com a estrutura padrao
-        try:
-            JsonUtil.save(initial_data, json_path)
-            logger.info("JSON inicial salvo", data={"path": json_path})
-        except Exception as exc:
-            logger.error(f"Falha ao salvar JSON inicial em {json_path}: {exc}")
-            return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
-
-        # ── Extrai registros do dict para processamento em memória ──
-        skeleton = {}
-        for group in initial_data.get("groups", {}).values():
-            for filename, record in group.get("records", {}).items():
-                if filename:
-                    skeleton[filename] = record
+        skeleton = initial_result.get("skeleton", {})
+        _initial_timestamps = initial_result.get("timestamps", {})
 
         if not skeleton:
             logger.warning("Nenhum registro valido no JSON inicial")
@@ -271,6 +233,8 @@ class PhotoMetadata:
         )
 
         PhotoMetadata._timestamps = {
+            "initial_start": _initial_timestamps.get("initial_start"),
+            "initial_end": _initial_timestamps.get("initial_end"),
             "exif_start": exif_start,
             "exif_xmp_end": xmp_end,
             "custom_start": custom_start,

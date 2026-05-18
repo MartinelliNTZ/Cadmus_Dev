@@ -66,38 +66,15 @@ class InitialParamsUtil:
             recursive: Se deve varrer subpastas recursivamente
 
         Returns:
-            Dict com a estrutura do JSON inicial, ou None se erro.
-            O dict NÃO é salvo em disco - o caller deve usar ExplorerUtils para salvar.
-
-        Estrutura retornada:
-        {
-            "schema_version": "2.0",
-            "source": "initial",
-            "tool_key": "...",
-            "base_folder": "...",
-            "recursive": true,
-            "generated_at": "...",
-            "timestamps": {
-                "initial_start": "...",
-                "initial_end": "..."
-            },
-            "quality": {
-                "total_files": N
-            },
-            "groups": {
-                "<folder>": {
-                    "records": {
-                        "<filename>": { ... }
-                    }
-                }
-            }
-        }
+            Dict com a estrutura:
+                {"total_files": N, "timestamps": {...}, "groups": {"folder": {"records": {filename: record}}}}
+            O dict NÃO é salvo em disco - o caller (PhotoMetadata) faz o save final.
         """
         logger = InitialParamsUtil._get_logger(tool_key)
         initial_start = datetime.now().isoformat()
 
         logger.info(
-            "Iniciando geracao do JSON inicial (Etapa 1)",
+            "Iniciando geracao do esqueleto inicial (Etapa 1)",
             data={
                 "base_folder": base_folder,
                 "recursive": recursive,
@@ -111,66 +88,31 @@ class InitialParamsUtil:
             logger.warning("Nenhuma foto encontrada no diretorio")
             initial_end = datetime.now().isoformat()
             return {
-                "schema_version": "2.0",
-                "source": "initial",
-                "tool_key": tool_key,
-                "base_folder": base_folder,
-                "recursive": recursive,
-                "generated_at": initial_end,
+                "total_files": 0,
                 "timestamps": {
                     "initial_start": initial_start,
                     "initial_end": initial_end,
                 },
-                "quality": {
-                    "total_files": 0,
-                },
-                "groups": {},
+                "skeleton": {},
             }
-
-        # ── Organiza em grupos por FolderLevel1 ──
-        groups = {}
-        total_files = 0
-
-        for filename, record in skeleton.items():
-            folder_key = record.get(MetadataFieldKey.FOLDER_LEVEL_1.value) or "__NO_FOLDER__"
-
-            if folder_key not in groups:
-                groups[folder_key] = {
-                    "records": {},
-                }
-
-            groups[folder_key]["records"][filename] = record
-            total_files += 1
 
         initial_end = datetime.now().isoformat()
 
-        # ── Monta estrutura JSON completa ──
-        json_data = {
-            "schema_version": "2.0",
-            "source": "initial",
-            "tool_key": tool_key,
-            "base_folder": base_folder,
-            "recursive": recursive,
-            "generated_at": initial_end,
+        logger.info(
+            "Esqueleto inicial gerado",
+            data={
+                "total_files": len(skeleton),
+            },
+        )
+
+        return {
+            "total_files": len(skeleton),
             "timestamps": {
                 "initial_start": initial_start,
                 "initial_end": initial_end,
             },
-            "quality": {
-                "total_files": total_files,
-            },
-            "groups": groups,
+            "skeleton": skeleton,
         }
-
-        logger.info(
-            "JSON inicial gerado em memoria",
-            data={
-                "total_files": total_files,
-                "groups": len(groups),
-            },
-        )
-
-        return json_data
 
     # ─────────────────────────────────────────────
     # Varredura de fotos

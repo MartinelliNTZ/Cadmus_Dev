@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import json
+from typing import List, Dict, Any, Optional
 import os
 
 from .BaseTask import BaseTask
@@ -7,40 +7,34 @@ from ..config.LogUtils import LogUtils
 from ..enum import MetadataFieldKey
 from ...utils.mrk.PhotoMetadata import PhotoMetadata
 from ...utils.mrk.MetadataFields import MetadataFields
-from ...utils.JsonUtil import JsonUtil
-from ...utils.ExplorerUtils import ExplorerUtils
 
 
 class PhotoEnrichmentTask(BaseTask):
     """
     Task unificada para enriquecimento de metadados de fotos.
-    
+
     Utiliza o pipeline linear do PhotoMetadata.run_pipeline() com flags
     de habilitação de cada etapa.
-    
-    Modo 1 - "mrk+photo" (quando há pontos MRK):
-      Executa pipeline com enable_mrk=True
-      → Gera JSON v2.0 com source="mrk+photo"
-    
-    Modo 2 - "photo_only" (quando NÃO há MRK):
-      Executa pipeline com enable_mrk=False (apenas esqueleto + EXIF + XMP + custom)
-      → Gera JSON v2.0 com source="photo"
-    
-    Modo 3 - "skeleton_only" (apenas esqueleto, sem EXIF/XMP/custom):
-      Executa pipeline com enable_mrk=True, enable_exif=False, enable_xmp=False, enable_custom_fields=False
-      → Gera JSON v2.0 com source="photo" (apenas coordenadas do MRK + estrutura de pastas)
-    
-    Em todos os casos:
+
+    O PhotoMetadata.run_pipeline() agora é responsável por:
+    - Fazer o parsing de MRK (se source="mrk+photo")
+    - Executar todas as etapas de enriquecimento (esqueleto, MRK, EXIF, XMP, custom)
+    - Retornar os records enriquecidos
+
+    Após o pipeline, esta task:
     - Aplica filtro de campos selecionados (selected_keys)
-    - Constrói JSON via JsonUtil.build()
-    - Salva JSON via ExplorerUtils.create_temp_json()
-    - NÃO vetoriza (vetorização é do JsonVectorizationStep posterior)
+    - Converte records para PascalCase (formato JSON v2.0)
+    - Delega a criação e salvamento do JSON ao PhotoMetadata.build_and_save_json()
+
+    NÃO vetoriza (vetorização é do JsonVectorizationStep posterior)
     """
 
     def __init__(
         self,
         base_folder: str,
         recursive: bool,
+        source: str = "photo",
+        paths: Optional[List[str]] = None,
         json_path: str = None,
         source_points: list = None,
         layer_id: str = "",
@@ -48,7 +42,6 @@ class PhotoEnrichmentTask(BaseTask):
         selected_custom_fields: list = None,
         selected_mrk_fields: list = None,
         tool_key: str = None,
-        existing_timestamps: dict = None,
         enable_mrk: bool = False,
         enable_exif: bool = True,
         enable_xmp: bool = True,
@@ -57,13 +50,14 @@ class PhotoEnrichmentTask(BaseTask):
         super().__init__("Enriquecendo fotos", tool_key)
         self.base_folder = base_folder
         self.recursive = recursive
+        self.source = source
+        self.paths = paths or []
         self.json_path = json_path
         self.source_points = source_points or []
         self.layer_id = layer_id
         self.selected_required_fields = selected_required_fields or []
         self.selected_custom_fields = selected_custom_fields or []
         self.selected_mrk_fields = selected_mrk_fields or []
-        self.existing_timestamps = existing_timestamps or {}
 
         # Flags do pipeline
         self.enable_mrk = enable_mrk
@@ -78,40 +72,23 @@ class PhotoEnrichmentTask(BaseTask):
         selected.update(self.selected_mrk_fields)
         return selected
 
-    def _build_timestamps(self, source: str) -> dict:
-        """
-        Monta o dict de timestamps mesclando timestamps existentes (do MrkParseStep)
-        com os timestamps recém-capturados do PhotoMetadata (EXIF/XMP/Custom).
-        """
-        timestamps = dict(self.existing_timestamps)
-
-        # Obtem timestamps do PhotoMetadata (preenchidos apos run_pipeline)
-        photo_ts = PhotoMetadata.get_timestamps()
-
-        if photo_ts.get("exif_start"):
-            timestamps["exif_start"] = photo_ts["exif_start"]
-        if photo_ts.get("exif_xmp_end"):
-            timestamps["exif_xmp_end"] = photo_ts["exif_xmp_end"]
-        if photo_ts.get("custom_start"):
-            timestamps["custom_start"] = photo_ts["custom_start"]
-        if photo_ts.get("custom_end"):
-            timestamps["custom_end"] = photo_ts["custom_end"]
-
-        return timestamps
-
     def _run(self) -> bool:
         if self.isCanceled():
             return False
 
         logger = LogUtils(tool=self.tool_key, class_name=self.__class__.__name__)
 
-        # Limpa timestamps anteriores do PhotoMetadata
-        PhotoMetadata.clear_timestamps()
+        # Determina se há dados MRK baseado no source
+        has_mrk_source = "mrk" in self.source if self.source else False
+        has_mrk_data = (
+            has_mrk_source
+            or bool(self.paths)
+            or bool(self.json_path)
+            or bool(self.source_points)
+            or bool(self.layer_id)
+        )
 
-        # Determina se há dados MRK
-        has_mrk_data = bool(self.json_path) or bool(self.source_points) or bool(self.layer_id)
-
-        # Se enable_mrk foi explicitamente passado como False, não usa MRK mesmo que haja dados
+        # Se enable_mrk foi explicitamente passado como False, não usa MRK
         use_mrk = self.enable_mrk and has_mrk_data
 
         if use_mrk:
@@ -119,6 +96,8 @@ class PhotoEnrichmentTask(BaseTask):
                 "Modo mrk+photo",
                 data={
                     "base_folder": self.base_folder,
+                    "has_paths": len(self.paths) > 0,
+                    "has_source_points": len(self.source_points) > 0,
                     "enable_exif": self.enable_exif,
                     "enable_xmp": self.enable_xmp,
                     "enable_custom_fields": self.enable_custom_fields,
@@ -136,7 +115,16 @@ class PhotoEnrichmentTask(BaseTask):
                     "enable_custom_fields": self.enable_custom_fields,
                 },
             )
-            records, quality = self._run_pipeline_photo_only(logger)
+            records, quality = PhotoMetadata.run_pipeline(
+                base_folder=self.base_folder,
+                points=None,
+                recursive=self.recursive,
+                tool_key=self.tool_key,
+                enable_mrk=False,
+                enable_exif=self.enable_exif,
+                enable_xmp=self.enable_xmp,
+                enable_custom_fields=self.enable_custom_fields,
+            )
             source = "photo"
 
         if not records:
@@ -188,50 +176,24 @@ class PhotoEnrichmentTask(BaseTask):
                     json_record[mapped_key] = v
             json_records.append(json_record)
 
-        # Constrói timestamps mesclados
-        timestamps = self._build_timestamps(source)
-
-        # Constrói JSON v2.0 com timestamps
-        json_data = JsonUtil.build(
+        # Delega a criação e salvamento do JSON ao PhotoMetadata
+        json_path = PhotoMetadata.build_and_save_json(
             records=json_records,
             source=source,
             base_folder=self.base_folder,
             tool_key=self.tool_key,
             recursive=self.recursive,
-            timestamps=timestamps if timestamps else None,
+            quality=quality,
         )
 
-        # Adiciona quality stats
-        if quality:
-            json_data["quality"] = quality
-
-        # Salva JSON
-        if source == "mrk+photo":
-            prefix = "DPM"
-        elif self.enable_exif or self.enable_xmp or self.enable_custom_fields:
-            prefix = "PFM"
-        else:
-            prefix = "SKL"  # skeleton_only
-
-        json_path = ExplorerUtils.create_temp_json(
-            json_data,
-            tool_key=self.tool_key,
-            prefix=prefix,
-            subfolder=os.path.join(
-                ExplorerUtils.REPORTS_TEMP_FOLDER,
-                ExplorerUtils.REPORTS_JSON_FOLDER,
-            ),
-            file_stem_hint=ExplorerUtils.build_report_json_stem(
-                base_folder=self.base_folder,
-                points_total=len(json_records),
-            ),
-        )
+        if not json_path:
+            logger.error("Falha ao salvar JSON via PhotoMetadata")
+            return False
 
         self.result = {
             "json_path": json_path,
             "source": source,
             "total_points": len(json_records),
-            "timestamps": timestamps,
         }
 
         logger.info(
@@ -248,9 +210,34 @@ class PhotoEnrichmentTask(BaseTask):
     def _run_pipeline_with_mrk(self, logger: LogUtils) -> tuple:
         """
         Modo mrk+photo: extrai pontos MRK e executa pipeline completo.
+
+        Os pontos MRK podem vir de 3 fontes:
+        1. self.paths → PhotoMetadata parseia os arquivos MRK diretamente
+        2. layer_id → camada QGIS existente com pontos MRK
+        3. source_points / json_path → pontos pré-parseados
         """
         from qgis.core import QgsProject
 
+        # Prioridade 1: se tem paths, passa para o PhotoMetadata parsear
+        if self.paths and "mrk" in self.source:
+            logger.info(
+                "Usando paths para parsing de MRK via PhotoMetadata",
+                data={"paths": self.paths},
+            )
+            records, quality = PhotoMetadata.run_pipeline(
+                base_folder=self.base_folder,
+                points=None,
+                mrk_paths=self.paths,  # PhotoMetadata usa parametro interno mrk_paths
+                recursive=self.recursive,
+                tool_key=self.tool_key,
+                enable_mrk=True,
+                enable_exif=self.enable_exif,
+                enable_xmp=self.enable_xmp,
+                enable_custom_fields=self.enable_custom_fields,
+            )
+            return records, quality
+
+        # Prioridade 2: se tem layer_id, extrai pontos da camada QGIS
         pontos = []
         layer = QgsProject.instance().mapLayer(self.layer_id) if self.layer_id else None
 
@@ -277,8 +264,10 @@ class PhotoEnrichmentTask(BaseTask):
                         ponto["mrk_folder"] = mrk_folder
                 pontos.append(ponto)
         else:
+            # Prioridade 3: usa source_points ou json_path
             src = self.source_points
             if not src and self.json_path:
+                from ...utils.JsonUtil import JsonUtil
                 src = JsonUtil.load_records(self.json_path)
             for s in src:
                 canonical = MetadataFields.normalize_record_to_keys(s or {})
@@ -313,7 +302,7 @@ class PhotoEnrichmentTask(BaseTask):
 
         logger.info("Pontos extraidos", data={"total": len(pontos)})
 
-        # Executa pipeline com MRK habilitado e as flags de etapas
+        # Executa pipeline com MRK habilitado
         records, quality = PhotoMetadata.run_pipeline(
             base_folder=self.base_folder,
             points=pontos,
@@ -325,20 +314,4 @@ class PhotoEnrichmentTask(BaseTask):
             enable_custom_fields=self.enable_custom_fields,
         )
 
-        return records, quality
-
-    def _run_pipeline_photo_only(self, logger: LogUtils) -> tuple:
-        """
-        Modo photo_only: executa pipeline sem MRK.
-        """
-        records, quality = PhotoMetadata.run_pipeline(
-            base_folder=self.base_folder,
-            points=None,
-            recursive=self.recursive,
-            tool_key=self.tool_key,
-            enable_mrk=False,
-            enable_exif=self.enable_exif,
-            enable_xmp=self.enable_xmp,
-            enable_custom_fields=self.enable_custom_fields,
-        )
         return records, quality

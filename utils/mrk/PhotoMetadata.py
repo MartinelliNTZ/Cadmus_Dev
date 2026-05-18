@@ -12,7 +12,9 @@ from .CustomPhotosFieldsUtil import CustomPhotosFieldsUtil
 from .ExifUtil import ExifUtil
 from .InitialParamsUtil import InitialParamsUtil
 from .MetadataFields import MetadataFields
+from .MrkUtil import MrkUtil
 from .XmpUtil import XmpUtil
+from ...utils.JsonUtil import JsonUtil
 
 
 class PhotoMetadata:
@@ -23,20 +25,19 @@ class PhotoMetadata:
     Executa um pipeline linear de enriquecimentos sucessivos sobre as fotos.
     Cada etapa do pipeline pode ser ativada/desativada via flags.
 
-    PIPELINE:
-      Etapa 1 – Esqueleto inicial (sempre): delega para InitialParamsUtil que gera JSON em disco.
+    PIPELINE (etapas internas ao run_pipeline):
+      Etapa 0 – Parsing MRK (opcional): se paths MRK fornecidos, parseia arquivos
+      Etapa 1 – Esqueleto inicial (sempre): delega para InitialParamsUtil
       Etapa 2 – Enriquecimento MRK (opcional): cruza com pontos MRK
       Etapa 3 – EXIF (opcional): extrai metadados EXIF
       Etapa 4 – XMP (opcional): extrai metadados XMP
       Etapa 5 – Campos customizados (opcional): calcula campos derivados
 
-    A Etapa 1 agora escreve em disco (JSON) para evitar consumo excessivo de memória
-    com milhares de fotos. As etapas seguintes carregam o JSON, processam em memória
-    e salvam de volta.
+    APÓS o pipeline, o JSON é construído e salvo via build_and_save_json().
+    A task/step apenas invoca e obtém o caminho do JSON.
 
     NÃO faz:
-    - Field filtering (responsabilidade do VectorLayerAttributes / pipeline)
-    - JSON saving (responsabilidade do ExplorerUtils / pipeline)
+    - Field filtering (responsabilidade da task/step que invoca)
     - Vetorização (responsabilidade do JsonVectorizationStep)
     """
 
@@ -68,7 +69,7 @@ class PhotoMetadata:
         recursive: bool = True,
         tool_key: str = "drone_coordinates",
         *,
-        json_path: Optional[str] = None,
+        mrk_paths: Optional[List[str]] = None,
         enable_mrk: bool = False,
         enable_exif: bool = True,
         enable_xmp: bool = True,
@@ -79,11 +80,10 @@ class PhotoMetadata:
 
         Args:
             base_folder: Pasta raiz onde as fotos estão localizadas
-            points: Lista de pontos MRK (opcional)
+            points: Lista de pontos MRK (opcional, pré-parseados)
             recursive: Se deve varrer subpastas recursivamente
             tool_key: Chave da ferramenta para logging
-            json_path: Caminho para salvar/carregar JSON intermediário.
-                       Se None, usa arquivo temporário.
+            mrk_paths: Lista de caminhos de arquivos/pastas MRK para parsear
             enable_mrk: Habilita enriquecimento MRK
             enable_exif: Habilita extração EXIF
             enable_xmp: Habilita extração XMP
@@ -99,7 +99,7 @@ class PhotoMetadata:
                 "base_folder": base_folder,
                 "recursive": recursive,
                 "has_points": len(points) if points else 0,
-                "json_path": json_path,
+                "has_mrk_paths": len(mrk_paths) if mrk_paths else 0,
                 "enable_mrk": enable_mrk,
                 "enable_exif": enable_exif,
                 "enable_xmp": enable_xmp,
@@ -109,6 +109,13 @@ class PhotoMetadata:
 
         PhotoMetadata.clear_timestamps()
         pipeline_start = datetime.now().isoformat()
+
+        # ── Etapa 0: Parsing MRK (se mrk_paths fornecido e MRK habilitado) ──
+        mrk_start = datetime.now().isoformat()
+        mrk_points = points or []
+        if enable_mrk and mrk_paths and not mrk_points:
+            mrk_points = PhotoMetadata._parse_mrk_paths(mrk_paths, recursive, tool_key)
+        mrk_end = datetime.now().isoformat()
 
         # ── Etapa 1: Esqueleto inicial via InitialParamsUtil (dict em memoria) ──
         initial_start = datetime.now().isoformat()
@@ -129,14 +136,10 @@ class PhotoMetadata:
             logger.warning("Nenhum registro valido no JSON inicial")
             return [], {"total_files": 0, "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
         initial_end = datetime.now().isoformat()
-        mrk_start = datetime.now().isoformat()
+
         # ── Etapa 2: Enriquecimento MRK (opcional) ──
-        if enable_mrk and points:
-            skeleton = PhotoMetadata._enrich_with_mrk(skeleton, points, base_folder, tool_key)
-            source = "mrk+photo"
-        else:
-            source = "photo"
-        mrk_end = datetime.now().isoformat()
+        if enable_mrk and mrk_points:
+            skeleton = PhotoMetadata._enrich_with_mrk(skeleton, mrk_points, base_folder, tool_key)
 
         # Timestamps: inicio da extracao de metadados das fotos (EXIF)
         exif_start = datetime.now().isoformat()
@@ -146,10 +149,11 @@ class PhotoMetadata:
             skeleton = PhotoMetadata._enrich_exif(skeleton, tool_key)
         exif_end = datetime.now().isoformat()
         xmp_start = datetime.now().isoformat()
+
         # ── Etapa 4: XMP (opcional, padrão: True) ──
         if enable_xmp:
             skeleton = PhotoMetadata._enrich_xmp(skeleton, tool_key)
-        
+
         # Timestamps: fim da extracao de metadados (EXIF + XMP)
         xmp_end = datetime.now().isoformat()
 
@@ -176,7 +180,7 @@ class PhotoMetadata:
             # converte para float decimal usando GpsLatitudeRef/GpsLongitudeRef
             gps_lat = merged.get(MetadataFieldKey.GPS_LATITUDE.value)
             gps_lon = merged.get(MetadataFieldKey.GPS_LONGITUDE.value)
-            
+
             if isinstance(gps_lat, (list, tuple)):
                 dec_val = PhotoMetadata._to_float(
                     merged.get(MetadataFieldKey.GPS_LATITUDE_REF.value)
@@ -228,6 +232,10 @@ class PhotoMetadata:
         # Timestamps: fim calculo campos custom
         custom_end = datetime.now().isoformat()
 
+        # Determina a source com base nos dados processados
+        has_mrk_data = enable_mrk and bool(mrk_points)
+        source = "mrk+photo" if has_mrk_data else "photo"
+
         logger.info(
             "Pipeline concluido",
             data={
@@ -239,11 +247,12 @@ class PhotoMetadata:
 
         PhotoMetadata._timestamps = {
             "pipeline_start": pipeline_start,
-            "initial_start": initial_start,
-            "initial_end": initial_end,
             "mrk_start": mrk_start,
             "mrk_end": mrk_end,
+            "initial_start": initial_start,
+            "initial_end": initial_end,
             "exif_start": exif_start,
+            "xmp_start": xmp_start,
             "exif_xmp_end": xmp_end,
             "custom_start": custom_start,
             "custom_end": custom_end,
@@ -251,6 +260,112 @@ class PhotoMetadata:
 
         return all_records, quality
 
+    @staticmethod
+    def build_and_save_json(
+        records: List[Dict[str, Any]],
+        source: str,
+        base_folder: str,
+        tool_key: str,
+        recursive: bool = False,
+        quality: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """
+        Constrói o JSON v2.0 a partir dos records enriquecidos e salva em disco.
+
+        Args:
+            records: Lista de registros (já filtrados e convertidos para PascalCase)
+            source: Fonte dos dados (photo, mrk+photo)
+            base_folder: Pasta base das fotos
+            tool_key: Chave da ferramenta
+            recursive: Se a busca foi recursiva
+            quality: Dict opcional com estatísticas de qualidade
+
+        Returns:
+            Caminho absoluto do arquivo JSON salvo
+        """
+        logger = PhotoMetadata._get_logger(tool_key)
+        timestamps = PhotoMetadata.get_timestamps()
+
+        # Constrói JSON v2.0
+        json_data = JsonUtil.build(
+            records=records,
+            source=source,
+            base_folder=base_folder,
+            tool_key=tool_key,
+            recursive=recursive,
+            timestamps=timestamps if timestamps else None,
+        )
+
+        # Adiciona quality stats se fornecidas
+        if quality:
+            json_data["quality"] = quality
+
+        # Define prefixo do nome do arquivo
+        if source == "mrk+photo":
+            prefix = "DPM"
+        elif source == "photo":
+            prefix = "PFM"
+        else:
+            prefix = "SKL"
+
+        json_path = ExplorerUtils.create_temp_json(
+            json_data,
+            tool_key=tool_key,
+            prefix=prefix,
+            subfolder=os.path.join(
+                ExplorerUtils.REPORTS_TEMP_FOLDER,
+                ExplorerUtils.REPORTS_JSON_FOLDER,
+            ),
+            file_stem_hint=ExplorerUtils.build_report_json_stem(
+                base_folder=base_folder,
+                points_total=len(records),
+            ),
+        )
+
+        logger.info(
+            "JSON salvo via PhotoMetadata",
+            data={
+                "json_path": json_path,
+                "source": source,
+                "total_records": len(records),
+            },
+        )
+
+        return json_path
+
+    # ─────────────────────────────────────────────
+    # ETAPA 0: Parsing MRK
+    # ─────────────────────────────────────────────
+
+    @staticmethod
+    def _parse_mrk_paths(
+        mrk_paths: List[str],
+        recursive: bool,
+        tool_key: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        Parseia paths de arquivos/pastas MRK e retorna lista de pontos.
+        """
+        logger = PhotoMetadata._get_logger(tool_key)
+        all_records = []
+
+        for path in mrk_paths:
+            if os.path.isfile(path) and path.lower().endswith(".mrk"):
+                records = MrkUtil.extract_records(path)
+                logger.info(f"Encontrados {len(records)} registros no arquivo {path}")
+            else:
+                base = path
+                if os.path.isfile(path):
+                    base = os.path.dirname(path)
+                if not os.path.isdir(base):
+                    continue
+                records = MrkUtil.extract_folder(base, recursive=recursive)
+                logger.info(f"Encontrados {len(records)} registros em {base}")
+
+            all_records.extend(records)
+
+        logger.info(f"Total de {len(all_records)} pontos extraidos de MRK")
+        return all_records
 
     # ─────────────────────────────────────────────
     # ETAPA 2: Enriquecimento MRK
@@ -337,15 +452,15 @@ class PhotoMetadata:
     ) -> Dict[str, dict]:
         """
         Etapa 3 – Extração EXIF.
-        
+
         Além da extração padrão, converte coordenadas DMS (EXIF bruto) para decimal.
-        
+
         Mapeamento final:
         - GpsLatitude (atributo "GpsLat"): mantém tupla DMS do EXIF (RAW)
         - GpsLatitudeRef (atributo "GpsLatRef"): S/N → convertido para decimal com sinal
         - GpsLongitude (atributo "GPSLong"): mantém tupla DMS do EXIF (RAW)
         - GpsLongitudeRef (atributo "GpsLongRef"): E/W → convertido para decimal com sinal
-        
+
         A conversão é feita AQUI, ANTES do XMP, para que o XMP possa sobrescrever
         GpsLatitude/GpsLongitude sem perder a coordenada decimal do EXIF.
         """
@@ -400,7 +515,7 @@ class PhotoMetadata:
         Os aliases DJI são resolvidos pelo XmpUtil.extract_metadata.
 
         Regras de sobrescrita:
-        - GpsLat (GpsLatitude) / GPSLong (GpsLongitude): 
+        - GpsLat (GpsLatitude) / GPSLong (GpsLongitude):
             SEMPRE sobrescritos pelo XMP se disponíveis (float).
             Se não houver XMP, mantém a tupla DMS do EXIF.
         - GpsLatRef (GpsLatitudeRef) / GpsLongRef (GpsLongitudeRef):
@@ -420,7 +535,7 @@ class PhotoMetadata:
                 # Mescla campos XMP (APENAS campos que não são do EXIF)
                 # GpsLatRef/GpsLongRef são EXCLUSIVOS do EXIF, NUNCA sobrescritos
                 exif_exclusive = {"GpsLatRef", "GpsLongRef"}
-                
+
                 for k, v in xmp_payload.items():
                     if k in exif_exclusive:
                         continue  # NUNCA sobrescreve campos exclusivos do EXIF
@@ -506,21 +621,21 @@ class PhotoMetadata:
         """
         Extrai posição GPS do payload mesclado.
         Retorna (lat, lon, alt, source).
-        
+
         Ordem de resolução:
         1. MRK (Lat/Lon) → já mapeado para GpsLatitude/GpsLongitude pelo pipeline
         2. XMP (drone-dji:AbsoluteAltitude, etc) → já mapeado para GpsLatitude/GpsLongitude
         3. EXIF DMS (tupla graus/min/seg) → convertido para decimal usando GpsLatitudeRef/GpsLongitudeRef
         """
         canonical = MetadataFields.normalize_record_to_keys(merged_payload or {})
-        
+
         # --- Tentativa 1: Valor já é float (XMP ou MRK) ---
         lat_val = canonical.get(MetadataFieldKey.GPS_LATITUDE.value)
         lon_val = canonical.get(MetadataFieldKey.GPS_LONGITUDE.value)
-        
+
         lat = PhotoMetadata._to_float(lat_val)
         lon = PhotoMetadata._to_float(lon_val)
-        
+
         # --- Tentativa 2: Se é tupla/list (DMS do EXIF bruto), converte ---
         if lat is None and isinstance(lat_val, (list, tuple)) and len(lat_val) >= 3:
             lat_ref = canonical.get(MetadataFieldKey.GPS_LATITUDE_REF.value, "")
@@ -528,7 +643,7 @@ class PhotoMetadata:
         if lon is None and isinstance(lon_val, (list, tuple)) and len(lon_val) >= 3:
             lon_ref = canonical.get(MetadataFieldKey.GPS_LONGITUDE_REF.value, "")
             lon = PhotoMetadata._extract_gps_decimal_from_dms(lon_val, lon_ref)
-            
+
         if lat is not None and lon is not None:
             alt = PhotoMetadata._to_float(
                 canonical.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value)

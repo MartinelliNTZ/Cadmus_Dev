@@ -9,20 +9,28 @@ from ..config.LogUtils import LogUtils
 class PhotoEnrichmentStep(BaseStep):
     """
     Step unificado para enriquecer JSON com metadados de fotos.
-    
-    Funciona em 3 modos:
-    - "mrk+photo": Quando há pontos MRK no contexto (via MrkParseStep)
-      → Chama pipeline com enable_mrk=True
-    - "photo": Quando não há MRK (apenas pasta de fotos)
+
+    Funciona em 2 modos, controlados pelo context.get("source"):
+    - "mrk+photo": Quando há dados MRK no contexto
+      → Chama pipeline com enable_mrk=True e usa context.get("paths")
+    - "photo": Quando NÃO há MRK (apenas pasta de fotos)
       → Chama pipeline com enable_mrk=False
-    - "skeleton" (ESBOÇO): Apenas esqueleto inicial + MRK (sem EXIF/XMP/custom)
-      → Chama pipeline com enable_mrk=True, enable_exif=False, enable_xmp=False, enable_custom_fields=False
-    
-    As flags de pipeline são propagadas do ExecutionContext para permitir
-    que o plugin/ferramenta controle quais etapas executar.
-    
-    Em todos os casos, a saída é um JSON v2.0 que será vetorizado
-    pelo JsonVectorizationStep posteriormente.
+
+    O source é definido pelo plugin:
+    - DroneCoordinates: source="mrk+photo", paths contem caminhos MRK
+    - PhotoVectorization: source="photo" (padrao)
+
+    As flags de pipeline (enable_mrk, enable_exif, etc.) podem ser
+    sobrescritas via ExecutionContext.
+
+    O PhotoMetadata é responsável por:
+    - Fazer parsing MRK internamente se source="mrk+photo"
+    - Executar pipeline completo de enriquecimento
+    - Construir e salvar o JSON via build_and_save_json()
+
+    A saída é um JSON v2.0 salvo em disco cujo caminho fica no
+    contexto como "json_path", que será vetorizado pelo
+    JsonVectorizationStep posteriormente.
     """
 
     def name(self) -> str:
@@ -31,33 +39,36 @@ class PhotoEnrichmentStep(BaseStep):
     def create_task(self, context: ExecutionContext):
         context.require(["base_folder", "recursive", "tool_key"])
 
-        # Determina se há dados MRK
-        source = context.get("source", "")
-        has_mrk_points = source == "mrk" or context.has("json_path")
+        # O source determina o modo de operacao:
+        #   "mrk+photo" → parsing MRK + enriquecimento completo
+        #   "mrk"      → apenas parsing MRK + esqueleto (sem EXIF/XMP/custom)
+        #   "photo"    → apenas fotos (sem MRK)
+        source = context.get("source", "photo")
 
-        # Flags de pipeline: permite controle externo via context
-        # Se não definidas, usa comportamento padrão (herdado)
-        enable_mrk = context.get("enable_mrk", has_mrk_points)
-        enable_exif = context.get("enable_exif", True)
-        enable_xmp = context.get("enable_xmp", True)
-        enable_custom_fields = context.get("enable_custom_fields", True)
+        # Se source tem "mrk", precisa de paths MRK do contexto
+        has_mrk = "mrk" in source if source else False
 
-        # Obtem timestamps existentes do contexto (propagados pelo MrkParseStep)
-        existing_timestamps = context.get("timestamps", {})
+        # Paths MRK (DroneCoordinates ja define "paths" no contexto)
+        mrk_paths = context.get("paths", []) if has_mrk else []
+
+        # Flags de pipeline baseadas no source
+        enable_mrk = has_mrk
+        enable_exif = context.get("enable_exif", source != "mrk")
+        enable_xmp = context.get("enable_xmp", source != "mrk")
+        enable_custom_fields = context.get("enable_custom_fields", source != "mrk")
 
         return PhotoEnrichmentTask(
             base_folder=context.get("base_folder"),
             recursive=context.get("recursive", True),
-            # Dados MRK (opcional - se presentes, faz enrich mrk+photo)
-            json_path=context.get("json_path") if has_mrk_points else None,
+            source=source,
+            paths=mrk_paths,
+            json_path=context.get("json_path"),
             source_points=context.get("points", []),
             layer_id=context.get("layer_id", ""),
             selected_required_fields=context.get("selected_required_fields", []),
             selected_custom_fields=context.get("selected_custom_fields", []),
             selected_mrk_fields=context.get("selected_mrk_fields", []),
             tool_key=context.get("tool_key"),
-            existing_timestamps=existing_timestamps,
-            # Flags de pipeline
             enable_mrk=enable_mrk,
             enable_exif=enable_exif,
             enable_xmp=enable_xmp,
@@ -79,15 +90,10 @@ class PhotoEnrichmentStep(BaseStep):
             logger.error("json_path nao encontrado no resultado")
             return
 
-        # Determina source baseado no tipo de enriquecimento
+        # Propaga resultados no contexto
         source = result.get("source", "photo")
         context.set("json_path", json_path)
         context.set("source", source)
-
-        # Propaga timestamps atualizados no contexto
-        timestamps = result.get("timestamps", {})
-        if timestamps:
-            context.set("timestamps", timestamps)
 
         logger.info(
             "JSON enriquecido com metadados de foto",

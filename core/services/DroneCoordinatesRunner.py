@@ -2,7 +2,6 @@
 import os
 from ..engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..engine_tasks.ExecutionContext import ExecutionContext
-from ..engine_tasks.MrkParseStep import MrkParseStep
 from ..engine_tasks.PhotoEnrichmentStep import PhotoEnrichmentStep
 from ..engine_tasks.JsonVectorizationStep import JsonVectorizationStep
 from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
@@ -124,13 +123,14 @@ class DroneCoordinatesRunner:
             )) > 0
         )
 
+        context.set("source", "mrk+photo")
         context.set("enable_mrk", True)
         context.set("enable_exif", enable_exif)
         context.set("enable_xmp", enable_xmp)
         context.set("enable_custom_fields", enable_custom_fields)
 
-        # Montar steps (PhotoEnrichmentStep sempre presente, controlado por flags)
-        steps = [MrkParseStep(), PhotoEnrichmentStep(), JsonVectorizationStep()]
+        # Montar steps - PhotoEnrichmentStep faz parsing MRK internamente via PhotoMetadata
+        steps = [PhotoEnrichmentStep(), JsonVectorizationStep()]
 
         # Gerar relatório se configurado
         generate_report = prefs.get("generate_report", False)

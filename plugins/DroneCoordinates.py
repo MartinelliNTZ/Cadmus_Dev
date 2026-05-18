@@ -4,7 +4,6 @@ from qgis.core import QgsProject
 from ..plugins.BasePlugin import BasePluginMTL
 from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..core.engine_tasks.ExecutionContext import ExecutionContext
-from ..core.engine_tasks.MrkParseStep import MrkParseStep
 from ..core.engine_tasks.PhotoEnrichmentStep import PhotoEnrichmentStep
 from ..core.engine_tasks.JsonVectorizationStep import JsonVectorizationStep
 from ..core.engine_tasks.ReportGenerationStep import ReportGenerationStep
@@ -565,13 +564,14 @@ class DroneCordinates(BasePluginMTL):
             len(self._get_selected_custom_fields()) > 0
         )
 
+        context.set("source", "mrk+photo")
         context.set("enable_mrk", True)
         context.set("enable_exif", enable_exif)
         context.set("enable_xmp", enable_xmp)
         context.set("enable_custom_fields", enable_custom_fields)
 
-        # Steps do pipeline
-        steps = [MrkParseStep(), PhotoEnrichmentStep(), JsonVectorizationStep()]
+        # Steps do pipeline - PhotoEnrichmentStep faz parsing MRK internamente via PhotoMetadata
+        steps = [PhotoEnrichmentStep(), JsonVectorizationStep()]
 
         # Adicionar step de geração de relatório se solicitado
         if self.checkbox_map["generate_report"].isChecked():

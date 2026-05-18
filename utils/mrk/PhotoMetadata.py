@@ -256,11 +256,25 @@ class PhotoMetadata:
                 rel_path = os.path.relpath(root, base_folder)
                 folder_levels = PhotoMetadata._extract_folder_levels(rel_path)
 
+                # ── Correcão: quando rel_path == "." (fotos diretamente na base_folder) ──
+                # O caminho relativo vira "." e _extract_folder_levels retorna vazio.
+                # Precisamos usar o nome da pasta atual para garantir FolderLevel1 e
+                # a extração de FlightNumber/FlightName.
+                current_folder_name = os.path.basename(root)
+
+                # Se rel_path for ".", força FolderLevel1 como o nome da pasta atual
+                # (a própria pasta do voo) e prepara path_parts para extração de voo
+                if rel_path == ".":
+                    if not folder_levels.get("FolderLevel1"):
+                        folder_levels["FolderLevel1"] = current_folder_name
+                    path_parts = [current_folder_name]
+                else:
+                    path_parts = rel_path.replace("\\", "/").strip("/").split("/")
+
                 # Extrai FlightNumber e FlightName do nome da pasta mais específica
                 # que segue o padrão DJI_*_NNN_NAME (última subpasta que casa)
                 flight_number = None
                 flight_name = None
-                path_parts = rel_path.replace("\\", "/").strip("/").split("/")
                 for part in reversed(path_parts):
                     fm = PhotoMetadata.FLIGHT_FOLDER_RE.search(part)
                     if fm:

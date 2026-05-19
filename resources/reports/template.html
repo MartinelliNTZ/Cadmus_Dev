@@ -245,12 +245,6 @@
                 {% if jm and jm.get('titulo') %}
                 <h2 style="margin: 0 0 8px 0; color: var(--l5); font-size: 1.4em;">{{ jm.titulo }}</h2>
                 {% endif %}
-                {% if jm and jm.get('logotipo') %}
-                <div style="margin-bottom: 8px;">
-                    <img src="{{ jm.logotipo }}" alt="Logotipo do projeto"
-                         style="max-height: 60px; max-width: 200px; object-fit: contain; border-radius: 6px;" />
-                </div>
-                {% endif %}
                 {% if jm and jm.get('generated_at') %}
                 <p class="muted" style="font-size: 13px; margin-bottom: 6px;">
                     Processado em: <strong>{{ jm.generated_at }}</strong>
@@ -284,6 +278,12 @@
                 {% endif %}
             </div>
             <div class="brand-logos">
+                {% if jm and jm.get('logotipo') %}
+                <div style="display: flex; align-items: center;">
+                    <img src="{{ jm.logotipo }}" alt="Logotipo do projeto"
+                         style="max-height: 60px; max-width: 200px; object-fit: contain; border-radius: 6px;" />
+                </div>
+                {% endif %}
                 <img src="{{ cadmus_icon_url }}" alt="Cadmus" class="brand-logo" onerror="this.onerror=null;this.src='{{ cadmus_icon_path }}';" />
                 <img src="{{ mtl_agro_icon_url }}" alt="MTL Agro" class="brand-logo" onerror="this.onerror=null;this.src='{{ mtl_agro_icon_path }}';" />
             </div>
@@ -327,7 +327,7 @@
                 <summary>METRICAS</summary>
                 {% set m = agg.advanced_analysis.metrics %}
                 <table>
-                    <tr><th>GSD medio</th><td>{% if per_indicator.get('gsd_cm') and per_indicator['gsd_cm'].get('value_mean') is not none %}{{ '%.2f'|format(per_indicator['gsd_cm']['value_mean']) }} cm{% else %}-{% endif %}</td></tr>
+                    <tr><th>GSD médio</th><td>{% if per_indicator.get('gsd_cm') and per_indicator['gsd_cm'].get('value_mean') is not none %}{{ '%.2f'|format(per_indicator['gsd_cm']['value_mean']) }} cm{% else %}-{% endif %}</td></tr>
                     <tr><th>Idade do sinal RTK (media / max / p95)</th>
                         <td>{% if m.rtk_diff_age_mean is not none %}{{ '%.2f'|format(m.rtk_diff_age_mean) }}{% else %}-{% endif %}s /
                             {% if m.rtk_diff_age_max is not none %}{{ '%.2f'|format(m.rtk_diff_age_max) }}{% else %}-{% endif %}s /
@@ -350,10 +350,10 @@
                             {% if m.gimbal_offset_std is not none %}{{ '%.2f'|format(m.gimbal_offset_std) }}°{% else %}-{% endif %} /
                             {% if m.gimbal_offset_max is not none %}{{ '%.2f'|format(m.gimbal_offset_max) }}°{% else %}-{% endif %}</td>
                     </tr>
-                    <tr><th>RTK Effective Precision</th>
-                        <td>{% if m.rtk_effective_precision_mean is not none %}{{ '%.3f'|format(m.rtk_effective_precision_mean) }} m (max {{ '%.3f'|format(m.rtk_effective_precision_max) }} m){% else %}-{% endif %}</td>
+                    <tr><th>Precisão RTK</th>
+                        <td>{% if m.rtk_effective_precision_raw is not none %}{{ m.rtk_effective_precision_raw }}{% elif m.rtk_effective_precision_mean is not none %}{{ '%.3f'|format(m.rtk_effective_precision_mean) }} m (max {{ '%.3f'|format(m.rtk_effective_precision_max) }} m){% else %}-{% endif %}</td>
                     </tr>
-                    <tr><th>Dist3D media (m)</th>
+                    <tr><th>Distância (m)</th>
                         <td>{% if agg.per_flight and agg.per_flight[0].avg_dist3d_previous is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_dist3d_previous) }} m{% else %}-{% endif %}</td>
                     </tr>
                     <tr><th>Drone Roll medio (°)</th>

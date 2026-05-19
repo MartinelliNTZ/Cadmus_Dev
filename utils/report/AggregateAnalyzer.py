@@ -1236,6 +1236,15 @@ class AggregateAnalyzer:
 
         # RTK Effective Precision para metricas avancadas
         rtk_effective_precision = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_EFFECTIVE_PRECISION.value, 'rtk_effective_precision'])
+        # Valor textual do RtkEffectivePrecision (ex: "RTK Alta", "RTK Baixa")
+        rtk_effective_raw = set()
+        for r in results:
+            raw = r.level5_values.get(MFK.RTK_EFFECTIVE_PRECISION.value) or r.values.get('rtk_effective_precision')
+            if raw is not None and str(raw).strip() and str(raw).strip().lower() not in {'', 'none', 'null', 'nan'}:
+                try:
+                    float(str(raw).strip())
+                except (ValueError, TypeError):
+                    rtk_effective_raw.add(str(raw).strip())
 
         advanced_metrics = {
             'rtk_diff_age_mean': round(statistics.mean(rtk_diff_age), 4) if rtk_diff_age else None,
@@ -1245,6 +1254,7 @@ class AggregateAnalyzer:
             'rtk_stability_class': rtk_class,
             'rtk_effective_precision_mean': round(statistics.mean(rtk_effective_precision), 4) if rtk_effective_precision else None,
             'rtk_effective_precision_max': round(max(rtk_effective_precision), 4) if rtk_effective_precision else None,
+            'rtk_effective_precision_raw': ', '.join(sorted(rtk_effective_raw)) if rtk_effective_raw else None,
             'gimbal_offset_mean': round(statistics.mean(gimbal_offset), 4) if gimbal_offset else None,
             'gimbal_offset_std': round(statistics.stdev(gimbal_offset), 4) if len(gimbal_offset) > 1 else 0.0 if gimbal_offset else None,
             'gimbal_offset_max': round(max(gimbal_offset), 4) if gimbal_offset else None,

@@ -870,6 +870,26 @@ class AggregateAnalyzer:
                 })
         agg['lrf_chart_series'] = lrf_chart_series
 
+        # Temperature series por ordem cronológica (data/hora real, sem separar por voo)
+        temp_chrono_series = []
+        for idx, r in enumerate(results):
+            v = AggregateAnalyzer._first_numeric_from_result(r, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
+            if v is not None and v not in (math.inf, -math.inf):
+                dt = AggregateAnalyzer._parse_capture_datetime(r.capture_datetime)
+                label = dt.strftime('%H:%M') if dt else f'#{idx+1}'
+                temp_chrono_series.append({'x': idx + 1, 'y': round(v, 2), 'label': label})
+        agg['temp_chrono_series'] = temp_chrono_series
+
+        # LRF Target Distance series por ordem cronológica (data/hora real, sem separar por voo)
+        lrf_chrono_series = []
+        for idx, r in enumerate(results):
+            v = AggregateAnalyzer._first_numeric_from_result(r, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
+            if v is not None and v not in (math.inf, -math.inf):
+                dt = AggregateAnalyzer._parse_capture_datetime(r.capture_datetime)
+                label = dt.strftime('%H:%M') if dt else f'#{idx+1}'
+                lrf_chrono_series.append({'x': idx + 1, 'y': round(v, 2), 'label': label})
+        agg['lrf_chrono_series'] = lrf_chrono_series
+
         def _is_zero_or_none(val):
             """Check if a value is None, zero, or empty."""
             if val is None:

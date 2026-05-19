@@ -99,6 +99,44 @@ class RenderEngine:
                 "title": "LRF Target Distance ao Longo do Voo (m)",
             }
 
+        # Temperature chrono series (por data/hora, sem separar voo)
+        temp_chrono = agg_data.get("temp_chrono_series", [])
+        if temp_chrono:
+            charts["temp_chrono_line"] = {
+                "type": "line",
+                "datasets": [{
+                    "label": "Temperatura do Sensor",
+                    "data": [{"x": p["x"], "y": p["y"]} for p in temp_chrono],
+                    "borderColor": "#00E676",
+                    "backgroundColor": ColorUtil.to_rgba("#00E676", 0.1),
+                    "fill": False,
+                    "tension": 0.4,
+                    "pointRadius": 3,
+                    "pointBackgroundColor": "#00E676",
+                }],
+                "title": "Temperatura do Sensor por Ordem de Captura (°C)",
+                "labels": [p.get("label", "") for p in temp_chrono],
+            }
+
+        # LRF chrono series (por data/hora, sem separar voo)
+        lrf_chrono = agg_data.get("lrf_chrono_series", [])
+        if lrf_chrono:
+            charts["lrf_chrono_line"] = {
+                "type": "line",
+                "datasets": [{
+                    "label": "LRF Target Distance",
+                    "data": [{"x": p["x"], "y": p["y"]} for p in lrf_chrono],
+                    "borderColor": "#1e88e5",
+                    "backgroundColor": ColorUtil.to_rgba("#1e88e5", 0.1),
+                    "fill": False,
+                    "tension": 0.4,
+                    "pointRadius": 3,
+                    "pointBackgroundColor": "#1e88e5",
+                }],
+                "title": "LRF Target Distance por Ordem de Captura (m)",
+                "labels": [p.get("label", "") for p in lrf_chrono],
+            }
+
         return charts
 
     @staticmethod

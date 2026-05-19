@@ -767,6 +767,40 @@
     </div>
     {% endif %}
 
+    <!-- TEMPERATURA E LRF - CRONOLÓGICO (data/hora real, sem separar voos) -->
+    {% set has_temp_chrono = charts.temp_chrono_line is defined %}
+    {% set has_lrf_chrono = charts.lrf_chrono_line is defined %}
+    {% if has_temp_chrono and has_lrf_chrono %}
+    <div class="half-grid">
+        <div class="card chart-wrap">
+            <details open>
+                <summary>TEMPERATURA DO SENSOR AO LONGO DO DIA (°C)</summary>
+                <canvas id="tempChronoChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+        <div class="card chart-wrap">
+            <details open>
+                <summary>LRF TARGET DISTANCE AO LONGO DO DIA (m) - Relevo</summary>
+                <canvas id="lrfChronoChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+    </div>
+    {% elif has_temp_chrono %}
+    <div class="card chart-wrap">
+        <details open>
+            <summary>TEMPERATURA DO SENSOR AO LONGO DO DIA (°C)</summary>
+            <canvas id="tempChronoChart" style="width:100%;"></canvas>
+        </details>
+    </div>
+    {% elif has_lrf_chrono %}
+    <div class="card chart-wrap">
+        <details open>
+            <summary>LRF TARGET DISTANCE AO LONGO DO DIA (m) - Relevo</summary>
+            <canvas id="lrfChronoChart" style="width:100%;"></canvas>
+        </details>
+    </div>
+    {% endif %}
+
     <!-- MAPA -->
     <div class="card">
         <details>
@@ -808,6 +842,82 @@
                     scales: {
                         x: { type: 'linear', title: { display: true, text: 'Foto #' } },
                         y: { title: { display: true, text: '°C' } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+        {% endif %}
+
+        {% if charts.temp_chrono_line %}
+        const tempChronoCfg = {{ charts.temp_chrono_line | tojson }};
+        let tempChronoChartInstance = null;
+        function renderTempChronoChart() {
+            const ctx = document.getElementById('tempChronoChart');
+            if (!ctx || !tempChronoCfg) return;
+            if (tempChronoChartInstance) tempChronoChartInstance.destroy();
+            applyChartDefaults();
+            const cfg = tempChronoCfg.datasets[0];
+            tempChronoChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: tempChronoCfg.labels || [],
+                    datasets: [{
+                        label: cfg.label,
+                        data: cfg.data,
+                        borderColor: cfg.borderColor,
+                        backgroundColor: cfg.backgroundColor,
+                        fill: cfg.fill,
+                        tension: cfg.tension,
+                        pointRadius: cfg.pointRadius,
+                        pointBackgroundColor: cfg.pointBackgroundColor,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    parsing: false,
+                    scales: {
+                        x: { type: 'linear', title: { display: true, text: 'Foto #' } },
+                        y: { title: { display: true, text: '°C' } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+        {% endif %}
+
+        {% if charts.lrf_chrono_line %}
+        const lrfChronoCfg = {{ charts.lrf_chrono_line | tojson }};
+        let lrfChronoChartInstance = null;
+        function renderLrfChronoChart() {
+            const ctx = document.getElementById('lrfChronoChart');
+            if (!ctx || !lrfChronoCfg) return;
+            if (lrfChronoChartInstance) lrfChronoChartInstance.destroy();
+            applyChartDefaults();
+            const cfg = lrfChronoCfg.datasets[0];
+            lrfChronoChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: lrfChronoCfg.labels || [],
+                    datasets: [{
+                        label: cfg.label,
+                        data: cfg.data,
+                        borderColor: cfg.borderColor,
+                        backgroundColor: cfg.backgroundColor,
+                        fill: cfg.fill,
+                        tension: cfg.tension,
+                        pointRadius: cfg.pointRadius,
+                        pointBackgroundColor: cfg.pointBackgroundColor,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    parsing: false,
+                    scales: {
+                        x: { type: 'linear', title: { display: true, text: 'Foto #' } },
+                        y: { title: { display: true, text: 'Distância (m)' } }
                     },
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
                 }
@@ -859,6 +969,12 @@
             {% endif %}
             {% if charts.lrf_line %}
             renderLrfChart();
+            {% endif %}
+            {% if charts.temp_chrono_line %}
+            renderTempChronoChart();
+            {% endif %}
+            {% if charts.lrf_chrono_line %}
+            renderLrfChronoChart();
             {% endif %}
         })();
     </script>

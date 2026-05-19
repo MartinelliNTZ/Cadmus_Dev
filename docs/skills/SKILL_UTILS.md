@@ -162,7 +162,8 @@ QgisMessageUtil.bar_info(iface, "Arquivo salvo com sucesso!")
 | QgisMessageUtil | utils/QgisMessageUtil.py | Mensagens ao usuário |
 | ToolKey | utils/ToolKeys.py | Identificação de ferramentas |
 | Preferences | utils/Preferences.py | Preferências do usuário |
-| FormatUtils | utils/FormatUtils.py | Formatação de strings |
+| FormatUtils | utils/FormatUtils.py | Formatação de strings, números, durações, velocidade do obturador, parsing de datas EXIF |
+| MathUtils | utils/MathUtils.py | Funções matemáticas genéricas: estatística circular/axial, parsers numéricos (parse_num, to_float_or_none), validadores (is_zero_value, is_missing_value) |
 | StringManager | utils/StringManager.py | Tradução e filtros de strings |
 | DependenciesManager | utils/DependenciesManager.py | Dependências Python |
 

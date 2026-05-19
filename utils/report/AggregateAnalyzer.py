@@ -3,9 +3,10 @@ from .IMGMetadata import IMGMetadata
 from collections import defaultdict
 import statistics
 from datetime import datetime
-import math
 
 from ..adapter.StringAdapter import StringAdapter
+from ..FormatUtils import FormatUtils
+from ..MathUtils import MathUtils
 from ..mrk.MetadataFields import MetadataFields
 from .RangeMetadataManager import range_metadata_manager as config
 from .AlertManager import AlertManager, AlertRecord
@@ -29,8 +30,8 @@ class AggregateAnalyzer:
             code="FLIGHT_AREA_ESTIMATE"
         )
         if items:
-            w = AggregateAnalyzer._to_float_or_none(items[0].get_indicator(MFK.EXIF_IMAGE_WIDTH.value))
-            h = AggregateAnalyzer._to_float_or_none(items[0].get_indicator(MFK.EXIF_IMAGE_HEIGHT.value))
+            w = MathUtils.to_float_or_none(items[0].get_indicator(MFK.EXIF_IMAGE_WIDTH.value))
+            h = MathUtils.to_float_or_none(items[0].get_indicator(MFK.EXIF_IMAGE_HEIGHT.value))
             AggregateAnalyzer.logger.debug(
                 f"CALC AREA VOO [{flight_id}]: sample width={w}, height={h}",
                 code="FLIGHT_AREA_SAMPLE_DIMS"
@@ -121,108 +122,21 @@ class AggregateAnalyzer:
         return None
 
     @staticmethod
-    def _parse_capture_datetime(raw: str):
-        """Converte texto de data/hora de captura para datetime quando possivel."""
-        if not raw:
-            return None
-        text = str(raw).strip()
-        try:
-            return datetime.fromisoformat(text.replace('Z', '+00:00'))
-        except ValueError:
-            pass
-        for fmt in (
-            '%Y:%m:%d %H:%M:%S',
-            '%Y-%m-%dT%H:%M:%S.%f',
-            '%Y-%m-%dT%H:%M:%S',
-            '%Y-%m-%dT%H:%M:%S%z',
-            '%Y-%m-%dT%H:%M:%S.%f%z',
-            '%Y%m%d%H%M',
-        ):
-            try:
-                return datetime.strptime(text, fmt)
-            except ValueError:
-                continue
-        return None
-
-    @staticmethod
-    def _parse_num(value: Any) -> float:
-        """Converte valores numericos/strings em float com suporte a infinitos."""
-        if isinstance(value, (int, float)):
-            return float(value)
-        text = str(value).strip().lower()
-        if text in {'inf', '+inf', 'infinity', '+infinity', "float('inf')", 'float("inf")'}:
-            return math.inf
-        if text in {'-inf', '-infinity', "float('-inf')", 'float("-inf")'}:
-            return -math.inf
-        return float(text)
-
-    @staticmethod
-    def _fmt_num(value: float) -> str:
-        """Formata numero para exibicao compacta em textos de faixa de nivel."""
-        if value == math.inf:
-            return 'inf'
-        if value == -math.inf:
-            return '-inf'
-        if float(value).is_integer():
-            return str(int(value))
-        return f'{value:.4f}'.rstrip('0').rstrip('.')
-
-    @staticmethod
-    def _to_float_or_none(value: Any):
-        """Converte para float retornando None quando nao for possivel."""
-        try:
-            return AggregateAnalyzer._parse_num(value)
-        except Exception:
-            return None
-
-    @staticmethod
     def _is_excluded_flight_field(field_key: str, field_label: str) -> bool:
         """Define se um campo deve ser ignorado no agrupamento por voo."""
         text = f'{field_key} {field_label}'.lower()
         return any(keyword in text for keyword in AggregateAnalyzer.FLIGHT_EXCLUDE_KEYWORDS)
 
     @staticmethod
-    def _format_duration(seconds: Optional[int]) -> str:
-        """Formata duracao em segundos para HH:MM:SS."""
-        if seconds is None:
-            return 'N/A'
-        hh = seconds // 3600
-        mm = (seconds % 3600) // 60
-        ss = seconds % 60
-        return f'{hh:02d}:{mm:02d}:{ss:02d}'
-
-    @staticmethod
-    def _format_shutter_speed(seconds: Optional[float]) -> str:
-        """Formata tempo de exposicao em notacao de obturador (ex.: 1/500s)."""
-        if seconds is None or seconds <= 0:
-            return 'N/A'
-        if seconds >= 1:
-            return f'{seconds:.2f}s'
-        denom = round(1.0 / seconds)
-        if denom <= 0:
-            return 'N/A'
-        return f'1/{denom}s'
-
-    @staticmethod
-    def _is_dewarp_zero(value: Any) -> bool:
-        """Indica se o valor representa dewarp desabilitado (zero)."""
-        if value is None:
-            return False
-        text = str(value).strip()
-        if text == '':
-            return False
-        try:
-            return float(text) == 0.0
-        except Exception:
-            return text == '0'
-
-    @staticmethod
-    def _is_missing_value(value: Any) -> bool:
-        """Indica se o valor deve ser tratado como ausente."""
-        if value is None:
+    def _is_zero_or_none(val):
+        """Check if a value is None, zero, or empty."""
+        if val is None:
             return True
-        text = str(value).strip().lower()
-        return text in {'', 'none', 'null', 'nan'}
+        if isinstance(val, (int, float)):
+            return val == 0.0
+        if isinstance(val, str):
+            return val.strip() in ('', 'N/A')
+        return False
 
     @staticmethod
     def _numeric_values_from_keys(results: List[IMGMetadata], keys: List[str]) -> List[float]:
@@ -235,8 +149,8 @@ class AggregateAnalyzer:
                     raw = r.values.get(key)
                 if raw is None:
                     raw = r.get_indicator(key)
-                num = AggregateAnalyzer._to_float_or_none(raw)
-                if num is not None and num not in (math.inf, -math.inf):
+                num = MathUtils.to_float_or_none(raw)
+                if num is not None and num not in (float('inf'), float('-inf')):
                     values.append(num)
                     break
         return values
@@ -250,8 +164,8 @@ class AggregateAnalyzer:
                 raw = r.values.get(key)
             if raw is None:
                 raw = r.get_indicator(key)
-            num = AggregateAnalyzer._to_float_or_none(raw)
-            if num is not None and num not in (math.inf, -math.inf):
+            num = MathUtils.to_float_or_none(raw)
+            if num is not None and num not in (float('inf'), float('-inf')):
                 return num
         return None
 
@@ -260,7 +174,7 @@ class AggregateAnalyzer:
         """Monta serie temporal ordenada de valores numericos por data de captura."""
         series = []
         for r in results:
-            dt = AggregateAnalyzer._parse_capture_datetime(r.capture_datetime)
+            dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
             if dt is None:
                 continue
             value = AggregateAnalyzer._first_numeric_from_result(r, keys)
@@ -315,11 +229,11 @@ class AggregateAnalyzer:
             out: Dict[str, str] = {}
             for i, interval in enumerate(levels[:5], start=1):
                 if isinstance(interval, list) and len(interval) >= 2:
-                    lo = AggregateAnalyzer._fmt_num(AggregateAnalyzer._parse_num(interval[0]))
-                    hi = AggregateAnalyzer._fmt_num(AggregateAnalyzer._parse_num(interval[1]))
+                    lo = FormatUtils.fmt_num(MathUtils.parse_num(interval[0]))
+                    hi = FormatUtils.fmt_num(MathUtils.parse_num(interval[1]))
                     out[str(i)] = f'{lo}..{hi}'
                 elif isinstance(interval, list) and len(interval) == 1:
-                    lo = AggregateAnalyzer._fmt_num(AggregateAnalyzer._parse_num(interval[0]))
+                    lo = FormatUtils.fmt_num(MathUtils.parse_num(interval[0]))
                     out[str(i)] = f'>={lo}'
                 else:
                     out[str(i)] = '-'
@@ -330,7 +244,7 @@ class AggregateAnalyzer:
         cuts: List[float] = []
         for raw in levels:
             try:
-                cuts.append(AggregateAnalyzer._parse_num(raw))
+                cuts.append(MathUtils.parse_num(raw))
             except Exception:
                 continue
 
@@ -338,72 +252,66 @@ class AggregateAnalyzer:
             return {str(i): '-' for i in range(1, 6)}
 
         if ttype == 'higher_better':
-            # Must mirror ReferenceRanges.classify semantics exactly:
-            # level = clamp(sum(v >= cut), 1..5)
-            # which means level 1 includes count 0 and 1.
             if len(cuts) >= 5:
                 c2, c3, c4, c5 = cuts[1], cuts[2], cuts[3], cuts[4]
                 return {
-                    '1': f'<{AggregateAnalyzer._fmt_num(c2)}',
-                    '2': f'>={AggregateAnalyzer._fmt_num(c2)} e <{AggregateAnalyzer._fmt_num(c3)}',
-                    '3': f'>={AggregateAnalyzer._fmt_num(c3)} e <{AggregateAnalyzer._fmt_num(c4)}',
-                    '4': f'>={AggregateAnalyzer._fmt_num(c4)} e <{AggregateAnalyzer._fmt_num(c5)}',
-                    '5': f'>={AggregateAnalyzer._fmt_num(c5)}',
+                    '1': f'<{FormatUtils.fmt_num(c2)}',
+                    '2': f'>={FormatUtils.fmt_num(c2)} e <{FormatUtils.fmt_num(c3)}',
+                    '3': f'>={FormatUtils.fmt_num(c3)} e <{FormatUtils.fmt_num(c4)}',
+                    '4': f'>={FormatUtils.fmt_num(c4)} e <{FormatUtils.fmt_num(c5)}',
+                    '5': f'>={FormatUtils.fmt_num(c5)}',
                 }
             if len(cuts) == 4:
                 c2, c3, c4 = cuts[1], cuts[2], cuts[3]
                 return {
-                    '1': f'<{AggregateAnalyzer._fmt_num(c2)}',
-                    '2': f'>={AggregateAnalyzer._fmt_num(c2)} e <{AggregateAnalyzer._fmt_num(c3)}',
-                    '3': f'>={AggregateAnalyzer._fmt_num(c3)} e <{AggregateAnalyzer._fmt_num(c4)}',
-                    '4': f'>={AggregateAnalyzer._fmt_num(c4)}',
+                    '1': f'<{FormatUtils.fmt_num(c2)}',
+                    '2': f'>={FormatUtils.fmt_num(c2)} e <{FormatUtils.fmt_num(c3)}',
+                    '3': f'>={FormatUtils.fmt_num(c3)} e <{FormatUtils.fmt_num(c4)}',
+                    '4': f'>={FormatUtils.fmt_num(c4)}',
                     '5': '-',
                 }
             if len(cuts) == 3:
                 c2, c3 = cuts[1], cuts[2]
                 return {
-                    '1': f'<{AggregateAnalyzer._fmt_num(c2)}',
-                    '2': f'>={AggregateAnalyzer._fmt_num(c2)} e <{AggregateAnalyzer._fmt_num(c3)}',
-                    '3': f'>={AggregateAnalyzer._fmt_num(c3)}',
+                    '1': f'<{FormatUtils.fmt_num(c2)}',
+                    '2': f'>={FormatUtils.fmt_num(c2)} e <{FormatUtils.fmt_num(c3)}',
+                    '3': f'>={FormatUtils.fmt_num(c3)}',
                     '4': '-',
                     '5': '-',
                 }
             c2 = cuts[1]
             return {
-                '1': f'<{AggregateAnalyzer._fmt_num(c2)}',
-                '2': f'>={AggregateAnalyzer._fmt_num(c2)}',
+                '1': f'<{FormatUtils.fmt_num(c2)}',
+                '2': f'>={FormatUtils.fmt_num(c2)}',
                 '3': '-',
                 '4': '-',
                 '5': '-',
             }
 
         if ttype == 'lower_better':
-            # Must mirror ReferenceRanges.classify semantics exactly:
-            # level = clamp(sum(v <= cut), 1..5)
-            # usually configured with 5 cuts where last is +inf.
             if len(cuts) >= 4:
                 c1, c2, c3, c4 = cuts[0], cuts[1], cuts[2], cuts[3]
                 return {
-                    '1': f'>{AggregateAnalyzer._fmt_num(c1)}',
-                    '2': f'<={AggregateAnalyzer._fmt_num(c1)} e >{AggregateAnalyzer._fmt_num(c2)}',
-                    '3': f'<={AggregateAnalyzer._fmt_num(c2)} e >{AggregateAnalyzer._fmt_num(c3)}',
-                    '4': f'<={AggregateAnalyzer._fmt_num(c3)} e >{AggregateAnalyzer._fmt_num(c4)}',
-                    '5': f'<={AggregateAnalyzer._fmt_num(c4)}',
+                    '1': f'>{FormatUtils.fmt_num(c1)}',
+                    '2': f'<={FormatUtils.fmt_num(c1)} e >{FormatUtils.fmt_num(c2)}',
+                    '3': f'<={FormatUtils.fmt_num(c2)} e >{FormatUtils.fmt_num(c3)}',
+                    '4': f'<={FormatUtils.fmt_num(c3)} e >{FormatUtils.fmt_num(c4)}',
+                    '5': f'<={FormatUtils.fmt_num(c4)}',
                 }
             if len(cuts) == 3:
                 c1, c2, c3 = cuts[0], cuts[1], cuts[2]
                 return {
-                    '1': f'>{AggregateAnalyzer._fmt_num(c1)}',
-                    '2': f'<={AggregateAnalyzer._fmt_num(c1)} e >{AggregateAnalyzer._fmt_num(c2)}',
-                    '3': f'<={AggregateAnalyzer._fmt_num(c2)} e >{AggregateAnalyzer._fmt_num(c3)}',
-                    '4': f'<={AggregateAnalyzer._fmt_num(c3)}',
+                    '1': f'>{FormatUtils.fmt_num(c1)}',
+                    '2': f'<={FormatUtils.fmt_num(c1)} e >{FormatUtils.fmt_num(c2)}',
+                    '3': f'<={FormatUtils.fmt_num(c2)} e >{FormatUtils.fmt_num(c3)}',
+                    '4': f'<={FormatUtils.fmt_num(c3)}',
                     '5': '-',
                 }
             c1, c2 = cuts[0], cuts[1]
             return {
-                '1': f'>{AggregateAnalyzer._fmt_num(c1)}',
-                '2': f'<={AggregateAnalyzer._fmt_num(c1)} e >{AggregateAnalyzer._fmt_num(c2)}',
-                '3': f'<={AggregateAnalyzer._fmt_num(c2)}',
+                '1': f'>{FormatUtils.fmt_num(c1)}',
+                '2': f'<={FormatUtils.fmt_num(c1)} e >{FormatUtils.fmt_num(c2)}',
+                '3': f'<={FormatUtils.fmt_num(c2)}',
                 '4': '-',
                 '5': '-',
             }
@@ -434,8 +342,8 @@ class AggregateAnalyzer:
             numeric_values = []
             for r in results:
                 if ind in r.values:
-                    num = AggregateAnalyzer._to_float_or_none(r.values.get(ind))
-                    if num is not None and num not in (math.inf, -math.inf):
+                    num = MathUtils.to_float_or_none(r.values.get(ind))
+                    if num is not None and num not in (float('inf'), float('-inf')):
                         numeric_values.append(num)
 
             if numeric_values:
@@ -508,12 +416,6 @@ class AggregateAnalyzer:
         # Add PQI-based classification message
         if pqi_mean is not None:
             # Classify PQI: count how many thresholds are met, then map to level.
-            # With higher_better levels [45, 60, 75, 85, 95]:
-            #   count=0 → level=1 (Critica: v < 45)
-            #   count=1 → level=2 (Baixa: 45 <= v < 60)
-            #   count=2 → level=3 (OK: 60 <= v < 75)
-            #   count=3 → level=4 (Boa: 75 <= v < 85)
-            #   count=4+ → level=5 (Excelente: v >= 85)
             pqi_cuts = [float(c) for c in (pqi_thresh.get('levels', []) if pqi_thresh else [])]
             count = sum(1 for cut in pqi_cuts if pqi_mean >= cut)
             # Offset by +1 because level=1 encompasses both count=0 AND count=1
@@ -547,7 +449,7 @@ class AggregateAnalyzer:
                 and str(r.get_indicator(MFK.SOFTWARE.value) or r.get_indicator('Firmware') or '').strip().lower() not in {'unknown', 'none', 'null'}
             }
         )
-        parsed_dates = [AggregateAnalyzer._parse_capture_datetime(r.capture_datetime) for r in results]
+        parsed_dates = [FormatUtils.parse_capture_datetime(r.capture_datetime) for r in results]
         parsed_dates = sorted([d for d in parsed_dates if d is not None])
 
         # GPS Datum e GPS Status (valores unicos)
@@ -610,8 +512,8 @@ class AggregateAnalyzer:
             found_numeric = False
             for it in results:
                 raw = it.level5_values.get(key)
-                num = AggregateAnalyzer._to_float_or_none(raw)
-                if num is not None and num not in (math.inf, -math.inf):
+                num = MathUtils.to_float_or_none(raw)
+                if num is not None and num not in (float('inf'), float('-inf')):
                     found_numeric = True
                     break
             if found_numeric:
@@ -627,9 +529,9 @@ class AggregateAnalyzer:
         for flight_id, items in flights.items():
             dates = sorted(
                 [
-                    AggregateAnalyzer._parse_capture_datetime(it.capture_datetime)
+                    FormatUtils.parse_capture_datetime(it.capture_datetime)
                     for it in items
-                    if AggregateAnalyzer._parse_capture_datetime(it.capture_datetime) is not None
+                    if FormatUtils.parse_capture_datetime(it.capture_datetime) is not None
                 ]
             )
             start_dt = dates[0] if dates else None
@@ -642,8 +544,8 @@ class AggregateAnalyzer:
                 vals = []
                 for it in items:
                     raw = it.level5_values.get(field_key)
-                    num = AggregateAnalyzer._to_float_or_none(raw)
-                    if num is not None and num not in (math.inf, -math.inf):
+                    num = MathUtils.to_float_or_none(raw)
+                    if num is not None and num not in (float('inf'), float('-inf')):
                         vals.append(num)
                 level5_means[field_key] = (
                     round(statistics.mean(vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
@@ -662,49 +564,49 @@ class AggregateAnalyzer:
                 v_speed = AggregateAnalyzer._first_numeric_from_result(
                     it, [MFK.SPEED_3D_KMH.value, 'speed_3d_kmh']
                 )
-                if v_speed is not None and v_speed not in (math.inf, -math.inf):
+                if v_speed is not None and v_speed not in (float('inf'), float('-inf')):
                     speed3d_kmh_vals.append(v_speed)
 
                 v_sensor = AggregateAnalyzer._first_numeric_from_result(
                     it, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c']
                 )
-                if v_sensor is not None and v_sensor not in (math.inf, -math.inf):
+                if v_sensor is not None and v_sensor not in (float('inf'), float('-inf')):
                     sensor_temp_vals.append(v_sensor)
 
                 v_lrf = AggregateAnalyzer._first_numeric_from_result(
                     it, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance']
                 )
-                if v_lrf is not None and v_lrf not in (math.inf, -math.inf):
+                if v_lrf is not None and v_lrf not in (float('inf'), float('-inf')):
                     lrf_target_distance_vals.append(v_lrf)
 
                 v_rel_alt = AggregateAnalyzer._first_numeric_from_result(
                     it, [MFK.RELATIVE_ALTITUDE.value, 'relative_altitude']
                 )
-                if v_rel_alt is not None and v_rel_alt not in (math.inf, -math.inf):
+                if v_rel_alt is not None and v_rel_alt not in (float('inf'), float('-inf')):
                     relative_altitude_vals.append(v_rel_alt)
 
                 v_abs_alt = AggregateAnalyzer._first_numeric_from_result(
                     it, [MFK.ABSOLUTE_ALTITUDE.value, 'absolute_altitude']
                 )
-                if v_abs_alt is not None and v_abs_alt not in (math.inf, -math.inf):
+                if v_abs_alt is not None and v_abs_alt not in (float('inf'), float('-inf')):
                     absolute_altitude_vals.append(v_abs_alt)
 
                 v_iso = AggregateAnalyzer._first_numeric_from_result(
                     it, [MFK.ISO_SPEED_RATINGS.value, 'iso', MFK.RECOMMENDED_EXPOSURE_INDEX.value]
                 )
-                if v_iso is not None and v_iso not in (math.inf, -math.inf):
+                if v_iso is not None and v_iso not in (float('inf'), float('-inf')):
                     iso_vals.append(v_iso)
 
                 v_cct = AggregateAnalyzer._first_numeric_from_result(
                     it, [MFK.WHITE_BALANCE_CCT.value, 'white_balance_cct']
                 )
-                if v_cct is not None and v_cct not in (math.inf, -math.inf):
+                if v_cct is not None and v_cct not in (float('inf'), float('-inf')):
                     white_balance_cct_vals.append(v_cct)
 
                 v_exposure = AggregateAnalyzer._first_numeric_from_result(
                     it, [MFK.EXPOSURE_TIME.value, 'exposure_time']
                 )
-                if v_exposure is not None and v_exposure not in (math.inf, -math.inf) and v_exposure > 0:
+                if v_exposure is not None and v_exposure not in (float('inf'), float('-inf')) and v_exposure > 0:
                     exposure_time_vals.append(v_exposure)
 
             exposure_mean = (
@@ -721,16 +623,16 @@ class AggregateAnalyzer:
             flight_pitch_vals = []
             for it in items:
                 v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.DISTANCE_3D_PREVIOUS.value, 'distance_3d_previous'])
-                if v is not None and v not in (math.inf, -math.inf):
+                if v is not None and v not in (float('inf'), float('-inf')):
                     dist3d_prev_vals.append(v)
                 v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.FLIGHT_ROLL_DEGREE.value, 'flight_roll_degree'])
-                if v is not None and v not in (math.inf, -math.inf):
+                if v is not None and v not in (float('inf'), float('-inf')):
                     flight_roll_vals.append(abs(v))
                 v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.FLIGHT_YAW_DEGREE.value, 'flight_yaw_degree'])
-                if v is not None and v not in (math.inf, -math.inf):
+                if v is not None and v not in (float('inf'), float('-inf')):
                     flight_yaw_vals.append(abs(v))
                 v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.FLIGHT_PITCH_DEGREE.value, 'flight_pitch_degree'])
-                if v is not None and v not in (math.inf, -math.inf):
+                if v is not None and v not in (float('inf'), float('-inf')):
                     flight_pitch_vals.append(abs(v))
 
             # Calcular altitude do solo (absoluta - relativa)
@@ -751,8 +653,8 @@ class AggregateAnalyzer:
                 img_widths = []
                 img_heights = []
                 for it in items:
-                    w = AggregateAnalyzer._to_float_or_none(it.get_indicator(MFK.EXIF_IMAGE_WIDTH.value))
-                    h = AggregateAnalyzer._to_float_or_none(it.get_indicator(MFK.EXIF_IMAGE_HEIGHT.value))
+                    w = MathUtils.to_float_or_none(it.get_indicator(MFK.EXIF_IMAGE_WIDTH.value))
+                    h = MathUtils.to_float_or_none(it.get_indicator(MFK.EXIF_IMAGE_HEIGHT.value))
                     if w is not None and h is not None and w > 0 and h > 0:
                         img_widths.append(w)
                         img_heights.append(h)
@@ -779,7 +681,7 @@ class AggregateAnalyzer:
                 'start': start_dt.strftime('%Y-%m-%d %H:%M:%S') if start_dt else 'N/A',
                 'end': end_dt.strftime('%Y-%m-%d %H:%M:%S') if end_dt else 'N/A',
                 'flight_seconds': total_seconds,
-                'flight_time': AggregateAnalyzer._format_duration(total_seconds),
+                'flight_time': FormatUtils.format_duration(total_seconds),
                 'altitude_solo': round(solo_altitude, AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS) if solo_altitude is not None else None,
                 'avg_dist3d_previous': (
                     round(statistics.mean(dist3d_prev_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
@@ -829,9 +731,9 @@ class AggregateAnalyzer:
                     round(statistics.mean(white_balance_cct_vals), AggregateAnalyzer.FLIGHT_STATS_ROUND_DECIMALS)
                     if white_balance_cct_vals else None
                 ),
-                'avg_shutter_speed_text': AggregateAnalyzer._format_shutter_speed(exposure_mean),
+                'avg_shutter_speed_text': FormatUtils.format_shutter_speed(exposure_mean),
                 'shutter_speed_range_text': (
-                    f'entre {AggregateAnalyzer._format_shutter_speed(exposure_max)} e {AggregateAnalyzer._format_shutter_speed(exposure_min)}'
+                    f'entre {FormatUtils.format_shutter_speed(exposure_max)} e {FormatUtils.format_shutter_speed(exposure_min)}'
                     if exposure_min is not None and exposure_max is not None
                     else 'N/A'
                 ),
@@ -846,7 +748,7 @@ class AggregateAnalyzer:
             series = []
             for idx, it in enumerate(items):
                 v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
-                if v is not None and v not in (math.inf, -math.inf):
+                if v is not None and v not in (float('inf'), float('-inf')):
                     series.append({'x': idx + 1, 'y': round(v, 2)})
             if series:
                 temp_chart_series.append({
@@ -861,7 +763,7 @@ class AggregateAnalyzer:
             series = []
             for idx, it in enumerate(items):
                 v = AggregateAnalyzer._first_numeric_from_result(it, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
-                if v is not None and v not in (math.inf, -math.inf):
+                if v is not None and v not in (float('inf'), float('-inf')):
                     series.append({'x': idx + 1, 'y': round(v, 2)})
             if series:
                 lrf_chart_series.append({
@@ -874,8 +776,8 @@ class AggregateAnalyzer:
         temp_chrono_series = []
         for idx, r in enumerate(results):
             v = AggregateAnalyzer._first_numeric_from_result(r, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
-            if v is not None and v not in (math.inf, -math.inf):
-                dt = AggregateAnalyzer._parse_capture_datetime(r.capture_datetime)
+            if v is not None and v not in (float('inf'), float('-inf')):
+                dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
                 label = dt.strftime('%H:%M') if dt else f'#{idx+1}'
                 temp_chrono_series.append({'x': idx + 1, 'y': round(v, 2), 'label': label})
         agg['temp_chrono_series'] = temp_chrono_series
@@ -884,39 +786,29 @@ class AggregateAnalyzer:
         lrf_chrono_series = []
         for idx, r in enumerate(results):
             v = AggregateAnalyzer._first_numeric_from_result(r, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
-            if v is not None and v not in (math.inf, -math.inf):
-                dt = AggregateAnalyzer._parse_capture_datetime(r.capture_datetime)
+            if v is not None and v not in (float('inf'), float('-inf')):
+                dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
                 label = dt.strftime('%H:%M') if dt else f'#{idx+1}'
                 lrf_chrono_series.append({'x': idx + 1, 'y': round(v, 2), 'label': label})
         agg['lrf_chrono_series'] = lrf_chrono_series
 
-        def _is_zero_or_none(val):
-            """Check if a value is None, zero, or empty."""
-            if val is None:
-                return True
-            if isinstance(val, (int, float)):
-                return val == 0.0
-            if isinstance(val, str):
-                return val.strip() in ('', 'N/A')
-            return False
-
         # Compute column visibility: hide columns where ALL flights have None or 0 for that field
         if agg['per_flight']:
-            all_none_speed3d = all(_is_zero_or_none(f.get('avg_speed3d_kmh')) for f in agg['per_flight'])
-            all_none_sensor_temp = all(_is_zero_or_none(f.get('avg_sensor_temperature')) for f in agg['per_flight'])
-            all_none_lrf = all(_is_zero_or_none(f.get('avg_lrf_target_distance')) for f in agg['per_flight'])
-            all_none_rel_alt = all(_is_zero_or_none(f.get('avg_relative_altitude')) for f in agg['per_flight'])
-            all_none_abs_alt = all(_is_zero_or_none(f.get('avg_absolute_altitude')) for f in agg['per_flight'])
-            all_none_iso = all(_is_zero_or_none(f.get('avg_iso')) for f in agg['per_flight'])
+            all_none_speed3d = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_speed3d_kmh')) for f in agg['per_flight'])
+            all_none_sensor_temp = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_sensor_temperature')) for f in agg['per_flight'])
+            all_none_lrf = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_lrf_target_distance')) for f in agg['per_flight'])
+            all_none_rel_alt = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_relative_altitude')) for f in agg['per_flight'])
+            all_none_abs_alt = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_absolute_altitude')) for f in agg['per_flight'])
+            all_none_iso = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_iso')) for f in agg['per_flight'])
             all_none_shutter = all(
                 f.get('avg_shutter_speed_text') in (None, '', 'N/A')
                 for f in agg['per_flight']
             )
-            all_none_wb_cct = all(_is_zero_or_none(f.get('avg_white_balance_cct')) for f in agg['per_flight'])
-            all_none_dist3d = all(_is_zero_or_none(f.get('avg_dist3d_previous')) for f in agg['per_flight'])
-            all_none_flight_roll = all(_is_zero_or_none(f.get('avg_flight_roll')) for f in agg['per_flight'])
-            all_none_flight_yaw = all(_is_zero_or_none(f.get('avg_flight_yaw')) for f in agg['per_flight'])
-            all_none_flight_pitch = all(_is_zero_or_none(f.get('avg_flight_pitch')) for f in agg['per_flight'])
+            all_none_wb_cct = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_white_balance_cct')) for f in agg['per_flight'])
+            all_none_dist3d = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_dist3d_previous')) for f in agg['per_flight'])
+            all_none_flight_roll = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_flight_roll')) for f in agg['per_flight'])
+            all_none_flight_yaw = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_flight_yaw')) for f in agg['per_flight'])
+            all_none_flight_pitch = all(AggregateAnalyzer._is_zero_or_none(f.get('avg_flight_pitch')) for f in agg['per_flight'])
 
             agg['show_column_speed3d_kmh'] = not all_none_speed3d
             agg['show_column_sensor_temp'] = not all_none_sensor_temp
@@ -935,7 +827,7 @@ class AggregateAnalyzer:
             level5_keys = [col['key'] for col in agg.get('flight_level5_columns', [])]
             for col_key in level5_keys:
                 all_zero_or_none = all(
-                    _is_zero_or_none(f.get('level5_means', {}).get(col_key))
+                    AggregateAnalyzer._is_zero_or_none(f.get('level5_means', {}).get(col_key))
                     for f in agg['per_flight']
                 )
                 agg[f'show_column_level5_{col_key}'] = not all_zero_or_none
@@ -957,7 +849,7 @@ class AggregateAnalyzer:
         )
 
         # Dewarp warning logic.
-        dewarp_zero_items = [r for r in results if AggregateAnalyzer._is_dewarp_zero(r.dewarp_flag)]
+        dewarp_zero_items = [r for r in results if MathUtils.is_zero_value(r.dewarp_flag)]
         dewarp_zero_count = len(dewarp_zero_items)
         all_flight_ids = {r.flight_id or 'unknown' for r in results}
         flights_with_dewarp0 = sorted({r.flight_id or 'unknown' for r in dewarp_zero_items})
@@ -986,7 +878,7 @@ class AggregateAnalyzer:
                 )
 
         agg['general_info']['total_flights'] = total_flights
-        agg['general_info']['total_flight_time'] = AggregateAnalyzer._format_duration(total_flight_seconds)
+        agg['general_info']['total_flight_time'] = FormatUtils.format_duration(total_flight_seconds)
         agg['general_info']['dewarp_zero_count'] = dewarp_zero_count
         agg['general_info']['dewarp_status_type'] = dewarp_status_type
         agg['general_info']['dewarp_status_message'] = dewarp_status_message
@@ -996,8 +888,8 @@ class AggregateAnalyzer:
         # Only flag if AMBAS as fontes de altitude estao ausentes.
         missing_alt_items = [
             r for r in results
-            if AggregateAnalyzer._is_missing_value(r.alt_mrk)
-            and AggregateAnalyzer._is_missing_value(r.absolute_altitude)
+            if MathUtils.is_missing_value(r.alt_mrk)
+            and MathUtils.is_missing_value(r.absolute_altitude)
         ]
         missing_alt_count = len(missing_alt_items)
         flights_with_missing_alt = sorted({r.flight_id or 'unknown' for r in missing_alt_items})
@@ -1036,10 +928,10 @@ class AggregateAnalyzer:
         for cam, items in sorted(camera_groups.items(), key=lambda kv: kv[0]):
             candidates = []
             for it in items:
-                sc = AggregateAnalyzer._to_float_or_none(it.shutter_count)
+                sc = MathUtils.to_float_or_none(it.shutter_count)
                 if sc is None:
                     continue
-                dt = AggregateAnalyzer._parse_capture_datetime(it.capture_datetime)
+                dt = FormatUtils.parse_capture_datetime(it.capture_datetime)
                 candidates.append((dt, sc, it))
             if not candidates:
                 continue
@@ -1097,13 +989,13 @@ class AggregateAnalyzer:
         hgt_thresh = config.get_thresholds('rtk_std_hgt') if config._config else None
         lat_cut = lat_thresh['levels'][0] if lat_thresh and lat_thresh.get('levels') else 0.011
         hgt_cut = hgt_thresh['levels'][0] if hgt_thresh and hgt_thresh.get('levels') else 0.026
-        poor_lat = [v for v in rtk_std_lat_vals if v > float(AggregateAnalyzer._parse_num(lat_cut))]
-        poor_hgt = [v for v in rtk_std_hgt_vals if v > float(AggregateAnalyzer._parse_num(hgt_cut))]
+        poor_lat = [v for v in rtk_std_lat_vals if v > float(MathUtils.parse_num(lat_cut))]
+        poor_hgt = [v for v in rtk_std_hgt_vals if v > float(MathUtils.parse_num(hgt_cut))]
         poor_lat_pct = (len(poor_lat) / len(rtk_std_lat_vals) * 100.0) if rtk_std_lat_vals else 0.0
         poor_hgt_pct = (len(poor_hgt) / len(rtk_std_hgt_vals) * 100.0) if rtk_std_hgt_vals else 0.0
         if rtk_std_lat_vals and rtk_std_hgt_vals and (poor_lat_pct > 20.0 or poor_hgt_pct > 20.0):
-            lat_str = AggregateAnalyzer._fmt_num(AggregateAnalyzer._parse_num(lat_cut))
-            hgt_str = AggregateAnalyzer._fmt_num(AggregateAnalyzer._parse_num(hgt_cut))
+            lat_str = FormatUtils.fmt_num(MathUtils.parse_num(lat_cut))
+            hgt_str = FormatUtils.fmt_num(MathUtils.parse_num(hgt_cut))
             critical_alerts.append(
                 AggregateAnalyzer._severity_entry(
                     'CRITICO',

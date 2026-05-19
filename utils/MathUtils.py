@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-MathUtils — Utilitários matemáticos para cálculos de azimute e estatísticas circulares
+MathUtils — Utilitários matemáticos genéricos reutilizáveis
 """
 import math
+from typing import Any, Optional
+
 
 class MathUtils:
     # -------------------------------------------------------------------
@@ -126,3 +128,85 @@ class MathUtils:
         c = sum(math.cos(r) for r in rad) / n
         r_bar = math.sqrt(s * s + c * c)
         return 1.0 - r_bar
+
+    # -------------------------------------------------------------------
+    # Generic numeric parsers and validators
+    # -------------------------------------------------------------------
+
+    @staticmethod
+    def parse_num(value: Any) -> float:
+        """
+        Converte qualquer valor para float com suporte a infinitos.
+
+        Aceita: int, float, strings 'inf', '+infinity', '-inf', etc.
+        Lança exceção se não for conversível.
+        """
+        if isinstance(value, (int, float)):
+            return float(value)
+        text = str(value).strip().lower()
+        if text in {'inf', '+inf', 'infinity', '+infinity', "float('inf')", 'float("inf")'}:
+            return math.inf
+        if text in {'-inf', '-infinity', "float('-inf')", 'float("-inf")'}:
+            return -math.inf
+        return float(text)
+
+    @staticmethod
+    def to_float_or_none(value: Any) -> Optional[float]:
+        """
+        Converte valor para float, retornando None quando não for possível.
+
+        Exemplos:
+            42      → 42.0
+            '3.14'  → 3.14
+            'abc'   → None
+            None    → None
+        """
+        try:
+            return MathUtils.parse_num(value)
+        except Exception:
+            return None
+
+    @staticmethod
+    def is_zero_value(value: Any) -> bool:
+        """
+        Verifica se o valor representa zero (numérico ou textual '0').
+
+        Exemplos:
+            0.0     → True
+            0       → True
+            '0'     → True
+            '0.0'   → True
+            None    → False
+            ''      → False
+            5       → False
+        """
+        if value is None:
+            return False
+        text = str(value).strip()
+        if text == '':
+            return False
+        try:
+            return float(text) == 0.0
+        except Exception:
+            return text == '0'
+
+    @staticmethod
+    def is_missing_value(value: Any) -> bool:
+        """
+        Indica se o valor deve ser tratado como ausente.
+
+        Exemplos:
+            None       → True
+            ''         → True
+            '   '      → True
+            'none'     → True
+            'null'     → True
+            'nan'      → True
+            0          → False
+            '0'        → False
+            'abc'      → False
+        """
+        if value is None:
+            return True
+        text = str(value).strip().lower()
+        return text in {'', 'none', 'null', 'nan'}

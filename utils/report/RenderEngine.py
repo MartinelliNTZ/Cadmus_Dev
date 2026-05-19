@@ -143,6 +143,59 @@ class RenderEngine:
         return charts
 
     @staticmethod
+    def compute_column_visibility(agg: Dict[str, Any]) -> None:
+        """Decide colunas visiveis na tabela de voos com base nos dados presentes.
+        
+        Responsabilidade exclusiva de apresentacao: se nenhum voo tem dado de temperatura
+        do sensor, a coluna e ocultada. Mutates agg in-place para o template consumir.
+        """
+        per_flight = agg.get("per_flight", [])
+        if not per_flight:
+            # Se nao ha voos, mostra tudo por seguranca
+            for field in ("speed3d_kmh", "sensor_temp", "lrf", "rel_alt", "abs_alt",
+                          "iso", "shutter", "wb_cct", "dist3d",
+                          "flight_roll", "flight_yaw", "flight_pitch"):
+                agg[f"show_column_{field}"] = True
+            return
+
+        def _is_zero_or_none(val):
+            if val is None:
+                return True
+            if isinstance(val, (int, float)):
+                return val == 0.0
+            if isinstance(val, str):
+                return val.strip() in ("", "N/A")
+            return False
+
+        checks = {
+            "speed3d_kmh": lambda f: _is_zero_or_none(f.get("avg_speed3d_kmh")),
+            "sensor_temp": lambda f: _is_zero_or_none(f.get("avg_sensor_temperature")),
+            "lrf": lambda f: _is_zero_or_none(f.get("avg_lrf_target_distance")),
+            "rel_alt": lambda f: _is_zero_or_none(f.get("avg_relative_altitude")),
+            "abs_alt": lambda f: _is_zero_or_none(f.get("avg_absolute_altitude")),
+            "iso": lambda f: _is_zero_or_none(f.get("avg_iso")),
+            "shutter": lambda f: f.get("avg_shutter_speed_text") in (None, "", "N/A"),
+            "wb_cct": lambda f: _is_zero_or_none(f.get("avg_white_balance_cct")),
+            "dist3d": lambda f: _is_zero_or_none(f.get("avg_dist3d_previous")),
+            "flight_roll": lambda f: _is_zero_or_none(f.get("avg_flight_roll")),
+            "flight_yaw": lambda f: _is_zero_or_none(f.get("avg_flight_yaw")),
+            "flight_pitch": lambda f: _is_zero_or_none(f.get("avg_flight_pitch")),
+        }
+
+        for field, check_fn in checks.items():
+            all_none = all(check_fn(f) for f in per_flight)
+            agg[f"show_column_{field}"] = not all_none
+
+        # level5 columns: hide if ALL flights have None or 0
+        level5_keys = [col["key"] for col in agg.get("flight_level5_columns", [])]
+        for col_key in level5_keys:
+            all_zero_or_none = all(
+                _is_zero_or_none(f.get("level5_means", {}).get(col_key))
+                for f in per_flight
+            )
+            agg[f"show_column_level5_{col_key}"] = not all_zero_or_none
+
+    @staticmethod
     def _to_float(value: Any):
         """Converte valor para float com tolerancia a strings vazias."""
         if value is None:
@@ -291,6 +344,9 @@ class RenderEngine:
                 "from_code": light_metrics.get("light_source_from_code"),
             },
         )
+
+        # Decidir visibilidade das colunas da tabela de voos (decisao de apresentacao)
+        RenderEngine.compute_column_visibility(agg)
 
         return self.template.render(
             results=results,

@@ -8,7 +8,7 @@ from ...utils.ToolKeys import ToolKey
 from ...utils.JsonUtil import JsonUtil
 from ...utils.report.AggregateAnalyzer import AggregateAnalyzer
 from ...utils.report.IMGMetadata import IMGMetadata
-from ...utils.report.JSONUtil import JSONUtil
+from ...utils.report.JsonMetadataManager import JsonMetadataManager
 from ...utils.report.RenderEngine import RenderEngine
 from ...utils.report.RangeMetadataManager import range_metadata_manager
 
@@ -32,16 +32,16 @@ class ReportGenerationService:
         report_start = datetime.now().isoformat()
 
         range_metadata_manager.load(tool_key=self.tool_key)
-        records = JSONUtil.load_records(json_path=json_path, tool_key=self.tool_key)
+        records = JsonMetadataManager.load_records(json_path=json_path, tool_key=self.tool_key)
         results: List[IMGMetadata] = [IMGMetadata(record).score() for record in records]
 
         # Carrega timestamps existentes do JSON e mescla com report_start atual
-        timestamps = JSONUtil.load_timestamps(json_path=json_path, tool_key=self.tool_key)
+        timestamps = JsonMetadataManager.load_timestamps(json_path=json_path, tool_key=self.tool_key)
         timestamps["report_start"] = report_start
-        processing_summary = JSONUtil.compute_processing_summary(timestamps)
+        processing_summary = JsonMetadataManager.compute_processing_summary(timestamps)
 
         # Carrega metadados do JSON raiz (titulo, logotipo, generated_at)
-        json_meta = JSONUtil.load_json_metadata(json_path=json_path, tool_key=self.tool_key)
+        json_meta = JsonMetadataManager.load_json_metadata(json_path=json_path, tool_key=self.tool_key)
 
         engine = RenderEngine(tool_key=self.tool_key)
 
@@ -87,8 +87,8 @@ class ReportGenerationService:
             self.logger.warning(f"Nao foi possivel salvar timestamps de report no JSON: {e}")
 
         # Recarrega timestamps agora com report_end e re-renderiza
-        timestamps = JSONUtil.load_timestamps(json_path=json_path, tool_key=self.tool_key)
-        processing_summary = JSONUtil.compute_processing_summary(timestamps)
+        timestamps = JsonMetadataManager.load_timestamps(json_path=json_path, tool_key=self.tool_key)
+        processing_summary = JsonMetadataManager.compute_processing_summary(timestamps)
         agg = AggregateAnalyzer.analyze(results)
         agg['processing'] = processing_summary
         agg['timestamps'] = timestamps

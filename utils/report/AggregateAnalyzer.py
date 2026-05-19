@@ -10,6 +10,7 @@ from ..MathUtils import MathUtils
 from ..mrk.MetadataFields import MetadataFields
 from .RangeMetadataManager import range_metadata_manager as config
 from .AlertManager import AlertManager, AlertRecord
+from .JsonMetadataManager import JsonMetadataManager
 from ...core.enum.LightSourceEnum import LightSourceEnum
 from ...core.enum import MetadataFieldKey as MFK
 from ...core.config.LogUtils import LogUtils
@@ -19,7 +20,12 @@ from ..ToolKeys import ToolKey
 class AggregateAnalyzer:
     logger = LogUtils(tool=ToolKey.REPORT_METADATA, class_name="AggregateAnalyzer")
     logger.debug("AggregateAnalyzer class carregada")
-    """Consolida resultados por indicador e gera visoes operacionais do relatorio."""
+    """Consolida resultados por voo e gera visoes operacionais do relatorio.
+
+    RESPONSABILIDADE: operacional - agrupamento por voo, metricas avancadas,
+    alertas (via AlertManager), recomendacoes. NAO faz mais estatistica pura
+    de indicadores - isso foi delegado ao JSONUtil (Estatistico).
+    """
     
     @staticmethod
     def _debug_flight_area(items: List[Any], flight_id: str, gsd_val: Any, foverlap_val: Any, estimated_area_ha: Any):
@@ -36,6 +42,7 @@ class AggregateAnalyzer:
                 f"CALC AREA VOO [{flight_id}]: sample width={w}, height={h}",
                 code="FLIGHT_AREA_SAMPLE_DIMS"
             )
+
     FLIGHT_STATS_ROUND_DECIMALS = 2
     FIELD_FALLBACKS = {
         'gsd_cm': [MFK.GROUND_SAMPLE_DISTANCE_CM.value],
@@ -112,48 +119,21 @@ class AggregateAnalyzer:
             return '', 'missing'
 
     @staticmethod
-    def _resolve_field_meta(indicator: str):
-        """Resolve metadado de um indicador com fallback de aliases conhecidos."""
-        for alias in [indicator, *AggregateAnalyzer.FIELD_FALLBACKS.get(indicator, [])]:
-            for candidate in MetadataFields.resolve_candidates(alias):
-                field = MetadataFields.get_field(candidate)
-                if field is not None:
-                    return field
-        return None
-
-    @staticmethod
     def _is_excluded_flight_field(field_key: str, field_label: str) -> bool:
         """Define se um campo deve ser ignorado no agrupamento por voo."""
         text = f'{field_key} {field_label}'.lower()
         return any(keyword in text for keyword in AggregateAnalyzer.FLIGHT_EXCLUDE_KEYWORDS)
 
     @staticmethod
-    def _is_zero_or_none(val):
-        """Check if a value is None, zero, or empty."""
-        if val is None:
-            return True
-        if isinstance(val, (int, float)):
-            return val == 0.0
-        if isinstance(val, str):
-            return val.strip() in ('', 'N/A')
-        return False
-
-    @staticmethod
-    def _numeric_values_from_keys(results: List[IMGMetadata], keys: List[str]) -> List[float]:
-        """Extrai serie numerica de um conjunto de chaves candidatas."""
-        values = []
-        for r in results:
-            for key in keys:
-                raw = r.level5_values.get(key)
-                if raw is None:
-                    raw = r.values.get(key)
-                if raw is None:
-                    raw = r.get_indicator(key)
-                num = MathUtils.to_float_or_none(raw)
-                if num is not None and num not in (float('inf'), float('-inf')):
-                    values.append(num)
-                    break
-        return values
+    def _ignored_level5_keys_from_metadata_fields() -> set[str]:
+        """Retorna chaves level 5 ignoradas no quadro de medias por voo."""
+        ignored = set()
+        for key, field in MetadataFields.all_fields().items():
+            if getattr(field, 'level', None) != 5:
+                continue
+            if str(getattr(field, 'label', '')).strip() in AggregateAnalyzer.FLIGHT_IGNORE_LEVEL5_LABELS:
+                ignored.add(key)
+        return ignored
 
     @staticmethod
     def _first_numeric_from_result(r: IMGMetadata, keys: List[str]):
@@ -170,157 +150,12 @@ class AggregateAnalyzer:
         return None
 
     @staticmethod
-    def _series_by_time(results: List[IMGMetadata], keys: List[str]) -> List[tuple[datetime, float]]:
-        """Monta serie temporal ordenada de valores numericos por data de captura."""
-        series = []
-        for r in results:
-            dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
-            if dt is None:
-                continue
-            value = AggregateAnalyzer._first_numeric_from_result(r, keys)
-            if value is None:
-                continue
-            series.append((dt, value))
-        return sorted(series, key=lambda x: x[0])
-
-    @staticmethod
-    def _severity_entry(severity: str, title: str, detail: str, impact: str, action: str) -> Dict[str, str]:
-        """Cria estrutura padronizada de alerta de severidade."""
-        return {
-            'severity': severity,
-            'title': title,
-            'detail': detail,
-            'impact': impact,
-            'action': action,
-        }
-
-    @staticmethod
-    def _ignored_level5_keys_from_metadata_fields() -> set[str]:
-        """Retorna chaves level 5 ignoradas no quadro de medias por voo."""
-        ignored = set()
-        for key, field in MetadataFields.all_fields().items():
-            if getattr(field, 'level', None) != 5:
-                continue
-            if str(getattr(field, 'label', '')).strip() in AggregateAnalyzer.FLIGHT_IGNORE_LEVEL5_LABELS:
-                ignored.add(key)
-        return ignored
-
-    @staticmethod
-    def _level_ranges_from_threshold(indicator: str) -> Dict[str, str]:
-        """Traduz thresholds configurados para descricoes textuais por nivel (N1..N5)."""
-        thresh = config.get_thresholds(indicator) if config._config else None
-        if not thresh:
-            return {}
-
-        ttype = thresh.get('type')
-        levels = thresh.get('levels', [])
-
-        if ttype == 'categorical':
-            mapping = thresh.get('mapping', {})
-            grouped: Dict[int, List[str]] = defaultdict(list)
-            for key, lvl in mapping.items():
-                try:
-                    grouped[int(lvl)].append(str(key))
-                except Exception:
-                    continue
-            return {str(i): ', '.join(grouped.get(i, [])) or '-' for i in range(1, 6)}
-
-        if ttype == 'range_best':
-            out: Dict[str, str] = {}
-            for i, interval in enumerate(levels[:5], start=1):
-                if isinstance(interval, list) and len(interval) >= 2:
-                    lo = FormatUtils.fmt_num(MathUtils.parse_num(interval[0]))
-                    hi = FormatUtils.fmt_num(MathUtils.parse_num(interval[1]))
-                    out[str(i)] = f'{lo}..{hi}'
-                elif isinstance(interval, list) and len(interval) == 1:
-                    lo = FormatUtils.fmt_num(MathUtils.parse_num(interval[0]))
-                    out[str(i)] = f'>={lo}'
-                else:
-                    out[str(i)] = '-'
-            for i in range(1, 6):
-                out.setdefault(str(i), '-')
-            return out
-
-        cuts: List[float] = []
-        for raw in levels:
-            try:
-                cuts.append(MathUtils.parse_num(raw))
-            except Exception:
-                continue
-
-        if len(cuts) < 2:
-            return {str(i): '-' for i in range(1, 6)}
-
-        if ttype == 'higher_better':
-            if len(cuts) >= 5:
-                c2, c3, c4, c5 = cuts[1], cuts[2], cuts[3], cuts[4]
-                return {
-                    '1': f'<{FormatUtils.fmt_num(c2)}',
-                    '2': f'>={FormatUtils.fmt_num(c2)} e <{FormatUtils.fmt_num(c3)}',
-                    '3': f'>={FormatUtils.fmt_num(c3)} e <{FormatUtils.fmt_num(c4)}',
-                    '4': f'>={FormatUtils.fmt_num(c4)} e <{FormatUtils.fmt_num(c5)}',
-                    '5': f'>={FormatUtils.fmt_num(c5)}',
-                }
-            if len(cuts) == 4:
-                c2, c3, c4 = cuts[1], cuts[2], cuts[3]
-                return {
-                    '1': f'<{FormatUtils.fmt_num(c2)}',
-                    '2': f'>={FormatUtils.fmt_num(c2)} e <{FormatUtils.fmt_num(c3)}',
-                    '3': f'>={FormatUtils.fmt_num(c3)} e <{FormatUtils.fmt_num(c4)}',
-                    '4': f'>={FormatUtils.fmt_num(c4)}',
-                    '5': '-',
-                }
-            if len(cuts) == 3:
-                c2, c3 = cuts[1], cuts[2]
-                return {
-                    '1': f'<{FormatUtils.fmt_num(c2)}',
-                    '2': f'>={FormatUtils.fmt_num(c2)} e <{FormatUtils.fmt_num(c3)}',
-                    '3': f'>={FormatUtils.fmt_num(c3)}',
-                    '4': '-',
-                    '5': '-',
-                }
-            c2 = cuts[1]
-            return {
-                '1': f'<{FormatUtils.fmt_num(c2)}',
-                '2': f'>={FormatUtils.fmt_num(c2)}',
-                '3': '-',
-                '4': '-',
-                '5': '-',
-            }
-
-        if ttype == 'lower_better':
-            if len(cuts) >= 4:
-                c1, c2, c3, c4 = cuts[0], cuts[1], cuts[2], cuts[3]
-                return {
-                    '1': f'>{FormatUtils.fmt_num(c1)}',
-                    '2': f'<={FormatUtils.fmt_num(c1)} e >{FormatUtils.fmt_num(c2)}',
-                    '3': f'<={FormatUtils.fmt_num(c2)} e >{FormatUtils.fmt_num(c3)}',
-                    '4': f'<={FormatUtils.fmt_num(c3)} e >{FormatUtils.fmt_num(c4)}',
-                    '5': f'<={FormatUtils.fmt_num(c4)}',
-                }
-            if len(cuts) == 3:
-                c1, c2, c3 = cuts[0], cuts[1], cuts[2]
-                return {
-                    '1': f'>{FormatUtils.fmt_num(c1)}',
-                    '2': f'<={FormatUtils.fmt_num(c1)} e >{FormatUtils.fmt_num(c2)}',
-                    '3': f'<={FormatUtils.fmt_num(c2)} e >{FormatUtils.fmt_num(c3)}',
-                    '4': f'<={FormatUtils.fmt_num(c3)}',
-                    '5': '-',
-                }
-            c1, c2 = cuts[0], cuts[1]
-            return {
-                '1': f'>{FormatUtils.fmt_num(c1)}',
-                '2': f'<={FormatUtils.fmt_num(c1)} e >{FormatUtils.fmt_num(c2)}',
-                '3': f'<={FormatUtils.fmt_num(c2)}',
-                '4': '-',
-                '5': '-',
-            }
-
-        return {str(i): '-' for i in range(1, 6)}
-
-    @staticmethod
     def analyze(results: List[IMGMetadata]) -> Dict[str, Any]:
-        """Executa a agregacao completa para alimentar todas as secoes do relatorio."""
+        """Executa a agregacao completa para alimentar todas as secoes do relatorio.
+        
+        DELEGA a estatistica pura ao JSONUtil (Estatistico).
+        Foca no operacional: voos, metricas, alertas, recomendacoes.
+        """
         if not results:
             AggregateAnalyzer.logger.warning("analyze chamado com lista vazia de resultados")
             return {}
@@ -328,115 +163,20 @@ class AggregateAnalyzer:
         if config._config is None:
             config.load()
 
-        all_inds = set()
-        for r in results:
-            all_inds.update(r.levels.keys())
+        # ===================================================================
+        # DELEGACAO: Estatistico calcula distribuicoes sobre atributos
+        # ===================================================================
+        indicator_stats = JsonMetadataManager.compute_indicator_statistics(results)
 
-        stats = {}
-        level_dist = defaultdict(int)
-
-        for ind in all_inds:
-            levels = [r.levels.get(ind, 3) for r in results]
-            field_meta = AggregateAnalyzer._resolve_field_meta(ind)
-            thresh = config.get_thresholds(ind) if config._config else {}
-            numeric_values = []
-            for r in results:
-                if ind in r.values:
-                    num = MathUtils.to_float_or_none(r.values.get(ind))
-                    if num is not None and num not in (float('inf'), float('-inf')):
-                        numeric_values.append(num)
-
-            if numeric_values:
-                value_mean = statistics.mean(numeric_values)
-                value_std = statistics.stdev(numeric_values) if len(numeric_values) > 1 else 0.0
-                value_min = min(numeric_values)
-                value_max = max(numeric_values)
-                value_range = value_max - value_min
-            else:
-                value_mean = value_std = value_min = value_max = value_range = None
-
-            stats[ind] = {
-                'label': field_meta.label if field_meta else ind,
-                'description': field_meta.description if field_meta else '',
-                'threshold_type': (thresh or {}).get('type', 'unknown'),
-                'level_ranges': AggregateAnalyzer._level_ranges_from_threshold(ind),
-                'mean': round(statistics.mean(levels), 2),
-                'std': round(statistics.stdev(levels) if len(levels) > 1 else 0, 2),
-                'value_mean': round(value_mean, 4) if value_mean is not None else None,
-                'value_std': round(value_std, 4) if value_std is not None else None,
-                'value_min': round(value_min, 4) if value_min is not None else None,
-                'value_max': round(value_max, 4) if value_max is not None else None,
-                'value_range': round(value_range, 4) if value_range is not None else None,
-                'dist': {1: levels.count(1), 2: levels.count(2), 3: levels.count(3), 4: levels.count(4), 5: levels.count(5)}
-            }
-            for lvl in levels:
-                level_dist[lvl] += 1
-
-        # Keep a deterministic and readable order in the report.
-        stats = dict(
-            sorted(
-                stats.items(),
-                key=lambda item: (str(item[1].get('label') or item[0])).lower()
-            )
-        )
-
+        # ===================================================================
+        # OVERALL - media geral dos scores
+        # ===================================================================
         overall = [r.overall_score for r in results]
-        
-        # Compute PQI-based score for overall quality display (PQI-based classification).
-        pqi_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.PHOTOGRAMMETRY_QUALITY_INDEX.value, 'photogrammetry_quality_index'])
-        pqi_mean = statistics.mean(pqi_values) if pqi_values else None
-        pqi_levels = []
-        pqi_thresh = config.get_thresholds('photogrammetry_quality_index') if config._config else None
-        if pqi_thresh and pqi_values:
-            for v in pqi_values:
-                try:
-                    # count how many thresholds are met, then offset by +1
-                    # count=0 → level=1, count=1 → level=2, count=2 → level=3, etc.
-                    pqi_count = sum(1 for cut in pqi_thresh.get('levels', []) if v >= float(cut))
-                    pqi_level = max(1, min(5, pqi_count + 1))
-                except Exception:
-                    pqi_level = 3
-                pqi_levels.append(pqi_level)
-        else:
-            pqi_levels = [3] * len(results)
-        pqi_level_dist = defaultdict(int)
-        for lvl in pqi_levels:
-            pqi_level_dist[lvl] += 1
-        
-        agg = {
-            'total_images': len(results),
-            'mean_overall': round(statistics.mean(overall), 2),
-            'pqi_mean': round(pqi_mean, 2) if pqi_mean is not None else None,
-            'pqi_level_distribution': dict(pqi_level_dist),
-            'level_distribution': dict(level_dist),
-            'per_indicator': stats,
-            'top_models': defaultdict(list)
-        }
+        mean_overall = round(statistics.mean(overall), 2) if overall else 0.0
 
-        # Add PQI-based classification message
-        if pqi_mean is not None:
-            # Classify PQI: count how many thresholds are met, then map to level.
-            pqi_cuts = [float(c) for c in (pqi_thresh.get('levels', []) if pqi_thresh else [])]
-            count = sum(1 for cut in pqi_cuts if pqi_mean >= cut)
-            # Offset by +1 because level=1 encompasses both count=0 AND count=1
-            pqi_classify_level = max(1, min(5, count + 1))
-            pqi_classify_level = max(1, min(5, pqi_classify_level))
-            pqi_messages = pqi_thresh.get('messages', []) if pqi_thresh else []
-            pqi_label = pqi_messages[pqi_classify_level - 1] if pqi_classify_level - 1 < len(pqi_messages) else f'Nivel {pqi_classify_level}'
-            agg['pqi_classification'] = {
-                'level': pqi_classify_level,
-                'label': pqi_label,
-                'score_display': f'{pqi_mean:.0f}/100'
-            }
-        else:
-            agg['pqi_classification'] = None
-        indicator_meta_source = {
-            key: AggregateAnalyzer._resolve_field_meta(key)
-            for key in stats.keys()
-            if AggregateAnalyzer._resolve_field_meta(key) is not None
-        }
-        agg['indicator_catalog'] = StringAdapter.to_key_label_description(indicator_meta_source)
-
+        # ===================================================================
+        # GERAL - equipamentos, firmware, GPS, datas (operacional)
+        # ===================================================================
         equipment_models = sorted({r.equipment_model for r in results if r.equipment_model and r.equipment_model != 'unknown'})
         equipment_serial_numbers = sorted({r.equipment_serial_number for r in results if r.equipment_serial_number and r.equipment_serial_number != 'unknown'})
         camera_models = sorted({r.camera_model for r in results if r.camera_model and r.camera_model != 'unknown'})
@@ -452,7 +192,6 @@ class AggregateAnalyzer:
         parsed_dates = [FormatUtils.parse_capture_datetime(r.capture_datetime) for r in results]
         parsed_dates = sorted([d for d in parsed_dates if d is not None])
 
-        # GPS Datum e GPS Status (valores unicos)
         gps_datum_values = sorted({
             str(r.get_indicator(MFK.GPS_MAP_DATUM.value) or r.get_indicator('gps_map_datum') or '').strip()
             for r in results
@@ -466,30 +205,43 @@ class AggregateAnalyzer:
             and str(r.get_indicator(MFK.GPS_STATUS.value) or r.get_indicator('gps_status') or '').strip().lower() not in {'', 'none', 'null'}
         })
 
-        agg['general_info'] = {
-            'equipment_models': equipment_models,
-            'equipment_serial_numbers': equipment_serial_numbers,
-            'camera_models': camera_models,
-            'camera_serial_numbers': camera_serial_numbers,
-            'firmware_versions': firmware_versions,
-            'gps_datum': gps_datum_values,
-            'gps_status': gps_status_values,
-            'capture_start': parsed_dates[0].strftime('%Y-%m-%d %H:%M:%S') if parsed_dates else 'N/A',
-            'capture_end': parsed_dates[-1].strftime('%Y-%m-%d %H:%M:%S') if parsed_dates else 'N/A'
+        agg = {
+            'total_images': len(results),
+            'mean_overall': mean_overall,
+            'per_indicator': indicator_stats.get('per_indicator', {}),
+            'level_distribution': indicator_stats.get('level_distribution', {}),
+            'pqi_mean': indicator_stats.get('pqi_mean'),
+            'pqi_level_distribution': indicator_stats.get('pqi_level_distribution', {}),
+            'pqi_classification': indicator_stats.get('pqi_classification'),
+            'indicator_catalog': indicator_stats.get('indicator_catalog', []),
+            'general_info': {
+                'equipment_models': equipment_models,
+                'equipment_serial_numbers': equipment_serial_numbers,
+                'camera_models': camera_models,
+                'camera_serial_numbers': camera_serial_numbers,
+                'firmware_versions': firmware_versions,
+                'gps_datum': gps_datum_values,
+                'gps_status': gps_status_values,
+                'capture_start': parsed_dates[0].strftime('%Y-%m-%d %H:%M:%S') if parsed_dates else 'N/A',
+                'capture_end': parsed_dates[-1].strftime('%Y-%m-%d %H:%M:%S') if parsed_dates else 'N/A'
+            },
+            'top_models': defaultdict(list)
         }
 
+        # Top models
         models = defaultdict(list)
         for r in results:
             model = r.filename.split('_')[0] if '_' in r.filename else 'unknown'
             models[model].append(r.overall_score)
-
         for model, scores in models.items():
             agg['top_models'][model] = {
                 'count': len(scores),
                 'mean_score': round(statistics.mean(scores), 2)
             }
 
-        # Group by flight_id derived from MrkFile.
+        # ===================================================================
+        # AGRUPAMENTO POR VOO (operacional, nao e estatistica pura)
+        # ===================================================================
         flights = defaultdict(list)
         for r in results:
             flights[r.flight_id or 'unknown'].append(r)
@@ -643,13 +395,10 @@ class AggregateAnalyzer:
                 solo_altitude = abs_mean - rel_mean
 
             # Calcular area estimada por voo (hectares)
-            # Formula: area_foto = (largura_px * gsd_m) * (altura_px * gsd_m) / 10000
-            # Com sobreposicao: area_efetiva = area_foto * (1 - overlap) * (1 - overlap)
             estimated_area_ha = None
             gsd_val = level5_means.get(MFK.GROUND_SAMPLE_DISTANCE_CM.value)
             foverlap_val = level5_means.get(MFK.F_OVERLAP.value)
             if gsd_val is not None and gsd_val > 0 and foverlap_val is not None and items:
-                # Dimensoes medias das imagens (EXIF) via get_indicator (acesso interno _data)
                 img_widths = []
                 img_heights = []
                 for it in items:
@@ -663,14 +412,10 @@ class AggregateAnalyzer:
                     avg_height_px = statistics.mean(img_heights)
                     gsd_m = gsd_val / 100.0
                     overlap_dec = foverlap_val / 100.0
-                    # Area no solo de cada foto (m²)
                     photo_area_m2 = (avg_width_px * gsd_m) * (avg_height_px * gsd_m)
-                    # Area efetiva considerando sobreposicao frontal e lateral (assume mesma %)
                     effective_area_m2 = photo_area_m2 * (1.0 - overlap_dec) * (1.0 - overlap_dec)
-                    # Total do voo em hectares
                     estimated_area_ha = (effective_area_m2 * len(items)) / 10000.0
-            
-            # Debug log
+
             AggregateAnalyzer._debug_flight_area(items, flight_id, gsd_val, foverlap_val, estimated_area_ha)
 
             flight_rows.append({
@@ -772,7 +517,7 @@ class AggregateAnalyzer:
                 })
         agg['lrf_chart_series'] = lrf_chart_series
 
-        # Médias por hora do dia (0h-23h) para temperatura e LRF
+        # Medias por hora do dia (0h-23h) para temperatura e LRF
         temp_by_hour = defaultdict(list)
         lrf_by_hour = defaultdict(list)
         for r in results:
@@ -849,8 +594,6 @@ class AggregateAnalyzer:
         agg['general_info']['dewarp_status_message'] = dewarp_status_message
 
         # Missing altitude checks (MRK Alt and AbsoluteAltitude both missing).
-        # When source is photo_only (no MRK), alt_mrk is None, but AbsoluteAltitude may exist.
-        # Only flag if AMBAS as fontes de altitude estao ausentes.
         missing_alt_items = [
             r for r in results
             if MathUtils.is_missing_value(r.alt_mrk)
@@ -916,26 +659,46 @@ class AggregateAnalyzer:
             })
 
         agg['general_info']['last_shutter_per_camera'] = camera_last
-        # Overlap values collected for advanced metrics and recommendations.
-        overlap_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.PREDICTED_OVERLAP.value, MFK.F_OVERLAP.value, 'predicted_overlap', 'f_overlap'])
+
+        # ===================================================================
+        # METRICAS AVANCADAS (operacional, usa _first_numeric_from_result)
+        # ===================================================================
+        overlap_values = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.PREDICTED_OVERLAP.value, MFK.F_OVERLAP.value, 'predicted_overlap', 'f_overlap']
+        )
         overlap_below_pct = 0.0
         if overlap_values:
             overlap_below_ideal = [v for v in overlap_values if v < AggregateAnalyzer.IDEAL_OVERLAP_PCT]
             overlap_below_pct = (len(overlap_below_ideal) / len(overlap_values) * 100.0) if overlap_values else 0.0
 
-        # Yaw values collected for advanced metrics and recommendations.
-        yaw_err_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.YAW_ALIGNMENT_ERROR.value, 'yaw_alignment_error'])
+        yaw_err_values = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.YAW_ALIGNMENT_ERROR.value, 'yaw_alignment_error']
+        )
         yaw_opposite = [v for v in yaw_err_values if v >= 150.0] if yaw_err_values else []
         yaw_opposite_pct = (len(yaw_opposite) / len(yaw_err_values) * 100.0) if yaw_err_values else 0.0
 
         # Advanced metrics block.
-        rtk_diff_age = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_DIFF_AGE.value, 'rtk_diff_age'])
-        rtk_stab_score = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_STABILITY_SCORE.value, 'rtk_stability_score'])
-        gimbal_offset = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.GIMBAL_OFFSET.value, 'gimbal_offset'])
-        size_mb = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.SIZE_MB.value, 'size_mb'])
-        motion_blur = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.MOTION_BLUR_RISK.value, 'motion_blur_risk'])
-        speed_ms = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.THREE_D_SPEED.value, 'speed_3d_ms'])
-        speed_var = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.SPEED_VARIATION_INDEX.value, 'speed_variation_index'])
+        rtk_diff_age = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.RTK_DIFF_AGE.value, 'rtk_diff_age']
+        )
+        rtk_stab_score = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.RTK_STABILITY_SCORE.value, 'rtk_stability_score']
+        )
+        gimbal_offset = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.GIMBAL_OFFSET.value, 'gimbal_offset']
+        )
+        size_mb = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.SIZE_MB.value, 'size_mb']
+        )
+        motion_blur = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.MOTION_BLUR_RISK.value, 'motion_blur_risk']
+        )
+        speed_ms = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.THREE_D_SPEED.value, 'speed_3d_ms']
+        )
+        speed_var = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.SPEED_VARIATION_INDEX.value, 'speed_variation_index']
+        )
         light_consistency_vals = [str(r.level5_values.get(MFK.LIGHT_CONSISTENCY.value) or r.values.get('light_consistency') or '').strip() for r in results]
         light_inconsistent_pct = (
             sum(1 for v in light_consistency_vals if v.lower() == 'inconsistent') / len(light_consistency_vals) * 100.0
@@ -1000,12 +763,11 @@ class AggregateAnalyzer:
         size_cv = (statistics.stdev(size_mb) / statistics.mean(size_mb)) if len(size_mb) > 1 and statistics.mean(size_mb) != 0 else 0.0
 
         # Temporal and quality trends
-        pqi_series = AggregateAnalyzer._series_by_time(results, [MFK.PHOTOGRAMMETRY_QUALITY_INDEX.value, 'photogrammetry_quality_index'])
+        pqi_series = JsonMetadataManager._series_by_time(results, [MFK.PHOTOGRAMMETRY_QUALITY_INDEX.value, 'photogrammetry_quality_index'])
         pqi_first = statistics.mean([v for _, v in pqi_series[:max(1, len(pqi_series)//4)]]) if pqi_series else None
         pqi_last = statistics.mean([v for _, v in pqi_series[-max(1, len(pqi_series)//4):]]) if pqi_series else None
         pqi_delta = (pqi_last - pqi_first) if pqi_first is not None and pqi_last is not None else None
 
-        # Morning vs midday using local capture hour.
         morning_values = [v for dt, v in pqi_series if dt.hour < 11]
         midday_values = [v for dt, v in pqi_series if 11 <= dt.hour < 15]
         morning_mean = statistics.mean(morning_values) if morning_values else None
@@ -1043,16 +805,17 @@ class AggregateAnalyzer:
             or (s['overlap_below_ideal_pct'] is not None and s['overlap_below_ideal_pct'] > 30.0)
         ]
 
-        # Agronomic context: area estimate from per-flight calculation (soma das areas de cada voo)
+        # Agronomic context: area estimate from per-flight calculation
         area_ha = None
         if agg.get('per_flight'):
             flight_areas = [f.get('estimated_area_ha') for f in agg['per_flight'] if f.get('estimated_area_ha') is not None]
             if flight_areas:
                 area_ha = sum(flight_areas)
 
-        # RTK Effective Precision para metricas avancadas
-        rtk_effective_precision = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_EFFECTIVE_PRECISION.value, 'rtk_effective_precision'])
-        # Valor textual do RtkEffectivePrecision (ex: "RTK Alta", "RTK Baixa")
+        # RTK Effective Precision
+        rtk_effective_precision = AggregateAnalyzer._first_numeric_from_flight_values(
+            results, [MFK.RTK_EFFECTIVE_PRECISION.value, 'rtk_effective_precision']
+        )
         rtk_effective_raw = set()
         for r in results:
             raw = r.level5_values.get(MFK.RTK_EFFECTIVE_PRECISION.value) or r.values.get('rtk_effective_precision')
@@ -1116,8 +879,6 @@ class AggregateAnalyzer:
         if not recommendations:
             recommendations.append('Parametros principais estaveis. Manter padrao operacional atual e monitorar indicadores criticos.')
 
-        # critical_alerts comes exclusively from AlertManager below.
-        # Initialize empty container that will be populated after AlertManager.analyze().
         agg['advanced_analysis'] = {
             'critical_alerts': [],
             'metrics': advanced_metrics,
@@ -1130,24 +891,20 @@ class AggregateAnalyzer:
 
         # ===================================================================
         # ALERTAS CENTRALIZADOS - AlertManager
-        # Processa todos os alertas unificados e adiciona ao agg para auditoria
         # ===================================================================
         try:
             unified_alerts = AlertManager.analyze(results, agg)
             if unified_alerts:
-                # Converter para dict list para serializacao
                 alerts_dict_list = AlertManager.to_dict_list(unified_alerts)
                 agg['alerts'] = alerts_dict_list
                 agg['alerts_count'] = len(unified_alerts)
                 agg['alerts_summary'] = AlertManager.summary_by_category(unified_alerts)
 
-                # Contagem por severidade
                 severity_counts = defaultdict(int)
                 for a in unified_alerts:
                     severity_counts[a.severity] += 1
                 agg['alerts_severity'] = dict(severity_counts)
 
-                # Log do total de alertas gerados
                 AggregateAnalyzer.logger.info(
                     f"AlertManager gerou {len(unified_alerts)} alertas unificados",
                     code="ALERT_MANAGER_ANALYSIS",
@@ -1158,8 +915,6 @@ class AggregateAnalyzer:
                     }
                 )
 
-                # Preencher critical_alerts (formato legado) a partir dos alertas unificados do AlertManager,
-                # que agora e a unica fonte de verdade para todos os alertas.
                 critical_alerts = [
                     AlertManager.to_severity_entry(a)
                     for a in unified_alerts
@@ -1174,3 +929,33 @@ class AggregateAnalyzer:
             agg['alerts_count'] = 0
 
         return agg
+
+    @staticmethod
+    def _first_numeric_from_flight_values(results: List[IMGMetadata], keys: List[str]) -> List[float]:
+        """Extrai valores numericos de todos os resultados para as chaves informadas.
+        
+        Diferenca de _numeric_values_from_keys (que estava em AggregateAnalyzer e agora
+        esta em JSONUtil): este metodo e usado APENAS para metricas operacionais de voo,
+        que sao concernentes ao AggregateAnalyzer e nao ao Estatistico.
+        
+        Args:
+            results: Lista de IMGMetadata
+            keys: Lista de chaves candidatas
+        Returns:
+            Lista de valores numericos validos
+        """
+        values = []
+        for r in results:
+            for key in keys:
+                raw = None
+                if hasattr(r, 'level5_values'):
+                    raw = r.level5_values.get(key)
+                if raw is None and hasattr(r, 'values'):
+                    raw = r.values.get(key)
+                if raw is None and hasattr(r, 'get_indicator'):
+                    raw = r.get_indicator(key)
+                num = MathUtils.to_float_or_none(raw)
+                if num is not None and num not in (float('inf'), float('-inf')):
+                    values.append(num)
+                    break
+        return values

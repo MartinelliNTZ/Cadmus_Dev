@@ -94,6 +94,39 @@ class JSONUtil:
             return {}
 
     @staticmethod
+    def load_json_metadata(json_path: str, tool_key: str = ToolKey.UNTRACEABLE) -> Dict[str, Any]:
+        """Carrega metadados do JSON raiz: titulo, logotipo, generated_at.
+
+        Args:
+            json_path: Caminho do arquivo JSON
+
+        Returns:
+            Dict com 'titulo', 'logotipo', 'generated_at' (se existirem no JSON)
+        """
+        logger = JSONUtil._get_logger(tool_key)
+        meta: Dict[str, Any] = {}
+        try:
+            data = JSONUtil.load_json_file(json_path, tool_key=tool_key)
+            if isinstance(data, dict):
+                if data.get("titulo"):
+                    meta["titulo"] = data["titulo"]
+                if data.get("logotipo"):
+                    meta["logotipo"] = data["logotipo"]
+                if data.get("generated_at"):
+                    raw = str(data["generated_at"])
+                    meta["generated_at_raw"] = raw
+                    # Tenta converter para formato humanizado
+                    try:
+                        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                        meta["generated_at"] = dt.strftime("%d/%m/%Y %H:%M:%S")
+                    except (ValueError, TypeError):
+                        meta["generated_at"] = raw
+            logger.debug(f"Metadados carregados: {meta}")
+        except Exception as e:
+            logger.warning(f"Erro ao carregar metadados do JSON: {e}")
+        return meta
+
+    @staticmethod
     def compute_processing_summary(timestamps: Dict[str, str]) -> Dict[str, Any]:
         """Calcula tempos de processamento a partir do dicionario de timestamps.
 
@@ -120,8 +153,10 @@ class JSONUtil:
 
         # Define etapas esperadas no pipeline
         stage_defs = [
+            ("initial_start", "initial_end", "Varredura"),
             ("mrk_start", "mrk_end", "MRK"),
-            ("exif_start", "exif_xmp_end", "EXIF+XMP"),
+            ("exif_start", "exif_end", "EXIF"),
+            ("xmp_start", "xmp_end", "XMP"),
             ("custom_start", "custom_end", "Custom"),
             ("vectorization_start", "vectorization_end", "Vetorizacao"),
             ("report_start", "report_end", "Relatorio"),

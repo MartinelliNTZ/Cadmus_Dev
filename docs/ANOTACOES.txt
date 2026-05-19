@@ -39,6 +39,9 @@ Traducao: 9
   - criar gerador de indices ndvi, ndre, e gli automaticos
   - eLIMIAR TODOS OS untraceable exceptions e garantir que tudo seja logado
   - Usar iconManager para carregar ícones de forma centralizada e eficiente
+atualizar o flush de drone corditates, 
+colocar o 
+
  changelog=
 2.3.29 27/04/2026
 2.3.28 24/04/2026

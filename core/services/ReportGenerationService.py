@@ -40,6 +40,9 @@ class ReportGenerationService:
         timestamps["report_start"] = report_start
         processing_summary = JSONUtil.compute_processing_summary(timestamps)
 
+        # Carrega metadados do JSON raiz (titulo, logotipo, generated_at)
+        json_meta = JSONUtil.load_json_metadata(json_path=json_path, tool_key=self.tool_key)
+
         engine = RenderEngine(tool_key=self.tool_key)
 
         def _render(agg_extra: dict = None) -> str:
@@ -47,6 +50,7 @@ class ReportGenerationService:
             agg = AggregateAnalyzer.analyze(results)
             agg['processing'] = processing_summary
             agg['timestamps'] = timestamps
+            agg['json_meta'] = json_meta
             if agg_extra:
                 agg.update(agg_extra)
             charts = engine.generate_charts(agg)
@@ -88,6 +92,7 @@ class ReportGenerationService:
         agg = AggregateAnalyzer.analyze(results)
         agg['processing'] = processing_summary
         agg['timestamps'] = timestamps
+        agg['json_meta'] = json_meta
         charts = engine.generate_charts(agg)
         map_data = engine.generate_map_data(results)
         html = engine.render_report(

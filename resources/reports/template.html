@@ -241,6 +241,21 @@
         <div class="report-header">
             <div class="report-title">
                 <h1>Relatorio Fotogrametrico</h1>
+                {% set jm = agg.json_meta %}
+                {% if jm and jm.get('titulo') %}
+                <h2 style="margin: 0 0 8px 0; color: var(--l5); font-size: 1.4em;">{{ jm.titulo }}</h2>
+                {% endif %}
+                {% if jm and jm.get('logotipo') %}
+                <div style="margin-bottom: 8px;">
+                    <img src="{{ jm.logotipo }}" alt="Logotipo do projeto"
+                         style="max-height: 60px; max-width: 200px; object-fit: contain; border-radius: 6px;" />
+                </div>
+                {% endif %}
+                {% if jm and jm.get('generated_at') %}
+                <p class="muted" style="font-size: 13px; margin-bottom: 6px;">
+                    Processado em: <strong>{{ jm.generated_at }}</strong>
+                </p>
+                {% endif %}
                 <p class="muted">Total de imagens: <strong>{{ total_images }}</strong></p>
                 {% set pc = agg.pqi_classification %}
                 {% if pc %}

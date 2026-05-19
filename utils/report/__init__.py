@@ -6,6 +6,7 @@ from .ReportPapelineManager import ReportPapelineManager
 from .FlightAggregator import FlightAggregator
 from .RenderEngine import RenderEngine
 from .AlertManager import AlertManager, AlertRecord
+from .AggregateAnalyzer import AggregateAnalyzer
 
 __all__ = [
     "JsonMetadataManager",
@@ -17,4 +18,5 @@ __all__ = [
     "RenderEngine",
     "AlertManager",
     "AlertRecord",
+    "AggregateAnalyzer",
 ]

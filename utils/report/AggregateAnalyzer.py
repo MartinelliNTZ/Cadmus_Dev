@@ -965,78 +965,17 @@ class AggregateAnalyzer:
             })
 
         agg['general_info']['last_shutter_per_camera'] = camera_last
-
-        # Advanced analysis (only complementary items not already in existing sections).
-        critical_alerts = []
-
-        # 1) Dewarp critical rule.
-        if dewarp_zero_count == len(results) and len(results) > 0:
-            critical_alerts.append(
-                AggregateAnalyzer._severity_entry(
-                    'CRITICO',
-                    'Dewarp desativado em 100% das imagens',
-                    f'{dewarp_zero_count}/{len(results)} imagens com DewarpFlag=0.',
-                    'Risco elevado de distorcao sistematica e degradacao da aerotriangulacao.',
-                    'Reprocessar com dewarping habilitado e validar calibracao interna da camera.'
-                )
-            )
-
-        # 2) Overlap critical rule (<60 in >30%).
+        # Overlap values collected for advanced metrics and recommendations.
         overlap_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.PREDICTED_OVERLAP.value, MFK.F_OVERLAP.value, 'predicted_overlap', 'f_overlap'])
-        overlap_below_ideal = [v for v in overlap_values if v < AggregateAnalyzer.IDEAL_OVERLAP_PCT]
-        overlap_below_pct = (len(overlap_below_ideal) / len(overlap_values) * 100.0) if overlap_values else 0.0
-        if overlap_values and overlap_below_pct > 30.0:
-            critical_alerts.append(
-                AggregateAnalyzer._severity_entry(
-                    'CRITICO',
-                    'Overlap insuficiente para reconstrucao robusta',
-                    f'{overlap_below_pct:.2f}% das imagens com overlap < {AggregateAnalyzer.IDEAL_OVERLAP_PCT:.0f}%.',
-                    'Pode causar lacunas, alinhamento fraco e aumento de ruído no modelo 3D.',
-                    'Aumentar sobreposicao longitudinal/lateral e refazer as faixas criticas.'
-                )
-            )
+        overlap_below_pct = 0.0
+        if overlap_values:
+            overlap_below_ideal = [v for v in overlap_values if v < AggregateAnalyzer.IDEAL_OVERLAP_PCT]
+            overlap_below_pct = (len(overlap_below_ideal) / len(overlap_values) * 100.0) if overlap_values else 0.0
 
-        # 3) RTK signal quality using thresholds from config.yaml (lower_better level 1 cutoff).
-        rtk_std_lat_vals = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_STD_LAT.value, 'rtk_std_lat'])
-        rtk_std_hgt_vals = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_STD_HGT.value, 'rtk_std_hgt'])
-        lat_thresh = config.get_thresholds('rtk_std_lat') if config._config else None
-        hgt_thresh = config.get_thresholds('rtk_std_hgt') if config._config else None
-        lat_cut = lat_thresh['levels'][0] if lat_thresh and lat_thresh.get('levels') else 0.011
-        hgt_cut = hgt_thresh['levels'][0] if hgt_thresh and hgt_thresh.get('levels') else 0.026
-        poor_lat = [v for v in rtk_std_lat_vals if v > float(MathUtils.parse_num(lat_cut))]
-        poor_hgt = [v for v in rtk_std_hgt_vals if v > float(MathUtils.parse_num(hgt_cut))]
-        poor_lat_pct = (len(poor_lat) / len(rtk_std_lat_vals) * 100.0) if rtk_std_lat_vals else 0.0
-        poor_hgt_pct = (len(poor_hgt) / len(rtk_std_hgt_vals) * 100.0) if rtk_std_hgt_vals else 0.0
-        if rtk_std_lat_vals and rtk_std_hgt_vals and (poor_lat_pct > 20.0 or poor_hgt_pct > 20.0):
-            lat_str = FormatUtils.fmt_num(MathUtils.parse_num(lat_cut))
-            hgt_str = FormatUtils.fmt_num(MathUtils.parse_num(hgt_cut))
-            critical_alerts.append(
-                AggregateAnalyzer._severity_entry(
-                    'CRITICO',
-                    'Sinal GPS/RTK com qualidade insuficiente',
-                    (
-                        f'RtkStdLat > {lat_str} em {poor_lat_pct:.2f}% das imagens '
-                        f'e RtkStdHgt > {hgt_str} em {poor_hgt_pct:.2f}% das imagens.'
-                    ),
-                    'Reduz precisao posicional e pode degradar alinhamento, georreferenciamento e qualidade final do produto.',
-                    'Validar base RTK, radio/link, visibilidade GNSS e repetir trechos com altos desvios padrao.'
-                )
-            )
-
-        # 4) Yaw direction inconsistency near opposite direction.
+        # Yaw values collected for advanced metrics and recommendations.
         yaw_err_values = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.YAW_ALIGNMENT_ERROR.value, 'yaw_alignment_error'])
-        yaw_opposite = [v for v in yaw_err_values if v >= 150.0]
+        yaw_opposite = [v for v in yaw_err_values if v >= 150.0] if yaw_err_values else []
         yaw_opposite_pct = (len(yaw_opposite) / len(yaw_err_values) * 100.0) if yaw_err_values else 0.0
-        if yaw_err_values and yaw_opposite_pct > 5.0:
-            critical_alerts.append(
-                AggregateAnalyzer._severity_entry(
-                    'ALERTA',
-                    'Inconsistencia de direcao de voo (yaw)',
-                    f'{yaw_opposite_pct:.2f}% das imagens com YawAlignmentError >= 150°.',
-                    'Direcoes conflitantes podem reduzir matching e gerar faixas desalinhadas.',
-                    'Revisar planejamento de heading e evitar trechos em sentido oposto sem controle de bloco.'
-                )
-            )
 
         # Advanced metrics block.
         rtk_diff_age = AggregateAnalyzer._numeric_values_from_keys(results, [MFK.RTK_DIFF_AGE.value, 'rtk_diff_age'])
@@ -1226,8 +1165,10 @@ class AggregateAnalyzer:
         if not recommendations:
             recommendations.append('Parametros principais estaveis. Manter padrao operacional atual e monitorar indicadores criticos.')
 
+        # critical_alerts comes exclusively from AlertManager below.
+        # Initialize empty container that will be populated after AlertManager.analyze().
         agg['advanced_analysis'] = {
-            'critical_alerts': critical_alerts,
+            'critical_alerts': [],
             'metrics': advanced_metrics,
             'quality_analysis': {
                 'strip_rows': strip_rows,
@@ -1266,15 +1207,12 @@ class AggregateAnalyzer:
                     }
                 )
 
-                # Manter compatibilidade com template legado via critical_alerts
-                # Adicionar alertas que ainda nao estao no critical_alerts original
-                existing_titles = {a.get('title') for a in critical_alerts}
-                for alert in unified_alerts:
-                    legacy_entry = AlertManager.to_severity_entry(alert)
-                    if legacy_entry['title'] not in existing_titles:
-                        critical_alerts.append(legacy_entry)
-                        existing_titles.add(legacy_entry['title'])
-
+                # Preencher critical_alerts (formato legado) a partir dos alertas unificados do AlertManager,
+                # que agora e a unica fonte de verdade para todos os alertas.
+                critical_alerts = [
+                    AlertManager.to_severity_entry(a)
+                    for a in unified_alerts
+                ]
                 agg['advanced_analysis']['critical_alerts'] = critical_alerts
         except Exception as e:
             AggregateAnalyzer.logger.error(

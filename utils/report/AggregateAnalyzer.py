@@ -772,25 +772,39 @@ class AggregateAnalyzer:
                 })
         agg['lrf_chart_series'] = lrf_chart_series
 
-        # Temperature series por ordem cronológica (data/hora real, sem separar por voo)
-        temp_chrono_series = []
-        for idx, r in enumerate(results):
-            v = AggregateAnalyzer._first_numeric_from_result(r, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
-            if v is not None and v not in (float('inf'), float('-inf')):
-                dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
-                label = dt.strftime('%H:%M') if dt else f'#{idx+1}'
-                temp_chrono_series.append({'x': idx + 1, 'y': round(v, 2), 'label': label})
-        agg['temp_chrono_series'] = temp_chrono_series
-
-        # LRF Target Distance series por ordem cronológica (data/hora real, sem separar por voo)
-        lrf_chrono_series = []
-        for idx, r in enumerate(results):
-            v = AggregateAnalyzer._first_numeric_from_result(r, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
-            if v is not None and v not in (float('inf'), float('-inf')):
-                dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
-                label = dt.strftime('%H:%M') if dt else f'#{idx+1}'
-                lrf_chrono_series.append({'x': idx + 1, 'y': round(v, 2), 'label': label})
-        agg['lrf_chrono_series'] = lrf_chrono_series
+        # Médias por hora do dia (0h-23h) para temperatura e LRF
+        temp_by_hour = defaultdict(list)
+        lrf_by_hour = defaultdict(list)
+        for r in results:
+            dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
+            if dt is None:
+                continue
+            hour = dt.hour
+            v_temp = AggregateAnalyzer._first_numeric_from_result(r, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
+            if v_temp is not None and v_temp not in (float('inf'), float('-inf')):
+                temp_by_hour[hour].append(v_temp)
+            v_lrf = AggregateAnalyzer._first_numeric_from_result(r, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
+            if v_lrf is not None and v_lrf not in (float('inf'), float('-inf')):
+                lrf_by_hour[hour].append(v_lrf)
+        temp_hourly_avg = []
+        lrf_hourly_avg = []
+        for h in range(24):
+            t_vals = temp_by_hour.get(h, [])
+            l_vals = lrf_by_hour.get(h, [])
+            temp_hourly_avg.append({
+                'hour': h,
+                'label': f'{h:02d}:00',
+                'mean': round(statistics.mean(t_vals), 2) if t_vals else None,
+                'count': len(t_vals),
+            })
+            lrf_hourly_avg.append({
+                'hour': h,
+                'label': f'{h:02d}:00',
+                'mean': round(statistics.mean(l_vals), 2) if l_vals else None,
+                'count': len(l_vals),
+            })
+        agg['temp_hourly_avg'] = temp_hourly_avg
+        agg['lrf_hourly_avg'] = lrf_hourly_avg
 
         # Compute column visibility: hide columns where ALL flights have None or 0 for that field
         if agg['per_flight']:

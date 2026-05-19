@@ -132,7 +132,7 @@
         .star-empty { color: var(--muted); }
         .chart-wrap { min-height: 220px; }
         #levelChart { max-height: 180px; }
-        #tempChart, #lrfChart, #tempChronoChart, #lrfChronoChart { min-height: 250px; max-height: 380px; }
+        #tempChart, #lrfChart, #tempHourlyChart, #lrfHourlyChart { min-height: 250px; max-height: 380px; }
         #map { height: 800px !important; border-radius: 8px; }
         .dist-stack {
             display: flex;
@@ -294,7 +294,7 @@
         </div>
     </div>
 
-    <!-- GERAL | METRICAS | INSIGHTS AGRO (10-11 linhas cada) -->
+    <!-- GERAL | METRICAS | INSIGHTS AGRO -->
     <div class="summary-grid">
         <div class="card">
             <details open>
@@ -467,7 +467,6 @@
                 {% endfor %}
             </table>
             {% else %}
-            <!-- Fallback para alertas legados -->
             <table>
                 <tr><th>Severidade</th><th>Titulo</th><th>Detalhe</th><th>Impacto</th><th>Acao</th></tr>
                 {% if agg.general_info %}
@@ -609,7 +608,7 @@
         </details>
     </div>
 
-    <!-- AGRUPAMENTO POR VOO AVANÇADO (apenas campos NAO exibidos no SIMPLES) -->
+    <!-- AGRUPAMENTO POR VOO AVANÇADO -->
     {% set simple_level5_keys = ['GroundSampleDistanceCm', 'GimbalOffset', 'PredictedOverlap', 'FOverlap', 'RtkStabilityScore', 'MotionBlurRisk'] %}
     {% set advanced_exclude_level5_keys = ['3DSpeed', 'Alt', 'GroundElevation', 'OrthorectificationPotential', 'Foto', 'PhotogrammetryQualityIndex', 'Speed3dKmh'] %}
     <div class="card">
@@ -705,7 +704,7 @@
         </details>
     </div>
 
-    <!-- DETALHES POR IMAGEM (piores primeiro) -->
+    <!-- DETALHES POR IMAGEM -->
     <div class="card">
         <details>
             <summary>DETALHES POR IMAGEM (piores {{ (worst_results or results[:30])|length }})</summary>
@@ -733,7 +732,7 @@
         </details>
     </div>
 
-    <!-- TEMPERATURA DO SENSOR + LRF TARGET DISTANCE (50% cada linha) -->
+    <!-- TEMPERATURA DO SENSOR + LRF TARGET DISTANCE (por voo) -->
     {% set has_temp = charts.temp_line is defined %}
     {% set has_lrf = charts.lrf_line is defined %}
     {% if has_temp and has_lrf %}
@@ -767,36 +766,36 @@
     </div>
     {% endif %}
 
-    <!-- TEMPERATURA E LRF - CRONOLÓGICO (data/hora real, sem separar voos) -->
-    {% set has_temp_chrono = charts.temp_chrono_line is defined %}
-    {% set has_lrf_chrono = charts.lrf_chrono_line is defined %}
-    {% if has_temp_chrono and has_lrf_chrono %}
+    <!-- MÉDIA POR HORA DO DIA (bar chart) -->
+    {% set has_temp_hourly = charts.temp_hourly_line is defined %}
+    {% set has_lrf_hourly = charts.lrf_hourly_line is defined %}
+    {% if has_temp_hourly and has_lrf_hourly %}
     <div class="half-grid">
         <div class="card chart-wrap">
             <details open>
-                <summary>TEMPERATURA DO SENSOR AO LONGO DO DIA (°C)</summary>
-                <canvas id="tempChronoChart" style="width:100%;"></canvas>
+                <summary>TEMPERATURA MÉDIA DO SENSOR POR HORA (°C)</summary>
+                <canvas id="tempHourlyChart" style="width:100%;"></canvas>
             </details>
         </div>
         <div class="card chart-wrap">
             <details open>
-                <summary>LRF TARGET DISTANCE AO LONGO DO DIA (m) - Relevo</summary>
-                <canvas id="lrfChronoChart" style="width:100%;"></canvas>
+                <summary>LRF TARGET DISTANCE MÉDIO POR HORA (m) - Relevo</summary>
+                <canvas id="lrfHourlyChart" style="width:100%;"></canvas>
             </details>
         </div>
     </div>
-    {% elif has_temp_chrono %}
+    {% elif has_temp_hourly %}
     <div class="card chart-wrap">
         <details open>
-            <summary>TEMPERATURA DO SENSOR AO LONGO DO DIA (°C)</summary>
-            <canvas id="tempChronoChart" style="width:100%;"></canvas>
+            <summary>TEMPERATURA MÉDIA DO SENSOR POR HORA (°C)</summary>
+            <canvas id="tempHourlyChart" style="width:100%;"></canvas>
         </details>
     </div>
-    {% elif has_lrf_chrono %}
+    {% elif has_lrf_hourly %}
     <div class="card chart-wrap">
         <details open>
-            <summary>LRF TARGET DISTANCE AO LONGO DO DIA (m) - Relevo</summary>
-            <canvas id="lrfChronoChart" style="width:100%;"></canvas>
+            <summary>LRF TARGET DISTANCE MÉDIO POR HORA (m) - Relevo</summary>
+            <canvas id="lrfHourlyChart" style="width:100%;"></canvas>
         </details>
     </div>
     {% endif %}
@@ -849,82 +848,6 @@
         }
         {% endif %}
 
-        {% if charts.temp_chrono_line %}
-        const tempChronoCfg = {{ charts.temp_chrono_line | tojson }};
-        let tempChronoChartInstance = null;
-        function renderTempChronoChart() {
-            const ctx = document.getElementById('tempChronoChart');
-            if (!ctx || !tempChronoCfg) return;
-            if (tempChronoChartInstance) tempChronoChartInstance.destroy();
-            applyChartDefaults();
-            const cfg = tempChronoCfg.datasets[0];
-            tempChronoChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: tempChronoCfg.labels || [],
-                    datasets: [{
-                        label: cfg.label,
-                        data: cfg.data,
-                        borderColor: cfg.borderColor,
-                        backgroundColor: cfg.backgroundColor,
-                        fill: cfg.fill,
-                        tension: cfg.tension,
-                        pointRadius: cfg.pointRadius,
-                        pointBackgroundColor: cfg.pointBackgroundColor,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    parsing: false,
-                    scales: {
-                        x: { type: 'linear', title: { display: true, text: 'Foto #' } },
-                        y: { title: { display: true, text: '°C' } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
-                }
-            });
-        }
-        {% endif %}
-
-        {% if charts.lrf_chrono_line %}
-        const lrfChronoCfg = {{ charts.lrf_chrono_line | tojson }};
-        let lrfChronoChartInstance = null;
-        function renderLrfChronoChart() {
-            const ctx = document.getElementById('lrfChronoChart');
-            if (!ctx || !lrfChronoCfg) return;
-            if (lrfChronoChartInstance) lrfChronoChartInstance.destroy();
-            applyChartDefaults();
-            const cfg = lrfChronoCfg.datasets[0];
-            lrfChronoChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: lrfChronoCfg.labels || [],
-                    datasets: [{
-                        label: cfg.label,
-                        data: cfg.data,
-                        borderColor: cfg.borderColor,
-                        backgroundColor: cfg.backgroundColor,
-                        fill: cfg.fill,
-                        tension: cfg.tension,
-                        pointRadius: cfg.pointRadius,
-                        pointBackgroundColor: cfg.pointBackgroundColor,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    parsing: false,
-                    scales: {
-                        x: { type: 'linear', title: { display: true, text: 'Foto #' } },
-                        y: { title: { display: true, text: 'Distância (m)' } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
-                }
-            });
-        }
-        {% endif %}
-
         {% if charts.lrf_line %}
         const lrfCfg = {{ charts.lrf_line | tojson }};
         let lrfChartInstance = null;
@@ -942,6 +865,80 @@
                     parsing: false,
                     scales: {
                         x: { type: 'linear', title: { display: true, text: 'Foto #' } },
+                        y: { title: { display: true, text: 'Distância (m)' } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+        {% endif %}
+
+        {% if charts.temp_hourly_line %}
+        const tempHourlyCfg = {{ charts.temp_hourly_line | tojson }};
+        let tempHourlyChartInstance = null;
+        function renderTempHourlyChart() {
+            const ctx = document.getElementById('tempHourlyChart');
+            if (!ctx || !tempHourlyCfg) return;
+            if (tempHourlyChartInstance) tempHourlyChartInstance.destroy();
+            applyChartDefaults();
+            const ds = tempHourlyCfg.datasets[0];
+            tempHourlyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: tempHourlyCfg.labels,
+                    datasets: [{
+                        label: ds.label,
+                        data: ds.data,
+                        borderColor: ds.borderColor,
+                        backgroundColor: ds.backgroundColor,
+                        fill: false,
+                        tension: ds.tension || 0.4,
+                        pointRadius: ds.pointRadius || 4,
+                        pointBackgroundColor: ds.pointBackgroundColor,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Hora do Dia' } },
+                        y: { title: { display: true, text: '°C' } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+        {% endif %}
+
+        {% if charts.lrf_hourly_line %}
+        const lrfHourlyCfg = {{ charts.lrf_hourly_line | tojson }};
+        let lrfHourlyChartInstance = null;
+        function renderLrfHourlyChart() {
+            const ctx = document.getElementById('lrfHourlyChart');
+            if (!ctx || !lrfHourlyCfg) return;
+            if (lrfHourlyChartInstance) lrfHourlyChartInstance.destroy();
+            applyChartDefaults();
+            const ds = lrfHourlyCfg.datasets[0];
+            lrfHourlyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: lrfHourlyCfg.labels,
+                    datasets: [{
+                        label: ds.label,
+                        data: ds.data,
+                        borderColor: ds.borderColor,
+                        backgroundColor: ds.backgroundColor,
+                        fill: false,
+                        tension: ds.tension || 0.4,
+                        pointRadius: ds.pointRadius || 4,
+                        pointBackgroundColor: ds.pointBackgroundColor,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Hora do Dia' } },
                         y: { title: { display: true, text: 'Distância (m)' } }
                     },
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
@@ -970,11 +967,11 @@
             {% if charts.lrf_line %}
             renderLrfChart();
             {% endif %}
-            {% if charts.temp_chrono_line %}
-            renderTempChronoChart();
+            {% if charts.temp_hourly_line %}
+            renderTempHourlyChart();
             {% endif %}
-            {% if charts.lrf_chrono_line %}
-            renderLrfChronoChart();
+            {% if charts.lrf_hourly_line %}
+            renderLrfHourlyChart();
             {% endif %}
         })();
     </script>

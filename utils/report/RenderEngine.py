@@ -99,42 +99,45 @@ class RenderEngine:
                 "title": "LRF Target Distance ao Longo do Voo (m)",
             }
 
-        # Temperature chrono series (por data/hora, sem separar voo)
-        temp_chrono = agg_data.get("temp_chrono_series", [])
-        if temp_chrono:
-            charts["temp_chrono_line"] = {
+        # Médias por hora do dia (0h-23h) - line chart
+        temp_hourly = agg_data.get("temp_hourly_avg", [])
+        if temp_hourly and any(h.get("mean") is not None for h in temp_hourly):
+            labels = [h["label"] for h in temp_hourly]
+            data = [h["mean"] if h.get("mean") is not None else None for h in temp_hourly]
+            charts["temp_hourly_line"] = {
                 "type": "line",
+                "labels": labels,
                 "datasets": [{
-                    "label": "Temperatura do Sensor",
-                    "data": [{"x": p["x"], "y": p["y"]} for p in temp_chrono],
+                    "label": "Temperatura Média (°C)",
+                    "data": data,
                     "borderColor": "#00E676",
                     "backgroundColor": ColorUtil.to_rgba("#00E676", 0.1),
                     "fill": False,
                     "tension": 0.4,
-                    "pointRadius": 3,
+                    "pointRadius": 4,
                     "pointBackgroundColor": "#00E676",
                 }],
-                "title": "Temperatura do Sensor por Ordem de Captura (°C)",
-                "labels": [p.get("label", "") for p in temp_chrono],
+                "title": "Temperatura Média do Sensor por Hora do Dia (°C)",
             }
 
-        # LRF chrono series (por data/hora, sem separar voo)
-        lrf_chrono = agg_data.get("lrf_chrono_series", [])
-        if lrf_chrono:
-            charts["lrf_chrono_line"] = {
+        lrf_hourly = agg_data.get("lrf_hourly_avg", [])
+        if lrf_hourly and any(h.get("mean") is not None for h in lrf_hourly):
+            labels = [h["label"] for h in lrf_hourly]
+            data = [h["mean"] if h.get("mean") is not None else None for h in lrf_hourly]
+            charts["lrf_hourly_line"] = {
                 "type": "line",
+                "labels": labels,
                 "datasets": [{
-                    "label": "LRF Target Distance",
-                    "data": [{"x": p["x"], "y": p["y"]} for p in lrf_chrono],
+                    "label": "LRF Média (m)",
+                    "data": data,
                     "borderColor": "#1e88e5",
                     "backgroundColor": ColorUtil.to_rgba("#1e88e5", 0.1),
                     "fill": False,
                     "tension": 0.4,
-                    "pointRadius": 3,
+                    "pointRadius": 4,
                     "pointBackgroundColor": "#1e88e5",
                 }],
-                "title": "LRF Target Distance por Ordem de Captura (m)",
-                "labels": [p.get("label", "") for p in lrf_chrono],
+                "title": "LRF Target Distance Média por Hora do Dia (m)",
             }
 
         return charts

@@ -6,7 +6,7 @@ from ..config.LogUtils import LogUtils
 from ...utils.ExplorerUtils import ExplorerUtils
 from ...utils.ToolKeys import ToolKey
 from ...utils.JsonUtil import JsonUtil
-from ...utils.report.AggregateAnalyzer import AggregateAnalyzer
+from ...utils.report.ReportPapelineManager import ReportPapelineManager
 from ...utils.report.IMGMetadata import IMGMetadata
 from ...utils.report.JsonMetadataManager import JsonMetadataManager
 from ...utils.report.RenderEngine import RenderEngine
@@ -47,7 +47,7 @@ class ReportGenerationService:
 
         def _render(agg_extra: dict = None) -> str:
             """Renderiza o HTML com agg atual."""
-            agg = AggregateAnalyzer.analyze(results)
+            agg = ReportPapelineManager.analyze(results)
             agg['processing'] = processing_summary
             agg['timestamps'] = timestamps
             agg['json_meta'] = json_meta
@@ -89,7 +89,7 @@ class ReportGenerationService:
         # Recarrega timestamps agora com report_end e re-renderiza
         timestamps = JsonMetadataManager.load_timestamps(json_path=json_path, tool_key=self.tool_key)
         processing_summary = JsonMetadataManager.compute_processing_summary(timestamps)
-        agg = AggregateAnalyzer.analyze(results)
+        agg = ReportPapelineManager.analyze(results)
         agg['processing'] = processing_summary
         agg['timestamps'] = timestamps
         agg['json_meta'] = json_meta

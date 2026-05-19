@@ -23,7 +23,7 @@ class JsonMetadataManager:
 
     @staticmethod
     def _get_logger(tool_key: str = ToolKey.UNTRACEABLE) -> LogUtils:
-        return LogUtils(tool=tool_key, class_name="JSONUtil")
+        return LogUtils(tool=tool_key, class_name="JsonMetadataManager")
 
     # ===================================================================
     # CARGA DE DADOS (APENAS v2.0, SEM LEGADO)

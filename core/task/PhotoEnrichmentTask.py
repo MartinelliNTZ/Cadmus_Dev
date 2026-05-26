@@ -133,6 +133,7 @@ class PhotoEnrichmentTask(BaseTask):
 
         if not records:
             logger.error("Nenhum registro gerado no enriquecimento")
+            self.exception = "Nenhuma imagem encontrada no diretório"
             return False
 
         # Aplica filtro de campos selecionados
@@ -158,6 +159,7 @@ class PhotoEnrichmentTask(BaseTask):
 
         if not records:
             logger.warning("Todos os registros foram filtrados pelas chaves selecionadas")
+            self.exception = "Nenhuma imagem encontrada no diretório"
             return False
 
         # Converte records para PascalCase (formato JSON v2.0)
@@ -194,6 +196,7 @@ class PhotoEnrichmentTask(BaseTask):
 
         if not json_path:
             logger.error("Falha ao salvar JSON via PhotoMetadata")
+            self.exception = "Falha ao salvar JSON dos metadados das imagens"
             return False
 
         self.result = {

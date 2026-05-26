@@ -35,6 +35,7 @@ class Strings_pt_BR:
     AUTO_DETECT = "Auto-detectar"
 
     # Common labels
+    PRECISION = "Precisao"
     CONTINUE_ANYWAY = "Continuar mesmo assim"
     MENU_SYSTEM = "Sistema"
     MENU_LAYOUTS = "Layouts"

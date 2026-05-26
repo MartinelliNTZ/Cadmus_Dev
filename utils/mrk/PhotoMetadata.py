@@ -413,7 +413,7 @@ class PhotoMetadata:
 
         # Para cada ponto MRK, busca a foto correspondente no skeleton
         for point in points:
-            foto = point.get("foto")
+            foto = point.get(MetadataFieldKey.FOTO.value) or point.get("foto")
             if foto is None:
                 continue
 

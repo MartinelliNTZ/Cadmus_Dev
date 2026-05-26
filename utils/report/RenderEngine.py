@@ -55,7 +55,11 @@ class RenderEngine:
             "title": "Average Level per Indicator",
         }
 
-        # Temperature per photo series (line chart)
+        # Bucket size dos graficos de serie temporal (media de ~100 segmentos)
+        bucket_size = agg_data.get("chart_bucket_size", 1)
+        bucket_label = f"Bucket (media de {bucket_size} fotos)" if bucket_size > 1 else "Foto #"
+
+        # Temperature per photo series (line chart) - bucketizada
         temp_series = agg_data.get("temp_chart_series", [])
         if temp_series:
             colors = ColorUtil.generate(len(temp_series))
@@ -71,13 +75,17 @@ class RenderEngine:
                     "tension": 0.4,
                     "pointRadius": 2,
                 })
+            x_axis_title = f"Bucket (media de {bucket_size} fotos)" if bucket_size > 1 else "Foto #"
             charts["temp_line"] = {
                 "type": "line",
                 "datasets": temp_datasets,
-                "title": "Temperatura do Sensor por Foto (°C)",
+                "bucket_size": bucket_size,
+                "x_axis_title": x_axis_title,
+                "title": f"Temperatura do Sensor - Média a cada {bucket_size} fotos (°C)" if bucket_size > 1
+                         else "Temperatura do Sensor por Foto (°C)",
             }
 
-        # LRF Target Distance per photo series (line chart)
+        # LRF Target Distance per photo series (line chart) - bucketizada
         lrf_series = agg_data.get("lrf_chart_series", [])
         if lrf_series:
             lrf_colors = ColorUtil.generate(len(lrf_series))
@@ -93,10 +101,14 @@ class RenderEngine:
                     "tension": 0.4,
                     "pointRadius": 2,
                 })
+            x_axis_title = f"Bucket (media de {bucket_size} fotos)" if bucket_size > 1 else "Foto #"
             charts["lrf_line"] = {
                 "type": "line",
                 "datasets": lrf_datasets,
-                "title": "LRF Target Distance ao Longo do Voo (m)",
+                "bucket_size": bucket_size,
+                "x_axis_title": x_axis_title,
+                "title": f"LRF Target Distance - Média a cada {bucket_size} fotos (m)" if bucket_size > 1
+                         else "LRF Target Distance ao Longo do Voo (m)",
             }
 
         # Médias por intervalo de hora do dia - line chart (intervalo DINAMICO)

@@ -155,15 +155,18 @@ class FlightAggregator:
         flight_rows.sort(key=lambda x: x['flight_id'].lower())
 
         # ===================================================================
-        # SERIES TEMPORAIS POR VOO (para graficos)
+        # SERIES TEMPORAIS POR VOO (para graficos) - com bucketizacao dinamica
         # ===================================================================
-        temp_chart_series = FlightAggregator._build_chart_series(
+        temp_chart_series, temp_bucket_size = FlightAggregator._build_chart_series(
             flights, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c']
         )
 
-        lrf_chart_series = FlightAggregator._build_chart_series(
+        lrf_chart_series, lrf_bucket_size = FlightAggregator._build_chart_series(
             flights, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance']
         )
+
+        # Usa o mesmo bucket_size para ambos (vem do maior voo)
+        chart_bucket_size = max(temp_bucket_size, lrf_bucket_size)
 
         # ===================================================================
         # MEDIAS POR HORA DO DIA
@@ -175,6 +178,7 @@ class FlightAggregator:
             'flight_level5_columns': flight_level5_columns,
             'temp_chart_series': temp_chart_series,
             'lrf_chart_series': lrf_chart_series,
+            'chart_bucket_size': chart_bucket_size,
             'temp_hourly_avg': temp_hourly_avg,
             'lrf_hourly_avg': lrf_hourly_avg,
             'hourly_interval_minutes': hourly_interval_minutes,
@@ -383,25 +387,62 @@ class FlightAggregator:
         return (effective_area_m2 * len(items)) / 10000.0
 
     # ===================================================================
-    # SERIES TEMPORAIS
+    # SERIES TEMPORAIS (com bucketizacao dinamica)
     # ===================================================================
+    TARGET_SEGMENTS = 100  # Numero-alvo de pontos no grafico
+
     @staticmethod
     def _build_chart_series(
         flights: Dict[str, List[IMGMetadata]],
         keys: List[str],
-    ) -> List[Dict[str, Any]]:
-        """Monta serie temporal de valores por voo para grafico."""
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Monta serie temporal de valores por voo para grafico com bucketizacao.
+
+        Diferente da abordagem anterior (1 ponto por foto), agora os dados
+        sao agrupados em buckets para evitar extrapolacao em voos longos.
+
+        Funcionamento:
+        1. Encontra o voo com maior numero de fotos (max_photos)
+        2. Define bucket_size = max(1, ceil(max_photos / TARGET_SEGMENTS))
+        3. Para cada voo, agrupa as fotos em buckets de bucket_size fotos
+        4. O valor Y de cada bucket e a MEDIA dos valores do bucket
+        5. O valor X e o numero do bucket (1, 2, 3...)
+
+        Returns:
+            Tuple (series, bucket_size)
+        """
+        # Encontrar o voo com maior numero de fotos
+        max_photos = 0
+        for flight_id in flights:
+            items = flights[flight_id]
+            if len(items) > max_photos:
+                max_photos = len(items)
+
+        bucket_size = max(1, round(max_photos / FlightAggregator.TARGET_SEGMENTS))
+
         series = []
         for flight_id in sorted(flights.keys(), key=lambda x: x.lower()):
             items = flights[flight_id]
-            data = []
+            # Agrupa valores em buckets
+            buckets = []
             for idx, it in enumerate(items):
                 v = FlightAggregator._get_numeric(it, keys)
                 if v is not None:
-                    data.append({'x': idx + 1, 'y': round(v, 2)})
+                    bucket_idx = idx // bucket_size
+                    if bucket_idx >= len(buckets):
+                        buckets.append([])
+                    buckets[bucket_idx].append(v)
+
+            # Converte buckets em pontos (media de cada bucket)
+            data = []
+            for bidx, bvals in enumerate(buckets):
+                if bvals:
+                    data.append({'x': bidx + 1, 'y': round(statistics.mean(bvals), 2)})
+
             if data:
                 series.append({'label': flight_id, 'data': data})
-        return series
+
+        return series, bucket_size
 
     @staticmethod
     def _get_interval_minutes(range_hours: float) -> int:

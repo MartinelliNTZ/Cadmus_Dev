@@ -732,20 +732,22 @@
         </details>
     </div>
 
-    <!-- TEMPERATURA DO SENSOR + LRF TARGET DISTANCE (por voo) -->
+    <!-- TEMPERATURA DO SENSOR + LRF TARGET DISTANCE (por voo, bucketizado) -->
     {% set has_temp = charts.temp_line is defined %}
     {% set has_lrf = charts.lrf_line is defined %}
+    {% set temp_x_title = charts.temp_line.get('x_axis_title', 'Foto #') if has_temp else 'Foto #' %}
+    {% set lrf_x_title = charts.lrf_line.get('x_axis_title', 'Foto #') if has_lrf else 'Foto #' %}
     {% if has_temp and has_lrf %}
     <div class="half-grid">
         <div class="card chart-wrap">
             <details open>
-                <summary>TEMPERATURA DO SENSOR POR FOTO (°C)</summary>
+                <summary>{{ charts.temp_line.title }}</summary>
                 <canvas id="tempChart" style="width:100%;"></canvas>
             </details>
         </div>
         <div class="card chart-wrap">
             <details open>
-                <summary>LRF TARGET DISTANCE AO LONGO DO VOO (m) - Relevo</summary>
+                <summary>{{ charts.lrf_line.title }}</summary>
                 <canvas id="lrfChart" style="width:100%;"></canvas>
             </details>
         </div>
@@ -753,14 +755,14 @@
     {% elif has_temp %}
     <div class="card chart-wrap">
         <details open>
-            <summary>TEMPERATURA DO SENSOR POR FOTO (°C)</summary>
+            <summary>{{ charts.temp_line.title }}</summary>
             <canvas id="tempChart" style="width:100%;"></canvas>
         </details>
     </div>
     {% elif has_lrf %}
     <div class="card chart-wrap">
         <details open>
-            <summary>LRF TARGET DISTANCE AO LONGO DO VOO (m) - Relevo</summary>
+            <summary>{{ charts.lrf_line.title }}</summary>
             <canvas id="lrfChart" style="width:100%;"></canvas>
         </details>
     </div>
@@ -833,6 +835,7 @@
             if (!ctx || !tempCfg) return;
             if (tempChartInstance) tempChartInstance.destroy();
             applyChartDefaults();
+            const xTitle = tempCfg.x_axis_title || 'Foto #';
             tempChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: { datasets: tempCfg.datasets },
@@ -841,7 +844,7 @@
                     maintainAspectRatio: false,
                     parsing: false,
                     scales: {
-                        x: { type: 'linear', title: { display: true, text: 'Foto #' } },
+                        x: { type: 'linear', title: { display: true, text: xTitle } },
                         y: { title: { display: true, text: '°C' } }
                     },
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
@@ -858,6 +861,7 @@
             if (!ctx || !lrfCfg) return;
             if (lrfChartInstance) lrfChartInstance.destroy();
             applyChartDefaults();
+            const xTitle = lrfCfg.x_axis_title || 'Foto #';
             lrfChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: { datasets: lrfCfg.datasets },
@@ -866,7 +870,7 @@
                     maintainAspectRatio: false,
                     parsing: false,
                     scales: {
-                        x: { type: 'linear', title: { display: true, text: 'Foto #' } },
+                        x: { type: 'linear', title: { display: true, text: xTitle } },
                         y: { title: { display: true, text: 'Distância (m)' } }
                     },
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }

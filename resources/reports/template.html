@@ -766,20 +766,22 @@
     </div>
     {% endif %}
 
-    <!-- MÉDIA POR HORA DO DIA (bar chart) -->
+    <!-- MÉDIA POR INTERVALO DE HORA DO DIA (line chart) -->
     {% set has_temp_hourly = charts.temp_hourly_line is defined %}
     {% set has_lrf_hourly = charts.lrf_hourly_line is defined %}
+    {% set temp_interval = charts.temp_hourly_line.get('interval_label', 'Hora') if has_temp_hourly else 'Hora' %}
+    {% set lrf_interval = charts.lrf_hourly_line.get('interval_label', 'Hora') if has_lrf_hourly else 'Hora' %}
     {% if has_temp_hourly and has_lrf_hourly %}
     <div class="half-grid">
         <div class="card chart-wrap">
             <details open>
-                <summary>TEMPERATURA MÉDIA DO SENSOR POR HORA (°C)</summary>
+                <summary>{{ charts.temp_hourly_line.title }}</summary>
                 <canvas id="tempHourlyChart" style="width:100%;"></canvas>
             </details>
         </div>
         <div class="card chart-wrap">
             <details open>
-                <summary>LRF TARGET DISTANCE MÉDIO POR HORA (m) - Relevo</summary>
+                <summary>{{ charts.lrf_hourly_line.title }}</summary>
                 <canvas id="lrfHourlyChart" style="width:100%;"></canvas>
             </details>
         </div>
@@ -787,14 +789,14 @@
     {% elif has_temp_hourly %}
     <div class="card chart-wrap">
         <details open>
-            <summary>TEMPERATURA MÉDIA DO SENSOR POR HORA (°C)</summary>
+            <summary>{{ charts.temp_hourly_line.title }}</summary>
             <canvas id="tempHourlyChart" style="width:100%;"></canvas>
         </details>
     </div>
     {% elif has_lrf_hourly %}
     <div class="card chart-wrap">
         <details open>
-            <summary>LRF TARGET DISTANCE MÉDIO POR HORA (m) - Relevo</summary>
+            <summary>{{ charts.lrf_hourly_line.title }}</summary>
             <canvas id="lrfHourlyChart" style="width:100%;"></canvas>
         </details>
     </div>

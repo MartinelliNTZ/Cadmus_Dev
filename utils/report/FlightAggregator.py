@@ -168,7 +168,7 @@ class FlightAggregator:
         # ===================================================================
         # MEDIAS POR HORA DO DIA
         # ===================================================================
-        temp_hourly_avg, lrf_hourly_avg = FlightAggregator._build_hourly_averages(results)
+        temp_hourly_avg, lrf_hourly_avg, hourly_interval_minutes = FlightAggregator._build_hourly_averages(results)
 
         return {
             'per_flight': flight_rows,
@@ -177,6 +177,7 @@ class FlightAggregator:
             'lrf_chart_series': lrf_chart_series,
             'temp_hourly_avg': temp_hourly_avg,
             'lrf_hourly_avg': lrf_hourly_avg,
+            'hourly_interval_minutes': hourly_interval_minutes,
         }
 
     # ===================================================================
@@ -403,43 +404,124 @@ class FlightAggregator:
         return series
 
     @staticmethod
+    def _get_interval_minutes(range_hours: float) -> int:
+        """Define intervalo dinamico em minutos baseado na amplitude do horario dos dados.
+
+        Regras:
+          - range <= 1h         -> 10 min
+          - 1h < range <= 3h    -> 15 min
+          - 3h < range <= 6h    -> 30 min
+          - 6h < range <= 10h   -> 30 min (idem)
+          - range > 10h         -> 60 min (comportamento legado)
+        """
+        if range_hours <= 1.0:
+            return 10
+        elif range_hours <= 3.0:
+            return 15
+        elif range_hours <= 10.0:
+            return 30
+        else:
+            return 60
+
+    @staticmethod
     def _build_hourly_averages(
         results: List[IMGMetadata],
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Calcula medias por hora do dia para temperatura e LRF."""
-        temp_by_hour = defaultdict(list)
-        lrf_by_hour = defaultdict(list)
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], int]:
+        """Calcula medias por intervalo de hora do dia para temperatura e LRF.
 
+        Returns:
+            Tuple (temp_result, lrf_result, interval_minutes)
+
+        Diferente da abordagem anterior (24 buckets fixos), agora o intervalo
+        e DINAMICO: considera o horario minimo e maximo dos dados e define
+        buckets de 10min, 15min, 30min ou 60min conforme a amplitude.
+
+        IMPORTANTE: dados de dias diferentes sao agrupados pelo mesmo horario
+        (ex: 08:30 do dia 1 e 08:30 do dia 2 caem no mesmo bucket), preservando
+        o comportamento de analise horaria independente do dia.
+        """
+        # ------------------------------------------------------------------
+        # 1. Extrair entradas com datetime e valores
+        # ------------------------------------------------------------------
+        entries = []
         for r in results:
             dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
             if dt is None:
                 continue
-            hour = dt.hour
-
+            hour_float = dt.hour + dt.minute / 60.0 + dt.second / 3600.0
             v_temp = FlightAggregator._get_numeric(r, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
-            if v_temp is not None:
-                temp_by_hour[hour].append(v_temp)
-
             v_lrf = FlightAggregator._get_numeric(r, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
-            if v_lrf is not None:
-                lrf_by_hour[hour].append(v_lrf)
+            if v_temp is not None or v_lrf is not None:
+                entries.append({
+                    'dt': dt,
+                    'hour_float': hour_float,
+                    'temp': v_temp,
+                    'lrf': v_lrf,
+                })
 
-        temp_hourly = []
-        lrf_hourly = []
-        for h in range(24):
-            t_vals = temp_by_hour.get(h, [])
-            l_vals = lrf_by_hour.get(h, [])
-            temp_hourly.append({
-                'hour': h,
-                'label': f'{h:02d}:00',
+        if not entries:
+            return [], [], 0
+
+        # ------------------------------------------------------------------
+        # 2. Calcular amplitude do horario (em horas)
+        # ------------------------------------------------------------------
+        hours = [e['hour_float'] for e in entries]
+        min_hour = min(hours)
+        max_hour = max(hours)
+        range_hours = max_hour - min_hour
+
+        # Caso raro: dados que cruzam meia-noite (ex: 23:00 a 01:00)
+        # Neste caso usa 60min (legado) para simplicidade
+        if range_hours < 0 or range_hours > 23:
+            interval_minutes = 60
+        else:
+            interval_minutes = FlightAggregator._get_interval_minutes(range_hours)
+
+        # ------------------------------------------------------------------
+        # 3. Bucketing por intervalo
+        # ------------------------------------------------------------------
+        interval_hours = interval_minutes / 60.0
+
+        temp_buckets = defaultdict(list)
+        lrf_buckets = defaultdict(list)
+
+        for e in entries:
+            # Arredonda para o bucket mais proximo (ex: 08:17 com 15min -> bucket 08:15)
+            bucket_key = round(e['hour_float'] / interval_hours) * interval_hours
+            # Evita 24.0 que seria invalido como hora
+            if bucket_key >= 24.0:
+                bucket_key = 24.0 - interval_hours
+            if e['temp'] is not None:
+                temp_buckets[bucket_key].append(e['temp'])
+            if e['lrf'] is not None:
+                lrf_buckets[bucket_key].append(e['lrf'])
+
+        # ------------------------------------------------------------------
+        # 4. Montar resultado ordenado
+        # ------------------------------------------------------------------
+        all_keys = sorted(set(temp_buckets.keys()) | set(lrf_buckets.keys()))
+
+        temp_result = []
+        lrf_result = []
+        for key in all_keys:
+            hours_int = int(key)
+            minutes_int = int(round((key - hours_int) * 60))
+            label = f'{hours_int:02d}:{minutes_int:02d}'
+
+            t_vals = temp_buckets.get(key, [])
+            l_vals = lrf_buckets.get(key, [])
+
+            temp_result.append({
+                'hour': key,
+                'label': label,
                 'mean': round(statistics.mean(t_vals), 2) if t_vals else None,
                 'count': len(t_vals),
             })
-            lrf_hourly.append({
-                'hour': h,
-                'label': f'{h:02d}:00',
+            lrf_result.append({
+                'hour': key,
+                'label': label,
                 'mean': round(statistics.mean(l_vals), 2) if l_vals else None,
                 'count': len(l_vals),
             })
 
-        return temp_hourly, lrf_hourly
+        return temp_result, lrf_result, interval_minutes

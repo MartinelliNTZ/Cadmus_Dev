@@ -99,7 +99,21 @@ class RenderEngine:
                 "title": "LRF Target Distance ao Longo do Voo (m)",
             }
 
-        # Médias por hora do dia (0h-23h) - line chart
+        # Médias por intervalo de hora do dia - line chart (intervalo DINAMICO)
+        interval_minutes = agg_data.get("hourly_interval_minutes", 60)
+        if interval_minutes == 60:
+            interval_label = "Hora"
+            interval_label_pt = "Hora"
+        elif interval_minutes == 30:
+            interval_label = "30min"
+            interval_label_pt = "30 min"
+        elif interval_minutes == 15:
+            interval_label = "15min"
+            interval_label_pt = "15 min"
+        else:
+            interval_label = f"{interval_minutes}min"
+            interval_label_pt = f"{interval_minutes} min"
+
         temp_hourly = agg_data.get("temp_hourly_avg", [])
         if temp_hourly and any(h.get("mean") is not None for h in temp_hourly):
             labels = [h["label"] for h in temp_hourly]
@@ -117,7 +131,9 @@ class RenderEngine:
                     "pointRadius": 4,
                     "pointBackgroundColor": "#00E676",
                 }],
-                "title": "Temperatura Média do Sensor por Hora do Dia (°C)",
+                "interval_minutes": interval_minutes,
+                "interval_label": interval_label,
+                "title": f"Temperatura Média do Sensor a cada {interval_label_pt} (°C)",
             }
 
         lrf_hourly = agg_data.get("lrf_hourly_avg", [])
@@ -137,7 +153,9 @@ class RenderEngine:
                     "pointRadius": 4,
                     "pointBackgroundColor": "#1e88e5",
                 }],
-                "title": "LRF Target Distance Média por Hora do Dia (m)",
+                "interval_minutes": interval_minutes,
+                "interval_label": interval_label,
+                "title": f"LRF Target Distance Médio a cada {interval_label_pt} (m)",
             }
 
         return charts

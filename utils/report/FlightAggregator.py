@@ -449,13 +449,15 @@ class FlightAggregator:
         """Define intervalo dinamico em minutos baseado na amplitude do horario dos dados.
 
         Regras:
-          - range <= 1h         -> 10 min
+          - range <= 0          -> 60 (fallback seguro, todos no mesmo horario)
+          - 0 < range <= 1h     -> 10 min
           - 1h < range <= 3h    -> 15 min
-          - 3h < range <= 6h    -> 30 min
-          - 6h < range <= 10h   -> 30 min (idem)
+          - 3h < range <= 10h   -> 30 min
           - range > 10h         -> 60 min (comportamento legado)
         """
-        if range_hours <= 1.0:
+        if range_hours <= 0.0:
+            return 60
+        elif range_hours <= 1.0:
             return 10
         elif range_hours <= 3.0:
             return 15

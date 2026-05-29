@@ -400,8 +400,10 @@ class JsonMetadataManager:
                     '4': '-',
                     '5': '-',
                 }
-            c2 = cuts[1]
-            return {'1': f'<{FormatUtils.fmt_num(c2)}', '2': f'>={FormatUtils.fmt_num(c2)}', '3': '-', '4': '-', '5': '-'}
+            if len(cuts) >= 2:
+                c2 = cuts[1]
+                return {'1': f'<{FormatUtils.fmt_num(c2)}', '2': f'>={FormatUtils.fmt_num(c2)}', '3': '-', '4': '-', '5': '-'}
+            return {str(i): '-' for i in range(1, 6)}
 
         if ttype == 'lower_better':
             if len(cuts) >= 4:
@@ -422,8 +424,10 @@ class JsonMetadataManager:
                     '4': f'<={FormatUtils.fmt_num(c3)}',
                     '5': '-',
                 }
-            c1, c2 = cuts[0], cuts[1]
-            return {'1': f'>{FormatUtils.fmt_num(c1)}', '2': f'<={FormatUtils.fmt_num(c1)} e >{FormatUtils.fmt_num(c2)}', '3': f'<={FormatUtils.fmt_num(c2)}', '4': '-', '5': '-'}
+            if len(cuts) >= 2:
+                c1, c2 = cuts[0], cuts[1]
+                return {'1': f'>{FormatUtils.fmt_num(c1)}', '2': f'<={FormatUtils.fmt_num(c1)} e >{FormatUtils.fmt_num(c2)}', '3': f'<={FormatUtils.fmt_num(c2)}', '4': '-', '5': '-'}
+            return {str(i): '-' for i in range(1, 6)}
 
         return {str(i): '-' for i in range(1, 6)}
 

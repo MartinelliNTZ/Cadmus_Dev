@@ -576,12 +576,15 @@ class AlertManager:
             if hgt is not None:
                 rtk_hgt_vals.append(hgt)
 
-        lat_thresh = config.get_thresholds('rtk_std_lat') if config._config else None
-        lon_thresh = config.get_thresholds('rtk_std_lon') if config._config else None
-        hgt_thresh = config.get_thresholds('rtk_std_hgt') if config._config else None
-        lat_cut = AlertManager._parse_num(lat_thresh['levels'][0]) if lat_thresh and lat_thresh.get('levels') else 0.050
-        lon_cut = AlertManager._parse_num(lon_thresh['levels'][0]) if lon_thresh and lon_thresh.get('levels') else 0.050
-        hgt_cut = AlertManager._parse_num(hgt_thresh['levels'][0]) if hgt_thresh and hgt_thresh.get('levels') else 0.100
+        lat_thresh = config.get_thresholds('rtk_std_lat') if config and config._config else None
+        lon_thresh = config.get_thresholds('rtk_std_lon') if config and config._config else None
+        hgt_thresh = config.get_thresholds('rtk_std_hgt') if config and config._config else None
+        lat_levels = (lat_thresh or {}).get('levels', []) if lat_thresh else []
+        lon_levels = (lon_thresh or {}).get('levels', []) if lon_thresh else []
+        hgt_levels = (hgt_thresh or {}).get('levels', []) if hgt_thresh else []
+        lat_cut = AlertManager._parse_num(lat_levels[0]) if lat_levels else 0.050
+        lon_cut = AlertManager._parse_num(lon_levels[0]) if lon_levels else 0.050
+        hgt_cut = AlertManager._parse_num(hgt_levels[0]) if hgt_levels else 0.100
 
         poor_lat = [v for v in rtk_lat_vals if v > lat_cut] if lat_cut else []
         poor_lon = [v for v in rtk_lon_vals if v > lon_cut] if lon_cut else []

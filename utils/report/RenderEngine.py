@@ -46,7 +46,11 @@ class RenderEngine:
             "title": title,
         }
 
-        ind_means = {k: v["mean"] for k, v in agg_data.get("per_indicator", {}).items()}
+        per_indicator_data = agg_data.get("per_indicator", {})
+        ind_means = {}
+        for k, v in per_indicator_data.items():
+            if isinstance(v, dict) and "mean" in v and v["mean"] is not None:
+                ind_means[k] = v["mean"]
         bar_labels = list(ind_means.keys())[:10]
         charts["indicator_bar"] = {
             "type": "bar",

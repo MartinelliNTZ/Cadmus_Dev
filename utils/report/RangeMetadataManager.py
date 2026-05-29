@@ -1,4 +1,5 @@
 ﻿import math
+import traceback
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -118,7 +119,9 @@ class RangeMetadataManager:
                     minv, maxv = -math.inf, self._parse_num(interval)
                 maxv = math.inf if maxv is None else maxv
                 if minv <= vnum <= maxv:
-                    return i + 1, messages[i]
+                    # Protecao contra IndexError caso levels e messages tenham tamanhos diferentes
+                    msg = messages[i] if i < len(messages) else f"Nivel {i + 1}"
+                    return i + 1, msg
             level = 3
         else:
             level = 3

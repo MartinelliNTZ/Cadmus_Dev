@@ -89,9 +89,10 @@ class ReportPapelineManager:
         general_info['last_shutter_per_camera'] = shutter_per_camera
 
         # Totals de voo
-        total_flights = len(flight_data.get('per_flight', []))
+        per_flight = flight_data.get('per_flight', [])
+        total_flights = len(per_flight)
         total_flight_seconds = sum(
-            row['flight_seconds'] for row in flight_data.get('per_flight', [])
+            row['flight_seconds'] for row in per_flight
             if row.get('flight_seconds') is not None
         )
         general_info['total_flights'] = total_flights
@@ -112,7 +113,7 @@ class ReportPapelineManager:
             'general_info': general_info,
             'top_models': top_models,
             # Delegado ao FlightAggregator:
-            'per_flight': flight_data.get('per_flight', []),
+            'per_flight': per_flight,
             'flight_level5_columns': flight_data.get('flight_level5_columns', []),
             'temp_chart_series': flight_data.get('temp_chart_series', []),
             'lrf_chart_series': flight_data.get('lrf_chart_series', []),

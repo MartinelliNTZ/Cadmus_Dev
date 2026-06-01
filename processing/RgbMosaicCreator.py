@@ -178,7 +178,7 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
             vrt_path = os.path.join(temp_dir, "rgb_composite.vrt")
             band_files = [path_r, path_g, path_b]
 
-            vrt_options = gdal.BuildVRTOptions(separate=True, bandList=[1, 1, 1])
+            vrt_options = gdal.BuildVRTOptions(separate=True)
             ds_vrt = gdal.BuildVRT(vrt_path, band_files, options=vrt_options)
             if ds_vrt is None:
                 raise QgsProcessingException("Falha ao criar VRT do mosaico RGB.")
@@ -217,7 +217,7 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
 
                 vrt_rgba_path = os.path.join(temp_dir, "rgba_composite.vrt")
                 band_files_rgba = band_files + [alpha_path]
-                vrt_options_rgba = gdal.BuildVRTOptions(separate=True, bandList=[1, 1, 1, 1])
+                vrt_options_rgba = gdal.BuildVRTOptions(separate=True)
                 ds_vrt_rgba = gdal.BuildVRT(vrt_rgba_path, band_files_rgba, options=vrt_options_rgba)
                 if ds_vrt_rgba is None:
                     raise QgsProcessingException("Falha ao criar VRT com banda alpha.")

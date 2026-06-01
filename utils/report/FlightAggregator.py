@@ -200,6 +200,11 @@ class FlightAggregator:
             for it in items
             if FormatUtils.parse_capture_datetime(it.capture_datetime) is not None
         ])
+        from ...core.config.LogUtils import LogUtils
+        _flight_logger = LogUtils(tool=ToolKey.REPORT_METADATA, class_name="FlightAggregator._build_flight_row")
+        _flight_logger.debug(f"Voo {flight_id}: {len(items)} items, {len(dates)} datas validas, dates[:3]={[str(d) for d in dates[:3]]}")
+        if not dates:
+            _flight_logger.warning(f"Voo {flight_id}: NENHUMA data valida capturada para {len(items)} imagens. flight_id={flight_id!r}, capture_datetime samples: {[it.capture_datetime for it in items[:5]]}")
         start_dt = dates[0] if dates else None
         end_dt = dates[-1] if dates else None
         duration = (end_dt - start_dt) if start_dt and end_dt else None
@@ -429,7 +434,8 @@ class FlightAggregator:
                 v = FlightAggregator._get_numeric(it, keys)
                 if v is not None:
                     bucket_idx = idx // bucket_size
-                    if bucket_idx >= len(buckets):
+                    # Garante que a lista tenha tamanho suficiente para bucket_idx
+                    while len(buckets) <= bucket_idx:
                         buckets.append([])
                     buckets[bucket_idx].append(v)
 

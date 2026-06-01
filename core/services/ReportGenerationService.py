@@ -32,8 +32,20 @@ class ReportGenerationService:
         report_start = datetime.now().isoformat()
 
         range_metadata_manager.load(tool_key=self.tool_key)
+        self.logger.debug("Carregando records do JSON...")
         records = JsonMetadataManager.load_records(json_path=json_path, tool_key=self.tool_key)
-        results: List[IMGMetadata] = [IMGMetadata(record).score() for record in records]
+        self.logger.debug(f"Records carregados: {len(records)} registros. Amostra 1o registro keys: {list(records[0].keys())[:10] if records else 'VAZIO'}")
+        
+        self.logger.debug("Criando objetos IMGMetadata a partir dos records...")
+        results: List[IMGMetadata] = []
+        for i, record in enumerate(records):
+            try:
+                img = IMGMetadata(record).score()
+                results.append(img)
+            except Exception as e:
+                self.logger.error(f"Erro ao processar record [{i}]: {e}, record keys={list(record.keys())[:10] if record else 'VAZIO'}")
+                raise
+        self.logger.debug(f"IMGMetadata criados e scored: {len(results)} objetos. flight_ids amostra: {[r.flight_id for r in results[:5]]}")
 
         # Carrega timestamps existentes do JSON e mescla com report_start atual
         timestamps = JsonMetadataManager.load_timestamps(json_path=json_path, tool_key=self.tool_key)
@@ -47,7 +59,11 @@ class ReportGenerationService:
 
         def _render(agg_extra: dict = None) -> str:
             """Renderiza o HTML com agg atual."""
+            self.logger.debug("INICIANDO ReportPapelineManager.analyze...")
             agg = ReportPapelineManager.analyze(results)
+            self.logger.debug("ReportPapelineManager.analyze CONCLUIDO. agg keys principais presentes: total_images={}, mean_overall={}".format(
+                agg.get('total_images', 'N/A'), agg.get('mean_overall', 'N/A')
+            ))
             agg['processing'] = processing_summary
             agg['timestamps'] = timestamps
             agg['json_meta'] = json_meta
@@ -72,8 +88,17 @@ class ReportGenerationService:
         )
 
         # Primeira renderizacao (pode ter "Relatorio" ausente ainda)
-        html = _render()
-        engine.save_report(html, target_path)
+        self.logger.debug("PRIMEIRA RENDERIZACAO...")
+        try:
+            html = _render()
+            self.logger.debug("Primeira renderizacao concluida. Salvando HTML...")
+            engine.save_report(html, target_path)
+            self.logger.debug(f"HTML salvo em: {target_path}")
+        except Exception as e:
+            self.logger.error(f"CRASH na primeira renderizacao/salvamento: {e}", code="CRASH_RENDER_1")
+            import traceback
+            self.logger.error(f"Traceback completo: {traceback.format_exc()}")
+            raise
 
         # Registra fim e persiste timestamps no JSON
         report_end = datetime.now().isoformat()
@@ -87,21 +112,33 @@ class ReportGenerationService:
             self.logger.warning(f"Nao foi possivel salvar timestamps de report no JSON: {e}")
 
         # Recarrega timestamps agora com report_end e re-renderiza
-        timestamps = JsonMetadataManager.load_timestamps(json_path=json_path, tool_key=self.tool_key)
-        processing_summary = JsonMetadataManager.compute_processing_summary(timestamps)
-        agg = ReportPapelineManager.analyze(results)
-        agg['processing'] = processing_summary
-        agg['timestamps'] = timestamps
-        agg['json_meta'] = json_meta
-        charts = engine.generate_charts(agg)
-        map_data = engine.generate_map_data(results)
-        html = engine.render_report(
-            results=results,
-            agg=agg,
-            charts=charts,
-            map_data=map_data,
-        )
-        engine.save_report(html, target_path)
+        self.logger.debug("SEGUNDA RENDERIZACAO (com report_end)...")
+        try:
+            timestamps = JsonMetadataManager.load_timestamps(json_path=json_path, tool_key=self.tool_key)
+            processing_summary = JsonMetadataManager.compute_processing_summary(timestamps)
+            self.logger.debug("Segunda analyze...")
+            agg = ReportPapelineManager.analyze(results)
+            agg['processing'] = processing_summary
+            agg['timestamps'] = timestamps
+            agg['json_meta'] = json_meta
+            self.logger.debug("Segunda renderizacao charts...")
+            charts = engine.generate_charts(agg)
+            self.logger.debug("Segunda renderizacao map_data...")
+            map_data = engine.generate_map_data(results)
+            self.logger.debug("Segunda renderizacao template...")
+            html = engine.render_report(
+                results=results,
+                agg=agg,
+                charts=charts,
+                map_data=map_data,
+            )
+            self.logger.debug("Segunda renderizacao save...")
+            engine.save_report(html, target_path)
+        except Exception as e:
+            self.logger.error(f"CRASH na segunda renderizacao: {e}", code="CRASH_RENDER_2")
+            import traceback
+            self.logger.error(f"Traceback completo: {traceback.format_exc()}")
+            raise
 
         payload = {
             "json_path": json_path,

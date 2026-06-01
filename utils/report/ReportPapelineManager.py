@@ -55,27 +55,82 @@ class ReportPapelineManager:
         # ===================================================================
         # 1. Estatistico: JsonMetadataManager
         # ===================================================================
-        indicator_stats = JsonMetadataManager.compute_indicator_statistics(results)
+        ReportPapelineManager.logger.debug("DELEGANDO para JsonMetadataManager.compute_indicator_statistics...")
+        try:
+            indicator_stats = JsonMetadataManager.compute_indicator_statistics(results)
+            ReportPapelineManager.logger.debug(
+                f"JsonMetadataManager OK: {len(indicator_stats.get('per_indicator', {}))} indicadores, "
+                f"{indicator_stats.get('total_images')} imagens"
+            )
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em JsonMetadataManager.compute_indicator_statistics: {e}", code="CRASH_INDICATOR_STATS")
+            raise
 
         # ===================================================================
         # 2. Media geral dos scores
         # ===================================================================
         overall = [r.overall_score for r in results]
-        mean_overall = round(statistics.mean(overall), 2) if overall else 0.0
+        ReportPapelineManager.logger.debug(f"Overall scores: {len(overall)} valores, min={min(overall) if overall else 'N/A'}, max={max(overall) if overall else 'N/A'}")
+        try:
+            mean_overall = round(statistics.mean(overall), 2) if overall else 0.0
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH ao calcular mean_overall: {e}, overall={overall[:5]}...")
+            raise
 
         # ===================================================================
         # 3. Agregador de voos: FlightAggregator
         # ===================================================================
-        flight_data = FlightAggregator.aggregate(results)
+        ReportPapelineManager.logger.debug("DELEGANDO para FlightAggregator.aggregate...")
+        try:
+            flight_data = FlightAggregator.aggregate(results)
+            per_flight_check = flight_data.get('per_flight', [])
+            ReportPapelineManager.logger.debug(
+                f"FlightAggregator OK: {len(per_flight_check)} voos, "
+                f"{len(flight_data.get('temp_chart_series', []))} series temp, "
+                f"{len(flight_data.get('lrf_chart_series', []))} series lrf"
+            )
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em FlightAggregator.aggregate: {e}", code="CRASH_FLIGHT_AGG")
+            raise
 
         # ===================================================================
         # 4. Informacoes gerais: AggregateAnalyzer
         # ===================================================================
-        general_info = AggregateAnalyzer.compute_general_info(results)
-        top_models = AggregateAnalyzer.compute_top_models(results)
-        shutter_per_camera = AggregateAnalyzer.compute_shutter_per_camera(results)
-        light_source_analysis = AggregateAnalyzer.compute_light_source_analysis(results)
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_general_info...")
+        try:
+            general_info = AggregateAnalyzer.compute_general_info(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.general_info OK: capture_start={general_info.get('capture_start')}")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_general_info: {e}", code="CRASH_GENERAL_INFO")
+            raise
+
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_top_models...")
+        try:
+            top_models = AggregateAnalyzer.compute_top_models(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.top_models OK: {len(top_models)} modelos")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_top_models: {e}", code="CRASH_TOP_MODELS")
+            raise
+
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_shutter_per_camera...")
+        try:
+            shutter_per_camera = AggregateAnalyzer.compute_shutter_per_camera(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.shutter_per_camera OK: {len(shutter_per_camera)} cameras")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_shutter_per_camera: {e}", code="CRASH_SHUTTER")
+            raise
+
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_light_source_analysis...")
+        try:
+            light_source_analysis = AggregateAnalyzer.compute_light_source_analysis(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.light_source OK: predominant={light_source_analysis.get('light_source_predominant')}")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_light_source_analysis: {e}", code="CRASH_LIGHT_SOURCE")
+            raise
+
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_total_area...")
         area_ha = AggregateAnalyzer.compute_total_area(flight_data.get('per_flight', []))
+        ReportPapelineManager.logger.debug(f"AggregateAnalyzer.total_area OK: {area_ha}")
 
         # ===================================================================
         # STATUS OPERACIONAIS (dewarp, altitude) - ainda here no orquestrador
@@ -124,7 +179,13 @@ class ReportPapelineManager:
         # ===================================================================
         # 5. Metricas avancadas, strips, tendencias, recomendacoes: AlertManager
         # ===================================================================
-        advanced_metrics = AlertManager.compute_advanced_metrics(results)
+        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_advanced_metrics...")
+        try:
+            advanced_metrics = AlertManager.compute_advanced_metrics(results)
+            ReportPapelineManager.logger.debug(f"AlertManager.advanced_metrics OK: {len(advanced_metrics)} metricas")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AlertManager.compute_advanced_metrics: {e}", code="CRASH_ADV_METRICS")
+            raise
         advanced_metrics['estimated_area_ha'] = area_ha
         advanced_metrics['light_source_predominant'] = light_source_analysis.get('light_source_predominant')
         advanced_metrics['light_source_predominant_count'] = light_source_analysis.get('light_source_predominant_count')
@@ -135,12 +196,24 @@ class ReportPapelineManager:
         advanced_metrics['light_source_from_code'] = light_source_analysis.get('light_source_from_code')
 
         # RTK classification
-        rtk_classification = AlertManager.compute_rtk_classification(results)
+        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_rtk_classification...")
+        try:
+            rtk_classification = AlertManager.compute_rtk_classification(results)
+            ReportPapelineManager.logger.debug(f"AlertManager.rtk_classification OK: class={rtk_classification.get('rtk_stability_class')}")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AlertManager.compute_rtk_classification: {e}", code="CRASH_RTK_CLASS")
+            raise
         advanced_metrics['rtk_stability_mean'] = rtk_classification.get('rtk_stability_mean')
         advanced_metrics['rtk_stability_class'] = rtk_classification.get('rtk_stability_class')
 
         # Quality trends
-        quality_trends = AlertManager.compute_quality_trends(results)
+        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_quality_trends...")
+        try:
+            quality_trends = AlertManager.compute_quality_trends(results)
+            ReportPapelineManager.logger.debug(f"AlertManager.quality_trends OK: delta={quality_trends.get('pqi_delta')}")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AlertManager.compute_quality_trends: {e}", code="CRASH_QUALITY_TRENDS")
+            raise
         advanced_metrics['pqi_first_quartile_mean'] = quality_trends.get('pqi_first_quartile_mean')
         advanced_metrics['pqi_last_quartile_mean'] = quality_trends.get('pqi_last_quartile_mean')
         advanced_metrics['pqi_delta'] = quality_trends.get('pqi_delta')
@@ -148,10 +221,18 @@ class ReportPapelineManager:
         advanced_metrics['midday_pqi_mean'] = quality_trends.get('midday_pqi_mean')
 
         # Strip analysis
-        strip_analysis = AlertManager.compute_strip_analysis(results)
+        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_strip_analysis...")
+        try:
+            strip_analysis = AlertManager.compute_strip_analysis(results)
+            ReportPapelineManager.logger.debug(f"AlertManager.strip_analysis OK: {len(strip_analysis.get('strip_rows', []))} strips")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AlertManager.compute_strip_analysis: {e}", code="CRASH_STRIP_ANALYSIS")
+            raise
 
         # Recommendations
+        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_recommendations...")
         recommendations = AlertManager.compute_recommendations(advanced_metrics)
+        ReportPapelineManager.logger.debug(f"AlertManager.recommendations OK: {len(recommendations)} recomendacoes")
 
         agg['advanced_analysis'] = {
             'critical_alerts': [],
@@ -166,8 +247,10 @@ class ReportPapelineManager:
         # ===================================================================
         # 6. Alertas: AlertManager
         # ===================================================================
+        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.analyze...")
         try:
             unified_alerts = AlertManager.analyze(results, agg)
+            ReportPapelineManager.logger.debug(f"AlertManager.analyze OK: {len(unified_alerts)} alertas")
             if unified_alerts:
                 alerts_dict_list = AlertManager.to_dict_list(unified_alerts)
                 agg['alerts'] = alerts_dict_list

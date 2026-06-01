@@ -212,7 +212,9 @@ class ReportMetadataPlugin(BasePluginMTL):
                 f"{STR.SUCCESS_MESSAGE} {html_path}",
             )
         except Exception as e:
-            self.logger.error(f"Erro ao gerar relatorio via plugin: {e}")
+            import traceback
+            tb_str = traceback.format_exc()
+            self.logger.error(f"Erro ao gerar relatorio via plugin: {e}\nTraceback:\n{tb_str}")
             QgisMessageUtil.modal_error(self.iface, f"{STR.ERROR}: {e}")
 
 

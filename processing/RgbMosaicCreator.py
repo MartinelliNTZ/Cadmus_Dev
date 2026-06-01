@@ -179,21 +179,30 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
             path_g = _extract_band(raster_g, band_g, "G")
             path_b = _extract_band(raster_b, band_b, "B")
 
-            # --- FASE 2: Extrair min/max de cada banda individual ---
-            def _get_band_stats(band_path, label):
-                """Retorna (min, max) de uma banda raster usando gdal."""
+            # --- FASE 2: Extrair min/max de cada banda com percentil 2%-98% (corte acumulativo) ---
+            # O QGIS usa por padrao "Corte acumulativo 2% a 98%" mesmo com "Estender para MinMax"
+            # Isso remove outliers e melhora o contraste visual.
+            def _get_band_percentiles(band_path, label, lower_pct=2, upper_pct=98):
+                """Retorna (p_lower, p_upper) de uma banda raster usando percentis.
+                
+                Simula o corte acumulativo 2%-98% que o QGIS aplica por padrao,
+                ignorando pixels extremos (outliers).
+                """
                 ds = gdal.Open(band_path, gdal.GA_ReadOnly)
                 if ds is None:
                     raise QgsProcessingException(f"Falha ao abrir banda {label}: {band_path}")
                 band = ds.GetRasterBand(1)
-                # Forca calculo de estatisticas (approx_ok=False para exatas)
-                stats = band.GetStatistics(0, 1)
+                data = band.ReadAsArray()
                 ds = None
-                return float(stats[0]), float(stats[1])
+                if data is None or data.size == 0:
+                    raise QgsProcessingException(f"Dados vazios na banda {label}: {band_path}")
+                p_low = float(np.percentile(data, lower_pct))
+                p_high = float(np.percentile(data, upper_pct))
+                return p_low, p_high
 
-            min_r, max_r = _get_band_stats(path_r, "R")
-            min_g, max_g = _get_band_stats(path_g, "G")
-            min_b, max_b = _get_band_stats(path_b, "B")
+            min_r, max_r = _get_band_percentiles(path_r, "R")
+            min_g, max_g = _get_band_percentiles(path_g, "G")
+            min_b, max_b = _get_band_percentiles(path_b, "B")
 
             # --- FASE 3: Calcular min global e max global ---
             global_min = min(min_r, min_g, min_b)

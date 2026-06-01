@@ -32,18 +32,30 @@ class XmlUtil:
         return child
 
     @staticmethod
-    def pretty_xml(root: ET.Element) -> str:
-        """Converte um ElementTree em string XML formatada (pretty-print)."""
+    def pretty_xml(root: ET.Element, with_declaration: bool = False) -> str:
+        """Converte um ElementTree em string XML formatada (pretty-print).
+
+        Args:
+            root: Elemento raiz
+            with_declaration: Se True, inclui <?xml version="1.0" ?>. 
+                              QML nao deve ter declaracao - use False.
+        """
         rough_string = ET.tostring(root, encoding="unicode")
         reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ")
+        result = reparsed.toprettyxml(indent="  ")
+        if not with_declaration:
+            # Remove a primeira linha <?xml version="1.0" ?> se presente
+            lines = result.splitlines()
+            if lines and '<?xml' in lines[0]:
+                result = "\n".join(lines[1:])
+        return result
 
     @staticmethod
     def save_xml(root: ET.Element, file_path: str) -> bool:
         """Salva um documento XML em arquivo com formatação pretty-print."""
         try:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            xml_str = XmlUtil.pretty_xml(root)
+            xml_str = XmlUtil.pretty_xml(root, with_declaration=True)
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(xml_str)
             return True
@@ -62,18 +74,28 @@ class XmlUtil:
     @staticmethod
     def save_qml_style(root: ET.Element, file_path: str) -> bool:
         """
-        Salva um estilo QML.
-        Se o elemento raiz nao for 'qgis', adiciona o doctype QGIS apropriado.
+        Salva um estilo QML no formato que o QGIS espera:
+        - SEM declaracao <?xml ...?>
+        - PRIMEIRA linha: <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
+        - Em seguida: elemento raiz <qgis> formatado
         """
         try:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            xml_str = XmlUtil.pretty_xml(root)
-            # Garantir que o doctype QGIS esteja presente
-            if not xml_str.startswith("<!DOCTYPE"):
-                qgis_doctype = '<!DOCTYPE qgis PUBLIC \'http://mrcc.com/qgis.dtd\' \'SYSTEM\'>\n'
-                xml_str = qgis_doctype + xml_str
+            # Gera XML pretty sem declaracao
+            xml_str = XmlUtil.pretty_xml(root, with_declaration=False)
+            # Remove qualquer DOCTYPE existente (se o minidom gerou um)
+            lines = xml_str.splitlines()
+            cleaned_lines = [l for l in lines if "<!DOCTYPE" not in l]
+            # Reconstroi com o DOCTYPE na primeira linha
+            doctype = '<!DOCTYPE qgis PUBLIC \'http://mrcc.com/qgis.dtd\' \'SYSTEM\'>'
+            # Remove linhas vazias do inicio
+            while cleaned_lines and cleaned_lines[0].strip() == "":
+                cleaned_lines.pop(0)
+            # Remove leading blank lines
+            final_lines = [doctype, ""] + cleaned_lines
+            result = "\n".join(final_lines)
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(xml_str)
+                f.write(result)
             return True
         except Exception:
             return False

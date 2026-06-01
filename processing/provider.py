@@ -11,6 +11,8 @@ from .GeometryLineFromPoints import GeometryLineFromPoints
 from .RasterDifferenceStatiscs import RasterDifferenceStatiscs
 from .RasterWeightedAverage import RasterWeightedAverage
 from .GridGenerator import GridGenerator
+from .NdviCalculator import NdviCalculator
+from .RgbMosaicCreator import RgbMosaicCreator
 from ..i18n.TranslationManager import STR
 
 
@@ -27,6 +29,8 @@ class MTLProvider(QgsProcessingProvider):
         self.addAlgorithm(RasterDifferenceStatiscs())
         self.addAlgorithm(RasterWeightedAverage())
         self.addAlgorithm(GridGenerator())
+        self.addAlgorithm(NdviCalculator())
+        self.addAlgorithm(RgbMosaicCreator())
 
     def id(self):
         return "cadmus"

@@ -42,6 +42,8 @@ class ToolKey:
     RASTER_DIFERENCE_STATISTICS = "raster_diference_statistics"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average"
     GRID_GENERATOR = "grid_generator"
+    NDVI_CALCULATOR = "ndvi_calculator"
+    RGB_MOSAIC_CREATOR = "rgb_mosaic_creator"
     RASTER_OPTIMIZER = "raster_optimizer"
 
     # Cores por tool_key (toolbar-first, semantica)
@@ -74,4 +76,6 @@ class ToolKey:
         GRID_GENERATOR: "#F39C12",  # laranja forte -> gerador de grade
         ELEVATION_ANALISYS: "#5DADE2",  # azul medio -> relevo
         RASTER_OPTIMIZER: "#E67E22",  # laranja -> otimizacao raster
+        NDVI_CALCULATOR: "#27AE60",  # verde -> ndvi / vegetacao
+        RGB_MOSAIC_CREATOR: "#E74C3C",  # vermelho -> rgb / cor
     }

@@ -170,7 +170,8 @@ class FlightAggregator:
         )
 
         lrf_chart_series, lrf_bucket_size = FlightAggregator._build_chart_series(
-            flights, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance']
+            flights, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'],
+            filter_zero=True
         )
 
         # Bucket size exclusivo para temp e lrf (NAO inclui ISO)
@@ -257,10 +258,10 @@ class FlightAggregator:
             if (v := FlightAggregator._get_numeric(it, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])) is not None
         ]
 
-        # LRF Target Distance
+        # LRF Target Distance (exclui valores zerados - sem alvo adquirido)
         lrf_dists = [
             v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])) is not None
+            if (v := FlightAggregator._get_numeric(it, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])) is not None and v > 0
         ]
 
         # Altitudes
@@ -422,6 +423,7 @@ class FlightAggregator:
     def _build_chart_series(
         flights: Dict[str, List[IMGMetadata]],
         keys: List[str],
+        filter_zero: bool = False,
     ) -> Tuple[List[Dict[str, Any]], int]:
         """Monta serie temporal de valores por voo para grafico com bucketizacao.
 
@@ -465,7 +467,10 @@ class FlightAggregator:
             data = []
             for bidx, bvals in enumerate(buckets):
                 if bvals:
-                    data.append({'x': bidx + 1, 'y': round(statistics.mean(bvals), 2)})
+                    mean_val = statistics.mean(bvals)
+                    if filter_zero and mean_val <= 0:
+                        continue
+                    data.append({'x': bidx + 1, 'y': round(mean_val, 2)})
 
             if data:
                 series.append({'label': flight_id, 'data': data})
@@ -526,6 +531,9 @@ class FlightAggregator:
             hour_float = dt.hour + dt.minute / 60.0 + dt.second / 3600.0
             v_temp = FlightAggregator._get_numeric(r, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
             v_lrf = FlightAggregator._get_numeric(r, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
+            # LRF zero = sem alvo adquirido, nao deve entrar na media
+            if v_lrf is not None and v_lrf <= 0:
+                v_lrf = None
             if v_temp is not None or v_lrf is not None:
                 entries.append({
                     'dt': dt,

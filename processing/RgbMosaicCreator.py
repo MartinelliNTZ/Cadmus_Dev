@@ -4,6 +4,7 @@ import tempfile
 
 from qgis.core import (
     QgsProcessingException,
+    QgsProcessingLayerPostProcessorInterface,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterBand,
     QgsProcessingParameterNumber,
@@ -18,6 +19,34 @@ from ..utils.ToolKeys import ToolKey
 from ..utils.ExplorerUtils import ExplorerUtils
 from ..utils.XmlUtil import XmlUtil
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
+
+
+class RgbMosaicStylePostProcessor(QgsProcessingLayerPostProcessorInterface):
+    """
+    Post-processor que aplica um estilo QML a uma camada raster
+    imediatamente apos o QGIS carrega-la no projeto.
+    Isso funciona com qualquer tipo de resultado (arquivo, memory, etc).
+    """
+
+    def __init__(self, qml_path: str):
+        super().__init__()
+        self.qml_path = qml_path
+
+    def postProcessLayer(self, layer, context, feedback):
+        if layer is None:
+            return
+        try:
+            ok = layer.loadNamedStyle(self.qml_path)
+            if ok:
+                layer.triggerRepaint()
+                if feedback:
+                    feedback.pushInfo(f"  [POST-PROCESSOR] Estilo aplicado via postProcessLayer: {self.qml_path}")
+            else:
+                if feedback:
+                    feedback.pushInfo(f"  [POST-PROCESSOR] loadNamedStyle retornou False para: {self.qml_path}")
+        except Exception as e:
+            if feedback:
+                feedback.pushInfo(f"  [POST-PROCESSOR] ERRO: {e}")
 
 
 class RgbMosaicCreator(BaseProcessingAlgorithm):
@@ -277,7 +306,10 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
 
             feedback.pushInfo("Mosaico RGB criado com sucesso!")
 
-            # --- FASE 5: Salvar estilo QML na pasta temp ---
+            # --- FASE 5: Salvar estilo QML sidecar (mesmo nome, mesma pasta do .tif) ---
+            # O QGIS carrega automaticamente um .qml ao lado do raster com o mesmo nome base
+            # quando adiciona uma camada ao projeto. Isso funciona tanto via Processing
+            # quanto manualmente.
             feedback.pushInfo("Gerando estilo QML com valores globais de contraste...")
 
             # Define numero de bandas para o renderizador
@@ -306,23 +338,78 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
                     algorithm="StretchToMinimumMaximum",
                 )
 
-            # Salva QML na pasta temp via ExplorerUtils
-            temp_qml_dir = ExplorerUtils.ensure_temp_subfolder(
-                "styles", tool_key=self.TOOL_KEY
-            )
-            qml_filename = f"rgb_mosaic_style_{os.path.splitext(os.path.basename(output_path))[0]}.qml"
-            qml_path = os.path.join(temp_qml_dir, qml_filename)
-            XmlUtil.save_qml_style(qml_root, qml_path)
-            feedback.pushInfo(f"Estilo QML salvo em: {qml_path}")
-
-            # --- FASE 6: Aplicar estilo no raster de saida ---
-            feedback.pushInfo("Aplicando estilo no raster de saida...")
-            output_layer = QgsRasterLayer(output_path, os.path.basename(output_path))
-            if output_layer and output_layer.isValid():
-                output_layer.loadNamedStyle(qml_path)
-                feedback.pushInfo("Estilo aplicado com sucesso no raster de saida.")
+            # Salva QML como sidecar: mesmo nome base, mesma pasta do output
+            output_dir = os.path.dirname(output_path)
+            output_base = os.path.splitext(os.path.basename(output_path))[0]
+            qml_path = os.path.join(output_dir, f"{output_base}.qml")
+            qml_ok = XmlUtil.save_qml_style(qml_root, qml_path)
+            if qml_ok:
+                feedback.pushInfo(f"[OK] Estilo QML salvo como sidecar: {qml_path}")
+                self.logger.info(f"Sidecar QML salvo: {qml_path}")
             else:
-                feedback.pushInfo("Aviso: Nao foi possivel carregar o raster de saida para aplicar estilo.")
+                feedback.pushInfo(f"[ERRO] Falha ao salvar estilo QML sidecar em {qml_path}")
+                self.logger.error(f"Falha ao salvar sidecar QML: {qml_path}")
+
+            # --- FASE 6: Aplicar estilo carregando a layer e usando loadNamedStyle ---
+            # Como QgsMapLayerStyle nao tem setXmlData nem readFromFile no QGIS 3.34,
+            # a abordagem mais confiavel e: carregar o raster resultado como QgsRasterLayer,
+            # aplicar loadNamedStyle, e registrar no temporaryLayerStore do context.
+            # O QGIS entao carrega esta layer (ja estilizada) no projeto ao final.
+            feedback.pushInfo("=" * 50)
+            feedback.pushInfo("FASE 6 - Aplicando estilo no raster de saida")
+            feedback.pushInfo("=" * 50)
+
+            qml_exists = os.path.isfile(qml_path)
+            tif_exists = os.path.isfile(output_path)
+            tif_size = os.path.getsize(output_path) if tif_exists else 0
+            feedback.pushInfo(f"  [VERIFICACAO] QML sidecar: existe={qml_exists} em {qml_path}")
+            feedback.pushInfo(f"  [VERIFICACAO] Raster saida: existe={tif_exists} tamanho={tif_size} bytes em {output_path}")
+            self.logger.info(f"FASE6: qml_exists={qml_exists}, tif_exists={tif_exists}, tif_size={tif_size}")
+
+            # METODO PRINCIPAL: Carregar layer, aplicar estilo, registrar no context
+            try:
+                from qgis.core import QgsProject, QgsRasterLayer as QgsRL
+
+                # Cria QgsRasterLayer apontando para o arquivo de saida
+                styled_layer = QgsRL(output_path, "RGB Mosaic")
+                if styled_layer and styled_layer.isValid():
+                    feedback.pushInfo(f"  [LAYER] QgsRasterLayer criado e valido: {output_path}")
+                    self.logger.info(f"Layer criada: {output_path}")
+
+                    # Aplica o estilo QML
+                    style_ok = styled_layer.loadNamedStyle(qml_path)
+                    feedback.pushInfo(f"  [LAYER] loadNamedStyle({qml_path}) -> ok={style_ok}")
+                    self.logger.info(f"loadNamedStyle applied: ok={style_ok}")
+
+                    if style_ok:
+                        styled_layer.triggerRepaint()
+                        feedback.pushInfo(f"  [LAYER] triggerRepaint() chamado")
+
+                    # Registra a layer (ja estilizada) no temporaryLayerStore
+                    # O QGIS promove automaticamente temporary layers para o projeto
+                    store = context.temporaryLayerStore()
+                    store.addMapLayer(styled_layer)
+                    feedback.pushInfo(f"  [LAYER] Adicionada ao temporaryLayerStore do context")
+                    self.logger.info(f"Layer adicionada ao temporaryLayerStore")
+                else:
+                    feedback.pushInfo(f"  [LAYER] ERRO: Nao foi possivel carregar raster de saida como QgsRasterLayer")
+                    self.logger.error(f"Falha ao criar QgsRasterLayer para {output_path}")
+            except Exception as e_layer:
+                feedback.pushInfo(f"  [LAYER] ERRO: {e_layer}")
+                self.logger.error(f"Layer style exception: {e_layer}")
+
+            # METODO 2 (backup): salva o QML tambem na pasta temp/styles
+            try:
+                temp_qml_dir = ExplorerUtils.ensure_temp_subfolder(
+                    "styles", tool_key=self.TOOL_KEY
+                )
+                temp_qml_path = os.path.join(temp_qml_dir, f"{output_base}.qml")
+                temp_ok = XmlUtil.save_qml_style(qml_root, temp_qml_path)
+                if temp_ok:
+                    feedback.pushInfo(f"  [BACKUP] Estilo salvo em temp/styles: {temp_qml_path}")
+                    self.logger.info(f"Backup QML em temp/styles: {temp_qml_path}")
+            except Exception as e_backup:
+                feedback.pushInfo(f"  [BACKUP] ERRO: {e_backup}")
 
             self.prefs.update({
                 "band_r": band_r,

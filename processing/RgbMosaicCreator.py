@@ -9,11 +9,14 @@ from qgis.core import (
     QgsProcessingParameterNumber,
     QgsProcessingParameterRasterDestination,
     QgsProcessingParameterRasterLayer,
+    QgsRasterLayer,
 )
 
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
 from ..utils.ToolKeys import ToolKey
+from ..utils.ExplorerUtils import ExplorerUtils
+from ..utils.XmlUtil import XmlUtil
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
@@ -21,6 +24,7 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
     """
     QgsProcessingAlgorithm: Cria um mosaico RGB a partir de 3 rasters individuais
     (bandas R, G, B), com opcao de criar banda alpha para valores NoData.
+    Ao final, salva o estilo QML na pasta temp e aplica no raster de saida.
     """
 
     TOOL_KEY = ToolKey.RGB_MOSAIC_CREATOR
@@ -154,6 +158,7 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
             feedback.pushInfo(f"Saida: {output_path}")
 
             from osgeo import gdal
+            import numpy as np
 
             temp_dir = tempfile.mkdtemp(prefix="cadmus_rgb_")
 
@@ -169,10 +174,38 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
                 src_ds = None
                 return band_path
 
+            # --- FASE 1: Extrair bandas ---
             path_r = _extract_band(raster_r, band_r, "R")
             path_g = _extract_band(raster_g, band_g, "G")
             path_b = _extract_band(raster_b, band_b, "B")
 
+            # --- FASE 2: Extrair min/max de cada banda individual ---
+            def _get_band_stats(band_path, label):
+                """Retorna (min, max) de uma banda raster usando gdal."""
+                ds = gdal.Open(band_path, gdal.GA_ReadOnly)
+                if ds is None:
+                    raise QgsProcessingException(f"Falha ao abrir banda {label}: {band_path}")
+                band = ds.GetRasterBand(1)
+                # Forca calculo de estatisticas (approx_ok=False para exatas)
+                stats = band.GetStatistics(0, 1)
+                ds = None
+                return float(stats[0]), float(stats[1])
+
+            min_r, max_r = _get_band_stats(path_r, "R")
+            min_g, max_g = _get_band_stats(path_g, "G")
+            min_b, max_b = _get_band_stats(path_b, "B")
+
+            # --- FASE 3: Calcular min global e max global ---
+            global_min = min(min_r, min_g, min_b)
+            global_max = max(max_r, max_g, max_b)
+
+            feedback.pushInfo(f"Estatisticas das bandas:")
+            feedback.pushInfo(f"  R: min={min_r:.7f}  max={max_r:.7f}")
+            feedback.pushInfo(f"  G: min={min_g:.7f}  max={max_g:.7f}")
+            feedback.pushInfo(f"  B: min={min_b:.7f}  max={max_b:.7f}")
+            feedback.pushInfo(f"  Global min={global_min:.7f}  Global max={global_max:.7f}")
+
+            # --- FASE 4: Compor mosaico RGB ---
             feedback.pushInfo("Compondo bandas no mosaico RGB...")
 
             vrt_path = os.path.join(temp_dir, "rgb_composite.vrt")
@@ -205,7 +238,6 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
                 ds_alpha.SetProjection(ds_r_alpha.GetProjection())
 
                 band_r_data = ds_r_alpha.GetRasterBand(1).ReadAsArray()
-                import numpy as np
 
                 nodata_mask = np.isclose(band_r_data, alpha_nodata, atol=1e-6)
                 alpha_data = np.where(nodata_mask, 0, 255).astype(np.uint8)
@@ -235,6 +267,53 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
             gdal.Translate(output_path, vrt_path, options=translate_options)
 
             feedback.pushInfo("Mosaico RGB criado com sucesso!")
+
+            # --- FASE 5: Salvar estilo QML na pasta temp ---
+            feedback.pushInfo("Gerando estilo QML com valores globais de contraste...")
+
+            # Define numero de bandas para o renderizador
+            if create_alpha and alpha_nodata is not None:
+                # 4 bandas: R=1, G=2, B=3, alpha=4
+                qml_root = XmlUtil.build_raster_multiband_qml(
+                    min_value=global_min,
+                    max_value=global_max,
+                    red_band=1,
+                    green_band=2,
+                    blue_band=3,
+                    alpha_band=4,
+                    opacity=1.0,
+                    algorithm="StretchToMinimumMaximum",
+                )
+            else:
+                # 3 bandas: R=1, G=2, B=3, sem alpha
+                qml_root = XmlUtil.build_raster_multiband_qml(
+                    min_value=global_min,
+                    max_value=global_max,
+                    red_band=1,
+                    green_band=2,
+                    blue_band=3,
+                    alpha_band=-1,
+                    opacity=1.0,
+                    algorithm="StretchToMinimumMaximum",
+                )
+
+            # Salva QML na pasta temp via ExplorerUtils
+            temp_qml_dir = ExplorerUtils.ensure_temp_subfolder(
+                "styles", tool_key=self.TOOL_KEY
+            )
+            qml_filename = f"rgb_mosaic_style_{os.path.splitext(os.path.basename(output_path))[0]}.qml"
+            qml_path = os.path.join(temp_qml_dir, qml_filename)
+            XmlUtil.save_qml_style(qml_root, qml_path)
+            feedback.pushInfo(f"Estilo QML salvo em: {qml_path}")
+
+            # --- FASE 6: Aplicar estilo no raster de saida ---
+            feedback.pushInfo("Aplicando estilo no raster de saida...")
+            output_layer = QgsRasterLayer(output_path, os.path.basename(output_path))
+            if output_layer and output_layer.isValid():
+                output_layer.loadNamedStyle(qml_path)
+                feedback.pushInfo("Estilo aplicado com sucesso no raster de saida.")
+            else:
+                feedback.pushInfo("Aviso: Nao foi possivel carregar o raster de saida para aplicar estilo.")
 
             self.prefs.update({
                 "band_r": band_r,

@@ -96,8 +96,12 @@ class FlightAggregator:
                 - flight_level5_columns: List[Dict] com chave/label das colunas level5
                 - temp_chart_series: List[Dict] com serie temporal de temperatura por voo
                 - lrf_chart_series: List[Dict] com serie temporal de LRF por voo
+                - iso_chart_series: List[Dict] com serie temporal de ISO por voo
+                - chart_bucket_size: int (bucket size usado nos graficos)
                 - temp_hourly_avg: List[Dict] com temperatura media por hora do dia
                 - lrf_hourly_avg: List[Dict] com LRF medio por hora do dia
+                - iso_hourly_avg: List[Dict] com ISO medio por hora do dia
+                - hourly_interval_minutes: int (intervalo dos graficos horarios)
         """
         if not results:
             return {
@@ -105,8 +109,12 @@ class FlightAggregator:
                 'flight_level5_columns': [],
                 'temp_chart_series': [],
                 'lrf_chart_series': [],
-                'temp_hourly_avg': [{'hour': h, 'label': f'{h:02d}:00', 'mean': None, 'count': 0} for h in range(24)],
-                'lrf_hourly_avg': [{'hour': h, 'label': f'{h:02d}:00', 'mean': None, 'count': 0} for h in range(24)],
+                'iso_chart_series': [],
+                'chart_bucket_size': 1,
+                'temp_hourly_avg': [],
+                'lrf_hourly_avg': [],
+                'iso_hourly_avg': [],
+                'hourly_interval_minutes': 60,
             }
 
         # ===================================================================
@@ -165,22 +173,36 @@ class FlightAggregator:
             flights, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance']
         )
 
-        # Usa o mesmo bucket_size para ambos (vem do maior voo)
+        # Bucket size exclusivo para temp e lrf (NAO inclui ISO)
         chart_bucket_size = max(temp_bucket_size, lrf_bucket_size)
 
         # ===================================================================
-        # MEDIAS POR HORA DO DIA
+        # SERIE TEMPORAL ISO POR VOO (para graficos) - processamento isolado
+        # ISO usa o mesmo chart_bucket_size de temp/lrf para consistencia
+        # ===================================================================
+        iso_chart_series, _iso_bucket_size = FlightAggregator._build_chart_series(
+            flights, [MFK.ISO_SPEED_RATINGS.value, 'iso', MFK.RECOMMENDED_EXPOSURE_INDEX.value]
+        )
+
+        # ===================================================================
+        # MEDIAS POR HORA DO DIA - PROCESSAMENTO TOTALMENTE ISOLADO
+        # temp e lrf usam o metodo ORIGINAL (sem ISO)
+        # ISO usa metodo proprio separado
         # ===================================================================
         temp_hourly_avg, lrf_hourly_avg, hourly_interval_minutes = FlightAggregator._build_hourly_averages(results)
+
+        iso_hourly_avg = FlightAggregator._build_iso_hourly_averages(results)
 
         return {
             'per_flight': flight_rows,
             'flight_level5_columns': flight_level5_columns,
             'temp_chart_series': temp_chart_series,
             'lrf_chart_series': lrf_chart_series,
+            'iso_chart_series': iso_chart_series,
             'chart_bucket_size': chart_bucket_size,
             'temp_hourly_avg': temp_hourly_avg,
             'lrf_hourly_avg': lrf_hourly_avg,
+            'iso_hourly_avg': iso_hourly_avg,
             'hourly_interval_minutes': hourly_interval_minutes,
         }
 
@@ -488,6 +510,10 @@ class FlightAggregator:
         IMPORTANTE: dados de dias diferentes sao agrupados pelo mesmo horario
         (ex: 08:30 do dia 1 e 08:30 do dia 2 caem no mesmo bucket), preservando
         o comportamento de analise horaria independente do dia.
+
+        ATENCAO: Este metodo processa APENAS temperatura e LRF.
+        ISO e processado em metodo separado (_build_iso_hourly_averages)
+        para nao contaminar as series temporais originais.
         """
         # ------------------------------------------------------------------
         # 1. Extrair entradas com datetime e valores
@@ -574,3 +600,79 @@ class FlightAggregator:
             })
 
         return temp_result, lrf_result, interval_minutes
+
+    @staticmethod
+    def _build_iso_hourly_averages(
+        results: List[IMGMetadata],
+    ) -> List[Dict[str, Any]]:
+        """Calcula medias por intervalo de hora do dia para ISO Speed Ratings.
+
+        METODO ISOLADO: processa ISO independentemente de temp/lrf.
+        Usa os MESMOS intervalos de tempo que _build_hourly_averages
+        para consistencia visual, mas NAO afeta nem e afetado por
+        temperatura ou LRF.
+
+        Returns:
+            List[Dict] com iso_result (vazio se sem dados)
+        """
+        # ------------------------------------------------------------------
+        # 1. Extrair entradas com datetime e ISO
+        # ------------------------------------------------------------------
+        iso_entries = []
+        for r in results:
+            dt = FormatUtils.parse_capture_datetime(r.capture_datetime)
+            if dt is None:
+                continue
+            hour_float = dt.hour + dt.minute / 60.0 + dt.second / 3600.0
+            v_iso = FlightAggregator._get_numeric(r, [MFK.ISO_SPEED_RATINGS.value, 'iso', MFK.RECOMMENDED_EXPOSURE_INDEX.value])
+            if v_iso is not None:
+                iso_entries.append({
+                    'hour_float': hour_float,
+                    'iso': v_iso,
+                })
+
+        if not iso_entries:
+            return []
+
+        # ------------------------------------------------------------------
+        # 2. Calcular range e intervalo DINAMICO (proprio do ISO)
+        # ------------------------------------------------------------------
+        hours = [e['hour_float'] for e in iso_entries]
+        min_hour = min(hours)
+        max_hour = max(hours)
+        range_hours = max_hour - min_hour
+
+        if range_hours < 0 or range_hours > 23:
+            interval_minutes = 60
+        else:
+            interval_minutes = FlightAggregator._get_interval_minutes(range_hours)
+
+        # ------------------------------------------------------------------
+        # 3. Bucketing por intervalo
+        # ------------------------------------------------------------------
+        interval_hours = interval_minutes / 60.0
+        iso_buckets = defaultdict(list)
+
+        for e in iso_entries:
+            bucket_key = round(e['hour_float'] / interval_hours) * interval_hours
+            if bucket_key >= 24.0:
+                bucket_key = 24.0 - interval_hours
+            iso_buckets[bucket_key].append(e['iso'])
+
+        # ------------------------------------------------------------------
+        # 4. Montar resultado ordenado
+        # ------------------------------------------------------------------
+        iso_result = []
+        for key in sorted(iso_buckets.keys()):
+            hours_int = int(key)
+            minutes_int = int(round((key - hours_int) * 60))
+            label = f'{hours_int:02d}:{minutes_int:02d}'
+            i_vals = iso_buckets.get(key, [])
+            iso_result.append({
+                'hour': key,
+                'label': label,
+                'mean': round(statistics.mean(i_vals), 2) if i_vals else None,
+                'count': len(i_vals),
+            })
+
+        return iso_result

@@ -70,6 +70,7 @@
         .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
         .summary-grid { display: grid; gap: 16px; grid-template-columns: 1.2fr 1.2fr 1fr; align-items: stretch; }
         .half-grid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-items: stretch; }
+        .third-grid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr 1fr; align-items: stretch; }
         .report-header {
             display: flex;
             align-items: center;
@@ -132,7 +133,7 @@
         .star-empty { color: var(--muted); }
         .chart-wrap { min-height: 220px; }
         #levelChart { max-height: 180px; }
-        #tempChart, #lrfChart, #tempHourlyChart, #lrfHourlyChart { min-height: 250px; max-height: 380px; }
+        #tempChart, #lrfChart, #isoChart, #tempHourlyChart, #lrfHourlyChart, #isoHourlyChart { min-height: 250px; max-height: 380px; }
         #map { height: 800px !important; border-radius: 8px; }
         .dist-stack {
             display: flex;
@@ -231,7 +232,7 @@
         @media (max-width: 900px) {
             body { padding: 12px; }
             th, td { font-size: 12px; }
-            .summary-grid, .half-grid { grid-template-columns: 1fr; }
+            .summary-grid, .half-grid, .third-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -732,12 +733,35 @@
         </details>
     </div>
 
-    <!-- TEMPERATURA DO SENSOR + LRF TARGET DISTANCE (por voo, bucketizado) -->
+    <!-- TEMPERATURA DO SENSOR + LRF TARGET DISTANCE + ISO (por voo, bucketizado) -->
     {% set has_temp = charts.temp_line is defined %}
     {% set has_lrf = charts.lrf_line is defined %}
+    {% set has_iso = charts.iso_line is defined %}
     {% set temp_x_title = charts.temp_line.get('x_axis_title', 'Foto #') if has_temp else 'Foto #' %}
     {% set lrf_x_title = charts.lrf_line.get('x_axis_title', 'Foto #') if has_lrf else 'Foto #' %}
-    {% if has_temp and has_lrf %}
+    {% set iso_x_title = charts.iso_line.get('x_axis_title', 'Foto #') if has_iso else 'Foto #' %}
+    {% if has_temp and has_lrf and has_iso %}
+    <div class="third-grid">
+        <div class="card chart-wrap">
+            <details open>
+                <summary>{{ charts.temp_line.title }}</summary>
+                <canvas id="tempChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+        <div class="card chart-wrap">
+            <details open>
+                <summary>{{ charts.lrf_line.title }}</summary>
+                <canvas id="lrfChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+        <div class="card chart-wrap">
+            <details open>
+                <summary>{{ charts.iso_line.title }}</summary>
+                <canvas id="isoChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+    </div>
+    {% elif has_temp and has_lrf %}
     <div class="half-grid">
         <div class="card chart-wrap">
             <details open>
@@ -766,14 +790,44 @@
             <canvas id="lrfChart" style="width:100%;"></canvas>
         </details>
     </div>
+    {% elif has_iso %}
+    <div class="card chart-wrap">
+        <details open>
+            <summary>{{ charts.iso_line.title }}</summary>
+            <canvas id="isoChart" style="width:100%;"></canvas>
+        </details>
+    </div>
     {% endif %}
 
     <!-- MÉDIA POR INTERVALO DE HORA DO DIA (line chart) -->
     {% set has_temp_hourly = charts.temp_hourly_line is defined %}
     {% set has_lrf_hourly = charts.lrf_hourly_line is defined %}
+    {% set has_iso_hourly = charts.iso_hourly_line is defined %}
     {% set temp_interval = charts.temp_hourly_line.get('interval_label', 'Hora') if has_temp_hourly else 'Hora' %}
     {% set lrf_interval = charts.lrf_hourly_line.get('interval_label', 'Hora') if has_lrf_hourly else 'Hora' %}
-    {% if has_temp_hourly and has_lrf_hourly %}
+    {% set iso_interval = charts.iso_hourly_line.get('interval_label', 'Hora') if has_iso_hourly else 'Hora' %}
+    {% if has_temp_hourly and has_lrf_hourly and has_iso_hourly %}
+    <div class="third-grid">
+        <div class="card chart-wrap">
+            <details open>
+                <summary>{{ charts.temp_hourly_line.title }}</summary>
+                <canvas id="tempHourlyChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+        <div class="card chart-wrap">
+            <details open>
+                <summary>{{ charts.lrf_hourly_line.title }}</summary>
+                <canvas id="lrfHourlyChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+        <div class="card chart-wrap">
+            <details open>
+                <summary>{{ charts.iso_hourly_line.title }}</summary>
+                <canvas id="isoHourlyChart" style="width:100%;"></canvas>
+            </details>
+        </div>
+    </div>
+    {% elif has_temp_hourly and has_lrf_hourly %}
     <div class="half-grid">
         <div class="card chart-wrap">
             <details open>
@@ -800,6 +854,13 @@
         <details open>
             <summary>{{ charts.lrf_hourly_line.title }}</summary>
             <canvas id="lrfHourlyChart" style="width:100%;"></canvas>
+        </details>
+    </div>
+    {% elif has_iso_hourly %}
+    <div class="card chart-wrap">
+        <details open>
+            <summary>{{ charts.iso_hourly_line.title }}</summary>
+            <canvas id="isoHourlyChart" style="width:100%;"></canvas>
         </details>
     </div>
     {% endif %}
@@ -872,6 +933,32 @@
                     scales: {
                         x: { type: 'linear', title: { display: true, text: xTitle } },
                         y: { title: { display: true, text: 'Distância (m)' } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+        {% endif %}
+
+        {% if charts.iso_line %}
+        const isoCfg = {{ charts.iso_line | tojson }};
+        let isoChartInstance = null;
+        function renderIsoChart() {
+            const ctx = document.getElementById('isoChart');
+            if (!ctx || !isoCfg) return;
+            if (isoChartInstance) isoChartInstance.destroy();
+            applyChartDefaults();
+            const xTitle = isoCfg.x_axis_title || 'Foto #';
+            isoChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: isoCfg.datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    parsing: false,
+                    scales: {
+                        x: { type: 'linear', title: { display: true, text: xTitle } },
+                        y: { title: { display: true, text: 'ISO' } }
                     },
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
                 }
@@ -953,6 +1040,43 @@
         }
         {% endif %}
 
+        {% if charts.iso_hourly_line %}
+        const isoHourlyCfg = {{ charts.iso_hourly_line | tojson }};
+        let isoHourlyChartInstance = null;
+        function renderIsoHourlyChart() {
+            const ctx = document.getElementById('isoHourlyChart');
+            if (!ctx || !isoHourlyCfg) return;
+            if (isoHourlyChartInstance) isoHourlyChartInstance.destroy();
+            applyChartDefaults();
+            const ds = isoHourlyCfg.datasets[0];
+            isoHourlyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: isoHourlyCfg.labels,
+                    datasets: [{
+                        label: ds.label,
+                        data: ds.data,
+                        borderColor: ds.borderColor,
+                        backgroundColor: ds.backgroundColor,
+                        fill: false,
+                        tension: ds.tension || 0.4,
+                        pointRadius: ds.pointRadius || 4,
+                        pointBackgroundColor: ds.pointBackgroundColor,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Hora do Dia' } },
+                        y: { title: { display: true, text: 'ISO' } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+        {% endif %}
+
         function setTheme(theme) {
             document.body.setAttribute('data-theme', theme);
             localStorage.setItem('report_theme', theme);
@@ -973,11 +1097,17 @@
             {% if charts.lrf_line %}
             renderLrfChart();
             {% endif %}
+            {% if charts.iso_line %}
+            renderIsoChart();
+            {% endif %}
             {% if charts.temp_hourly_line %}
             renderTempHourlyChart();
             {% endif %}
             {% if charts.lrf_hourly_line %}
             renderLrfHourlyChart();
+            {% endif %}
+            {% if charts.iso_hourly_line %}
+            renderIsoHourlyChart();
             {% endif %}
         })();
     </script>

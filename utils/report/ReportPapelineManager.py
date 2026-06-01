@@ -172,8 +172,10 @@ class ReportPapelineManager:
             'flight_level5_columns': flight_data.get('flight_level5_columns', []),
             'temp_chart_series': flight_data.get('temp_chart_series', []),
             'lrf_chart_series': flight_data.get('lrf_chart_series', []),
+            'iso_chart_series': flight_data.get('iso_chart_series', []),
             'temp_hourly_avg': flight_data.get('temp_hourly_avg', []),
             'lrf_hourly_avg': flight_data.get('lrf_hourly_avg', []),
+            'iso_hourly_avg': flight_data.get('iso_hourly_avg', []),
         }
 
         # ===================================================================

@@ -115,6 +115,32 @@ class RenderEngine:
                          else "LRF Target Distance ao Longo do Voo (m)",
             }
 
+        # ISO Speed Ratings per photo series (line chart) - bucketizada
+        iso_series = agg_data.get("iso_chart_series", [])
+        if iso_series:
+            iso_colors = ColorUtil.generate(len(iso_series))
+            iso_datasets = []
+            for idx, series in enumerate(iso_series):
+                color = iso_colors[idx % len(iso_colors)]
+                iso_datasets.append({
+                    "label": series["label"],
+                    "data": series["data"],
+                    "borderColor": color,
+                    "backgroundColor": ColorUtil.to_rgba(color, 0.1),
+                    "fill": False,
+                    "tension": 0.4,
+                    "pointRadius": 2,
+                })
+            x_axis_title = f"Bucket (media de {bucket_size} fotos)" if bucket_size > 1 else "Foto #"
+            charts["iso_line"] = {
+                "type": "line",
+                "datasets": iso_datasets,
+                "bucket_size": bucket_size,
+                "x_axis_title": x_axis_title,
+                "title": f"ISO Speed Ratings - Média a cada {bucket_size} fotos" if bucket_size > 1
+                         else "ISO Speed Ratings ao Longo do Voo",
+            }
+
         # Médias por intervalo de hora do dia - line chart (intervalo DINAMICO)
         interval_minutes = agg_data.get("hourly_interval_minutes", 60)
         if interval_minutes == 60:
@@ -172,6 +198,29 @@ class RenderEngine:
                 "interval_minutes": interval_minutes,
                 "interval_label": interval_label,
                 "title": f"LRF Target Distance Médio a cada {interval_label_pt} (m)",
+            }
+
+        # ISO Speed Ratings médio por intervalo de hora do dia
+        iso_hourly = agg_data.get("iso_hourly_avg", [])
+        if iso_hourly and any(h.get("mean") is not None for h in iso_hourly):
+            labels = [h["label"] for h in iso_hourly]
+            data = [h["mean"] if h.get("mean") is not None else None for h in iso_hourly]
+            charts["iso_hourly_line"] = {
+                "type": "line",
+                "labels": labels,
+                "datasets": [{
+                    "label": "ISO Médio",
+                    "data": data,
+                    "borderColor": "#FF9100",
+                    "backgroundColor": ColorUtil.to_rgba("#FF9100", 0.1),
+                    "fill": False,
+                    "tension": 0.4,
+                    "pointRadius": 4,
+                    "pointBackgroundColor": "#FF9100",
+                }],
+                "interval_minutes": interval_minutes,
+                "interval_label": interval_label,
+                "title": f"ISO Speed Ratings Médio a cada {interval_label_pt}",
             }
 
         return charts

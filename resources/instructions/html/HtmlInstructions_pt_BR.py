@@ -229,6 +229,35 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
+    def get_rgb_style_standardizer_help(self):
+        return f"""
+            {self.provider.logo}
+            Ferramenta do pacote Cadmus para padronizar o estilo de visualizacao de um raster RGB (multibanda) usando percentis.
+            {self.provider.transform_h('Objetivo')}
+            Calcular percentis 2%-98% de cada banda de um raster RGB.
+            Gerar um estilo QML com contraste esticado (StretchToMinimumMaximum).
+            Salvar o estilo como sidecar (arquivo .qml) e aplicar DIRETAMENTE na camada de entrada.
+            Nao gera um novo raster, apenas ajusta o estilo da camada atual.
+            Esta ferramenta equivale as fases 6.1 e 6.2 do Criador de Mosaico RGB, mas como algoritmo independente.
+            {self.provider.transform_h('Como usar')}
+            1. Abra a ferramenta no Processing Toolbox (Cadmus > Raster).
+            2. Selecione o raster RGB multibanda de entrada (ja carregado no projeto).
+            3. Configure os indices das bandas R (padrao: 1), G (padrao: 2), B (padrao: 3).
+            4. Se houver banda alpha, informe o indice (ex: 4). Senao, deixe -1.
+            5. Ajuste os percentis inferior (padrao: 2%) e superior (padrao: 98%) se desejar.
+            6. Execute.
+            {self.provider.transform_h('Saidas')}
+            Arquivo QML sidecar salvo ao lado do raster original.
+            Backup do QML em temp/styles.
+            Estilo aplicado diretamente na camada de entrada no projeto.
+            {self.provider.transform_h('Atencoes')}
+            O raster de entrada precisa ser multibanda (pelo menos 3 bandas).
+            Nao gera um novo raster - o estilo e aplicado na camada existente.
+            Os percentis sao calculados sobre o raster original.
+            Se a banda alpha for definida como -1, nenhuma banda alpha sera configurada no QML.
+            {self.provider.author_info}
+        """
+
     def get_attribute_statistics_help(self):
         return f"""
             {self.provider.logo}

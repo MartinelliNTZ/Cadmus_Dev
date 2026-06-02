@@ -231,7 +231,7 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
                     opacity=1.0,
                     algorithm="StretchToMinimumMaximum",
                 )
-
+            #fase 6.1
             # Salva QML sidecar (mesma pasta do output)
             qml_path = RasterLayerRendering.save_sidecar_style(
                 output_path, qml_root, tool_key=self.TOOL_KEY
@@ -249,7 +249,7 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
             if backup_path:
                 feedback.pushInfo(f"[BACKUP] Estilo salvo em temp/styles: {backup_path}")
 
-            # --- FASE 6: Aplicar estilo no raster de saida ---
+            # --- FASE 6.2: Aplicar estilo no raster de saida ---
             feedback.pushInfo("--- FASE 6: Aplicando estilo no raster de saida ---")
             if qml_path and os.path.isfile(qml_path):
                 style_applied = RasterLayerRendering.apply_qml_to_layer(

@@ -13,6 +13,7 @@ from .RasterWeightedAverage import RasterWeightedAverage
 from .GridGenerator import GridGenerator
 from .NdviCalculator import NdviCalculator
 from .RgbMosaicCreator import RgbMosaicCreator
+from .RgbStyleStandardizer import RgbStyleStandardizer
 from ..i18n.TranslationManager import STR
 
 
@@ -31,6 +32,7 @@ class MTLProvider(QgsProcessingProvider):
         self.addAlgorithm(GridGenerator())
         self.addAlgorithm(NdviCalculator())
         self.addAlgorithm(RgbMosaicCreator())
+        self.addAlgorithm(RgbStyleStandardizer())
 
     def id(self):
         return "cadmus"

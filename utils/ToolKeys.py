@@ -45,6 +45,7 @@ class ToolKey:
     NDVI_CALCULATOR = "ndvi_calculator"
     RGB_MOSAIC_CREATOR = "rgb_mosaic_creator"
     RASTER_OPTIMIZER = "raster_optimizer"
+    RGB_STYLE_STANDARDIZER = "rgb_style_standardizer"
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {
@@ -78,4 +79,5 @@ class ToolKey:
         RASTER_OPTIMIZER: "#E67E22",  # laranja -> otimizacao raster
         NDVI_CALCULATOR: "#27AE60",  # verde -> ndvi / vegetacao
         RGB_MOSAIC_CREATOR: "#E74C3C",  # vermelho -> rgb / cor
+        RGB_STYLE_STANDARDIZER: "#8E44AD",  # roxo -> padronizacao de estilo
     }

@@ -19,13 +19,9 @@ from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 class RgbStyleStandardizer(BaseProcessingAlgorithm):
     """
-    QgsProcessingAlgorithm: Padroniza o estilo de visualizacao de um
-    raster RGB (multibanda) usando percentis 2%-98% para calcular
-    o contraste de cada banda, gera um estilo QML sidecar e aplica
-    diretamente na camada de entrada.
-
-    Nao gera um novo raster, apenas ajusta o estilo da camada atual.
-    Equivalente as fases 6.1 e 6.2 do RgbMosaicCreator.
+    QgsProcessingAlgorithm: Aplica padronizacao de estilo por percentil
+    em um raster RGB multibanda. Calcula os percentis das 3 primeiras bandas,
+    gera estilo QML sidecar, salva copia em temp/styles e aplica na camada.
     """
 
     TOOL_KEY = ToolKey.RGB_STYLE_STANDARDIZER
@@ -37,10 +33,6 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
     logger = LogUtils(tool=TOOL_KEY, class_name="RgbStyleStandardizer", level="DEBUG")
 
     INPUT_RASTER = "INPUT_RASTER"
-    BAND_R = "BAND_R"
-    BAND_G = "BAND_G"
-    BAND_B = "BAND_B"
-    BAND_ALPHA = "BAND_ALPHA"
     LOWER_PCT = "LOWER_PCT"
     UPPER_PCT = "UPPER_PCT"
     DISPLAY_HELP = BaseProcessingAlgorithm.PARAM_DISPLAY_HELP
@@ -83,6 +75,7 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
             )
         )
 
+    def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm do RgbStyleStandardizer...")
 
         try:
@@ -90,13 +83,8 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
             if not raster or not raster.isValid():
                 raise QgsProcessingException("Raster RGB invalido ou nao encontrado.")
 
-            band_r = self.parameterAsInt(params, self.BAND_R, context)
-            band_g = self.parameterAsInt(params, self.BAND_G, context)
-            band_b = self.parameterAsInt(params, self.BAND_B, context)
-            band_alpha = self.parameterAsInt(params, self.BAND_ALPHA, context)
             lower_pct = self.parameterAsDouble(params, self.LOWER_PCT, context)
             upper_pct = self.parameterAsDouble(params, self.UPPER_PCT, context)
-
             display_help = self.parameterAsBool(params, self.DISPLAY_HELP, context)
 
             raster_path = raster.source()
@@ -104,34 +92,25 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
             # --- Banner inicial ---
             self._push_banner(feedback, "PADRONIZADOR DE ESTILO RGB - CADMUS")
             self._push_info_line(feedback, "Raster", raster_path)
-            self._push_info_line(feedback, "Bandas R/G/B", f"{band_r} / {band_g} / {band_b}")
-            self._push_info_line(feedback, "Banda Alpha", str(band_alpha))
             self._push_info_line(feedback, "Percentis", f"{lower_pct}% - {upper_pct}%")
             feedback.pushInfo("")
 
-            # --- FASE 1: Calcular percentis de cada banda ---
-            feedback.pushInfo("--- FASE 1: Calculando percentis das bandas ---")
+            # --- FASE 1: Calcular percentis das 3 primeiras bandas ---
+            feedback.pushInfo(f"--- FASE 1: Calculando percentis das bandas 1, 2 e 3 ---")
             feedback.pushInfo(f"Percentis: {lower_pct}% a {upper_pct}%")
 
-            def calc_band_percentiles(raster_path, band_index):
-                p_low, p_high = RasterLayerMetrics.get_band_percentiles(
-                    raster_path, band_index, lower_pct, upper_pct, tool_key=self.TOOL_KEY
-                )
-                feedback.pushInfo(
-                    f"  Banda {band_index}: P{lower_pct:.0f}={p_low:.7f}  P{upper_pct:.0f}={p_high:.7f}"
-                )
-                return p_low, p_high
-
-            p_low_r, p_high_r = calc_band_percentiles(raster_path, band_r)
-            p_low_g, p_high_g = calc_band_percentiles(raster_path, band_g)
-            p_low_b, p_high_b = calc_band_percentiles(raster_path, band_b)
-
-            # Calcula min/max global entre as 3 bandas (para contraste unificado)
-            global_min = min(p_low_r, p_low_g, p_low_b)
-            global_max = max(p_high_r, p_high_g, p_high_b)
-            feedback.pushInfo(
-                f"Global min={global_min:.7f}  Global max={global_max:.7f}"
+            min_max = RasterLayerMetrics.get_global_min_max_from_rasters(
+                [
+                    (raster_path, 1),
+                    (raster_path, 2),
+                    (raster_path, 3),
+                ],
+                lower_pct=lower_pct,
+                upper_pct=upper_pct,
+                tool_key=self.TOOL_KEY,
             )
+            global_min, global_max = min_max
+            feedback.pushInfo(f"Global min={global_min:.7f}  Global max={global_max:.7f}")
 
             # --- FASE 2: Gerar estilo QML sidecar ---
             feedback.pushInfo("--- FASE 2: Gerando estilo QML ---")
@@ -141,12 +120,12 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
                 red_band=1,
                 green_band=2,
                 blue_band=3,
-                alpha_band=band_alpha,
+                alpha_band=-1,
                 opacity=1.0,
                 algorithm="StretchToMinimumMaximum",
             )
 
-            # Salva QML sidecar (mesma pasta do raster de entrada)
+            # Salva QML sidecar (mesma pasta do raster)
             qml_path = RasterLayerRendering.save_sidecar_style(
                 raster_path, qml_root, tool_key=self.TOOL_KEY
             )
@@ -177,17 +156,13 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
 
             # --- Salvar preferencias ---
             self.prefs.update({
-                "band_r": band_r,
-                "band_g": band_g,
-                "band_b": band_b,
-                "band_alpha": band_alpha,
                 "lower_pct": lower_pct,
                 "upper_pct": upper_pct,
                 "display_help": display_help,
             })
             self.save_preferences()
 
-            feedback.pushInfo("Estilo padronizado com sucesso na camada atual.")
+            feedback.pushInfo("Processamento concluido com sucesso.")
             return {}
 
         except QgsProcessingException:

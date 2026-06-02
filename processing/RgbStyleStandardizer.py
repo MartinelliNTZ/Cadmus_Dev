@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 
 from qgis.core import (
     QgsProcessingException,
@@ -11,9 +10,7 @@ from qgis.core import (
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
 from ..utils.ToolKeys import ToolKey
-from ..utils.raster.RasterLayerMetrics import RasterLayerMetrics
 from ..utils.raster.RasterLayerRendering import RasterLayerRendering
-from ..utils.XmlUtil import XmlUtil
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
@@ -95,64 +92,19 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
             self._push_info_line(feedback, "Percentis", f"{lower_pct}% - {upper_pct}%")
             feedback.pushInfo("")
 
-            # --- FASE 1: Calcular percentis das 3 primeiras bandas ---
-            feedback.pushInfo(f"--- FASE 1: Calculando percentis das bandas 1, 2 e 3 ---")
-            feedback.pushInfo(f"Percentis: {lower_pct}% a {upper_pct}%")
-
-            min_max = RasterLayerMetrics.get_global_min_max_from_rasters(
-                [
-                    (raster_path, 1),
-                    (raster_path, 2),
-                    (raster_path, 3),
-                ],
+            # --- Pipeline completo via RasterLayerRendering ---
+            result = RasterLayerRendering.generate_percentil_multiband_style(
+                raster_path=raster_path,
+                band_indices=[1, 2, 3],
                 lower_pct=lower_pct,
                 upper_pct=upper_pct,
-                tool_key=self.TOOL_KEY,
-            )
-            global_min, global_max = min_max
-            feedback.pushInfo(f"Global min={global_min:.7f}  Global max={global_max:.7f}")
-
-            # --- FASE 2: Gerar estilo QML sidecar ---
-            feedback.pushInfo("--- FASE 2: Gerando estilo QML ---")
-            qml_root = XmlUtil.build_raster_multiband_qml(
-                min_value=global_min,
-                max_value=global_max,
-                red_band=1,
-                green_band=2,
-                blue_band=3,
                 alpha_band=-1,
                 opacity=1.0,
                 algorithm="StretchToMinimumMaximum",
+                layer=raster,
+                feedback=feedback,
+                tool_key=self.TOOL_KEY,
             )
-
-            # Salva QML sidecar (mesma pasta do raster)
-            qml_path = RasterLayerRendering.save_sidecar_style(
-                raster_path, qml_root, tool_key=self.TOOL_KEY
-            )
-            if qml_path:
-                feedback.pushInfo(f"[OK] Estilo QML salvo como sidecar: {qml_path}")
-            else:
-                feedback.pushInfo("[ERRO] Falha ao salvar estilo QML sidecar")
-
-            # Backup QML em temp/styles
-            output_base = os.path.splitext(os.path.basename(raster_path))[0]
-            backup_path = RasterLayerRendering.save_qml_backup(
-                qml_root, output_base, tool_key=self.TOOL_KEY
-            )
-            if backup_path:
-                feedback.pushInfo(f"[BACKUP] Estilo salvo em temp/styles: {backup_path}")
-
-            # --- FASE 3: Aplicar estilo diretamente na camada de entrada ---
-            feedback.pushInfo("--- FASE 3: Aplicando estilo na camada de entrada ---")
-            if qml_path and os.path.isfile(qml_path):
-                style_applied = raster.loadNamedStyle(qml_path)
-                if style_applied:
-                    raster.triggerRepaint()
-                    feedback.pushInfo("[OK] Estilo aplicado diretamente na camada de entrada com sucesso.")
-                else:
-                    feedback.pushInfo("[AVISO] loadNamedStyle retornou False. QML sidecar disponivel para carregamento manual.")
-            else:
-                feedback.pushInfo("[AVISO] Nenhum QML disponivel para aplicar estilo.")
 
             # --- Salvar preferencias ---
             self.prefs.update({

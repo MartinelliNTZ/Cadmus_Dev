@@ -16,7 +16,6 @@ from ..utils.ToolKeys import ToolKey
 from ..utils.raster.RasterLayerProcessing import RasterLayerProcessing
 from ..utils.raster.RasterLayerMetrics import RasterLayerMetrics
 from ..utils.raster.RasterLayerRendering import RasterLayerRendering
-from ..utils.XmlUtil import XmlUtil
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
@@ -189,7 +188,6 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
             alpha_path = None
             if create_alpha and alpha_nodata is not None:
                 feedback.pushInfo("--- FASE 3: Criando banda alpha ---")
-                # Usa a banda R como referência para o alpha
                 alpha_path = RasterLayerProcessing.create_alpha_mask(
                     path_r, alpha_nodata, tool_key=self.TOOL_KEY
                 )
@@ -207,65 +205,34 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
             )
             feedback.pushInfo("Mosaico RGB criado com sucesso!")
 
-            # --- FASE 5: Gerar estilo QML sidecar via RasterLayerRendering ---
-            feedback.pushInfo("--- FASE 5: Gerando estilo QML ---")
-            if create_alpha and alpha_nodata is not None:
-                qml_root = XmlUtil.build_raster_multiband_qml(
-                    min_value=global_min,
-                    max_value=global_max,
-                    red_band=1,
-                    green_band=2,
-                    blue_band=3,
-                    alpha_band=4,
-                    opacity=1.0,
-                    algorithm="StretchToMinimumMaximum",
-                )
-            else:
-                qml_root = XmlUtil.build_raster_multiband_qml(
-                    min_value=global_min,
-                    max_value=global_max,
-                    red_band=1,
-                    green_band=2,
-                    blue_band=3,
-                    alpha_band=-1,
-                    opacity=1.0,
-                    algorithm="StretchToMinimumMaximum",
-                )
-            #fase 6.1
-            # Salva QML sidecar (mesma pasta do output)
-            qml_path = RasterLayerRendering.save_sidecar_style(
-                output_path, qml_root, tool_key=self.TOOL_KEY
-            )
-            if qml_path:
-                feedback.pushInfo(f"[OK] Estilo QML salvo como sidecar: {qml_path}")
-            else:
-                feedback.pushInfo("[ERRO] Falha ao salvar estilo QML sidecar")
+            # --- FASE 5: Gerar e aplicar estilo QML via pipeline centralizado ---
+            feedback.pushInfo("--- FASE 5: Gerando e aplicando estilo QML ---")
+            alpha_band = 4 if (create_alpha and alpha_nodata is not None) else -1
 
-            # Backup QML em temp/styles
-            output_base = os.path.splitext(os.path.basename(output_path))[0]
-            backup_path = RasterLayerRendering.save_qml_backup(
-                qml_root, output_base, tool_key=self.TOOL_KEY
+            result = RasterLayerRendering.generate_percentil_multiband_style(
+                raster_path=output_path,
+                band_indices=[1, 2, 3],
+                min_value=global_min,
+                max_value=global_max,
+                alpha_band=alpha_band,
+                opacity=1.0,
+                algorithm="StretchToMinimumMaximum",
+                layer=None,  # Vamos aplicar separadamente com registro no context
+                feedback=feedback,
+                tool_key=self.TOOL_KEY,
             )
-            if backup_path:
-                feedback.pushInfo(f"[BACKUP] Estilo salvo em temp/styles: {backup_path}")
 
-            # --- FASE 6.2: Aplicar estilo no raster de saida ---
-            feedback.pushInfo("--- FASE 6: Aplicando estilo no raster de saida ---")
-            if qml_path and os.path.isfile(qml_path):
-                style_applied = RasterLayerRendering.apply_qml_to_layer(
+            # --- FASE 6: Criar layer de saida e aplicar estilo com registro no context ---
+            feedback.pushInfo("--- FASE 6: Registrando layer de saida com estilo via apply_qml_to_layer ---")
+            if result["qml_path"] and os.path.isfile(result["qml_path"]):
+                RasterLayerRendering.apply_qml_to_layer(
                     raster_path=output_path,
-                    qml_path=qml_path,
+                    qml_path=result["qml_path"],
                     context=context,
                     feedback=feedback,
                     layer_name="RGB Mosaic",
                     tool_key=self.TOOL_KEY,
                 )
-                if style_applied:
-                    feedback.pushInfo("[OK] Estilo aplicado com sucesso.")
-                else:
-                    feedback.pushInfo("[AVISO] Estilo nao pode ser aplicado diretamente. QML sidecar disponivel.")
-            else:
-                feedback.pushInfo("[AVISO] Nenhum QML disponivel para aplicar estilo.")
 
             # --- Salvar preferências ---
             self.prefs.update({

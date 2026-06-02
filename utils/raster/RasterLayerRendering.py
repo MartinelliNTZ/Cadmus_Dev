@@ -2,7 +2,7 @@
 import os
 import xml.etree.ElementTree as ET
 
-from typing import Optional
+from typing import List, Optional
 
 from qgis.core import (
     QgsProcessingLayerPostProcessorInterface,
@@ -121,7 +121,211 @@ class RasterLayerRendering:
         return None
 
     # ------------------------------------------------------------------
-    # Aplicar QML a uma layer
+    # Aplicar QML a uma layer existente (in-place)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def apply_qml_inplace(
+        layer: QgsRasterLayer,
+        qml_path: str,
+        feedback=None,
+        tool_key: str = ToolKey.UNTRACEABLE,
+    ) -> bool:
+        """
+        Aplica estilo QML diretamente em uma camada raster existente (in-place).
+
+        Args:
+            layer: QgsRasterLayer já carregada (existente no projeto ou criada)
+            qml_path: Caminho do arquivo .qml
+            feedback: QgsProcessingFeedback opcional para mensagens
+            tool_key: Chave da ferramenta para logging
+
+        Returns:
+            True se o estilo foi aplicado com sucesso
+        """
+        logger = RasterLayerRendering._get_logger(tool_key)
+        logger.debug(
+            f"apply_qml_inplace: layer={layer.name() if layer else 'None'}, qml={qml_path}"
+        )
+
+        if layer is None or not layer.isValid():
+            logger.error("apply_qml_inplace: layer invalida")
+            return False
+        if not qml_path or not os.path.isfile(qml_path):
+            logger.error(f"apply_qml_inplace: QML inexistente: {qml_path}")
+            return False
+
+        try:
+            style_ok = layer.loadNamedStyle(qml_path)
+            if style_ok:
+                layer.triggerRepaint()
+                if feedback:
+                    feedback.pushInfo(
+                        f"  [ESTILO] loadNamedStyle aplicado in-place: {qml_path}"
+                    )
+            else:
+                if feedback:
+                    feedback.pushInfo(
+                        f"  [ESTILO] loadNamedStyle retornou False: {qml_path}"
+                    )
+            logger.debug(f"apply_qml_inplace: resultado={style_ok}")
+            return style_ok
+        except Exception as e:
+            logger.error(f"apply_qml_inplace: erro: {e}")
+            if feedback:
+                feedback.pushInfo(f"  [ESTILO] ERRO: {e}")
+            return False
+
+    # ------------------------------------------------------------------
+    # Pipeline completo: gerar estilo percentil multibanda
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def generate_percentil_multiband_style(
+        raster_path: str,
+        band_indices: Optional[List[int]] = None,
+        lower_pct: float = 2.0,
+        upper_pct: float = 98.0,
+        min_value: Optional[float] = None,
+        max_value: Optional[float] = None,
+        alpha_band: int = -1,
+        opacity: float = 1.0,
+        algorithm: str = "StretchToMinimumMaximum",
+        layer: Optional[QgsRasterLayer] = None,
+        feedback=None,
+        tool_key: str = ToolKey.UNTRACEABLE,
+    ) -> dict:
+        """
+        Gera e aplica estilo QML multibanda baseado em percentis para um raster.
+
+        Pipeline completo:
+        1. Calcula percentis das bandas informadas (ou usa min_value/max_value pré-calculados)
+        2. Gera QML via XmlUtil.build_raster_multiband_qml
+        3. Salva QML sidecar (mesma pasta do raster)
+        4. Salva backup em temp/styles
+        5. Aplica estilo na camada (se layer fornecida)
+
+        Args:
+            raster_path: Caminho do arquivo raster
+            band_indices: Lista de índices de banda (1-indexed). Se None, usa [1, 2, 3]
+            lower_pct: Percentil inferior (usado se min_value=None)
+            upper_pct: Percentil superior (usado se max_value=None)
+            min_value: Valor mínimo pré-calculado (se None, calcula via percentis)
+            max_value: Valor máximo pré-calculado (se None, calcula via percentis)
+            alpha_band: Número da banda alpha (-1 = none)
+            opacity: Opacidade do raster (0.0 a 1.0)
+            algorithm: Algoritmo de contraste
+            layer: QgsRasterLayer opcional para aplicar estilo in-place
+            feedback: QgsProcessingFeedback opcional para mensagens
+            tool_key: Chave da ferramenta para logging
+
+        Returns:
+            dict com:
+                - 'qml_path': caminho do QML sidecar (ou None se falhou)
+                - 'backup_path': caminho do backup (ou None se falhou)
+                - 'style_applied': bool indicando se estilo foi aplicado na layer
+                - 'global_min': float com valor mínimo
+                - 'global_max': float com valor máximo
+        """
+        from ..XmlUtil import XmlUtil
+        from .RasterLayerMetrics import RasterLayerMetrics
+
+        logger = RasterLayerRendering._get_logger(tool_key)
+        logger.debug(
+            f"generate_percentil_multiband_style: raster={raster_path}, "
+            f"bands={band_indices}, percentis={lower_pct}%-{upper_pct}%"
+        )
+
+        if band_indices is None:
+            band_indices = [1, 2, 3]
+
+        if feedback:
+            feedback.pushInfo("--- Gerando estilo percentil multibanda ---")
+
+        # --- 1. Calcular percentis ou usar valores pré-calculados ---
+        global_min = min_value
+        global_max = max_value
+
+        if global_min is None or global_max is None:
+            raster_band_tuples = [(raster_path, b) for b in band_indices]
+            min_max = RasterLayerMetrics.get_global_min_max_from_rasters(
+                raster_band_tuples,
+                lower_pct=lower_pct,
+                upper_pct=upper_pct,
+                tool_key=tool_key,
+            )
+            global_min, global_max = min_max
+            if feedback:
+                feedback.pushInfo(
+                    f"Percentis: {lower_pct}% - {upper_pct}% | "
+                    f"min={global_min:.7f}  max={global_max:.7f}"
+                )
+        else:
+            if feedback:
+                feedback.pushInfo(
+                    f"Usando valores pré-calculados: min={global_min:.7f}  max={global_max:.7f}"
+                )
+
+        # --- 2. Gerar QML ---
+        red_band = band_indices[0] if len(band_indices) >= 1 else 1
+        green_band = band_indices[1] if len(band_indices) >= 2 else 2
+        blue_band = band_indices[2] if len(band_indices) >= 3 else 3
+
+        qml_root = XmlUtil.build_raster_multiband_qml(
+            min_value=global_min,
+            max_value=global_max,
+            red_band=red_band,
+            green_band=green_band,
+            blue_band=blue_band,
+            alpha_band=alpha_band,
+            opacity=opacity,
+            algorithm=algorithm,
+        )
+
+        # --- 3. Salvar sidecar ---
+        qml_path = RasterLayerRendering.save_sidecar_style(
+            raster_path, qml_root, tool_key=tool_key
+        )
+        if qml_path and feedback:
+            feedback.pushInfo(f"[OK] Estilo QML salvo como sidecar: {qml_path}")
+        elif feedback:
+            feedback.pushInfo("[ERRO] Falha ao salvar estilo QML sidecar")
+
+        # --- 4. Salvar backup ---
+        output_base = os.path.splitext(os.path.basename(raster_path))[0]
+        backup_path = RasterLayerRendering.save_qml_backup(
+            qml_root, output_base, tool_key=tool_key
+        )
+        if backup_path and feedback:
+            feedback.pushInfo(f"[BACKUP] Estilo salvo em temp/styles: {backup_path}")
+
+        # --- 5. Aplicar estilo (se layer fornecida) ---
+        style_applied = False
+        if layer is not None and qml_path and os.path.isfile(qml_path):
+            style_applied = RasterLayerRendering.apply_qml_inplace(
+                layer, qml_path, feedback=feedback, tool_key=tool_key
+            )
+            if feedback:
+                if style_applied:
+                    feedback.pushInfo("[OK] Estilo aplicado com sucesso.")
+                else:
+                    feedback.pushInfo("[AVISO] Estilo nao pode ser aplicado.")
+
+        logger.debug(
+            f"generate_percentil_multiband_style: concluido. "
+            f"qml={qml_path}, backup={backup_path}, applied={style_applied}"
+        )
+
+        return {
+            "qml_path": qml_path,
+            "backup_path": backup_path,
+            "style_applied": style_applied,
+            "global_min": global_min,
+            "global_max": global_max,
+        }
+
+    # ------------------------------------------------------------------
+    # Aplicar QML a uma layer (legado - cria nova layer e registra no context)
     # ------------------------------------------------------------------
 
     @staticmethod

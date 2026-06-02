@@ -36,6 +36,12 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     ALGORITHM_GROUP = GROUP_VETORIAL
     ICON = "cadmus_icon.ico"
 
+    # Constantes comuns de parâmetros booleano (reutilizáveis entre algoritmos)
+    PARAM_OPEN_OUTPUT_FOLDER = "OPEN_OUTPUT_FOLDER"
+    PARAM_DISPLAY_HELP = "DISPLAY_HELP"
+    PARAM_OPEN_OUTPUT_FOLDER_LABEL = STR.OPEN_OUTPUT_FOLDER
+    PARAM_DISPLAY_HELP_LABEL = STR.DISPLAY_HELP_FIELD
+
     def shortHelpString(self):
         if self.prefs.get("display_help", True):  # self.INSTRUCTIONS_FILE:
             html = HtmlInstructionsProvider(self.TOOL_KEY)
@@ -103,3 +109,28 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     def open_folder_in_explorer(self, folder_path):
         if folder_path and os.path.exists(folder_path):
             QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
+
+    # ------------------------------------------------------------------
+    # Helpers comuns para feedback
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _push_banner(feedback, title: str, width: int = 50):
+        """
+        Exibe um banner estilizado no feedback do processing.
+
+        Exemplo:
+            self._push_banner(feedback, "CRIADOR DE MOSAICO RGB - CADMUS")
+        """
+        if feedback is None:
+            return
+        feedback.pushInfo("=" * width)
+        feedback.pushInfo(title)
+        feedback.pushInfo("=" * width)
+
+    @staticmethod
+    def _push_info_line(feedback, label: str, value: str):
+        """Exibe uma linha info formatada no feedback."""
+        if feedback is None:
+            return
+        feedback.pushInfo(f"{label}: {value}")

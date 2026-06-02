@@ -34,8 +34,8 @@ class NdviCalculator(BaseProcessingAlgorithm):
     INPUT_RED = "INPUT_RED"
     RED_BAND = "RED_BAND"
     OUTPUT = "OUTPUT"
-    DISPLAY_HELP = "DISPLAY_HELP"
-    OPEN_OUTPUT_FOLDER = "OPEN_OUTPUT_FOLDER"
+    DISPLAY_HELP = BaseProcessingAlgorithm.PARAM_DISPLAY_HELP
+    OPEN_OUTPUT_FOLDER = BaseProcessingAlgorithm.PARAM_OPEN_OUTPUT_FOLDER
 
     def initAlgorithm(self, config=None):
         self.logger.debug("Inicializando algoritmo NdviCalculator...")
@@ -70,14 +70,14 @@ class NdviCalculator(BaseProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.OPEN_OUTPUT_FOLDER,
-                STR.OPEN_OUTPUT_FOLDER,
+                self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
                 defaultValue=self.prefs.get("open_output_folder", True),
             )
         )
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
+                self.PARAM_DISPLAY_HELP_LABEL,
                 defaultValue=self.prefs.get("display_help", True),
             )
         )
@@ -101,20 +101,17 @@ class NdviCalculator(BaseProcessingAlgorithm):
             display_help = self.parameterAsBool(params, self.DISPLAY_HELP, context)
             output_path = self.parameterAsOutputLayer(params, self.OUTPUT, context)
 
-            feedback.pushInfo("=" * 50)
-            feedback.pushInfo("CALCULADORA NDVI - CADMUS")
-            feedback.pushInfo("=" * 50)
+            # --- Banner inicial ---
+            self._push_banner(feedback, "CALCULADORA NDVI - CADMUS")
             feedback.pushInfo("")
             feedback.pushInfo("--- Bandas recomendadas por satelite ---")
             feedback.pushInfo("Sentinel-2: Banda 8 (NIR) e Banda 4 (Red)")
             feedback.pushInfo("Landsat 8/9:  Banda 5 (NIR) e Banda 4 (Red)")
             feedback.pushInfo("Landsat 5/7:  Banda 4 (NIR) e Banda 3 (Red)")
             feedback.pushInfo("")
-            feedback.pushInfo(f"NIR raster: {nir_raster.source()}")
-            feedback.pushInfo(f"NIR band: {nir_band}")
-            feedback.pushInfo(f"RED raster: {red_raster.source()}")
-            feedback.pushInfo(f"RED band: {red_band}")
-            feedback.pushInfo(f"Output: {output_path}")
+            self._push_info_line(feedback, "NIR raster", f"{nir_raster.source()}  | Banda {nir_band}")
+            self._push_info_line(feedback, "RED raster", f"{red_raster.source()}  | Banda {red_band}")
+            self._push_info_line(feedback, "Output", output_path)
             feedback.pushInfo("")
 
             nir_extent = nir_raster.extent()

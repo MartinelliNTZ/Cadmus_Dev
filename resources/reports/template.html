@@ -341,14 +341,17 @@
                     <tr><th>Altura de voo media</th>
                         <td>{% if agg.per_flight and agg.per_flight[0].avg_relative_altitude is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_relative_altitude) }} m{% else %}-{% endif %}</td>
                     </tr>
-                    <tr><th>Altitude do solo (media / p5% - p95% / range)</th>
-                        <td>{% if m.ground_elevation_mean is not none %}{{ '%.2f'|format(m.ground_elevation_mean) }}{% else %}-{% endif %} m /
-                            {% if m.ground_elevation_p5 is not none and m.ground_elevation_p95 is not none %}
-                                {{ '%.2f'|format(m.ground_elevation_p5) }} - {{ '%.2f'|format(m.ground_elevation_p95) }}
-                            {% else %}-{% endif %} /
-                            {% if m.ground_elevation_range is not none %}
-                                range: {{ '%.2f'|format(m.ground_elevation_range) }} m
-                            {% else %}-{% endif %}</td>
+                    <tr><th style="width: 40%;">Altitude do solo</th>
+                        <td style="width: 60%;">
+                            {% if m.ground_elevation_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.ground_elevation_mean) }} m</strong>
+                            {% else %}-{% endif %}
+                            {% if m.ground_elevation_p5 is not none and m.ground_elevation_p95 is not none and m.ground_elevation_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.ground_elevation_p5) }} m · p95%: {{ '%.2f'|format(m.ground_elevation_p95) }} m · variação: {{ '%.2f'|format(m.ground_elevation_range) }} m
+                                </span>
+                            {% endif %}
+                        </td>
                     </tr>
                     <tr><th>Desalinhamento do gimbal (media / desvio / max)</th>
                         <td>{% if m.gimbal_offset_mean is not none %}{{ '%.2f'|format(m.gimbal_offset_mean) }}°{% else %}-{% endif %} /

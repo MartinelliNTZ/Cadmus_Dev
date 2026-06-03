@@ -686,7 +686,143 @@ class AlertManager:
                 ))
 
         # ===================================================================
-        # 11. TEMPERATURE - Sensor com temperatura elevada
+        # 11. XY_DIFFERENCE / Z_DIFFERENCE - Discrepância entre MRK e Metadado
+        # ===================================================================
+        xy_diff_values = []
+        xy_diff_photos_ok: List[str] = []
+        xy_diff_photos_ruim: List[str] = []
+        xy_diff_flights_ruim: List[str] = []
+
+        z_diff_values = []
+        z_diff_photos_ok: List[str] = []
+        z_diff_photos_ruim: List[str] = []
+        z_diff_flights_ruim: List[str] = []
+
+        for r in results:
+            # XY_DIFFERENCE
+            xy_val = None
+            for key in [MFK.XY_DIFFERENCE.value, 'XYDifference', 'xy_difference']:
+                raw = None
+                if hasattr(r, 'level5_values'):
+                    raw = r.level5_values.get(key)
+                if raw is None and hasattr(r, 'values'):
+                    raw = r.values.get(key)
+                if raw is not None:
+                    xy_val = AlertManager._parse_num(raw)
+                    if xy_val is not None:
+                        break
+            if xy_val is not None and xy_val > 0.0:
+                xy_diff_values.append(xy_val)
+                if xy_val <= 0.05:  # > 0 e <= 5cm → INFO (diferença dentro do OK)
+                    xy_diff_photos_ok.append(r.filename)
+                else:  # > 5cm → ALERTA (diferença ruim)
+                    xy_diff_photos_ruim.append(r.filename)
+                    xy_diff_flights_ruim.append(r.flight_id or 'unknown')
+
+            # Z_DIFFERENCE
+            z_val = None
+            for key in [MFK.Z_DIFFERENCE.value, 'ZDifference', 'z_difference']:
+                raw = None
+                if hasattr(r, 'level5_values'):
+                    raw = r.level5_values.get(key)
+                if raw is None and hasattr(r, 'values'):
+                    raw = r.values.get(key)
+                if raw is not None:
+                    z_val = AlertManager._parse_num(raw)
+                    if z_val is not None:
+                        break
+            if z_val is not None and z_val > 0.0:
+                z_diff_values.append(z_val)
+                if z_val <= 0.05:  # > 0 e <= 5cm → INFO
+                    z_diff_photos_ok.append(r.filename)
+                else:  # > 5cm → ALERTA
+                    z_diff_photos_ruim.append(r.filename)
+                    z_diff_flights_ruim.append(r.flight_id or 'unknown')
+
+        # Alerta INFO: fotos com diferença > 0 mas dentro do OK (<= 5cm)
+        if xy_diff_photos_ok:
+            alerts.append(AlertManager._make_record(
+                severity=AlertManager.SEVERITY_INFO,
+                category=AlertManager.CAT_GENERAL,
+                title=f'Diferença XY (MRK x Metadado) detectada em {len(xy_diff_photos_ok)} foto(s)',
+                detail=(
+                    f'{len(xy_diff_photos_ok)}/{total_images} imagens apresentam diferença planimétrica (XY) '
+                    f'entre MRK e Metadado maior que zero, porém dentro do limite aceitável (≤ 5cm). '
+                    f'Diferença máxima observada: {max(xy_diff_values):.2f}m.' if xy_diff_values else ''
+                ),
+                impact='Indica pequenas discrepâncias entre as coordenadas do arquivo MRK e os metadados das imagens.',
+                action='Monitorar calibração do sistema GNSS e verificar consistência entre importação MRK e dados EXIF/XMP.',
+                affected_count=len(xy_diff_photos_ok),
+                total_count=total_images,
+                threshold_value=0.05,
+                actual_value=max(xy_diff_values) if xy_diff_values else None,
+            ))
+
+        if z_diff_photos_ok:
+            alerts.append(AlertManager._make_record(
+                severity=AlertManager.SEVERITY_INFO,
+                category=AlertManager.CAT_GENERAL,
+                title=f'Diferença Z (MRK x Metadado) detectada em {len(z_diff_photos_ok)} foto(s)',
+                detail=(
+                    f'{len(z_diff_photos_ok)}/{total_images} imagens apresentam diferença de altitude (Z) '
+                    f'entre MRK e Metadado maior que zero, porém dentro do limite aceitável (≤ 5cm). '
+                    f'Diferença máxima observada: {max(z_diff_values):.2f}m.' if z_diff_values else ''
+                ),
+                impact='Pequenas variações verticais entre a cota do MRK e a altitude absoluta dos metadados.',
+                action='Verificar consistência altimétrica entre MRK e AbsoluteAltitude no metadado.',
+                affected_count=len(z_diff_photos_ok),
+                total_count=total_images,
+                threshold_value=0.05,
+                actual_value=max(z_diff_values) if z_diff_values else None,
+            ))
+
+        # Alerta CRITICO: fotos com diferença > 5cm (ruim)
+        if xy_diff_photos_ruim:
+            xy_diff_flights_ruim_unique = sorted(set(xy_diff_flights_ruim))
+            xy_mean = statistics.mean(xy_diff_values) if xy_diff_values else 0.0
+            alerts.append(AlertManager._make_record(
+                severity=AlertManager.SEVERITY_ALERT,
+                category=AlertManager.CAT_GENERAL,
+                title=f'Diferença XY (MRK x Metadado) elevada em {len(xy_diff_photos_ruim)} foto(s)',
+                detail=(
+                    f'{len(xy_diff_photos_ruim)} imagens com diferença planimétrica (XY) > 5cm entre MRK e Metadado. '
+                    f'Média: {xy_mean:.2f}m. '
+                    f'Voo(s) afetados: {", ".join(xy_diff_flights_ruim_unique)}.'
+                ),
+                impact='Discrepância planimétrica significativa pode indicar erro de georreferenciamento entre MRK e metadados EXIF/XMP.',
+                action='Revisar arquivo MRK, verificar datum e sistema de coordenadas, recalcular se necessário.',
+                affected_count=len(xy_diff_photos_ruim),
+                total_count=total_images,
+                threshold_value=0.05,
+                actual_value=xy_mean,
+                flight_ids=xy_diff_flights_ruim_unique,
+                photos=xy_diff_photos_ruim[:20],
+            ))
+
+        if z_diff_photos_ruim:
+            z_diff_flights_ruim_unique = sorted(set(z_diff_flights_ruim))
+            z_mean = statistics.mean(z_diff_values) if z_diff_values else 0.0
+            alerts.append(AlertManager._make_record(
+                severity=AlertManager.SEVERITY_ALERT,
+                category=AlertManager.CAT_GENERAL,
+                title=f'Diferença Z (MRK x Metadado) elevada em {len(z_diff_photos_ruim)} foto(s)',
+                detail=(
+                    f'{len(z_diff_photos_ruim)} imagens com diferença de altitude (Z) > 5cm entre MRK e Metadado. '
+                    f'Média: {z_mean:.2f}m. '
+                    f'Voo(s) afetados: {", ".join(z_diff_flights_ruim_unique)}.'
+                ),
+                impact='Discrepância altimétrica significativa compromete a consistência vertical do produto final.',
+                action='Verificar datum vertical, calibrar altímetro e revisar AbsoluteAltitude no metadado da imagem.',
+                affected_count=len(z_diff_photos_ruim),
+                total_count=total_images,
+                threshold_value=0.05,
+                actual_value=z_mean,
+                flight_ids=z_diff_flights_ruim_unique,
+                photos=z_diff_photos_ruim[:20],
+            ))
+
+        # ===================================================================
+        # 12. TEMPERATURE - Sensor com temperatura elevada
         # ===================================================================
         temp_values = []
         for r in results:

@@ -31,12 +31,12 @@ PQI_INDICATORS: List[Dict] = [
     {
         "metadata_key": MetadataFieldKey.MOTION_BLUR_RISK,
         "threshold_name": "motion_blur_risk",
-        "weight": 0.50,
+        "weight": 0.25,
     },
     {
         "metadata_key": MetadataFieldKey.F_OVERLAP,
         "threshold_name": "predicted_overlap",
-        "weight": 1.0,
+        "weight": 0.25,
     },
     # === Indicadores com value_extractor que já retornam o LEVEL (1-5) ===
     {
@@ -59,7 +59,7 @@ PQI_INDICATORS: List[Dict] = [
     {
         "metadata_key": MetadataFieldKey.DEWARP_FLAG,
         "threshold_name": "dewarp_flag",
-        "weight": 1.5,
+        "weight": 2.0,
         "value_extractor": lambda r: _extract_dewarp_value(r),
         "bypass_classify": True,
     },

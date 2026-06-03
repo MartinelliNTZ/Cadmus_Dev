@@ -85,19 +85,14 @@
       - "Desgaste minimo"
 
   speed_3d_ms:
-    type: range_best
-    levels:
-      - [0.0, 2.0]
-      - [2.0, 4.0]
-      - [4.0, 10.0]
-      - [10.0, 15.0]
-      - [16.0, inf]
+    type: lower_better
+    levels: [22.0, 18.0, 14.0, 8.0, inf]
     messages:
-      - "Velocidade muito baixa"
-      - "Velocidade baixa"
-      - "Velocidade OK"
-      - "Velocidade boa"
-      - "Velocidade alta estavel"
+      - "Velocidade critica"        # > 22 m/s
+      - "Velocidade alta"           # 18–22 m/s
+      - "Velocidade OK"             # 14–18 m/s
+      - "Velocidade boa"            # 8–14 m/s
+      - "Velocidade ideal"          # ≤ 8 m/s
 
   incidence_angle:
     type: range_best
@@ -285,16 +280,16 @@
     type: categorical
     mapping:
       noite/escuro: 1
-      indoor/sombra: 2
-      nublado: 3
+      sol muito forte/neve: 2
+      indoor/sombra: 3
       luz solar normal: 4
-      sol muito forte/neve: 5
+      nublado: 5
     messages:
       - "Exposicao muito baixa (noite/escuro)"
+      - "Exposicao extrema (sol muito forte/neve)"
       - "Exposicao baixa (indoor/sombra)"
-      - "Exposicao moderada (nublado)"
       - "Exposicao boa (luz solar normal)"
-      - "Exposicao excelente (sol muito forte/neve)"
+      - "Exposicao ideal (nublado)"
 
   dewarp_flag:
     type: categorical

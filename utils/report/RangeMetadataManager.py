@@ -58,6 +58,25 @@ class RangeMetadataManager:
             return {}
         return self._config.get("templates", {})
 
+    def get_alerts(self) -> Dict[str, Any]:
+        """Retorna definicoes de alertas do YAML (secao 'alerts:')."""
+        if self._config is None:
+            return {}
+        alerts = self._config.get("alerts", {})
+        return {k: v for k, v in alerts.items() if v.get("enabled", True)}
+
+    def get_alert(self, alert_name: str) -> Optional[Dict[str, Any]]:
+        """Retorna a definicao de um alerta especifico pelo nome."""
+        return self.get_alerts().get(alert_name)
+
+    def resolve_indicator_levels(self, indicator_ref: str) -> list:
+        """Retorna os levels de um indicator definido em thresholds:."""
+        thresh = self.get_thresholds(indicator_ref)
+        if not thresh:
+            return []
+        levels = thresh.get("levels", [])
+        return [RangeMetadataManager._parse_num(l) if not isinstance(l, list) else l for l in levels]
+
     @staticmethod
     def _parse_num(raw: Any) -> float:
         """Converte um valor textual ou numerico em float com suporte a infinitos."""

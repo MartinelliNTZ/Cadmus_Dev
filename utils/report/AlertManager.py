@@ -13,7 +13,7 @@ from ...core.enum import MetadataFieldKey as MFK
 class AlertRecord:
     """Estrutura unificada de alerta para auditoria."""
     severity: str                # 'CRITICO', 'ALERTA', 'INFO'
-    category: str                # 'DEWARP', 'RTK', 'GSD', 'MOTION_BLUR', 'GIMBAL', 'ALTITUDE', 'OVERLAP', 'YAW', 'GSD_VARIATION', 'RTK_FLAG'
+    category: str                # Categoria definida no config.yaml
     title: str                   # Titulo curto do alerta
     detail: str                  # Descricao detalhada com metricas
     impact: str                  # Impacto na qualidade do produto final
@@ -28,45 +28,22 @@ class AlertRecord:
 
 
 class AlertManager:
-    """Centraliza a geracao de todos os alertas de qualidade do relatorio fotogrametrico."""
+    """Motor generico de alertas. Le as definicoes do config.yaml (secao alerts:)."""
 
     SEVERITY_CRITICAL = 'CRITICO'
     SEVERITY_ALERT = 'ALERTA'
     SEVERITY_INFO = 'INFO'
 
-    # Categorias de alerta
-    CAT_DEWARP = 'DEWARP'
-    CAT_RTK = 'RTK'
-    CAT_GSD = 'GSD'
-    CAT_GSD_VARIATION = 'GSD_VARIATION'
-    CAT_MOTION_BLUR = 'MOTION_BLUR'
-    CAT_GIMBAL = 'GIMBAL'
-    CAT_ALTITUDE = 'ALTITUDE'
-    CAT_OVERLAP = 'OVERLAP'
-    CAT_YAW = 'YAW'
-    CAT_RTK_FLAG = 'RTK_FLAG'
-    CAT_TEMPERATURE = 'TEMPERATURE'
-    CAT_ILLUMINATION = 'ILLUMINATION'
-    CAT_SPEED = 'SPEED'
-    CAT_SHUTTER = 'SHUTTER'
-    CAT_GENERAL = 'GENERAL'
+    SEVERITY_ORDER = {SEVERITY_CRITICAL: 0, SEVERITY_ALERT: 1, SEVERITY_INFO: 2}
 
-    # Limiares configurados
-    BLUR_ALERT_THRESHOLD = 0.5       # MotionBlurRisk > 0.5
-    BLUR_CRITICAL_THRESHOLD = 1.0    # MotionBlurRisk > 1.0
-    GIMBAL_OFFSET_ALERT = 15.0       # GimbalOffset > 15 graus
-    GIMBAL_OFFSET_CRITICAL = 30.0    # GimbalOffset > 30 graus
-    GSD_VARIATION_THRESHOLD = 0.5    # Variacao GSD > 0.5cm indica irregularidade
-    RTK_FLAG_FIXED = 50              # Flag 50 = RTK fixa
-    RTK_FLAG_FLOAT = 34              # Flag 34 = flutuante
-    RTK_FLAG_SINGLE = 16             # Flag 16 = single
-    OVERLAP_CRITICAL_PCT = 30.0      # % de imagens com overlap < 60%
-    YAW_OPPOSITE_THRESHOLD = 150.0   # Yaw alignment error para direcao oposta
-    YAW_CRITICAL_PCT = 5.0           # % maxima aceitavel de yaw oposto
-    RTK_STD_LAT_CRITICAL_PCT = 20.0  # % maxima aceitavel de lat com desvio alto
-    ALTITUDE_MISSING_WARN_PCT = 10.0 # % maxima aceitavel de altitude ausente
-    RTK_EFFECTIVE_PRECISION_ALERT = 0.100  # RTK Effective Precision > 0.100 (critico)
-    RTK_EFFECTIVE_PRECISION_WARN = 0.050   # RTK Effective Precision > 0.050 (alerta)
+    # Constantes internas (nao expostas como config)
+    _OVERLAP_IDEAL = 60.0
+    _SPEED_RECOMMENDED_MIN_MS = 5.0
+    _SPEED_RECOMMENDED_MAX_MS = 10.0
+
+    # ===================================================================
+    # Metodos utilitarios (mantidos para compatibilidade)
+    # ===================================================================
 
     @staticmethod
     def _parse_num(value: Any) -> Optional[float]:
@@ -102,6 +79,96 @@ class AlertManager:
         return int(f)
 
     @staticmethod
+    def _get_field_from_result(r: Any, field_path: str) -> Any:
+        """Extrai um campo de um resultado, suportando aninhamento com '.'.
+
+        Exemplo: 'level5_values.MotionBlurRisk' ou 'values.gsd_cm' ou 'flight_id'
+        """
+        parts = field_path.split('.')
+        obj = r
+        for part in parts:
+            if obj is None:
+                return None
+            if hasattr(obj, part):
+                obj = getattr(obj, part)
+            elif isinstance(obj, dict):
+                obj = obj.get(part)
+            elif isinstance(obj, list) and isinstance(part, int):
+                obj = obj[part] if part < len(obj) else None
+            else:
+                return None
+        return obj
+
+    @staticmethod
+    def _get_value_from_result(r: Any, cfg: Dict[str, Any]) -> Optional[float]:
+        """Extrai valor numerico de um resultado conforme config do alerta."""
+        # Tenta field_path direto
+        field_path = cfg.get('field_path')
+        if field_path:
+            raw = AlertManager._get_field_from_result(r, field_path)
+            num = AlertManager._parse_num(raw)
+            if num is not None:
+                return num
+
+        # Tenta level5_values por MFK
+        indicator = cfg.get('indicator_ref')
+        if indicator:
+            # Mapeia indicator_ref para MFK
+            mfk_key = AlertManager._indicator_to_mfk(indicator)
+            if mfk_key:
+                raw = AlertManager._get_field_from_result(r, f'level5_values.{mfk_key}')
+                num = AlertManager._parse_num(raw)
+                if num is not None:
+                    return num
+
+            # Tenta values por nome direto
+            raw = AlertManager._get_field_from_result(r, f'values.{indicator}')
+            num = AlertManager._parse_num(raw)
+            if num is not None:
+                return num
+
+            # Tenta get_indicator
+            if hasattr(r, 'get_indicator'):
+                raw = r.get_indicator(indicator)
+                num = AlertManager._parse_num(raw)
+                if num is not None:
+                    return num
+
+        return None
+
+    @staticmethod
+    def _indicator_to_mfk(indicator: str) -> Optional[str]:
+        """Converte nome de indicador para chave MetadataFieldKey."""
+        mfk_map = {
+            'motion_blur_risk': MFK.MOTION_BLUR_RISK.value,
+            'gsd_cm': MFK.GROUND_SAMPLE_DISTANCE_CM.value,
+            'photogrammetry_quality_index': MFK.PHOTOGRAMMETRY_QUALITY_INDEX.value,
+            'predicted_overlap': MFK.PREDICTED_OVERLAP.value,
+            'f_overlap': MFK.F_OVERLAP.value,
+            'yaw_alignment_error': MFK.YAW_ALIGNMENT_ERROR.value,
+            'gimbal_angular_velocity': MFK.GIMBAL_ANGULAR_VELOCITY.value,
+            'gimbal_offset': MFK.GIMBAL_OFFSET.value,
+            'rtk_std_lat': MFK.RTK_STD_LAT.value,
+            'rtk_std_lon': MFK.RTK_STD_LON.value,
+            'rtk_std_hgt': MFK.RTK_STD_HGT.value,
+            'rtk_effective_precision': MFK.RTK_EFFECTIVE_PRECISION.value,
+            'rtk_flag': MFK.RTK_FLAG.value,
+            'rtk_diff_age': MFK.RTK_DIFF_AGE.value,
+            'rtk_stability_score': MFK.RTK_STABILITY_SCORE.value,
+            'sensor_temp_c': MFK.SENSOR_TEMPERATURE.value,
+            'sensor_temperature': MFK.SENSOR_TEMPERATURE.value,
+            'xy_difference': MFK.XY_DIFFERENCE.value,
+            'z_difference': MFK.Z_DIFFERENCE.value,
+            'strip_id': MFK.STRIP_ID.value,
+            'ground_sample_distance_cm': MFK.GROUND_SAMPLE_DISTANCE_CM.value,
+            'three_d_speed': MFK.THREE_D_SPEED.value,
+            'speed_variation_index': MFK.SPEED_VARIATION_INDEX.value,
+            'light_consistency': MFK.LIGHT_CONSISTENCY.value,
+            'size_mb': MFK.SIZE_MB.value,
+        }
+        return mfk_map.get(indicator)
+
+    @staticmethod
     def _make_record(
         severity: str,
         category: str,
@@ -134,736 +201,574 @@ class AlertManager:
             photos=photos or [],
         )
 
+    # ===================================================================
+    # MOTOR GENERICO DE ANALISE
+    # ===================================================================
+
     @staticmethod
     def analyze(results: List[Any], agg: Dict[str, Any]) -> List[AlertRecord]:
-        """Executa todas as analises e retorna lista centralizada de alertas."""
+        """Executa todas as analises usando definicoes do config.yaml.
+
+        Args:
+            results: Lista de objetos IMGMetadata
+            agg: Dict com agregados (general_info, per_flight, etc.)
+
+        Returns:
+            Lista de AlertRecords ordenados por severidade
+        """
         alerts: List[AlertRecord] = []
         total_images = len(results)
 
         if total_images == 0:
             return alerts
 
-        # Extrair flights do agg para analises por voo
+        # Garantir que config esteja carregado
+        if config._config is None:
+            config.load()
+
+        # Obter definicoes de alertas do config.yaml
+        alert_defs = config.get_alerts()
         per_flight = agg.get('per_flight', [])
 
-        # ===================================================================
-        # 1. DEWARP - Dewarp desabilitado
-        # ===================================================================
-        dewarp_zero_count = agg.get('general_info', {}).get('dewarp_zero_count', 0)
-        if dewarp_zero_count > 0:
-            # Dewarp é sempre CRITICO - qualquer imagem sem dewarp compromete o bloco
-            severity = AlertManager.SEVERITY_CRITICAL
-            flights_affected = []
-            for r in results:
-                try:
-                    val = AlertManager._parse_num(r.dewarp_flag)
-                    if val is not None and val == 0.0:
-                        flights_affected.append(r.flight_id or 'unknown')
-                except Exception:
-                    pass
-            flights_affected = sorted(set(flights_affected))
+        for alert_name, alert_cfg in alert_defs.items():
+            try:
+                alert = AlertManager._evaluate_one_alert(
+                    alert_name, alert_cfg, results, agg, per_flight, total_images
+                )
+                if alert:
+                    if isinstance(alert, list):
+                        alerts.extend(alert)
+                    else:
+                        alerts.append(alert)
+            except Exception as e:
+                # Log silencioso - nao quebra o relatorio
+                pass
 
-            flight_detail = f'Voo(s): {", ".join(flights_affected)}' if flights_affected else ''
-            detail_msg = (
-                f'{dewarp_zero_count}/{total_images} imagens com DewarpFlag=0. '
-                f'{flight_detail}'
-            )
-            alerts.append(AlertManager._make_record(
-                severity=AlertManager.SEVERITY_CRITICAL,
-                category=AlertManager.CAT_DEWARP,
-                title=f'Dewarp desativado em {dewarp_zero_count} foto(s) - CRITICO',
-                detail=detail_msg,
-                impact='Distorcao sistematica compromete aerotriangulacao, geometria e qualidade radiometrica da reconstrucao.',
-                action='Reprocessar 100% das imagens com dewarping habilitado e validar calibracao interna da camera.',
-                affected_count=dewarp_zero_count,
-                total_count=total_images,
-                threshold_value=1,
-                actual_value=0,
-                flight_ids=flights_affected,
-            ))
+        # Ordenar: CRITICO primeiro, depois ALERTA, depois INFO
+        alerts.sort(key=lambda a: (
+            AlertManager.SEVERITY_ORDER.get(a.severity, 99),
+            a.category,
+            -a.affected_pct
+        ))
 
-        # ===================================================================
-        # 2. ALTITUDE - Altitude incompleta
-        # ===================================================================
-        missing_alt_count = agg.get('general_info', {}).get('missing_altitude_count', 0)
-        if missing_alt_count > 0:
-            flights_affected = []
-            for r in results:
-                try:
-                    alt_mrk_missing = AlertManager._parse_num(r.alt_mrk) is None
-                    alt_abs_missing = AlertManager._parse_num(r.absolute_altitude) is None
-                    if alt_mrk_missing and alt_abs_missing:
-                        flights_affected.append(r.flight_id or 'unknown')
-                except Exception:
-                    pass
-            flights_affected = sorted(set(flights_affected))
-            missing_pct = (missing_alt_count / total_images) * 100.0
+        return alerts
 
-            severity = AlertManager.SEVERITY_CRITICAL if missing_pct > 50.0 else (
-                AlertManager.SEVERITY_ALERT if missing_pct > AlertManager.ALTITUDE_MISSING_WARN_PCT else AlertManager.SEVERITY_INFO
-            )
-            flight_detail = f'Voo(s): {", ".join(flights_affected)}' if flights_affected else ''
-            alerts.append(AlertManager._make_record(
-                severity=severity,
-                category=AlertManager.CAT_ALTITUDE,
-                title=f'{missing_alt_count} foto(s) sem altitude completa',
-                detail=f'{missing_alt_count}/{total_images} imagens sem Alt (MRK) e AbsoluteAltitude. {flight_detail}',
-                impact='Afeta consistencia altimetrica, calculo de GSD e sobreposicao prevista.',
-                action='Corrigir captura de Alt (MRK) e AbsoluteAltitude antes do processamento.',
-                affected_count=missing_alt_count,
-                total_count=total_images,
-                actual_value=missing_pct,
-                flight_ids=flights_affected,
-            ))
+    @staticmethod
+    def _evaluate_one_alert(
+        name: str,
+        cfg: Dict[str, Any],
+        results: List[Any],
+        agg: Dict[str, Any],
+        per_flight: List[Dict[str, Any]],
+        total_images: int,
+    ) -> Optional[AlertRecord]:
+        """Avalia UMA definicao de alerta e retorna AlertRecord ou None."""
+        mode = cfg.get('mode')
 
-        # ===================================================================
-        # 3. MOTION BLUR - Fotos com blur > 0.5
-        # ===================================================================
-        blur_values = []
-        blur_photos: List[str] = []
-        blur_flights: List[str] = []
-        blur_high_photos: List[str] = []
-        for r in results:
-            val = AlertManager._parse_num(r.messages.get('motion_blur_risk') or r.level5_values.get(MFK.MOTION_BLUR_RISK.value))
-            if val is None:
-                # Tenta obter pelo campo MotionBlurRisk
-                for key in [MFK.MOTION_BLUR_RISK.value, 'motion_blur_risk']:
-                    raw = r.level5_values.get(key) or r.values.get(key)
-                    if key.startswith('Motion'):
-                        val = AlertManager._parse_num(raw)
-                        if val is not None:
-                            break
-            if val is not None:
-                blur_values.append(val)
-                if val > AlertManager.BLUR_ALERT_THRESHOLD:
-                    blur_photos.append(r.filename)
-                    blur_flights.append(r.flight_id or 'unknown')
-                    if val > AlertManager.BLUR_CRITICAL_THRESHOLD:
-                        blur_high_photos.append(r.filename)
+        if mode == 'aggregate_field':
+            return AlertManager._eval_aggregate_field(name, cfg, results, agg, total_images)
+        elif mode == 'threshold_levels':
+            return AlertManager._eval_threshold_levels(name, cfg, results, total_images)
+        elif mode == 'threshold_levels_multi':
+            return AlertManager._eval_threshold_levels_multi(name, cfg, results, total_images)
+        elif mode == 'rtk_flag':
+            return AlertManager._eval_rtk_flag(name, cfg, results, total_images)
+        elif mode == 'aggregate_std':
+            return AlertManager._eval_aggregate_std(name, cfg, results, per_flight)
+        else:
+            return None
+
+    @staticmethod
+    def _eval_aggregate_field(
+        name: str, cfg: Dict[str, Any], results: List[Any],
+        agg: Dict[str, Any], total_images: int
+    ) -> Optional[AlertRecord]:
+        """Avalia alerta modo aggregate_field: le campo do agg e compara condicao."""
+        field_path = cfg.get('aggregate_field', '')
+        if not field_path:
+            return None
+
+        # Navegar pelo agg para obter o valor (ex: general_info.dewarp_zero_count)
+        parts = field_path.split('.')
+        current = agg
+        for part in parts:
+            if isinstance(current, dict):
+                current = current.get(part, 0)
             else:
-                # Tenta via get_indicator
-                val_raw = r.get_indicator(MFK.MOTION_BLUR_RISK.value) if hasattr(r, 'get_indicator') else None
-                if val_raw is not None:
-                    val = AlertManager._parse_num(val_raw)
-                    if val is not None:
-                        blur_values.append(val)
-                        if val > AlertManager.BLUR_ALERT_THRESHOLD:
-                            blur_photos.append(r.filename)
-                            blur_flights.append(r.flight_id or 'unknown')
-                            if val > AlertManager.BLUR_CRITICAL_THRESHOLD:
-                                blur_high_photos.append(r.filename)
+                return None
 
-        blur_count = len(blur_photos)
-        blur_high_count = len(blur_high_photos)
-        blur_mean = statistics.mean(blur_values) if blur_values else None
-        blur_max = max(blur_values) if blur_values else None
+        field_value = current
+        if not isinstance(field_value, (int, float)):
+            field_value = AlertManager._parse_num(field_value)
+            if field_value is None:
+                field_value = 0
 
-        if blur_count > 0:
-            blur_flights_unique = sorted(set(blur_flights))
-            # Fotos com blur > 0.5 (alerta)
-            severity = AlertManager.SEVERITY_CRITICAL if blur_high_count > 0 else AlertManager.SEVERITY_ALERT
-            detail_parts = [
-                f'{blur_count}/{len(blur_values)} imagens com MotionBlur > {AlertManager.BLUR_ALERT_THRESHOLD}.'
-            ]
-            if blur_high_count > 0:
-                detail_parts.append(f'Sendo {blur_high_count} com blur critico > {AlertManager.BLUR_CRITICAL_THRESHOLD}.')
-            if blur_mean is not None:
-                detail_parts.append(f'Blur medio: {blur_mean:.3f}.')
-            if blur_max is not None:
-                detail_parts.append(f'Blur maximo: {blur_max:.3f}.')
-            if blur_flights_unique:
-                detail_parts.append(f'Voo(s) afetados: {", ".join(blur_flights_unique)}.')
+        cond = cfg.get('condition', {})
+        cond_type = cond.get('type', 'gt')
+        cond_value = cond.get('value', 0)
 
-            alerts.append(AlertManager._make_record(
-                severity=severity,
-                category=AlertManager.CAT_MOTION_BLUR,
-                title=f'Motion Blur elevado em {blur_count} foto(s)',
-                detail=' '.join(detail_parts),
-                impact='Borramento reduz nitidez das imagens, compromete matching, DSM e ortofoto.',
-                action='Reduzir velocidade de voo, ajustar taxa de obturação e evitar vento forte.',
-                affected_count=blur_count,
-                total_count=len(blur_values) or total_images,
-                threshold_value=AlertManager.BLUR_ALERT_THRESHOLD,
-                actual_value=blur_max,
-                flight_ids=blur_flights_unique,
-                photos=blur_photos[:20],  # Limita a 20 fotos
-            ))
+        # Avaliar condicao
+        match = False
+        if cond_type == 'gt':
+            match = field_value > cond_value
+        elif cond_type == 'gte':
+            match = field_value >= cond_value
+        elif cond_type == 'eq':
+            match = field_value == cond_value
+        elif cond_type == 'lt':
+            match = field_value < cond_value
 
-        # ===================================================================
-        # 4. GIMBAL OFFSET - Desalinhamento > 15°
-        # ===================================================================
-        gimbal_values = []
-        gimbal_photos: List[str] = []
-        gimbal_flights: List[str] = []
+        if not match:
+            return None
+
+        # Determinar severidade
+        severity = cfg.get('severity')
+        if not severity:
+            # Tentar severity_rules com pct_gt
+            rules = cfg.get('severity_rules', [])
+            pct = (field_value / total_images * 100.0) if total_images > 0 else 0.0
+            for rule in rules:
+                rule_when = rule.get('when', {})
+                if rule_when.get('type') == 'pct_gt':
+                    if pct > rule_when.get('value', 0):
+                        severity = rule.get('severity')
+                        break
+            if not severity:
+                return None
+
+        af_count = int(field_value)
+
+        # Lista de voos afetados (opcional)
+        photos_field = cfg.get('photos_field')
+        photos_condition = cfg.get('photos_condition')
+        flight_ids = []
+        if photos_field:
+            for r in results:
+                val = AlertManager._get_field_from_result(r, photos_field)
+                if val is not None:
+                    if photos_condition == '== 0.0' and val == 0.0:
+                        flight_ids.append(getattr(r, 'flight_id', 'unknown') or 'unknown')
+                    elif photos_condition == 'is None' and val is None:
+                        flight_ids.append(getattr(r, 'flight_id', 'unknown') or 'unknown')
+
+        flight_ids = sorted(set(flight_ids)) if flight_ids else []
+
+        # Montar titulo
+        title = cfg.get('title_template', f'Alerta: {name}').format(
+            affected_count=af_count,
+            total_count=total_images,
+        )
+
+        return AlertManager._make_record(
+            severity=severity,
+            category=cfg.get('category', 'GENERAL'),
+            title=title,
+            detail=f'{af_count}/{total_images} imagens afetadas.' if not flight_ids else
+                   f'{af_count}/{total_images} imagens afetadas. Voo(s): {", ".join(flight_ids)}.',
+            impact=cfg.get('impact', ''),
+            action=cfg.get('action', ''),
+            affected_count=af_count,
+            total_count=total_images,
+            flight_ids=flight_ids,
+        )
+
+    @staticmethod
+    def _eval_threshold_levels(
+        name: str, cfg: Dict[str, Any], results: List[Any], total_images: int
+    ) -> Optional[AlertRecord]:
+        """Avalia alerta modo threshold_levels: classifica cada resultado e conta por nivel."""
+        indicator = cfg.get('indicator_ref')
+        if not indicator:
+            return None
+
+        # Classificar cada resultado
+        level_counts = defaultdict(int)
+        level_photos = defaultdict(list)
+        level_flights = defaultdict(list)
+        total_classified = 0
+
         for r in results:
-            val = AlertManager._parse_num(r.level5_values.get(MFK.GIMBAL_OFFSET.value) or r.values.get('gimbal_offset'))
+            val = AlertManager._get_value_from_result(r, cfg)
             if val is None:
-                val = r.get_indicator(MFK.GIMBAL_OFFSET.value) if hasattr(r, 'get_indicator') else None
-                val = AlertManager._parse_num(val)
-            if val is not None:
-                gimbal_values.append(abs(val))  # Usar valor absoluto
-                if abs(val) > AlertManager.GIMBAL_OFFSET_ALERT:
-                    gimbal_photos.append(r.filename)
-                    gimbal_flights.append(r.flight_id or 'unknown')
+                continue
 
-        gimbal_alert_count = len(gimbal_photos)
-        gimbal_critical_count = sum(1 for v in gimbal_values if abs(v) > AlertManager.GIMBAL_OFFSET_CRITICAL) if gimbal_values else 0
-        gimbal_mean = statistics.mean(gimbal_values) if gimbal_values else None
-        gimbal_max = max(gimbal_values) if gimbal_values else None
+            try:
+                level, _ = config.classify(indicator, val)
+            except Exception:
+                continue
 
-        if gimbal_alert_count > 0:
-            gimbal_flights_unique = sorted(set(gimbal_flights))
-            severity = AlertManager.SEVERITY_CRITICAL if gimbal_critical_count > 0 else AlertManager.SEVERITY_ALERT
+            level_counts[level] += 1
+            total_classified += 1
+            level_photos[level].append(getattr(r, 'filename', 'unknown'))
+            level_flights[level].append(getattr(r, 'flight_id', 'unknown') or 'unknown')
+
+        if total_classified == 0:
+            return None
+
+        max_photos = cfg.get('max_photos_list', 0)
+
+        # Avaliar regras de severidade
+        rules = cfg.get('severity_rules', [])
+        for rule in rules:
+            rule_when = rule.get('when', {})
+            rule_type = rule_when.get('type')
+            rule_level = rule_when.get('level')
+
+            match = False
+            affected_count = 0
+            threshold_val = None
+            actual_val = None
+            photos_list = []
+            flights_list = []
+
+            if rule_type == 'any_at_level':
+                # Qualquer foto naquele nivel ou pior
+                count = sum(level_counts.get(lvl, 0) for lvl in range(1, rule_level + 1))
+                if count > 0:
+                    match = True
+                    affected_count = count
+                    # Coletar fotos e voos
+                    for lvl in range(1, rule_level + 1):
+                        photos_list.extend(level_photos.get(lvl, []))
+                        flights_list.extend(level_flights.get(lvl, []))
+                    # Threshold = level do config
+                    levels_raw = config.resolve_indicator_levels(indicator)
+                    if levels_raw and rule_level <= len(levels_raw):
+                        threshold_val = AlertManager._parse_num(levels_raw[rule_level - 1])
+                    actual_val = threshold_val  # valor aproximado do limiar
+
+            elif rule_type == 'pct_at_level_or_worse':
+                # % de fotos naquele nivel ou pior
+                min_pct = rule_when.get('min_pct', 0)
+                count = sum(level_counts.get(lvl, 0) for lvl in range(1, rule_level + 1))
+                pct = (count / total_classified * 100.0) if total_classified > 0 else 0.0
+                if pct > min_pct:
+                    match = True
+                    affected_count = count
+                    for lvl in range(1, rule_level + 1):
+                        photos_list.extend(level_photos.get(lvl, []))
+                        flights_list.extend(level_flights.get(lvl, []))
+                    levels_raw = config.resolve_indicator_levels(indicator)
+                    if levels_raw and rule_level <= len(levels_raw):
+                        threshold_val = AlertManager._parse_num(levels_raw[rule_level - 1])
+                    actual_val = pct
+
+            if not match:
+                continue
+
+            # Se chegou aqui, a regra match
+            severity = rule.get('severity')
+
+            # Limitar fotos
+            if max_photos > 0:
+                photos_list = photos_list[:max_photos]
+            flights_list = sorted(set(flights_list)) if flights_list else []
+
+            # Montar titulo
+            title = cfg.get('title_template', f'Alerta: {name}').format(
+                affected_count=affected_count,
+                total_count=total_classified,
+            )
+
+            # Detail
             detail_parts = [
-                f'{gimbal_alert_count}/{len(gimbal_values)} imagens com GimbalOffset > {AlertManager.GIMBAL_OFFSET_ALERT}°.'
+                f'{affected_count}/{total_classified} imagens com {indicator} no nivel {rule_level}.'
             ]
-            if gimbal_critical_count > 0:
-                detail_parts.append(f'Sendo {gimbal_critical_count} com offset critico > {AlertManager.GIMBAL_OFFSET_CRITICAL}°.')
-            if gimbal_mean is not None:
-                detail_parts.append(f'Offset medio: {gimbal_mean:.2f}°.')
-            if gimbal_max is not None:
-                detail_parts.append(f'Offset maximo: {gimbal_max:.2f}°.')
-            if gimbal_flights_unique:
-                detail_parts.append(f'Voo(s) afetados: {", ".join(gimbal_flights_unique)}.')
+            if flights_list:
+                detail_parts.append(f'Voo(s): {", ".join(flights_list)}.')
 
-            alerts.append(AlertManager._make_record(
+            return AlertManager._make_record(
                 severity=severity,
-                category=AlertManager.CAT_GIMBAL,
-                title=f'Gimbal desalinhado em {gimbal_alert_count} foto(s)',
+                category=cfg.get('category', 'GENERAL'),
+                title=title,
                 detail=' '.join(detail_parts),
-                impact='Desalinhamento do gimbal causa rotacao na imagem, afetando matching e orientacao.',
-                action='Recalibrar gimbal, verificar fixacao e realizar voo de calibracao.',
-                affected_count=gimbal_alert_count,
-                total_count=len(gimbal_values) or total_images,
-                threshold_value=AlertManager.GIMBAL_OFFSET_ALERT,
-                actual_value=gimbal_max,
-                flight_ids=gimbal_flights_unique,
-                photos=gimbal_photos[:20],
-            ))
+                impact=cfg.get('impact', ''),
+                action=cfg.get('action', ''),
+                affected_count=affected_count,
+                total_count=total_classified,
+                threshold_value=threshold_val,
+                actual_value=actual_val,
+                flight_ids=flights_list,
+                photos=photos_list if max_photos > 0 else [],
+            )
 
-        # ===================================================================
-        # 5. RTK FLAG - Monitoramento de qualidade do sinal RTK por foto
-        # ===================================================================
+        return None
+
+    @staticmethod
+    def _eval_threshold_levels_multi(
+        name: str, cfg: Dict[str, Any], results: List[Any], total_images: int
+    ) -> Optional[AlertRecord]:
+        """Avalia alerta modo threshold_levels_multi: multi-indicadores combinados."""
+        indicators = cfg.get('indicators', [])
+        if not indicators:
+            return None
+
+        # Para cada indicador, classificar cada resultado
+        indicator_stats = {}
+        total_classified = 0
+
+        for indicator in indicators:
+            level_counts = defaultdict(int)
+            for r in results:
+                val = AlertManager._get_value_from_result(r, {'indicator_ref': indicator})
+                if val is None:
+                    continue
+                try:
+                    level, _ = config.classify(indicator, val)
+                except Exception:
+                    continue
+                level_counts[level] += 1
+                total_classified += 1
+
+            indicator_stats[indicator] = {
+                'level_counts': dict(level_counts),
+                'total': sum(level_counts.values()),
+            }
+
+        if total_classified == 0:
+            return None
+
+        # Avaliar regras de severidade
+        rules = cfg.get('severity_rules', [])
+        for rule in rules:
+            rule_when = rule.get('when', {})
+            rule_type = rule_when.get('type')
+            rule_level = rule_when.get('level')
+            min_pct = rule_when.get('min_pct', 0)
+
+            if rule_type != 'any_indicator_pct_at_level':
+                continue
+
+            # Verificar se algum indicador tem % no nivel ou pior acima de min_pct
+            worst_pct = 0.0
+            worst_indicator = None
+            for indicator, stats in indicator_stats.items():
+                lvl_counts = stats['level_counts']
+                count_at_level = sum(
+                    cnt for lvl, cnt in lvl_counts.items() if lvl <= rule_level
+                )
+                pct = (count_at_level / stats['total'] * 100.0) if stats['total'] > 0 else 0.0
+                if pct > worst_pct:
+                    worst_pct = pct
+                    worst_indicator = indicator
+
+            if worst_pct < min_pct:
+                continue
+
+            severity = rule.get('severity')
+            total_affected = sum(
+                sum(cnt for lvl, cnt in s['level_counts'].items() if lvl <= rule_level)
+                for s in indicator_stats.values()
+            )
+
+            title = cfg.get('title_template', f'Alerta: {name}').format(
+                affected_count=total_affected,
+                total_count=total_classified,
+            )
+
+            # Detail com stats por indicador
+            detail_parts = []
+            for indicator, stats in indicator_stats.items():
+                lvl_counts = stats['level_counts']
+                count_poor = sum(cnt for lvl, cnt in lvl_counts.items() if lvl <= rule_level)
+                pct = (count_poor / stats['total'] * 100.0) if stats['total'] > 0 else 0.0
+                levels_raw = config.resolve_indicator_levels(indicator)
+                cutoff = AlertManager._fmt_num(levels_raw[rule_level - 1], 3) if levels_raw and rule_level <= len(levels_raw) else 'N/A'
+                detail_parts.append(f'{indicator} > {cutoff}: {pct:.2f}%')
+
+            return AlertManager._make_record(
+                severity=severity,
+                category=cfg.get('category', 'GENERAL'),
+                title=title,
+                detail=' | '.join(detail_parts),
+                impact=cfg.get('impact', ''),
+                action=cfg.get('action', ''),
+                affected_count=total_affected,
+                total_count=total_classified,
+                threshold_value=AlertManager._parse_num(
+                    config.resolve_indicator_levels(indicators[0])[rule_level - 1]
+                ) if indicators and config.resolve_indicator_levels(indicators[0]) and rule_level <= len(config.resolve_indicator_levels(indicators[0])) else None,
+            )
+
+        return None
+
+    @staticmethod
+    def _eval_rtk_flag(
+        name: str, cfg: Dict[str, Any], results: List[Any], total_images: int
+    ) -> Optional[AlertRecord]:
+        """Avalia alerta modo rtk_flag: analisa flags RTK."""
+        flag_fixed = cfg.get('flag_fixed', 50)
+        flag_float = cfg.get('flag_float', 34)
+        flag_single = cfg.get('flag_single', 16)
+
         rtk_fixed_count = 0
         rtk_float_count = 0
         rtk_single_count = 0
         rtk_unknown_count = 0
-        rtk_non_fixed_photos: List[str] = []
-        rtk_non_fixed_flights: List[str] = []
+        rtk_non_fixed_photos = []
+        rtk_non_fixed_flights = []
 
         for r in results:
-            rtk_flag = AlertManager._to_int_or_none(r.level5_values.get(MFK.RTK_FLAG.value) or r.values.get('rtk_flag'))
-            if rtk_flag is None:
-                rtk_flag = AlertManager._to_int_or_none(
-                    r.get_indicator(MFK.RTK_FLAG.value) if hasattr(r, 'get_indicator') else None
-                )
-            if rtk_flag is None:
-                # Tenta encontrar nos dados crus
-                for key in [MFK.RTK_FLAG.value, 'RtkFlag', 'rtk_flag']:
-                    raw = r.level5_values.get(key) or r.values.get(key) or (r._data.get(key) if hasattr(r, '_data') else None)
-                    rtk_flag = AlertManager._to_int_or_none(raw)
-                    if rtk_flag is not None:
-                        break
+            rtk_flag = AlertManager._to_int_or_none(
+                AlertManager._get_field_from_result(r, f'level5_values.{MFK.RTK_FLAG.value}')
+                or AlertManager._get_field_from_result(r, 'values.rtk_flag')
+            )
+            if rtk_flag is None and hasattr(r, 'get_indicator'):
+                rtk_flag = AlertManager._to_int_or_none(r.get_indicator(MFK.RTK_FLAG.value))
 
             if rtk_flag is None:
                 rtk_unknown_count += 1
                 continue
 
-            if rtk_flag == AlertManager.RTK_FLAG_FIXED:
+            if rtk_flag == flag_fixed:
                 rtk_fixed_count += 1
-            elif rtk_flag == AlertManager.RTK_FLAG_FLOAT:
+            elif rtk_flag == flag_float:
                 rtk_float_count += 1
-                rtk_non_fixed_photos.append(r.filename)
-                rtk_non_fixed_flights.append(r.flight_id or 'unknown')
-            elif rtk_flag == AlertManager.RTK_FLAG_SINGLE:
+                rtk_non_fixed_photos.append(getattr(r, 'filename', 'unknown'))
+                rtk_non_fixed_flights.append(getattr(r, 'flight_id', 'unknown') or 'unknown')
+            elif rtk_flag == flag_single:
                 rtk_single_count += 1
-                rtk_non_fixed_photos.append(r.filename)
-                rtk_non_fixed_flights.append(r.flight_id or 'unknown')
+                rtk_non_fixed_photos.append(getattr(r, 'filename', 'unknown'))
+                rtk_non_fixed_flights.append(getattr(r, 'flight_id', 'unknown') or 'unknown')
             else:
                 rtk_unknown_count += 1
-                rtk_non_fixed_photos.append(r.filename)
-                rtk_non_fixed_flights.append(r.flight_id or 'unknown')
+                rtk_non_fixed_photos.append(getattr(r, 'filename', 'unknown'))
+                rtk_non_fixed_flights.append(getattr(r, 'flight_id', 'unknown') or 'unknown')
 
-        rtk_total_classified = rtk_fixed_count + rtk_float_count + rtk_single_count + rtk_unknown_count
+        rtk_total = rtk_fixed_count + rtk_float_count + rtk_single_count + rtk_unknown_count
         rtk_non_fixed_count = len(rtk_non_fixed_photos)
-        rtk_fixed_pct = (rtk_fixed_count / rtk_total_classified * 100.0) if rtk_total_classified > 0 else 0.0
-        rtk_non_fixed_pct = (rtk_non_fixed_count / rtk_total_classified * 100.0) if rtk_total_classified > 0 else 0.0
+        rtk_fixed_pct = (rtk_fixed_count / rtk_total * 100.0) if rtk_total > 0 else 0.0
+        rtk_non_fixed_pct = (rtk_non_fixed_count / rtk_total * 100.0) if rtk_total > 0 else 0.0
 
-        if rtk_non_fixed_count > 0:
-            rtk_non_fixed_flights_unique = sorted(set(rtk_non_fixed_flights))
-            severity = AlertManager.SEVERITY_CRITICAL if rtk_fixed_pct < 80.0 else (
-                AlertManager.SEVERITY_ALERT if rtk_non_fixed_pct > 5.0 else AlertManager.SEVERITY_INFO
-            )
-            detail_parts = [
-                f'RTK Fixa (Flag 50): {rtk_fixed_count}/{rtk_total_classified} ({rtk_fixed_pct:.1f}%).',
-                f'RTK Flutuante (Flag 34): {rtk_float_count}.',
-                f'RTK Single (Flag 16): {rtk_single_count}.',
-            ]
-            if rtk_unknown_count > 0:
-                detail_parts.append(f'Desconhecido: {rtk_unknown_count}.')
-            if rtk_non_fixed_flights_unique:
-                detail_parts.append(f'Voo(s) com sinal nao-fixo: {", ".join(rtk_non_fixed_flights_unique)}.')
+        if rtk_non_fixed_count == 0 and rtk_unknown_count == 0:
+            return None
 
-            alerts.append(AlertManager._make_record(
-                severity=severity,
-                category=AlertManager.CAT_RTK_FLAG,
-                title='Queda na qualidade do sinal RTK detectada',
-                detail=' '.join(detail_parts),
-                impact='Sinal RTK nao-fixo reduz precisao posicional e pode degradar o georreferenciamento direto.',
-                action='Verificar base RTK, radio link, visibilidade GNSS e configuracao do receptor.',
-                affected_count=rtk_non_fixed_count,
-                total_count=rtk_total_classified,
-                threshold_value=AlertManager.RTK_FLAG_FIXED,
-                actual_value=rtk_fixed_pct,
-                flight_ids=rtk_non_fixed_flights_unique,
-                photos=rtk_non_fixed_photos[:20],
-            ))
-
+        # Caso especial: nenhuma flag RTK disponivel
         if rtk_unknown_count == total_images:
-            alerts.append(AlertManager._make_record(
+            return AlertManager._make_record(
                 severity=AlertManager.SEVERITY_INFO,
-                category=AlertManager.CAT_RTK_FLAG,
+                category=cfg.get('category', 'RTK_FLAG'),
                 title='Flag RTK nao disponivel',
                 detail='Nenhuma imagem possui o campo RtkFlag. Nao foi possivel avaliar a qualidade do sinal RTK.',
                 impact='Sem informacao de qualidade do sinal RTK para auditoria.',
                 action='Garantir que o metadata RtkFlag seja capturado durante o voo.',
                 affected_count=rtk_unknown_count,
                 total_count=total_images,
-            ))
+            )
 
-        # ===================================================================
-        # 6. GSD VARIATION por voo - Variacao > 0.5cm indica irregularidade de altitude
-        # ===================================================================
-        gsd_variation_alerts = 0
-        gsd_variation_flights: List[str] = []
-        for flight in per_flight:
-            flight_id = flight.get('flight_id', 'unknown')
-            gsd_mean = flight.get('level5_means', {}).get(MFK.GROUND_SAMPLE_DISTANCE_CM.value)
-            if gsd_mean is not None:
-                gsd_mean = AlertManager._parse_num(gsd_mean)
-            if gsd_mean is None:
+        # Avaliar regras de severidade
+        rules = cfg.get('severity_rules', [])
+        for rule in rules:
+            rule_when = rule.get('when', {})
+            rule_type = rule_when.get('type')
+            rule_value = rule_when.get('value', 0)
+
+            match = False
+            if rule_type == 'fixed_pct_lt' and rtk_fixed_pct < rule_value:
+                match = True
+            elif rule_type == 'non_fixed_pct_gt' and rtk_non_fixed_pct > rule_value:
+                match = True
+            elif rule_type == 'non_fixed_count_gt' and rtk_non_fixed_count > rule_value:
+                match = True
+
+            if not match:
                 continue
 
-            # Calcular variacao do GSD para este voo a partir dos resultados
-            gsd_values = []
-            for r in results:
-                if r.flight_id != flight_id:
-                    continue
-                val = AlertManager._parse_num(r.values.get('gsd_cm') or r.level5_values.get(MFK.GROUND_SAMPLE_DISTANCE_CM.value))
-                if val is None:
-                    val = r.get_indicator('gsd_cm') if hasattr(r, 'get_indicator') else None
-                    val = AlertManager._parse_num(val)
-                if val is not None:
-                    gsd_values.append(val)
+            severity = rule.get('severity')
+            max_photos = cfg.get('max_photos_list', 20)
 
-            if len(gsd_values) >= 2:
-                gsd_std = statistics.stdev(gsd_values)
-                gsd_var = gsd_std  # desvio padrao ja representa variacao
-                if gsd_var > AlertManager.GSD_VARIATION_THRESHOLD:
+            detail_parts = [
+                f'RTK Fixa (Flag {flag_fixed}): {rtk_fixed_count}/{rtk_total} ({rtk_fixed_pct:.1f}%).',
+                f'RTK Flutuante (Flag {flag_float}): {rtk_float_count}.',
+                f'RTK Single (Flag {flag_single}): {rtk_single_count}.',
+            ]
+            if rtk_unknown_count > 0:
+                detail_parts.append(f'Desconhecido: {rtk_unknown_count}.')
+
+            flights_unique = sorted(set(rtk_non_fixed_flights))
+            if flights_unique:
+                detail_parts.append(f'Voo(s): {", ".join(flights_unique)}.')
+
+            return AlertManager._make_record(
+                severity=severity,
+                category=cfg.get('category', 'RTK_FLAG'),
+                title=cfg.get('title_template', 'Queda na qualidade do sinal RTK detectada'),
+                detail=' '.join(detail_parts),
+                impact=cfg.get('impact', ''),
+                action=cfg.get('action', ''),
+                affected_count=rtk_non_fixed_count,
+                total_count=rtk_total,
+                threshold_value=float(flag_fixed),
+                actual_value=rtk_fixed_pct,
+                flight_ids=flights_unique,
+                photos=rtk_non_fixed_photos[:max_photos],
+            )
+
+        # Se nenhuma regra match, nao gera alerta
+        return None
+
+    @staticmethod
+    def _eval_aggregate_std(
+        name: str, cfg: Dict[str, Any], results: List[Any],
+        per_flight: List[Dict[str, Any]]
+    ) -> Optional[AlertRecord]:
+        """Avalia alerta modo aggregate_std: desvio padrao de indicador por voo."""
+        indicator = cfg.get('indicator_ref')
+        std_threshold = cfg.get('std_threshold', 0.5)
+        if not indicator or not per_flight:
+            return None
+
+        gsd_variation_alerts = 0
+        gsd_variation_flights = []
+
+        for flight in per_flight:
+            flight_id = flight.get('flight_id', 'unknown')
+
+            # Calcular desvio padrao do indicador para este voo
+            values = []
+            for r in results:
+                if getattr(r, 'flight_id', None) != flight_id:
+                    continue
+                val = AlertManager._get_value_from_result(r, cfg)
+                if val is not None:
+                    values.append(val)
+
+            if len(values) >= 2:
+                std = statistics.stdev(values)
+                if std > std_threshold:
                     gsd_variation_alerts += 1
                     gsd_variation_flights.append(flight_id)
 
-        if gsd_variation_alerts > 0:
-            gsd_variation_flights_unique = sorted(set(gsd_variation_flights))
-            alerts.append(AlertManager._make_record(
-                severity=AlertManager.SEVERITY_ALERT,
-                category=AlertManager.CAT_GSD_VARIATION,
-                title=f'Variacao de GSD acima do limiar em {gsd_variation_alerts} voo(s)',
-                detail=(
-                    f'{gsd_variation_alerts} voo(s) apresentaram variacao de GSD (desvio padrao) '
-                    f'> {AlertManager.GSD_VARIATION_THRESHOLD}cm, indicando possivel irregularidade de altitude. '
-                    f'Voo(s): {", ".join(gsd_variation_flights_unique)}.'
-                ),
-                impact='Variacao de GSD indica irregularidade de altitude que compromete a consistencia do produto final.',
-                action='Verificar estabilidade de altitude do drone e condicoes de vento durante o voo.',
-                affected_count=gsd_variation_alerts,
-                total_count=len(per_flight),
-                threshold_value=AlertManager.GSD_VARIATION_THRESHOLD,
-                flight_ids=gsd_variation_flights_unique,
-            ))
+        if gsd_variation_alerts == 0:
+            return None
 
-        # ===================================================================
-        # 7. OVERLAP - Sobreposicao insuficiente
-        # ===================================================================
-        overlap_values = []
-        for r in results:
-            val = AlertManager._parse_num(r.level5_values.get(MFK.PREDICTED_OVERLAP.value) or r.values.get('predicted_overlap'))
-            if val is None:
-                val = AlertManager._parse_num(r.level5_values.get(MFK.F_OVERLAP.value) or r.values.get('f_overlap'))
-            if val is None:
-                val = r.get_indicator(MFK.PREDICTED_OVERLAP.value) if hasattr(r, 'get_indicator') else None
-                val = AlertManager._parse_num(val)
-            if val is not None:
-                overlap_values.append(val)
+        severity = cfg.get('severity', 'ALERTA')
+        flights_unique = sorted(set(gsd_variation_flights))
 
-        OVERLAP_IDEAL = 60.0
-        overlap_below = [v for v in overlap_values if v < OVERLAP_IDEAL]
-        overlap_below_pct = (len(overlap_below) / len(overlap_values) * 100.0) if overlap_values else 0.0
-        overlap_mean = statistics.mean(overlap_values) if overlap_values else None
+        title = cfg.get('title_template', f'Variacao de {indicator} acima do limiar').format(
+            affected_count=gsd_variation_alerts,
+            total_count=len(per_flight),
+        )
 
-        if overlap_values and overlap_below_pct > AlertManager.OVERLAP_CRITICAL_PCT:
-            severity = AlertManager.SEVERITY_CRITICAL if overlap_below_pct > 50.0 else AlertManager.SEVERITY_ALERT
-            alerts.append(AlertManager._make_record(
-                severity=severity,
-                category=AlertManager.CAT_OVERLAP,
-                title='Overlap insuficiente para reconstrucao robusta',
-                detail=(
-                    f'{overlap_below_pct:.2f}% das imagens com overlap < {OVERLAP_IDEAL:.0f}%. '
-                    f'Overlap medio: {overlap_mean:.1f}%.'
-                ),
-                impact='Pode causar lacunas, alinhamento fraco e aumento de ruido no modelo 3D.',
-                action='Aumentar sobreposicao longitudinal/lateral e refazer as faixas criticas.',
-                affected_count=len(overlap_below),
-                total_count=len(overlap_values),
-                threshold_value=OVERLAP_IDEAL,
-                actual_value=overlap_mean,
-            ))
+        return AlertManager._make_record(
+            severity=severity,
+            category=cfg.get('category', 'GENERAL'),
+            title=title,
+            detail=(
+                f'{gsd_variation_alerts} voo(s) com desvio padrao de {indicator} > {std_threshold}. '
+                f'Voo(s): {", ".join(flights_unique)}.'
+            ),
+            impact=cfg.get('impact', ''),
+            action=cfg.get('action', ''),
+            affected_count=gsd_variation_alerts,
+            total_count=len(per_flight),
+            threshold_value=std_threshold,
+            flight_ids=flights_unique,
+        )
 
-        # ===================================================================
-        # 8. YAW - Inconsistencia de direcao de voo
-        # ===================================================================
-        yaw_values = []
-        for r in results:
-            val = AlertManager._parse_num(r.level5_values.get(MFK.YAW_ALIGNMENT_ERROR.value) or r.values.get('yaw_alignment_error'))
-            if val is None:
-                val = r.get_indicator(MFK.YAW_ALIGNMENT_ERROR.value) if hasattr(r, 'get_indicator') else None
-                val = AlertManager._parse_num(val)
-            if val is not None:
-                yaw_values.append(val)
-
-        yaw_opposite = [v for v in yaw_values if v >= AlertManager.YAW_OPPOSITE_THRESHOLD]
-        yaw_opposite_pct = (len(yaw_opposite) / len(yaw_values) * 100.0) if yaw_values else 0.0
-
-        if yaw_values and yaw_opposite_pct > AlertManager.YAW_CRITICAL_PCT:
-            alerts.append(AlertManager._make_record(
-                severity=AlertManager.SEVERITY_ALERT,
-                category=AlertManager.CAT_YAW,
-                title='Inconsistencia de direcao de voo (yaw)',
-                detail=f'{yaw_opposite_pct:.2f}% das imagens com YawAlignmentError >= {AlertManager.YAW_OPPOSITE_THRESHOLD}°.',
-                impact='Direcoes conflitantes podem reduzir matching e gerar faixas desalinhadas.',
-                action='Revisar planejamento de heading e evitar trechos em sentido oposto sem controle de bloco.',
-                affected_count=len(yaw_opposite),
-                total_count=len(yaw_values),
-                threshold_value=AlertManager.YAW_OPPOSITE_THRESHOLD,
-                actual_value=max(yaw_values) if yaw_values else None,
-            ))
-
-        # ===================================================================
-        # 9. RTK STD - Sinal GPS/RTK com qualidade insuficiente (Lat/Lon/Hgt)
-        # ===================================================================
-        rtk_lat_vals = []
-        rtk_lon_vals = []
-        rtk_hgt_vals = []
-        for r in results:
-            lat = AlertManager._parse_num(r.level5_values.get(MFK.RTK_STD_LAT.value) or r.values.get('rtk_std_lat'))
-            if lat is None:
-                lat = r.get_indicator(MFK.RTK_STD_LAT.value) if hasattr(r, 'get_indicator') else None
-                lat = AlertManager._parse_num(lat)
-            if lat is not None:
-                rtk_lat_vals.append(lat)
-
-            lon = AlertManager._parse_num(r.level5_values.get(MFK.RTK_STD_LON.value) or r.values.get('rtk_std_lon'))
-            if lon is None:
-                lon = r.get_indicator(MFK.RTK_STD_LON.value) if hasattr(r, 'get_indicator') else None
-                lon = AlertManager._parse_num(lon)
-            if lon is not None:
-                rtk_lon_vals.append(lon)
-
-            hgt = AlertManager._parse_num(r.level5_values.get(MFK.RTK_STD_HGT.value) or r.values.get('rtk_std_hgt'))
-            if hgt is None:
-                hgt = r.get_indicator(MFK.RTK_STD_HGT.value) if hasattr(r, 'get_indicator') else None
-                hgt = AlertManager._parse_num(hgt)
-            if hgt is not None:
-                rtk_hgt_vals.append(hgt)
-
-        lat_thresh = config.get_thresholds('rtk_std_lat') if config and config._config else None
-        lon_thresh = config.get_thresholds('rtk_std_lon') if config and config._config else None
-        hgt_thresh = config.get_thresholds('rtk_std_hgt') if config and config._config else None
-        lat_levels = (lat_thresh or {}).get('levels', []) if lat_thresh else []
-        lon_levels = (lon_thresh or {}).get('levels', []) if lon_thresh else []
-        hgt_levels = (hgt_thresh or {}).get('levels', []) if hgt_thresh else []
-        lat_cut = AlertManager._parse_num(lat_levels[0]) if lat_levels else 0.050
-        lon_cut = AlertManager._parse_num(lon_levels[0]) if lon_levels else 0.050
-        hgt_cut = AlertManager._parse_num(hgt_levels[0]) if hgt_levels else 0.100
-
-        poor_lat = [v for v in rtk_lat_vals if v > lat_cut] if lat_cut else []
-        poor_lon = [v for v in rtk_lon_vals if v > lon_cut] if lon_cut else []
-        poor_hgt = [v for v in rtk_hgt_vals if v > hgt_cut] if hgt_cut else []
-        poor_lat_pct = (len(poor_lat) / len(rtk_lat_vals) * 100.0) if rtk_lat_vals else 0.0
-        poor_lon_pct = (len(poor_lon) / len(rtk_lon_vals) * 100.0) if rtk_lon_vals else 0.0
-        poor_hgt_pct = (len(poor_hgt) / len(rtk_hgt_vals) * 100.0) if rtk_hgt_vals else 0.0
-
-        # Alerta combinado: se algum dos 3 componentes estiver degradado
-        any_poor_rtk = (rtk_lat_vals and poor_lat_pct > AlertManager.RTK_STD_LAT_CRITICAL_PCT) or \
-                       (rtk_lon_vals and poor_lon_pct > AlertManager.RTK_STD_LAT_CRITICAL_PCT) or \
-                       (rtk_hgt_vals and poor_hgt_pct > AlertManager.RTK_STD_LAT_CRITICAL_PCT)
-        if any_poor_rtk:
-            lat_str = f'{lat_cut:.3f}' if lat_cut else 'N/A'
-            lon_str = f'{lon_cut:.3f}' if lon_cut else 'N/A'
-            hgt_str = f'{hgt_cut:.3f}' if hgt_cut else 'N/A'
-            max_pct = max(
-                poor_lat_pct if rtk_lat_vals else 0,
-                poor_lon_pct if rtk_lon_vals else 0,
-                poor_hgt_pct if rtk_hgt_vals else 0
-            )
-            severity = AlertManager.SEVERITY_CRITICAL if max_pct > 50.0 else AlertManager.SEVERITY_ALERT
-
-            # Montar detail com apenas os componentes que tem dados
-            detail_parts = []
-            if rtk_lat_vals:
-                detail_parts.append(f'RtkStdLat > {lat_str}: {poor_lat_pct:.2f}%')
-            if rtk_lon_vals:
-                detail_parts.append(f'RtkStdLon > {lon_str}: {poor_lon_pct:.2f}%')
-            if rtk_hgt_vals:
-                detail_parts.append(f'RtkStdHgt > {hgt_str}: {poor_hgt_pct:.2f}%')
-
-            total_affected = len(poor_lat) + len(poor_lon) + len(poor_hgt)
-            total_counted = len(rtk_lat_vals) + len(rtk_lon_vals) + len(rtk_hgt_vals)
-
-            alerts.append(AlertManager._make_record(
-                severity=severity,
-                category=AlertManager.CAT_RTK,
-                title='Sinal GPS/RTK com qualidade insuficiente',
-                detail=' | '.join(detail_parts),
-                impact='Reduz precisao posicional e pode degradar alinhamento, georreferenciamento e qualidade final do produto.',
-                action='Validar base RTK, radio/link, visibilidade GNSS e repetir trechos com altos desvios padrao.',
-                affected_count=total_affected,
-                total_count=total_counted,
-                threshold_value=lat_cut,
-            ))
-
-        # ===================================================================
-        # 10. RTK EFFECTIVE PRECISION - Precisao efetiva do RTK
-        # ===================================================================
-        rtk_precision_vals = []
-        rtk_precision_photos: List[str] = []
-        rtk_precision_flights: List[str] = []
-        for r in results:
-            val = AlertManager._parse_num(r.level5_values.get(MFK.RTK_EFFECTIVE_PRECISION.value) or r.values.get('rtk_effective_precision'))
-            if val is None:
-                val = r.get_indicator(MFK.RTK_EFFECTIVE_PRECISION.value) if hasattr(r, 'get_indicator') else None
-                val = AlertManager._parse_num(val)
-            if val is not None:
-                rtk_precision_vals.append(val)
-                if val > AlertManager.RTK_EFFECTIVE_PRECISION_ALERT:
-                    rtk_precision_photos.append(r.filename)
-                    rtk_precision_flights.append(r.flight_id or 'unknown')
-
-        if rtk_precision_vals:
-            rtk_prec_mean = statistics.mean(rtk_precision_vals)
-            rtk_prec_max = max(rtk_precision_vals)
-            rtk_prec_alert_count = len(rtk_precision_photos)
-            rtk_prec_warn_count = sum(1 for v in rtk_precision_vals if v > AlertManager.RTK_EFFECTIVE_PRECISION_WARN)
-
-            if rtk_prec_alert_count > 0 or rtk_prec_warn_count > 0:
-                severity = AlertManager.SEVERITY_CRITICAL if rtk_prec_alert_count > 0 else AlertManager.SEVERITY_ALERT
-                rtk_precision_flights_unique = sorted(set(rtk_precision_flights))
-
-                detail_parts = [
-                    f'RTK Effective Precision medio: {rtk_prec_mean:.4f}.',
-                    f'Maximo: {rtk_prec_max:.4f}.',
-                ]
-                if rtk_prec_warn_count > 0:
-                    detail_parts.append(f'{rtk_prec_warn_count}/{len(rtk_precision_vals)} imagens com precisao > {AlertManager.RTK_EFFECTIVE_PRECISION_WARN} (alerta).')
-                if rtk_prec_alert_count > 0:
-                    detail_parts.append(f'{rtk_prec_alert_count} com precisao > {AlertManager.RTK_EFFECTIVE_PRECISION_ALERT} (critico).')
-                if rtk_precision_flights_unique:
-                    detail_parts.append(f'Voo(s): {", ".join(rtk_precision_flights_unique)}.')
-
-                alerts.append(AlertManager._make_record(
-                    severity=severity,
-                    category=AlertManager.CAT_RTK,
-                    title='Precisao efetiva do RTK degradada',
-                    detail=' '.join(detail_parts),
-                    impact='Precisao RTK efetiva alta indica perda de qualidade posicional que compromete o georreferenciamento.',
-                    action='Verificar base RTK, qualidade do link de correcao e condicoes de visibilidade GNSS.',
-                    affected_count=rtk_prec_alert_count,
-                    total_count=len(rtk_precision_vals),
-                    threshold_value=AlertManager.RTK_EFFECTIVE_PRECISION_ALERT,
-                    actual_value=rtk_prec_mean,
-                    flight_ids=rtk_precision_flights_unique,
-                    photos=rtk_precision_photos[:20],
-                ))
-
-        # ===================================================================
-        # 11. XY_DIFFERENCE / Z_DIFFERENCE - Discrepância entre MRK e Metadado
-        # ===================================================================
-        xy_diff_values = []
-        xy_diff_photos_ok: List[str] = []
-        xy_diff_photos_ruim: List[str] = []
-        xy_diff_flights_ruim: List[str] = []
-
-        z_diff_values = []
-        z_diff_photos_ok: List[str] = []
-        z_diff_photos_ruim: List[str] = []
-        z_diff_flights_ruim: List[str] = []
-
-        for r in results:
-            # XY_DIFFERENCE
-            xy_val = None
-            for key in [MFK.XY_DIFFERENCE.value, 'XYDifference', 'xy_difference']:
-                raw = None
-                if hasattr(r, 'level5_values'):
-                    raw = r.level5_values.get(key)
-                if raw is None and hasattr(r, 'values'):
-                    raw = r.values.get(key)
-                if raw is not None:
-                    xy_val = AlertManager._parse_num(raw)
-                    if xy_val is not None:
-                        break
-            if xy_val is not None and xy_val > 0.0:
-                xy_diff_values.append(xy_val)
-                if xy_val <= 0.05:  # > 0 e <= 5cm → INFO (diferença dentro do OK)
-                    xy_diff_photos_ok.append(r.filename)
-                else:  # > 5cm → ALERTA (diferença ruim)
-                    xy_diff_photos_ruim.append(r.filename)
-                    xy_diff_flights_ruim.append(r.flight_id or 'unknown')
-
-            # Z_DIFFERENCE
-            z_val = None
-            for key in [MFK.Z_DIFFERENCE.value, 'ZDifference', 'z_difference']:
-                raw = None
-                if hasattr(r, 'level5_values'):
-                    raw = r.level5_values.get(key)
-                if raw is None and hasattr(r, 'values'):
-                    raw = r.values.get(key)
-                if raw is not None:
-                    z_val = AlertManager._parse_num(raw)
-                    if z_val is not None:
-                        break
-            if z_val is not None and z_val > 0.0:
-                z_diff_values.append(z_val)
-                if z_val <= 0.05:  # > 0 e <= 5cm → INFO
-                    z_diff_photos_ok.append(r.filename)
-                else:  # > 5cm → ALERTA
-                    z_diff_photos_ruim.append(r.filename)
-                    z_diff_flights_ruim.append(r.flight_id or 'unknown')
-
-        # Alerta INFO: fotos com diferença > 0 mas dentro do OK (<= 5cm)
-        if xy_diff_photos_ok:
-            alerts.append(AlertManager._make_record(
-                severity=AlertManager.SEVERITY_INFO,
-                category=AlertManager.CAT_GENERAL,
-                title=f'Diferença XY (MRK x Metadado) detectada em {len(xy_diff_photos_ok)} foto(s)',
-                detail=(
-                    f'{len(xy_diff_photos_ok)}/{total_images} imagens apresentam diferença planimétrica (XY) '
-                    f'entre MRK e Metadado maior que zero, porém dentro do limite aceitável (≤ 5cm). '
-                    f'Diferença máxima observada: {max(xy_diff_values):.2f}m.' if xy_diff_values else ''
-                ),
-                impact='Indica pequenas discrepâncias entre as coordenadas do arquivo MRK e os metadados das imagens.',
-                action='Monitorar calibração do sistema GNSS e verificar consistência entre importação MRK e dados EXIF/XMP.',
-                affected_count=len(xy_diff_photos_ok),
-                total_count=total_images,
-                threshold_value=0.05,
-                actual_value=max(xy_diff_values) if xy_diff_values else None,
-            ))
-
-        if z_diff_photos_ok:
-            alerts.append(AlertManager._make_record(
-                severity=AlertManager.SEVERITY_INFO,
-                category=AlertManager.CAT_GENERAL,
-                title=f'Diferença Z (MRK x Metadado) detectada em {len(z_diff_photos_ok)} foto(s)',
-                detail=(
-                    f'{len(z_diff_photos_ok)}/{total_images} imagens apresentam diferença de altitude (Z) '
-                    f'entre MRK e Metadado maior que zero, porém dentro do limite aceitável (≤ 5cm). '
-                    f'Diferença máxima observada: {max(z_diff_values):.2f}m.' if z_diff_values else ''
-                ),
-                impact='Pequenas variações verticais entre a cota do MRK e a altitude absoluta dos metadados.',
-                action='Verificar consistência altimétrica entre MRK e AbsoluteAltitude no metadado.',
-                affected_count=len(z_diff_photos_ok),
-                total_count=total_images,
-                threshold_value=0.05,
-                actual_value=max(z_diff_values) if z_diff_values else None,
-            ))
-
-        # Alerta CRITICO: fotos com diferença > 5cm (ruim)
-        if xy_diff_photos_ruim:
-            xy_diff_flights_ruim_unique = sorted(set(xy_diff_flights_ruim))
-            xy_mean = statistics.mean(xy_diff_values) if xy_diff_values else 0.0
-            alerts.append(AlertManager._make_record(
-                severity=AlertManager.SEVERITY_ALERT,
-                category=AlertManager.CAT_GENERAL,
-                title=f'Diferença XY (MRK x Metadado) elevada em {len(xy_diff_photos_ruim)} foto(s)',
-                detail=(
-                    f'{len(xy_diff_photos_ruim)} imagens com diferença planimétrica (XY) > 5cm entre MRK e Metadado. '
-                    f'Média: {xy_mean:.2f}m. '
-                    f'Voo(s) afetados: {", ".join(xy_diff_flights_ruim_unique)}.'
-                ),
-                impact='Discrepância planimétrica significativa pode indicar erro de georreferenciamento entre MRK e metadados EXIF/XMP.',
-                action='Revisar arquivo MRK, verificar datum e sistema de coordenadas, recalcular se necessário.',
-                affected_count=len(xy_diff_photos_ruim),
-                total_count=total_images,
-                threshold_value=0.05,
-                actual_value=xy_mean,
-                flight_ids=xy_diff_flights_ruim_unique,
-                photos=xy_diff_photos_ruim[:20],
-            ))
-
-        if z_diff_photos_ruim:
-            z_diff_flights_ruim_unique = sorted(set(z_diff_flights_ruim))
-            z_mean = statistics.mean(z_diff_values) if z_diff_values else 0.0
-            alerts.append(AlertManager._make_record(
-                severity=AlertManager.SEVERITY_ALERT,
-                category=AlertManager.CAT_GENERAL,
-                title=f'Diferença Z (MRK x Metadado) elevada em {len(z_diff_photos_ruim)} foto(s)',
-                detail=(
-                    f'{len(z_diff_photos_ruim)} imagens com diferença de altitude (Z) > 5cm entre MRK e Metadado. '
-                    f'Média: {z_mean:.2f}m. '
-                    f'Voo(s) afetados: {", ".join(z_diff_flights_ruim_unique)}.'
-                ),
-                impact='Discrepância altimétrica significativa compromete a consistência vertical do produto final.',
-                action='Verificar datum vertical, calibrar altímetro e revisar AbsoluteAltitude no metadado da imagem.',
-                affected_count=len(z_diff_photos_ruim),
-                total_count=total_images,
-                threshold_value=0.05,
-                actual_value=z_mean,
-                flight_ids=z_diff_flights_ruim_unique,
-                photos=z_diff_photos_ruim[:20],
-            ))
-
-        # ===================================================================
-        # 12. TEMPERATURE - Sensor com temperatura elevada
-        # ===================================================================
-        temp_values = []
-        for r in results:
-            val = AlertManager._parse_num(r.values.get('sensor_temp_c') or r.level5_values.get(MFK.SENSOR_TEMPERATURE.value))
-            if val is None:
-                val = r.get_indicator('sensor_temp_c') if hasattr(r, 'get_indicator') else None
-                val = AlertManager._parse_num(val)
-            if val is not None:
-                temp_values.append(val)
-
-        TEMP_ALERT = 45.0
-        TEMP_CRITICAL = 48.0
-        temp_high = [v for v in temp_values if v > TEMP_ALERT]
-        temp_critical = [v for v in temp_values if v > TEMP_CRITICAL]
-        if temp_high:
-            severity = AlertManager.SEVERITY_CRITICAL if temp_critical else AlertManager.SEVERITY_ALERT
-            temp_mean = statistics.mean(temp_values)
-            temp_max = max(temp_values)
-            alerts.append(AlertManager._make_record(
-                severity=severity,
-                category=AlertManager.CAT_TEMPERATURE,
-                title=f'Temperatura do sensor elevada em {len(temp_high)} foto(s)',
-                detail=(
-                    f'{len(temp_high)}/{len(temp_values)} imagens com temperatura do sensor > {TEMP_ALERT}°C. '
-                    f'Temperatura media: {temp_mean:.1f}°C. Maxima: {temp_max:.1f}°C.'
-                ),
-                impact='Temperatura elevada aumenta ruido termico, degrada qualidade radiometrica e pode causar artefatos.',
-                action='Pausar voo para resfriamento, reduzir taxa de captura ou operar em horarios mais amenos.',
-                affected_count=len(temp_high),
-                total_count=len(temp_values),
-                threshold_value=TEMP_ALERT,
-                actual_value=temp_max,
-            ))
-
-        # ===================================================================
-        # Ordenar alertas: CRITICO primeiro, depois ALERTA, depois INFO
-        # ===================================================================
-        severity_order = {AlertManager.SEVERITY_CRITICAL: 0, AlertManager.SEVERITY_ALERT: 1, AlertManager.SEVERITY_INFO: 2}
-        alerts.sort(key=lambda a: (severity_order.get(a.severity, 99), a.category, -a.affected_pct))
-
-        return alerts
+    # ===================================================================
+    # Metodos de conversao (mantidos para compatibilidade)
+    # ===================================================================
 
     @staticmethod
     def to_dict(alert: AlertRecord) -> Dict[str, Any]:
@@ -899,12 +804,8 @@ class AlertManager:
         return summary
 
     # ===================================================================
-    # QUALITY ANALYSIS - Analise de qualidade avancada (strip, PQI, RTK)
+    # QUALITY ANALYSIS - Metodos avancados mantidos
     # ===================================================================
-
-    IDEAL_OVERLAP_PCT = 60.0
-    SPEED_RECOMMENDED_MIN_MS = 5.0
-    SPEED_RECOMMENDED_MAX_MS = 10.0
 
     @staticmethod
     def _first_numeric_from_result(r: Any, keys: List[str]):
@@ -952,8 +853,6 @@ class AlertManager:
             Dict com strip_rows e problematic_strips
         """
         from collections import defaultdict
-        from . import JsonMetadataManager
-        from ...core.enum import MetadataFieldKey as MFK
 
         strip_buckets = defaultdict(list)
         for r in results:
@@ -982,7 +881,7 @@ class AlertManager:
                 'mean_score': round(statistics.mean(s_scores), 2) if s_scores else None,
                 'mean_overlap': round(statistics.mean(s_overlap_vals), 2) if s_overlap_vals else None,
                 'overlap_below_ideal_pct': round(
-                    (sum(1 for v in s_overlap_vals if v < AlertManager.IDEAL_OVERLAP_PCT) / len(s_overlap_vals) * 100.0), 2
+                    (sum(1 for v in s_overlap_vals if v < AlertManager._OVERLAP_IDEAL) / len(s_overlap_vals) * 100.0), 2
                 ) if s_overlap_vals else None,
             })
 
@@ -1008,9 +907,7 @@ class AlertManager:
             Dict com pqi_first_quartile_mean, pqi_last_quartile_mean, pqi_delta,
             morning_pqi_mean, midday_pqi_mean
         """
-        from ..FormatUtils import FormatUtils
         from . import JsonMetadataManager
-        from ...core.enum import MetadataFieldKey as MFK
 
         pqi_series = JsonMetadataManager._series_by_time(
             results, [MFK.PHOTOGRAMMETRY_QUALITY_INDEX.value, 'photogrammetry_quality_index']
@@ -1043,8 +940,6 @@ class AlertManager:
         Returns:
             Dict com rtk_stability_mean e rtk_stability_class
         """
-        from ...core.enum import MetadataFieldKey as MFK
-
         rtk_stab_score = AlertManager._numeric_from_flight_values(
             results, [MFK.RTK_STABILITY_SCORE.value, 'rtk_stability_score']
         )
@@ -1075,7 +970,6 @@ class AlertManager:
         Returns:
             Dict com todas as metricas avancadas
         """
-        from ...core.enum import MetadataFieldKey as MFK
         from ..MathUtils import MathUtils
 
         # Overlap
@@ -1084,7 +978,7 @@ class AlertManager:
         )
         overlap_below_pct = 0.0
         if overlap_values:
-            overlap_below_ideal = [v for v in overlap_values if v < AlertManager.IDEAL_OVERLAP_PCT]
+            overlap_below_ideal = [v for v in overlap_values if v < AlertManager._OVERLAP_IDEAL]
             overlap_below_pct = (len(overlap_below_ideal) / len(overlap_values) * 100.0) if overlap_values else 0.0
         overlap_mean = statistics.mean(overlap_values) if overlap_values else None
 
@@ -1196,7 +1090,7 @@ class AlertManager:
             'overlap_below_ideal_pct': round(overlap_below_pct, 2) if overlap_values else None,
             'overlap_mean': round(overlap_mean, 2) if overlap_mean is not None else None,
             'speed_ms_mean': round(statistics.mean(speed_ms), 4) if speed_ms else None,
-            'speed_ms_recommended': f'{AlertManager.SPEED_RECOMMENDED_MIN_MS:.0f}-{AlertManager.SPEED_RECOMMENDED_MAX_MS:.0f} m/s',
+            'speed_ms_recommended': f'{AlertManager._SPEED_RECOMMENDED_MIN_MS:.0f}-{AlertManager._SPEED_RECOMMENDED_MAX_MS:.0f} m/s',
             'motion_blur_mean': round(statistics.mean(motion_blur), 4) if motion_blur else None,
             'speed_variation_mean': round(statistics.mean(speed_var), 4) if speed_var else None,
             'light_inconsistent_pct': round(light_inconsistent_pct, 2),

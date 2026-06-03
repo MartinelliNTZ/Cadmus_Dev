@@ -88,11 +88,11 @@
     type: lower_better
     levels: [22.0, 18.0, 15.0, 8.0, inf]
     messages:
-      - "Velocidade critica"        # > 22 m/s
-      - "Velocidade alta"           # 18–22 m/s
-      - "Velocidade OK"             # 14–18 m/s
-      - "Velocidade boa"            # 8–14 m/s
-      - "Velocidade ideal"          # ≤ 8 m/s
+      - "Velocidade critica"
+      - "Velocidade alta"
+      - "Velocidade OK"
+      - "Velocidade boa"
+      - "Velocidade ideal"
 
   incidence_angle:
     type: range_best
@@ -206,21 +206,21 @@
     type: lower_better
     levels: [0.10, 0.05, 0.02, 0.0, inf]
     messages:
-      - "Diferenca XY critica"       # > 10 cm
-      - "Diferenca XY ruim"         # 5–10 cm
-      - "Diferenca XY OK"            # 2–5 cm
-      - "Diferenca XY boa"           # 0–2 cm
-      - "Diferenca XY excelente"     # 0 cm (idêntico)
+      - "Diferenca XY critica"
+      - "Diferenca XY ruim"
+      - "Diferenca XY OK"
+      - "Diferenca XY boa"
+      - "Diferenca XY excelente"
 
   z_difference:
     type: lower_better
     levels: [0.10, 0.05, 0.02, 0.0, inf]
     messages:
-      - "Diferenca Z critica"        # > 10 cm
-      - "Diferenca Z ruim"          # 5–10 cm
-      - "Diferenca Z OK"             # 2–5 cm
-      - "Diferenca Z boa"            # 0–2 cm
-      - "Diferenca Z excelente"      # 0 cm (idêntico)
+      - "Diferenca Z critica"
+      - "Diferenca Z ruim"
+      - "Diferenca Z OK"
+      - "Diferenca Z boa"
+      - "Diferenca Z excelente"
 
   is_valid_sequence_prev:
     type: categorical
@@ -250,11 +250,11 @@
     type: lower_better
     levels: [3.0, 2.0, 1.5, 1.0, inf]
     messages:
-      - "Mudanca critica"       # ratio > 3.0x mediana
-      - "Mudanca alta"          # 2.0–3.0x
-      - "Mudanca moderada"      # 1.5–2.0x
-      - "Mudanca baixa"         # 1.0–1.5x
-      - "Sem mudanca abrupta"   # ratio <= 1.0x
+      - "Mudanca critica"
+      - "Mudanca alta"
+      - "Mudanca moderada"
+      - "Mudanca baixa"
+      - "Sem mudanca abrupta"
 
   rtk_diff_age:
     type: lower_better
@@ -294,8 +294,7 @@
   dewarp_flag:
     type: categorical
     mapping:
-      0: 1     # DewarpFlag=0 = SEM DEWARP = critico (nivel 1)
-      # None/null/ausente = DEWARP APLICADO = excelente (nivel 5)
+      0: 1
     messages:
       - "Dewarp nao aplicado (critico)"
       - "Dewarp ausente (indisponivel)"
@@ -315,6 +314,333 @@
       - "Fonte de luz OK"
       - "Fonte de luz boa"
       - "Fonte de luz ideal"
+
+# =============================================================================
+# SECAO DE ALERTAS - Fonte unica da verdade
+# =============================================================================
+# Cada alerta referencia um indicator em "thresholds:" para obter os niveis 1-5.
+# O motor generico no AlertManager avalia cada regra de severidade em ordem.
+# A primeira regra que "match" define a severidade do alerta.
+# Se nenhuma regra match, nenhum alerta e gerado para este indicador.
+# =============================================================================
+alerts:
+
+  # ---------------------------------------------------------------------------
+  # 1. DEWARP - Dewarp desabilitado (mode: aggregate_field)
+  # ---------------------------------------------------------------------------
+  dewarp_disabled:
+    enabled: true
+    mode: aggregate_field
+    category: DEWARP
+    aggregate_field: general_info.dewarp_zero_count
+    condition:
+      type: gt
+      value: 0
+    severity: CRITICO
+    photos_field: dewarp_flag         # campo para listar fotos afetadas
+    photos_condition: "== 0.0"
+    title_template: "Dewarp desativado em {affected_count} foto(s) - CRITICO"
+    impact: "Distorcao sistematica compromete aerotriangulacao, geometria e qualidade radiometrica da reconstrucao."
+    action: "Reprocessar 100% das imagens com dewarping habilitado e validar calibracao interna da camera."
+
+  # ---------------------------------------------------------------------------
+  # 2. ALTITUDE - Altitude incompleta (mode: aggregate_field)
+  # ---------------------------------------------------------------------------
+  altitude_missing:
+    enabled: true
+    mode: aggregate_field
+    category: ALTITUDE
+    aggregate_field: general_info.missing_altitude_count
+    condition:
+      type: gt
+      value: 0
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: pct_gt
+          value: 50.0
+      - severity: ALERTA
+        when:
+          type: pct_gt
+          value: 10.0
+      - severity: INFO
+        when:
+          type: pct_gt
+          value: 0.0
+    title_template: "{affected_count} foto(s) sem altitude completa"
+    impact: "Afeta consistencia altimetrica, calculo de GSD e sobreposicao prevista."
+    action: "Corrigir captura de Alt (MRK) e AbsoluteAltitude antes do processamento."
+
+  # ---------------------------------------------------------------------------
+  # 3. MOTION BLUR - Fotos com blur (mode: threshold_levels)
+  # ---------------------------------------------------------------------------
+  motion_blur_risk:
+    enabled: true
+    mode: threshold_levels
+    category: MOTION_BLUR
+    indicator_ref: motion_blur_risk
+    # Regra de severidade: se existir ao menos 1 foto no nivel 1 → CRITICO
+    # se existir ao menos 1 foto no nivel 2 → ALERTA
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_at_level
+          level: 1
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2
+    title_template: "Motion Blur elevado em {affected_count} foto(s)"
+    impact: "Borramento reduz nitidez das imagens, compromete matching, DSM e ortofoto."
+    action: "Reduzir velocidade de voo, ajustar taxa de obturação e evitar vento forte."
+    max_photos_list: 20
+
+  # ---------------------------------------------------------------------------
+  # 4. GIMBAL - Desalinhamento do Gimbal (mode: threshold_levels)
+  # ---------------------------------------------------------------------------
+  gimbal_offset:
+    enabled: true
+    mode: threshold_levels
+    category: GIMBAL
+    indicator_ref: gimbal_angular_velocity
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_at_level
+          level: 1
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2
+    title_template: "Gimbal desalinhado em {affected_count} foto(s)"
+    impact: "Desalinhamento do gimbal causa rotacao na imagem, afetando matching e orientacao."
+    action: "Recalibrar gimbal, verificar fixacao e realizar voo de calibracao."
+    max_photos_list: 20
+
+  # ---------------------------------------------------------------------------
+  # 5. RTK FLAG - Qualidade do sinal RTK (mode: rtk_flag)
+  # ---------------------------------------------------------------------------
+  rtk_flag_quality:
+    enabled: true
+    mode: rtk_flag
+    category: RTK_FLAG
+    flag_fixed: 50
+    flag_float: 34
+    flag_single: 16
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: fixed_pct_lt
+          value: 80.0
+      - severity: ALERTA
+        when:
+          type: non_fixed_pct_gt
+          value: 5.0
+      - severity: INFO
+        when:
+          type: non_fixed_count_gt
+          value: 0
+    title_template: "Queda na qualidade do sinal RTK detectada"
+    impact: "Sinal RTK nao-fixo reduz precisao posicional e pode degradar o georreferenciamento direto."
+    action: "Verificar base RTK, radio link, visibilidade GNSS e configuracao do receptor."
+    max_photos_list: 20
+
+  # ---------------------------------------------------------------------------
+  # 6. GSD VARIATION - Variacao de GSD por voo (mode: aggregate_std)
+  # ---------------------------------------------------------------------------
+  gsd_variation:
+    enabled: true
+    mode: aggregate_std
+    category: GSD_VARIATION
+    indicator_ref: gsd_cm
+    std_threshold: 0.5
+    severity: ALERTA
+    title_template: "Variacao de GSD acima do limiar em {affected_count} voo(s)"
+    impact: "Variacao de GSD indica irregularidade de altitude que compromete a consistencia do produto final."
+    action: "Verificar estabilidade de altitude do drone e condicoes de vento durante o voo."
+
+  # ---------------------------------------------------------------------------
+  # 7. OVERLAP - Sobreposicao insuficiente (mode: threshold_levels)
+  # ---------------------------------------------------------------------------
+  predicted_overlap:
+    enabled: true
+    mode: threshold_levels
+    category: OVERLAP
+    indicator_ref: predicted_overlap
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: pct_at_level_or_worse
+          level: 1
+          min_pct: 65.0
+      - severity: ALERTA
+        when:
+          type: pct_at_level_or_worse
+          level: 2
+          min_pct: 35.0
+    title_template: "Overlap insuficiente para reconstrucao robusta"
+    impact: "Pode causar lacunas, alinhamento fraco e aumento de ruido no modelo 3D."
+    action: "Aumentar sobreposicao longitudinal/lateral e refazer as faixas criticas."
+
+  # ---------------------------------------------------------------------------
+  # 8. YAW - Inconsistencia de direcao de voo (mode: threshold_levels)
+  # ---------------------------------------------------------------------------
+  yaw_alignment_error:
+    enabled: true
+    mode: threshold_levels
+    category: YAW
+    indicator_ref: yaw_alignment_error
+    severity_rules:
+      - severity: ALERTA
+        when:
+          type: pct_at_level_or_worse
+          level: 1
+          min_pct: 5.0
+    title_template: "Inconsistencia de direcao de voo (yaw)"
+    impact: "Direcoes conflitantes podem reduzir matching e gerar faixas desalinhadas."
+    action: "Revisar planejamento de heading e evitar trechos em sentido oposto sem controle de bloco."
+
+  # ---------------------------------------------------------------------------
+  # 9. RTK STD - Sinal GPS/RTK com qualidade insuficiente (mode: threshold_levels_multi)
+  # ---------------------------------------------------------------------------
+  rtk_std_quality:
+    enabled: true
+    mode: threshold_levels_multi
+    category: RTK
+    indicators:
+      - rtk_std_lat
+      - rtk_std_lon
+      - rtk_std_hgt
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_indicator_pct_at_level
+          level: 1
+          min_pct: 50.0
+      - severity: ALERTA
+        when:
+          type: any_indicator_pct_at_level
+          level: 1
+          min_pct: 20.0
+    title_template: "Sinal GPS/RTK com qualidade insuficiente"
+    impact: "Reduz precisao posicional e pode degradar alinhamento, georreferenciamento e qualidade final do produto."
+    action: "Validar base RTK, radio/link, visibilidade GNSS e repetir trechos com altos desvios padrao."
+
+  # ---------------------------------------------------------------------------
+  # 10. RTK EFFECTIVE PRECISION - Precisao efetiva do RTK (mode: threshold_levels)
+  # ---------------------------------------------------------------------------
+  rtk_effective_precision:
+    enabled: true
+    mode: threshold_levels
+    category: RTK
+    indicator_ref: rtk_effective_precision
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_at_level
+          level: 1
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2
+    title_template: "Precisao efetiva do RTK degradada"
+    impact: "Precisao RTK efetiva alta indica perda de qualidade posicional que compromete o georreferenciamento."
+    action: "Verificar base RTK, qualidade do link de correcao e condicoes de visibilidade GNSS."
+    max_photos_list: 20
+
+  # ---------------------------------------------------------------------------
+  # 11. XY DIFFERENCE - Discrepancia MRK x Metadado (mode: threshold_levels)
+  # Gera 2 alertas: um INFO se diferenca entre 0 e 5cm, um ALERTA se > 5cm
+  # ---------------------------------------------------------------------------
+  xy_difference_info:
+    enabled: true
+    mode: threshold_levels
+    category: GENERAL
+    indicator_ref: xy_difference
+    severity_rules:
+      - severity: INFO
+        when:
+          type: any_at_level
+          level: 4         # nivel 4 = 0-2cm (boa)
+    title_template: "Diferença XY (MRK x Metadado) detectada em {affected_count} foto(s)"
+    impact: "Indica pequenas discrepancias entre as coordenadas do arquivo MRK e os metadados das imagens."
+    action: "Monitorar calibracao do sistema GNSS e verificar consistencia entre importacao MRK e dados EXIF/XMP."
+
+  xy_difference_alert:
+    enabled: true
+    mode: threshold_levels
+    category: GENERAL
+    indicator_ref: xy_difference
+    severity_rules:
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2         # nivel 2 = 5-10cm (ruim)
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 1         # nivel 1 = > 10cm (critico)
+    title_template: "Diferença XY (MRK x Metadado) elevada em {affected_count} foto(s)"
+    impact: "Discrepancia planimetrica significativa pode indicar erro de georreferenciamento entre MRK e metadados EXIF/XMP."
+    action: "Revisar arquivo MRK, verificar datum e sistema de coordenadas, recalcular se necessario."
+    max_photos_list: 20
+
+  # ---------------------------------------------------------------------------
+  # 12. Z DIFFERENCE - Discrepancia altimetrica MRK x Metadado
+  # ---------------------------------------------------------------------------
+  z_difference_info:
+    enabled: true
+    mode: threshold_levels
+    category: GENERAL
+    indicator_ref: z_difference
+    severity_rules:
+      - severity: INFO
+        when:
+          type: any_at_level
+          level: 4
+    title_template: "Diferença Z (MRK x Metadado) detectada em {affected_count} foto(s)"
+    impact: "Pequenas variacoes verticais entre a cota do MRK e a altitude absoluta dos metadados."
+    action: "Verificar consistencia altimetrica entre MRK e AbsoluteAltitude no metadado."
+
+  z_difference_alert:
+    enabled: true
+    mode: threshold_levels
+    category: GENERAL
+    indicator_ref: z_difference
+    severity_rules:
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 1
+    title_template: "Diferença Z (MRK x Metadado) elevada em {affected_count} foto(s)"
+    impact: "Discrepancia altimetrica significativa compromete a consistencia vertical do produto final."
+    action: "Verificar datum vertical, calibrar altimetro e revisar AbsoluteAltitude no metadado da imagem."
+    max_photos_list: 20
+
+  # ---------------------------------------------------------------------------
+  # 13. TEMPERATURE - Sensor com temperatura elevada (mode: threshold_levels)
+  # ---------------------------------------------------------------------------
+  sensor_temperature:
+    enabled: true
+    mode: threshold_levels
+    category: TEMPERATURE
+    indicator_ref: sensor_temp_c
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_at_level
+          level: 1
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2
+    title_template: "Temperatura do sensor elevada em {affected_count} foto(s)"
+    impact: "Temperatura elevada aumenta ruido termico, degrada qualidade radiometrica e pode causar artefatos."
+    action: "Pausar voo para resfriamento, reduzir taxa de captura ou operar em horarios mais amenos."
 
 templates:
   template_path: core/template.html

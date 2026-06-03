@@ -20,8 +20,8 @@ class ReportPapelineManager:
     O chefe nao trabalha - ele manda os outros fazerem:
     - JsonMetadataManager: Estatistico - distribuições sobre atributos
     - FlightAggregator: Agregador de voos - agrupa imagens por flight_id
-    - AlertManager: Analista de qualidade - gera alertas e metricas avancadas
-    - AggregateAnalyzer: Analisador agregado - informacoes gerais, luz, etc.
+    - AggregateAnalyzer: Analisador agregado - metricas, strips, tendencias, luz, etc.
+    - AlertManager: Gerador de alertas + recomendacoes
     - RangeMetadataManager: Fornecedor de ranges - thresholds configurados
     - RenderEngine: Renderizador burro - so exibe
 
@@ -39,9 +39,9 @@ class ReportPapelineManager:
         DELEGA TUDO:
         - Estatistica pura ao JsonMetadataManager
         - Agrupamento por voo ao FlightAggregator
-        - Informacoes gerais ao AggregateAnalyzer
-        - Metricas avancadas, strips, tendencias, recomendacoes ao AlertManager
+        - Informacoes gerais + metricas avancadas ao AggregateAnalyzer
         - Alertas ao AlertManager
+        - Recomendacoes ao AlertManager
 
         APENAS MONTA o dict agg no formato esperado pelo template.
         """
@@ -133,8 +133,8 @@ class ReportPapelineManager:
         ReportPapelineManager.logger.debug(f"AggregateAnalyzer.total_area OK: {area_ha}")
 
         # ===================================================================
-        # STATUS OPERACIONAIS (dewarp, altitude) - ainda here no orquestrador
-        # pois sao calculados combinando general_info e dados brutos
+        # STATUS OPERACIONAIS (dewarp, altitude) - aqui no orquestrador
+        # pois combinam general_info e dados brutos
         # ===================================================================
         dewarp_info = ReportPapelineManager._compute_dewarp_status(results)
         altitude_info = ReportPapelineManager._compute_altitude_status(results)
@@ -179,14 +179,14 @@ class ReportPapelineManager:
         }
 
         # ===================================================================
-        # 5. Metricas avancadas, strips, tendencias, recomendacoes: AlertManager
+        # 5. Metricas avancadas + tendencias + strips: AggregateAnalyzer
         # ===================================================================
-        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_advanced_metrics...")
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_advanced_metrics...")
         try:
-            advanced_metrics = AlertManager.compute_advanced_metrics(results)
-            ReportPapelineManager.logger.debug(f"AlertManager.advanced_metrics OK: {len(advanced_metrics)} metricas")
+            advanced_metrics = AggregateAnalyzer.compute_advanced_metrics(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.advanced_metrics OK: {len(advanced_metrics)} metricas")
         except Exception as e:
-            ReportPapelineManager.logger.error(f"CRASH em AlertManager.compute_advanced_metrics: {e}", code="CRASH_ADV_METRICS")
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_advanced_metrics: {e}", code="CRASH_ADV_METRICS")
             raise
         advanced_metrics['estimated_area_ha'] = area_ha
         advanced_metrics['light_source_predominant'] = light_source_analysis.get('light_source_predominant')
@@ -198,23 +198,23 @@ class ReportPapelineManager:
         advanced_metrics['light_source_from_code'] = light_source_analysis.get('light_source_from_code')
 
         # RTK classification
-        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_rtk_classification...")
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_rtk_classification...")
         try:
-            rtk_classification = AlertManager.compute_rtk_classification(results)
-            ReportPapelineManager.logger.debug(f"AlertManager.rtk_classification OK: class={rtk_classification.get('rtk_stability_class')}")
+            rtk_classification = AggregateAnalyzer.compute_rtk_classification(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.rtk_classification OK: class={rtk_classification.get('rtk_stability_class')}")
         except Exception as e:
-            ReportPapelineManager.logger.error(f"CRASH em AlertManager.compute_rtk_classification: {e}", code="CRASH_RTK_CLASS")
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_rtk_classification: {e}", code="CRASH_RTK_CLASS")
             raise
         advanced_metrics['rtk_stability_mean'] = rtk_classification.get('rtk_stability_mean')
         advanced_metrics['rtk_stability_class'] = rtk_classification.get('rtk_stability_class')
 
         # Quality trends
-        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_quality_trends...")
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_quality_trends...")
         try:
-            quality_trends = AlertManager.compute_quality_trends(results)
-            ReportPapelineManager.logger.debug(f"AlertManager.quality_trends OK: delta={quality_trends.get('pqi_delta')}")
+            quality_trends = AggregateAnalyzer.compute_quality_trends(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.quality_trends OK: delta={quality_trends.get('pqi_delta')}")
         except Exception as e:
-            ReportPapelineManager.logger.error(f"CRASH em AlertManager.compute_quality_trends: {e}", code="CRASH_QUALITY_TRENDS")
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_quality_trends: {e}", code="CRASH_QUALITY_TRENDS")
             raise
         advanced_metrics['pqi_first_quartile_mean'] = quality_trends.get('pqi_first_quartile_mean')
         advanced_metrics['pqi_last_quartile_mean'] = quality_trends.get('pqi_last_quartile_mean')
@@ -223,15 +223,15 @@ class ReportPapelineManager:
         advanced_metrics['midday_pqi_mean'] = quality_trends.get('midday_pqi_mean')
 
         # Strip analysis
-        ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_strip_analysis...")
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_strip_analysis...")
         try:
-            strip_analysis = AlertManager.compute_strip_analysis(results)
-            ReportPapelineManager.logger.debug(f"AlertManager.strip_analysis OK: {len(strip_analysis.get('strip_rows', []))} strips")
+            strip_analysis = AggregateAnalyzer.compute_strip_analysis(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.strip_analysis OK: {len(strip_analysis.get('strip_rows', []))} strips")
         except Exception as e:
-            ReportPapelineManager.logger.error(f"CRASH em AlertManager.compute_strip_analysis: {e}", code="CRASH_STRIP_ANALYSIS")
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_strip_analysis: {e}", code="CRASH_STRIP_ANALYSIS")
             raise
 
-        # Recommendations
+        # Recommendations (ainda no AlertManager - usa only advanced_metrics)
         ReportPapelineManager.logger.debug("DELEGANDO para AlertManager.compute_recommendations...")
         recommendations = AlertManager.compute_recommendations(advanced_metrics)
         ReportPapelineManager.logger.debug(f"AlertManager.recommendations OK: {len(recommendations)} recomendacoes")
@@ -290,9 +290,7 @@ class ReportPapelineManager:
         return agg
 
     # ===================================================================
-    # METODOS OPERACIONAIS (dewarp, altitude) - permanecem aqui como
-    # metodos auxiliares do orquestrador, pois combinam dados brutos
-    # com dados agregados, sendo um nivel acima do AggregateAnalyzer puro.
+    # METODOS OPERACIONAIS (dewarp, altitude)
     # ===================================================================
     @staticmethod
     def _compute_dewarp_status(results: List[IMGMetadata]) -> Dict[str, Any]:

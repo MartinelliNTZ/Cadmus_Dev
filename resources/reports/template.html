@@ -328,18 +328,43 @@
                 <summary>METRICAS</summary>
                 {% set m = agg.advanced_analysis.metrics %}
                 <table>
-                    <tr><th>GSD médio</th><td>{% if per_indicator.get('gsd_cm') and per_indicator['gsd_cm'].get('value_mean') is not none %}{{ '%.2f'|format(per_indicator['gsd_cm']['value_mean']) }} cm{% else %}-{% endif %}</td></tr>
-                    <tr><th>Idade do sinal RTK (media / p5% / p95%)</th>
-                        <td>{% if m.rtk_diff_age_mean is not none %}{{ '%.2f'|format(m.rtk_diff_age_mean) }}{% else %}-{% endif %}s /
-                            {% if m.rtk_diff_age_p5 is not none %}{{ '%.2f'|format(m.rtk_diff_age_p5) }}{% else %}-{% endif %}s /
-                            {% if m.rtk_diff_age_p95 is not none %}{{ '%.2f'|format(m.rtk_diff_age_p95) }}{% else %}-{% endif %}s</td>
+                    <tr><th>GSD médio</th>
+                        <td>{% if per_indicator.get('gsd_cm') and per_indicator['gsd_cm'].get('value_mean') is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(per_indicator['gsd_cm']['value_mean']) }} cm</strong>
+                            {% else %}-{% endif %}
+                            {% set gsd = per_indicator.get('gsd_cm', {}) %}
+                            {% if gsd.get('value_p5') is not none and gsd.get('value_p95') is not none and gsd.get('value_percentile_range') is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(gsd['value_p5']) }} cm · p95%: {{ '%.2f'|format(gsd['value_p95']) }} cm
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(gsd['value_percentile_range']) }} cm</span>
+                                </span>
+                            {% endif %}
+                        </td></tr>
+                    <tr><th>Idade do sinal RTK</th>
+                        <td>{% if m.rtk_diff_age_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.rtk_diff_age_mean) }}s</strong>
+                            {% else %}-{% endif %}
+                            {% if m.rtk_diff_age_p5 is not none and m.rtk_diff_age_p95 is not none and m.rtk_diff_age_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.rtk_diff_age_p5) }}s · p95%: {{ '%.2f'|format(m.rtk_diff_age_p95) }}s
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.rtk_diff_age_range) }}s</span>
+                                </span>
+                            {% endif %}</td>
                     </tr>
                     <tr><th>Estabilidade do sinal RTK</th>
                         <td>{{ m.rtk_stability_class if m.rtk_stability_class is not none else '-' }}
                             {% if m.rtk_stability_mean is not none %}(media {{ '%.2f'|format(m.rtk_stability_mean) }}%){% endif %}</td>
                     </tr>
                     <tr><th>Altura de voo media</th>
-                        <td>{% if agg.per_flight and agg.per_flight[0].avg_relative_altitude is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_relative_altitude) }} m{% else %}-{% endif %}</td>
+                        <td>{% if m.relative_altitude_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.relative_altitude_mean) }} m</strong>
+                            {% else %}-{% endif %}
+                            {% if m.relative_altitude_p5 is not none and m.relative_altitude_p95 is not none and m.relative_altitude_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.relative_altitude_p5) }} m · p95%: {{ '%.2f'|format(m.relative_altitude_p95) }} m
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.relative_altitude_range) }} m</span>
+                                </span>
+                            {% endif %}</td>
                     </tr>
                     <tr><th style="width: 40%;">Altitude do solo</th>
                         <td style="width: 60%;">
@@ -348,7 +373,8 @@
                             {% else %}-{% endif %}
                             {% if m.ground_elevation_p5 is not none and m.ground_elevation_p95 is not none and m.ground_elevation_range is not none %}
                                 <span class="muted" style="font-size: 12px; margin-left: 6px;">
-                                    · p5%: {{ '%.2f'|format(m.ground_elevation_p5) }} m · p95%: {{ '%.2f'|format(m.ground_elevation_p95) }} m · variação: {{ '%.2f'|format(m.ground_elevation_range) }} m
+                                    · p5%: {{ '%.2f'|format(m.ground_elevation_p5) }} m · p95%: {{ '%.2f'|format(m.ground_elevation_p95) }} m
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.ground_elevation_range) }} m</span>
                                 </span>
                             {% endif %}
                         </td>

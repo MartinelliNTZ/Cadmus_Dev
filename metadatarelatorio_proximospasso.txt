@@ -1,3 +1,7 @@
+relative Z    podiscao relativa em relacao a base  fzer um grafico comparando posicao relativa e absoluta e posicao lrf 
+validar se voo foi feito com agl ou normal usando o range p5 e p95 
+
+
 
 Aqui vão 25 opções diretas:
 Gráficos

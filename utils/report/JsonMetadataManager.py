@@ -494,11 +494,16 @@ class JsonMetadataManager:
             if numeric_values:
                 value_mean = statistics.mean(numeric_values)
                 value_std = statistics.stdev(numeric_values) if len(numeric_values) > 1 else 0.0
+                sorted_vals = sorted(numeric_values)
+                n = len(sorted_vals)
+                value_p5 = sorted_vals[int(0.05 * (n - 1))]
+                value_p95 = sorted_vals[int(0.95 * (n - 1))]
                 value_min = min(numeric_values)
                 value_max = max(numeric_values)
                 value_range = value_max - value_min
+                value_percentile_range = value_p95 - value_p5
             else:
-                value_mean = value_std = value_min = value_max = value_range = None
+                value_mean = value_std = value_p5 = value_p95 = value_min = value_max = value_range = value_percentile_range = None
 
             stats[ind] = {
                 'label': field_meta.label if field_meta else ind,
@@ -509,9 +514,12 @@ class JsonMetadataManager:
                 'std': round(statistics.stdev(levels) if len(levels) > 1 else 0, 2),
                 'value_mean': round(value_mean, 4) if value_mean is not None else None,
                 'value_std': round(value_std, 4) if value_std is not None else None,
+                'value_p5': round(value_p5, 4) if value_p5 is not None else None,
+                'value_p95': round(value_p95, 4) if value_p95 is not None else None,
                 'value_min': round(value_min, 4) if value_min is not None else None,
                 'value_max': round(value_max, 4) if value_max is not None else None,
                 'value_range': round(value_range, 4) if value_range is not None else None,
+                'value_percentile_range': round(value_percentile_range, 4) if value_percentile_range is not None else None,
                 'dist': {1: levels.count(1), 2: levels.count(2), 3: levels.count(3), 4: levels.count(4), 5: levels.count(5)}
             }
             for lvl in levels:

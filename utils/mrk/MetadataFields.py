@@ -187,7 +187,7 @@ class MetadataFields:
             attribute="ExpTime",
             description="Tempo de abertura do obturador em segundos (ex: 0.001 = 1/1000s). "
             "Valores altos causam motion blur em voo e comprometem alinhamento fotogrametrico. "
-            "Recomendado abaixo de 1/500s para mapeamento. [ExpTime]"
+            "Recomendado abaixo de 1/500s para mapeamento. [ExpTime]",
             level=3,
             key=MetadataFieldKey.EXPOSURE_TIME,
         ),
@@ -433,9 +433,7 @@ class MetadataFields:
             core="xmp_bloco_1",
             label="RTK Flag",
             attribute="RtkFlag",
-            description="Tempo de abertura do obturador em segundos (ex: 0.001 = 1/1000s). "
-            "Valores altos causam motion blur em voo e comprometem alinhamento fotogrametrico. "
-            "Recomendado abaixo de 1/500s para mapeamento. [ExpTime]"
+            description="Indicador de qualidade/correcao RTK. Valores: 0 (sem GPS), 16 (Single), 34 (Float), 50 (Fixed). [RtkFlag]",
             level=3,
             key=MetadataFieldKey.RTK_FLAG,
         ),

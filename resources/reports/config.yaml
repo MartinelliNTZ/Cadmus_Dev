@@ -315,6 +315,21 @@
       - "Fonte de luz boa"
       - "Fonte de luz ideal"
 
+  rtk_type:
+    type: categorical
+    mapping:
+      Sem GPS: 1
+      RTK Desconhecido: 1
+      RTK Single: 2
+      RTK Float: 3
+      RTK Fixed: 5
+    messages:
+      - "Sem sinal GPS - posicao inviavel"
+      - "RTK Single - precisao baixa (~1-5 m)"
+      - "RTK Float - precisao media (~0,1-1 m)"
+      - "RTK Float - precisao media (~0,1-1 m)"
+      - "RTK Fixed - precisao excelente (~1-5 cm)"
+
 # =============================================================================
 # SECAO DE ALERTAS - Fonte unica da verdade
 # =============================================================================
@@ -692,6 +707,36 @@ alerts:
     title_template: "Condicao de luz inadequada em {affected_count} foto(s)"
     impact: "Iluminacao inadequada prejudica extracao de tie points, qualidade radiometrica e consistencia da ortofoto."
     action: "Planejar voos em horarios com luz difusa (nublado/amanhecer) e evitar Sol forte ou periodo noturno."
+
+  # ---------------------------------------------------------------------------
+  # 16. RTK TYPE - Tipo do sinal RTK (mode: threshold_levels)
+  # Referencia: rtk_type (categorical):
+  #   nivel 1 = Sem GPS / RTK Desconhecido (critico)
+  #   nivel 2 = RTK Single (alerta)
+  #   nivel 3 = RTK Float (info)
+  # ---------------------------------------------------------------------------
+  rtk_type_alert:
+    enabled: true
+    mode: threshold_levels
+    category: RTK_FLAG
+    indicator_ref: rtk_type
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_at_level
+          level: 1             # Sem GPS / RTK Desconhecido
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2             # RTK Single
+      - severity: INFO
+        when:
+          type: any_at_level
+          level: 3             # RTK Float
+    title_template: "Qualidade do sinal RTK comprometida em {affected_count} foto(s)"
+    impact: "Sinal RTK nao-fixo compromete a precisao posicional e pode degradar o georreferenciamento direto."
+    action: "Verificar base RTK, radio link, visibilidade GNSS e condicoes de voo."
+    max_photos_list: 20
 
 templates:
   template_path: core/template.html

@@ -112,6 +112,7 @@ class MetadataFieldKey(Enum):
     PREDICTED_OVERLAP = "PredictedOverlap"
     F_OVERLAP = "FOverlap"
     RTK_EFFECTIVE_PRECISION = "RtkEffectivePrecision"
+    RTK_TYPE = "RtkType"
     IS_IDEAL_OVERLAP = "IsIdealOverlap"
     ABRUPT_CHANGE_FLAG = "AbruptChangeFlag"
     GIMBAL_ANGULAR_VELOCITY = "GimbalAngularVelocity"

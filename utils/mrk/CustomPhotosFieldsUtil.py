@@ -612,6 +612,33 @@ class CustomPhotosFieldsUtil:
         return LightSourceEnum.get_label(code)
 
     @staticmethod
+    def _get_rtk_type_label(rtk_flag: any) -> str:
+        """
+        Classifica o tipo de sinal RTK baseado no valor do RtkFlag.
+        
+        Tabela de classificação DJI:
+          0       → Sem GPS         (~10-50 m)
+          1-15    → RTK Desconhecido (valores não mapeados)
+          16-33   → RTK Single       (~1-5 m)
+          34-49   → RTK Float        (~0.1-1 m)
+          50      → RTK Fixed        (~1-5 cm)
+          others  → RTK Desconhecido
+        """
+        code = CustomPhotosFieldsUtil.safe_int(rtk_flag, default=0)
+        if code == 0:
+            return "Sem GPS"
+        elif 1 <= code <= 15:
+            return "RTK Desconhecido"
+        elif 16 <= code <= 33:
+            return "RTK Single"
+        elif 34 <= code <= 49:
+            return "RTK Float"
+        elif code == 50:
+            return "RTK Fixed"
+        else:
+            return "RTK Desconhecido"
+
+    @staticmethod
     def _check_light_consistency(light_source: any, cct: any) -> str:
         """Verifica se o valor de CCT está coerente com a fonte de luz declarada."""
         code = CustomPhotosFieldsUtil.safe_int(light_source, default=0)
@@ -1131,6 +1158,7 @@ class CustomPhotosFieldsUtil:
                 MetadataFieldKey.STRIP_ID.value: strip_id,
                 MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value: cls._get_light_source_label(data.get(MetadataFieldKey.LIGHT_SOURCE.value)),
                 MetadataFieldKey.LIGHT_CONSISTENCY.value: cls._get_light_source_label(data.get(MetadataFieldKey.LIGHT_SOURCE.value)),
+                MetadataFieldKey.RTK_TYPE.value: cls._get_rtk_type_label(data.get(MetadataFieldKey.RTK_FLAG.value)),
             }
 
             # Nota: next_seq e validation NÃO são incluídos em custom pois não têm

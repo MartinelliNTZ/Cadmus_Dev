@@ -185,7 +185,9 @@ class MetadataFields:
             core="EXIF",
             label="Exposure Time",
             attribute="ExpTime",
-            description="Tempo de exposicao da foto em segundos. [ExpTime]",
+            description="Tempo de abertura do obturador em segundos (ex: 0.001 = 1/1000s). "
+            "Valores altos causam motion blur em voo e comprometem alinhamento fotogrametrico. "
+            "Recomendado abaixo de 1/500s para mapeamento. [ExpTime]"
             level=3,
             key=MetadataFieldKey.EXPOSURE_TIME,
         ),
@@ -431,7 +433,9 @@ class MetadataFields:
             core="xmp_bloco_1",
             label="RTK Flag",
             attribute="RtkFlag",
-            description="Indicador de qualidade/correcao RTK. [RtkFlag]",
+            description="Tempo de abertura do obturador em segundos (ex: 0.001 = 1/1000s). "
+            "Valores altos causam motion blur em voo e comprometem alinhamento fotogrametrico. "
+            "Recomendado abaixo de 1/500s para mapeamento. [ExpTime]"
             level=3,
             key=MetadataFieldKey.RTK_FLAG,
         ),
@@ -973,6 +977,15 @@ class MetadataFields:
             description="Classificação textual da precisão RTK. Valores: Alta, Média, Baixa, Sem RTK. Valor referência: Alta. [RTKPrec]",
             level=5,
             key=MetadataFieldKey.RTK_EFFECTIVE_PRECISION,
+        ),
+        MetadataFieldKey.RTK_TYPE: Field(
+            normalized="Custom:RtkType",
+            core="custom",
+            label="RTK Type",
+            attribute="RtkType",
+            description="Classificação do tipo de sinal RTK baseada no RtkFlag. Valores: RTK Fixed (50), RTK Float (34), RTK Single (16), Sem GPS (0). [RtkType]",
+            level=5,
+            key=MetadataFieldKey.RTK_TYPE,
         ),
         MetadataFieldKey.IS_IDEAL_OVERLAP: Field(
             normalized="Custom:IsIdealOverlap",

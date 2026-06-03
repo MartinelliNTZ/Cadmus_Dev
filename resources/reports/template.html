@@ -306,8 +306,34 @@
                     <tr><th>Modelo da camera</th><td>{{ agg.general_info.camera_models | join(', ') if agg.general_info.camera_models else 'N/A' }}</td></tr>
                     <tr><th>Numero de serie da camera</th><td>{{ agg.general_info.camera_serial_numbers | join(', ') if agg.general_info.camera_serial_numbers else 'N/A' }}</td></tr>
                     <tr><th>Versao do firmware</th><td>{{ agg.general_info.firmware_versions | join(', ') if agg.general_info.firmware_versions else 'N/A' }}</td></tr>
-                    <tr><th>GPS Datum</th><td>{{ agg.general_info.gps_datum | join(', ') if agg.general_info.gps_datum else 'N/A' }}</td></tr>
-                    <tr><th>GPS Status</th><td>{{ agg.general_info.gps_status | join(', ') if agg.general_info.gps_status else 'N/A' }}</td></tr>
+                    <tr><th>GPS Datum · Status</th>
+                        <td>
+                            {{ agg.general_info.gps_datum | join(', ') if agg.general_info.gps_datum else 'N/A' }}
+                            ·
+                            {{ agg.general_info.gps_status | join(', ') if agg.general_info.gps_status else 'N/A' }}
+                        </td>
+                    </tr>
+                    <tr><th>Tipo de voo</th>
+                        <td>
+                            {% set alt_class = agg.general_info.altitude_classification_type %}
+                            {% set alt_label = agg.general_info.altitude_classification_label %}
+                            {% if alt_class and alt_class != 'unavailable' %}
+                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; 
+                                    {% if alt_class == 'agl' %}background: #1a9850; color: #111;
+                                    {% elif alt_class == 'relative' %}background: #2196F3; color: #fff;
+                                    {% elif alt_class == 'agl_low_accuracy' %}background: #FF9100; color: #111;
+                                    {% elif alt_class == 'flat_area' %}background: #9E9E9E; color: #111;
+                                    {% endif %}">
+                                    {{ alt_label }}
+                                </span>
+                                <span class="muted" style="font-size: 11px; margin-left: 6px;">
+                                    (variacao alt: {{ agg.general_info.altitude_classification_rel_range }}m · solo: {{ agg.general_info.altitude_classification_solo_range }}m · threshold {{ '3.0' }}m)
+                                </span>
+                            {% else %}
+                                <span class="muted">Indisponivel</span>
+                            {% endif %}
+                        </td>
+                    </tr>
                     <tr><th>Data de inicio</th><td>{{ agg.general_info.capture_start }}</td></tr>
                     <tr><th>Data de termino</th><td>{{ agg.general_info.capture_end }}</td></tr>
                     <tr><th>Tempo total de voo</th><td>{{ agg.general_info.total_flight_time }}</td></tr>

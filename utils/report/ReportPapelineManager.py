@@ -143,6 +143,21 @@ class ReportPapelineManager:
         general_info.update(altitude_info)
         general_info['last_shutter_per_camera'] = shutter_per_camera
 
+        # Classificacao de altitude (AGL vs Relative)
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_altitude_classification...")
+        try:
+            alt_classification = AggregateAnalyzer.compute_altitude_classification(results)
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.altitude_classification OK: {alt_classification.get('altitude_classification_label')}")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_altitude_classification: {e}", code="CRASH_ALT_CLASS")
+            alt_classification = {
+                'altitude_classification_label': 'Indisponivel',
+                'altitude_classification_type': 'unavailable',
+                'altitude_classification_rel_range': None,
+                'altitude_classification_solo_range': None,
+            }
+        general_info.update(alt_classification)
+
         # Totals de voo
         per_flight = flight_data.get('per_flight', [])
         total_flights = len(per_flight)

@@ -37,6 +37,7 @@ class AggregateAnalyzer:
     _OVERLAP_IDEAL = 60.0
     _SPEED_RECOMMENDED_MIN_MS = 5.0
     _SPEED_RECOMMENDED_MAX_MS = 10.0
+    _ALTITUDE_CLASSIFICATION_THRESHOLD = 3.0  # threshold (metros) para classificar variacao de altitude
 
     @staticmethod
     def _to_float(value: Any) -> Optional[float]:
@@ -628,6 +629,104 @@ class AggregateAnalyzer:
             'pqi_delta': round(pqi_delta, 2) if pqi_delta is not None else None,
             'morning_pqi_mean': round(morning_mean, 2) if morning_mean is not None else None,
             'midday_pqi_mean': round(midday_mean, 2) if midday_mean is not None else None,
+        }
+
+    # ===================================================================
+    # CLASSIFICACAO DE TIPO DE VOO (AGL vs RELATIVE)
+    # ===================================================================
+    @staticmethod
+    def compute_altitude_classification(results: List[Any]) -> Dict[str, Any]:
+        """Classifica o tipo de altitude do voo com base na variacao da altura relativa e do solo.
+        
+        Regras:
+        - variacao_altura_relativa > 5 E variacao_solo < 5  → AGL
+        - variacao_altura_relativa < 5 E variacao_solo > 5  → Relative
+        - ambos > 5 → AGL (baixa acuracia)
+        - ambos < 5 → Area muito plana
+        - valores iguais ou proximos de 5 usam >= 5 para consistencia
+        
+        Returns:
+            Dict com altitude_classification_label, altitude_classification_type,
+            relative_altitude_range, ground_elevation_range
+        """
+        # Extrair altitudes relativas
+        rel_alts = AggregateAnalyzer._numeric_from_flight_values(
+            results, ['relative_altitude', MFK.RELATIVE_ALTITUDE.value]
+        )
+        
+        # Altitude do solo = altitude absoluta - altitude relativa (para cada imagem)
+        solo_alts = []
+        for r in results:
+            abs_raw = None
+            if hasattr(r, 'level5_values'):
+                abs_raw = r.level5_values.get(MFK.ABSOLUTE_ALTITUDE.value)
+            if abs_raw is None and hasattr(r, 'values'):
+                abs_raw = r.values.get('absolute_altitude')
+            if abs_raw is None:
+                abs_raw = r.get_indicator('absolute_altitude')
+            abs_num = AggregateAnalyzer._parse_num(abs_raw)
+            
+            rel_raw = None
+            if hasattr(r, 'level5_values'):
+                rel_raw = r.level5_values.get(MFK.RELATIVE_ALTITUDE.value)
+            if rel_raw is None and hasattr(r, 'values'):
+                rel_raw = r.values.get('relative_altitude')
+            if rel_raw is None:
+                rel_raw = r.get_indicator('relative_altitude')
+            rel_num = AggregateAnalyzer._parse_num(rel_raw)
+            
+            if abs_num is not None and rel_num is not None:
+                solo_alts.append(abs_num - rel_num)
+        
+        # Calcular variacoes (range p95-p5)
+        rel_range = None
+        if len(rel_alts) > 1:
+            sorted_rel = sorted(rel_alts)
+            n = len(sorted_rel)
+            p5 = sorted_rel[int(0.05 * (n - 1))]
+            p95 = sorted_rel[int(0.95 * (n - 1))]
+            rel_range = round(p95 - p5, 2)
+        elif rel_alts:
+            rel_range = 0.0
+        
+        solo_range = None
+        if len(solo_alts) > 1:
+            sorted_solo = sorted(solo_alts)
+            n = len(sorted_solo)
+            p5 = sorted_solo[int(0.05 * (n - 1))]
+            p95 = sorted_solo[int(0.95 * (n - 1))]
+            solo_range = round(p95 - p5, 2)
+        elif solo_alts:
+            solo_range = 0.0
+        
+        # Classificar
+        threshold = AggregateAnalyzer._ALTITUDE_CLASSIFICATION_THRESHOLD
+        
+        if rel_range is not None and solo_range is not None:
+            rel_variation_high = rel_range >= threshold
+            solo_variation_high = solo_range >= threshold
+            
+            if rel_variation_high and not solo_variation_high:
+                classification_label = 'AGL'
+                classification_type = 'agl'
+            elif not rel_variation_high and solo_variation_high:
+                classification_label = 'Relative'
+                classification_type = 'relative'
+            elif rel_variation_high and solo_variation_high:
+                classification_label = 'AGL (baixa acuracia)'
+                classification_type = 'agl_low_accuracy'
+            else:
+                classification_label = 'Area muito plana'
+                classification_type = 'flat_area'
+        else:
+            classification_label = 'Indisponivel'
+            classification_type = 'unavailable'
+        
+        return {
+            'altitude_classification_label': classification_label,
+            'altitude_classification_type': classification_type,
+            'altitude_classification_rel_range': rel_range,
+            'altitude_classification_solo_range': solo_range,
         }
 
     # ===================================================================

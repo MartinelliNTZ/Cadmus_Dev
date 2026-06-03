@@ -86,7 +86,7 @@
 
   speed_3d_ms:
     type: lower_better
-    levels: [22.0, 18.0, 14.0, 8.0, inf]
+    levels: [22.0, 18.0, 15.0, 8.0, inf]
     messages:
       - "Velocidade critica"        # > 22 m/s
       - "Velocidade alta"           # 18–22 m/s
@@ -134,7 +134,7 @@
 
   predicted_overlap:
     type: higher_better
-    levels: [20, 50, 75, 90, 97]
+    levels: [35, 60, 70, 75, 80]
     messages:
       - "Sobreposicao critica"
       - "Sobreposicao baixa"

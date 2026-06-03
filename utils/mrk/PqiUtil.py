@@ -38,6 +38,20 @@ PQI_INDICATORS: List[Dict] = [
         "threshold_name": "predicted_overlap",
         "weight": 0.25,
     },
+    # === Velocidade 3D (lower_better, peso 0.5) ===
+    {
+        "metadata_key": MetadataFieldKey.THREE_D_SPEED,
+        "threshold_name": "speed_3d_ms",
+        "weight": 0.5,
+    },
+    # === EV Classification (categorical, peso 2.0) ===
+    # Valor é textual (ex: "nublado"), extrator retorna o texto cru para o RangeMetadataManager classificar
+    {
+        "metadata_key": MetadataFieldKey.EV_CLASSIFICATION,
+        "threshold_name": "ev_classification",
+        "weight": 2.0,
+        "value_extractor": lambda r: _extract_ev_classification_value(r),
+    },
     # === Indicadores com value_extractor que já retornam o LEVEL (1-5) ===
     {
         "metadata_key": MetadataFieldKey.RTK_EFFECTIVE_PRECISION,
@@ -108,6 +122,18 @@ def _extract_dewarp_value(record: Dict) -> float:
     if flag_str == "0":
         return 1.0   # 0 = sem dewarp = critico
     return 5.0       # Qualquer outro valor = dewarp aplicado = excelente
+
+
+def _extract_ev_classification_value(record: Dict) -> str:
+    """
+    Extrai o texto do EV Classification (ex: "nublado", "luz solar normal").
+    Retorna o texto cru para o RangeMetadataManager classificar como categorical.
+    Se ausente, retorna "Unknown" que mapeia para nivel 3 no config.yaml.
+    """
+    raw = record.get(MetadataFieldKey.EV_CLASSIFICATION.value)
+    if raw is None:
+        return "Unknown"
+    return str(raw).strip()
 
 
 def _level_to_score(level: int) -> float:

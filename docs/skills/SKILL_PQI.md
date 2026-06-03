@@ -10,7 +10,7 @@ description: >
 
 ## Resumo Executivo
 
-O **Photogrammetry Quality Index (PQI)** é uma métrica composta (0-100) que avalia a qualidade de cada foto individualmente, combinando **7 indicadores** com pesos configuráveis. Cada indicador é classificado em **nível 1 (crítico) a 5 (excelente)** via thresholds do `config.yaml`, e o nível é convertido em pontuação (0-100) e ponderado pelo peso do indicador.
+O **Photogrammetry Quality Index (PQI)** é uma métrica composta (0-100) que avalia a qualidade de cada foto individualmente, combinando **9 indicadores** com pesos configuráveis. Cada indicador é classificado em **nível 1 (crítico) a 5 (excelente)** via thresholds do `config.yaml`, e o nível é convertido em pontuação (0-100) e ponderado pelo peso do indicador.
 
 ---
 
@@ -35,18 +35,20 @@ Armazena como PhotogrammetryQualityIndex no record
 
 ### Configuração dos Indicadores (PQI_INDICATORS)
 
-Em `PqiUtil.py`, os 7 indicadores que compõem o PQI com seus pesos e tipos:
+Em `PqiUtil.py`, os 9 indicadores que compõem o PQI com seus pesos e tipos:
 
 | Indicador | Peso | % PQI | Tipo threshold |
 |-----------|------|-------|----------------|
-| DewarpFlag | 2.0 | 28.6% | categorical (bypass) |
-| RtkDiffAge | 1.5 | 21.4% | lower_better |
-| XYDifference | 1.0 | 14.3% | lower_better |
-| ZDifference | 1.0 | 14.3% | lower_better |
-| RtkEffectivePrecision | 1.0 | 14.3% | lower_better (bypass) |
-| MotionBlurRisk | 0.25 | 3.6% | lower_better |
-| FOverlap | 0.25 | 3.6% | higher_better |
-| **Total** | **7.0** | **100%** | |
+| DewarpFlag | 2.0 | 21.1% | categorical (bypass) |
+| EvClassification | 2.0 | 21.1% | categorical |
+| RtkDiffAge | 1.5 | 15.8% | lower_better |
+| XYDifference | 1.0 | 10.5% | lower_better |
+| ZDifference | 1.0 | 10.5% | lower_better |
+| RtkEffectivePrecision | 1.0 | 10.5% | lower_better (bypass) |
+| Speed3D | 0.5 | 5.3% | lower_better |
+| MotionBlurRisk | 0.25 | 2.6% | lower_better |
+| FOverlap | 0.25 | 2.6% | higher_better |
+| **Total** | **9.5** | **100%** | |
 
 ---
 

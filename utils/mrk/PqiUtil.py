@@ -93,15 +93,21 @@ def _extract_rtk_level(record: Dict) -> float:
 
 
 def _extract_dewarp_value(record: Dict) -> float:
-    """DewarpFlag: '0' (bom) → 5, '1' (ruim) → 1, ausente → 3"""
+    """
+    DewarpFlag no padrao DJI XMP:
+      '0' = SEM DEWARP (imagem bruta/distorcida) → nivel 1 (critico)
+      None/null/""/ausente = DEWARP APLICADO (imagem corrigida) → nivel 5 (excelente)
+    Nao existe valor '1' no padrao DJI — se nao e 0, e dewarp aplicado.
+    """
     raw = record.get(MetadataFieldKey.DEWARP_FLAG.value)
     if raw is None:
-        return 3.0
+        return 5.0   # Ausente/sem flag = dewarp aplicado = excelente
     flag_str = str(raw).strip()
+    if flag_str in ("", "None", "null"):
+        return 5.0   # Vazio = dewarp aplicado = excelente
     if flag_str == "0":
-        return 5.0
-    else:
-        return 1.0
+        return 1.0   # 0 = sem dewarp = critico
+    return 5.0       # Qualquer outro valor = dewarp aplicado = excelente
 
 
 def _level_to_score(level: int) -> float:

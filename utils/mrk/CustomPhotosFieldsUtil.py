@@ -822,7 +822,10 @@ class CustomPhotosFieldsUtil:
             score += 25
         elif inc_angle < 15:
             score += 15
-        if str(CustomPhotosFieldsUtil._get(data, MetadataFieldKey.DEWARP_FLAG, default="")) == "0":
+        # DewarpFlag=0 = SEM DEWARP (critico, nao pontua)
+        # None/null/ausente/qualquer outro valor = DEWARP APLICADO (adiciona 20 pontos)
+        dewarp_val = CustomPhotosFieldsUtil._get(data, MetadataFieldKey.DEWARP_FLAG, default="")
+        if str(dewarp_val).strip() != "0":
             score += 20
         if CustomPhotosFieldsUtil._get_safe(
             data, MetadataFieldKey.RTK_DIFF_AGE, default=999

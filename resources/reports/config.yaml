@@ -299,8 +299,8 @@
   dewarp_flag:
     type: categorical
     mapping:
-      0: 5     # dewarp aplicado = excelente
-      1: 1     # sem dewarp = critico
+      0: 1     # DewarpFlag=0 = SEM DEWARP = critico (nivel 1)
+      # None/null/ausente = DEWARP APLICADO = excelente (nivel 5)
     messages:
       - "Dewarp nao aplicado (critico)"
       - "Dewarp ausente (indisponivel)"

@@ -379,25 +379,63 @@
                             {% endif %}
                         </td>
                     </tr>
-                    <tr><th>Desalinhamento do gimbal (media / desvio / max)</th>
-                        <td>{% if m.gimbal_offset_mean is not none %}{{ '%.2f'|format(m.gimbal_offset_mean) }}°{% else %}-{% endif %} /
-                            {% if m.gimbal_offset_std is not none %}{{ '%.2f'|format(m.gimbal_offset_std) }}°{% else %}-{% endif %} /
-                            {% if m.gimbal_offset_max is not none %}{{ '%.2f'|format(m.gimbal_offset_max) }}°{% else %}-{% endif %}</td>
+                    <tr><th>Desalinhamento do gimbal</th>
+                        <td>{% if m.gimbal_offset_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.gimbal_offset_mean) }}°</strong>
+                            {% else %}-{% endif %}
+                            {% if m.gimbal_offset_p5 is not none and m.gimbal_offset_p95 is not none and m.gimbal_offset_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.gimbal_offset_p5) }}° · p95%: {{ '%.2f'|format(m.gimbal_offset_p95) }}°
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.gimbal_offset_range) }}°</span>
+                                </span>
+                            {% endif %}</td>
                     </tr>
                     <tr><th>Precisão RTK</th>
                         <td>{% if m.rtk_effective_precision_raw is not none %}{{ m.rtk_effective_precision_raw }}{% elif m.rtk_effective_precision_mean is not none %}{{ '%.3f'|format(m.rtk_effective_precision_mean) }} m (max {{ '%.3f'|format(m.rtk_effective_precision_max) }} m){% else %}-{% endif %}</td>
                     </tr>
                     <tr><th>Distância (m)</th>
-                        <td>{% if agg.per_flight and agg.per_flight[0].avg_dist3d_previous is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_dist3d_previous) }} m{% else %}-{% endif %}</td>
+                        <td>{% if m.dist3d_prev_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.dist3d_prev_mean) }} m</strong>
+                            {% else %}-{% endif %}
+                            {% if m.dist3d_prev_p5 is not none and m.dist3d_prev_p95 is not none and m.dist3d_prev_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.dist3d_prev_p5) }} m · p95%: {{ '%.2f'|format(m.dist3d_prev_p95) }} m
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.dist3d_prev_range) }} m</span>
+                                </span>
+                            {% endif %}</td>
                     </tr>
                     <tr><th>Drone Roll medio (°)</th>
-                        <td>{% if agg.per_flight and agg.per_flight[0].avg_flight_roll is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_flight_roll) }}°{% else %}-{% endif %}</td>
+                        <td>{% if m.flight_roll_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.flight_roll_mean) }}°</strong>
+                            {% else %}-{% endif %}
+                            {% if m.flight_roll_p5 is not none and m.flight_roll_p95 is not none and m.flight_roll_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.flight_roll_p5) }}° · p95%: {{ '%.2f'|format(m.flight_roll_p95) }}°
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.flight_roll_range) }}°</span>
+                                </span>
+                            {% endif %}</td>
                     </tr>
                     <tr><th>Drone Yaw medio (°)</th>
-                        <td>{% if agg.per_flight and agg.per_flight[0].avg_flight_yaw is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_flight_yaw) }}°{% else %}-{% endif %}</td>
+                        <td>{% if m.flight_yaw_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.flight_yaw_mean) }}°</strong>
+                            {% else %}-{% endif %}
+                            {% if m.flight_yaw_p5 is not none and m.flight_yaw_p95 is not none and m.flight_yaw_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.flight_yaw_p5) }}° · p95%: {{ '%.2f'|format(m.flight_yaw_p95) }}°
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.flight_yaw_range) }}°</span>
+                                </span>
+                            {% endif %}</td>
                     </tr>
                     <tr><th>Drone Pitch medio (°)</th>
-                        <td>{% if agg.per_flight and agg.per_flight[0].avg_flight_pitch is not none %}{{ '%.2f'|format(agg.per_flight[0].avg_flight_pitch) }}°{% else %}-{% endif %}</td>
+                        <td>{% if m.flight_pitch_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.flight_pitch_mean) }}°</strong>
+                            {% else %}-{% endif %}
+                            {% if m.flight_pitch_p5 is not none and m.flight_pitch_p95 is not none and m.flight_pitch_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.flight_pitch_p5) }}° · p95%: {{ '%.2f'|format(m.flight_pitch_p95) }}°
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.flight_pitch_range) }}°</span>
+                                </span>
+                            {% endif %}</td>
                     </tr>
                 </table>
             </details>

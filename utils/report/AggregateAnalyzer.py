@@ -424,6 +424,7 @@ class AggregateAnalyzer:
             sum(1 for v in gimbal_offset if abs(v) > 1.0) / len(gimbal_offset) * 100.0
             if gimbal_offset else 0.0
         )
+        gimbal_offset_stats = AggregateAnalyzer.compute_percentile_stats(gimbal_offset) if gimbal_offset else {'mean': None, 'p5': None, 'p95': None, 'range': None}
 
         # Size MB
         size_mb = AggregateAnalyzer._numeric_from_flight_values(
@@ -448,6 +449,27 @@ class AggregateAnalyzer:
         speed_var = AggregateAnalyzer._numeric_from_flight_values(
             results, [MFK.SPEED_VARIATION_INDEX.value, 'speed_variation_index']
         )
+
+        # Distance 3D Previous, Flight Roll, Flight Yaw, Flight Pitch
+        dist3d_prev = AggregateAnalyzer._numeric_from_flight_values(
+            results, [MFK.DISTANCE_3D_PREVIOUS.value, 'distance_3d_previous']
+        )
+        dist3d_prev_stats = AggregateAnalyzer.compute_percentile_stats(dist3d_prev) if dist3d_prev else {'mean': None, 'p5': None, 'p95': None, 'range': None}
+
+        flight_roll = AggregateAnalyzer._numeric_from_flight_values(
+            results, [MFK.FLIGHT_ROLL_DEGREE.value, 'flight_roll_degree']
+        )
+        flight_roll_stats = AggregateAnalyzer.compute_percentile_stats(flight_roll) if flight_roll else {'mean': None, 'p5': None, 'p95': None, 'range': None}
+
+        flight_yaw = AggregateAnalyzer._numeric_from_flight_values(
+            results, [MFK.FLIGHT_YAW_DEGREE.value, 'flight_yaw_degree']
+        )
+        flight_yaw_stats = AggregateAnalyzer.compute_percentile_stats(flight_yaw) if flight_yaw else {'mean': None, 'p5': None, 'p95': None, 'range': None}
+
+        flight_pitch = AggregateAnalyzer._numeric_from_flight_values(
+            results, [MFK.FLIGHT_PITCH_DEGREE.value, 'flight_pitch_degree']
+        )
+        flight_pitch_stats = AggregateAnalyzer.compute_percentile_stats(flight_pitch) if flight_pitch else {'mean': None, 'p5': None, 'p95': None, 'range': None}
 
         # Relative Altitude (Altura de voo)
         relative_altitude = AggregateAnalyzer._numeric_from_flight_values(
@@ -504,6 +526,9 @@ class AggregateAnalyzer:
             'gimbal_offset_mean': round(gimbal_offset_mean, 4) if gimbal_offset_mean is not None else None,
             'gimbal_offset_std': round(gimbal_offset_std, 4) if gimbal_offset_std is not None else None,
             'gimbal_offset_max': round(gimbal_offset_max, 4) if gimbal_offset_max is not None else None,
+            'gimbal_offset_p5': round(gimbal_offset_stats['p5'], 4) if gimbal_offset_stats['p5'] is not None else None,
+            'gimbal_offset_p95': round(gimbal_offset_stats['p95'], 4) if gimbal_offset_stats['p95'] is not None else None,
+            'gimbal_offset_range': round(gimbal_offset_stats['range'], 4) if gimbal_offset_stats['range'] is not None else None,
             'gimbal_offset_over_1deg_pct': round(gimbal_offset_high_pct, 2) if gimbal_offset else None,
             'yaw_inconsistent_pct': round(yaw_opposite_pct, 2) if yaw_err_values else None,
             'size_mb_mean': round(size_mb_mean, 4) if size_mb_mean is not None else None,
@@ -517,6 +542,22 @@ class AggregateAnalyzer:
             'relative_altitude_p5': relative_altitude_stats['p5'],
             'relative_altitude_p95': relative_altitude_stats['p95'],
             'relative_altitude_range': relative_altitude_stats['range'],
+            'dist3d_prev_mean': dist3d_prev_stats['mean'],
+            'dist3d_prev_p5': dist3d_prev_stats['p5'],
+            'dist3d_prev_p95': dist3d_prev_stats['p95'],
+            'dist3d_prev_range': dist3d_prev_stats['range'],
+            'flight_roll_mean': flight_roll_stats['mean'],
+            'flight_roll_p5': flight_roll_stats['p5'],
+            'flight_roll_p95': flight_roll_stats['p95'],
+            'flight_roll_range': flight_roll_stats['range'],
+            'flight_yaw_mean': flight_yaw_stats['mean'],
+            'flight_yaw_p5': flight_yaw_stats['p5'],
+            'flight_yaw_p95': flight_yaw_stats['p95'],
+            'flight_yaw_range': flight_yaw_stats['range'],
+            'flight_pitch_mean': flight_pitch_stats['mean'],
+            'flight_pitch_p5': flight_pitch_stats['p5'],
+            'flight_pitch_p95': flight_pitch_stats['p95'],
+            'flight_pitch_range': flight_pitch_stats['range'],
             'motion_blur_mean': round(statistics.mean(motion_blur), 4) if motion_blur else None,
             'speed_variation_mean': round(statistics.mean(speed_var), 4) if speed_var else None,
             'light_inconsistent_pct': round(light_inconsistent_pct, 2),

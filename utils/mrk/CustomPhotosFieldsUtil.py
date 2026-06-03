@@ -1130,10 +1130,7 @@ class CustomPhotosFieldsUtil:
                 MetadataFieldKey.TRAJECTORY_SMOOTHNESS.value: round(trajectory_smoothness, DECIMAL_PLACES),
                 MetadataFieldKey.STRIP_ID.value: strip_id,
                 MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value: cls._get_light_source_label(data.get(MetadataFieldKey.LIGHT_SOURCE.value)),
-                MetadataFieldKey.LIGHT_CONSISTENCY.value: cls._check_light_consistency(
-                    data.get(MetadataFieldKey.LIGHT_SOURCE.value),
-                    cls._get(data, MetadataFieldKey.WHITE_BALANCE_CCT),
-                ),
+                MetadataFieldKey.LIGHT_CONSISTENCY.value: cls._get_light_source_label(data.get(MetadataFieldKey.LIGHT_SOURCE.value)),
             }
 
             # Nota: next_seq e validation NÃO são incluídos em custom pois não têm

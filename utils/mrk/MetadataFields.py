@@ -1087,7 +1087,7 @@ class MetadataFields:
             core="custom",
             label="Light Consistency",
             attribute="LightCons",
-            description="Consistência entre LightSource e CCT. Valores: Consistent, Inconsistent, Unknown. Valor referência: Consistent. [LightCons]",
+            description="Classificação textual da fonte de luz EXIF (mesmo valor de LightSourceClassification). Valores: Daylight, Fluorescent, etc. Valor referência: Daylight. [LightCons]",
             level=5,
             key=MetadataFieldKey.LIGHT_CONSISTENCY,
         ),

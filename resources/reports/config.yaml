@@ -123,14 +123,14 @@
     type: categorical
     mapping:
       Unknown: 1
-      Inconsistent: 2
-      Consistent: 5
+      Fluorescent: 3
+      Daylight: 5
     messages:
       - "Iluminacao desconhecida"
-      - "Iluminacao inconsistente"
+      - "Iluminacao ruim"
       - "Iluminacao OK"
       - "Iluminacao boa"
-      - "Iluminacao consistente"
+      - "Iluminacao ideal"
 
   predicted_overlap:
     type: higher_better

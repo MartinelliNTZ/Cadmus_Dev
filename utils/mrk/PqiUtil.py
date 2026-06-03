@@ -31,7 +31,7 @@ PQI_INDICATORS: List[Dict] = [
     {
         "metadata_key": MetadataFieldKey.MOTION_BLUR_RISK,
         "threshold_name": "motion_blur_risk",
-        "weight": 1.0,
+        "weight": 0.50,
     },
     {
         "metadata_key": MetadataFieldKey.F_OVERLAP,
@@ -42,21 +42,31 @@ PQI_INDICATORS: List[Dict] = [
     {
         "metadata_key": MetadataFieldKey.RTK_EFFECTIVE_PRECISION,
         "threshold_name": "rtk_effective_precision",
-        "weight": 1.5,
+        "weight": 1.0,
         "value_extractor": lambda r: _extract_rtk_level(r),
         "bypass_classify": True,
     },
     {
+        "metadata_key": MetadataFieldKey.XY_DIFFERENCE,
+        "threshold_name": "xy_difference",
+        "weight": 1.0,
+    },
+    {
+        "metadata_key": MetadataFieldKey.Z_DIFFERENCE,
+        "threshold_name": "z_difference",
+        "weight": 1.0,
+    },
+    {
         "metadata_key": MetadataFieldKey.DEWARP_FLAG,
         "threshold_name": "dewarp_flag",
-        "weight": 1.0,
+        "weight": 1.5,
         "value_extractor": lambda r: _extract_dewarp_value(r),
         "bypass_classify": True,
     },
     {
         "metadata_key": MetadataFieldKey.RTK_DIFF_AGE,
         "threshold_name": "rtk_diff_age",
-        "weight": 1.0,
+        "weight": 1.5,
     },
 ]
 

@@ -11,7 +11,7 @@
 
   motion_blur_risk:
     type: lower_better
-    levels: [1.2, 0.8, 0.5, 0.3, inf]
+    levels: [1.5, 1.2, 0.7, 0.5, inf]
     messages:
       - "Motion blur critico"
       - "Motion blur alto"
@@ -206,6 +206,26 @@
       - "Eficiencia OK"
       - "Eficiencia boa"
       - "Eficiencia excelente"
+
+  xy_difference:
+    type: lower_better
+    levels: [0.10, 0.05, 0.02, 0.0, inf]
+    messages:
+      - "Diferenca XY critica"       # > 10 cm
+      - "Diferenca XY ruim"         # 5–10 cm
+      - "Diferenca XY OK"            # 2–5 cm
+      - "Diferenca XY boa"           # 0–2 cm
+      - "Diferenca XY excelente"     # 0 cm (idêntico)
+
+  z_difference:
+    type: lower_better
+    levels: [0.10, 0.05, 0.02, 0.0, inf]
+    messages:
+      - "Diferenca Z critica"        # > 10 cm
+      - "Diferenca Z ruim"          # 5–10 cm
+      - "Diferenca Z OK"             # 2–5 cm
+      - "Diferenca Z boa"            # 0–2 cm
+      - "Diferenca Z excelente"      # 0 cm (idêntico)
 
   is_valid_sequence_prev:
     type: categorical

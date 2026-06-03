@@ -154,16 +154,20 @@ Executa inline (`run_inline()`, sem QgsTask) e:
 
 Executado se JSON está disponível e `generate_report=True`:
 - `ReportGenerationTask` chama `ReportGenerationService.generate_from_json(json_path)`:
-  1. `RangeMetadataManager.load()` → carrega config.yaml (24 thresholds)
+  1. `RangeMetadataManager.load()` → carrega config.yaml (thresholds + alerts)
   2. `JSONUtil.load_records()` → carrega records do JSON v2.0
-  3. `[IMGMetadata(record).score() for record in records]` → classifica cada imagem (1-5)
-  4. `AggregateAnalyzer.analyze(results)` → estatísticas e alertas
-  5. `RenderEngine.generate_charts(agg)` → Chart.js pie chart
-  6. `RenderEngine.generate_map_data(results)` → Leaflet dados
-  7. `RenderEngine.render_report(results, agg, charts, map)` → Jinja2 HTML
-  8. `RenderEngine.save_report(html, path)` → salva em `reports/html/report_metadata_*.html`
+  3. `[IMGMetadata(record).score() for record in records]` → classifica cada imagem (1-5) via `RangeMetadataManager.classify()`
+  4. `AggregateAnalyzer.analyze(results)` → estatísticas agregadas
+  5. `AlertManager.analyze(results, agg)` → **motor genérico** que lê definições de alertas do `config.yaml` (seção `alerts:`) e gera alertas CRITICO/ALERTA/INFO sem thresholds hardcoded
+  6. `RenderEngine.generate_charts(agg)` → Chart.js pie chart
+  7. `RenderEngine.generate_map_data(results)` → Leaflet dados
+  8. `RenderEngine.render_report(results, agg, charts, map)` → Jinja2 HTML
+  9. `RenderEngine.save_report(html, path)` → salva em `reports/html/report_metadata_*.html`
 
 **on_success**: Abre HTML no navegador, `context.set("report_payload", payload)`
+
+> **Nota:** Alertas são totalmente configuráveis via `resources/reports/config.yaml` (seção `alerts:`). Para adicionar/modificar alertas, edite apenas o YAML — sem necessidade de alterar código Python. Consulte `docs/skills/SKILL_PQI.md` seção 8 para detalhes.
+
 
 ---
 
@@ -328,3 +332,4 @@ engine.start()
 | 2026-04-20 | 1.0.0 | Criação inicial |
 | 2026-05-13 | 1.1.0 | Documentação completa do sistema de relatórios |
 | **2026-05-14** | **2.0.0** | **Refatoração unificada:** PhotoMetadataStep + PhotoVectorizationStep → PhotoEnrichmentStep. CoordSource individual por registro. JsonVectorizationStep obrigatório em todos os pipelines. Runner alinhado com Plugin. |
+| **2026-06-03** | **2.1.0** | **AlertManager refatorado para motor genérico:** Alertas agora lidos do `config.yaml` (seção `alerts:`). Fim dos thresholds hardcoded. Para adicionar/modificar alertas, edite apenas o YAML. |

@@ -289,23 +289,69 @@ Isso evita que fotos com dados parciais sejam penalizadas excessivamente.
 
 ## 8. Sistema de Alertas (AlertManager)
 
-`AlertManager.analyze(results, agg)` gera alertas em 3 severidades: `CRITICO`, `ALERTA`, `INFO`.
+### Arquitetura — Fonte Única da Verdade
 
-### Categorias de Alerta
+`AlertManager.analyze(results, agg)` agora é um **motor genérico** que lê as definições de alertas do `config.yaml` (seção `alerts:`), eliminando duplicação de thresholds.
 
-| Categoria | Gatilho | Severidade típica |
-|-----------|---------|-------------------|
-| **DEWARP** | Qualquer foto com DewarpFlag=0 | CRITICO |
-| **RTK_FLAG** | Sinal não-fixo > 5% das fotos | CRITICO/ALERTA |
-| **RTK** | RtkStdLat/Lon/Hgt acima do threshold | CRITICO/ALERTA |
-| **MOTION_BLUR** | Blur > 0.5 (alerta) ou > 1.0 (crítico) | CRITICO/ALERTA |
-| **GIMBAL** | GimbalOffset > 15° (alerta) | CRITICO/ALERTA |
-| **OVERLAP** | > 30% das fotos com overlap < 60% | CRITICO/ALERTA |
-| **YAW** | > 5% das fotos com yaw oposto | ALERTA |
-| **GSD_VARIATION** | Desvio padrão GSD > 0.5cm | ALERTA |
-| **ALTITUDE** | Faltando altitude em > 10% | CRITICO/ALERTA/INFO |
-| **TEMPERATURE** | Sensor > 45°C | CRITICO/ALERTA |
+#### Modos de Alerta (definidos no config.yaml)
 
+| Modo | Descrição | Exemplos |
+|------|-----------|----------|
+| `aggregate_field` | Lê campo do agregador (agg), compara condição | dewarp_disabled, altitude_missing |
+| `threshold_levels` | Classifica cada foto via RangeMetadataManager | motion_blur_risk, sensor_temperature |
+| `threshold_levels_multi` | Múltiplos indicadores combinados | rtk_std_quality (lat+lon+hgt) |
+| `rtk_flag` | Analisa flags RTK fixa/float/single | rtk_flag_quality |
+| `aggregate_std` | Desvio padrão de indicador por voo | gsd_variation |
+
+#### Categorias de Alerta (definidas no config.yaml)
+
+| Categoria | Modo | Severidade típica |
+|-----------|------|-------------------|
+| **DEWARP** | aggregate_field | CRITICO |
+| **RTK_FLAG** | rtk_flag | CRITICO/ALERTA/INFO |
+| **RTK** | threshold_levels_multi | CRITICO/ALERTA |
+| **MOTION_BLUR** | threshold_levels | CRITICO/ALERTA |
+| **GIMBAL** | threshold_levels | CRITICO/ALERTA |
+| **OVERLAP** | threshold_levels | CRITICO/ALERTA |
+| **YAW** | threshold_levels | ALERTA |
+| **GSD_VARIATION** | aggregate_std | ALERTA |
+| **ALTITUDE** | aggregate_field | CRITICO/ALERTA/INFO |
+| **TEMPERATURE** | threshold_levels | CRITICO/ALERTA |
+| **GENERAL** | threshold_levels | INFO/ALERTA |
+
+#### Como Adicionar um Novo Alerta
+
+1. Edite `resources/reports/config.yaml`
+2. Adicione entrada na seção `alerts`:
+
+```yaml
+  speed_alert:
+    enabled: true
+    mode: threshold_levels
+    category: SPEED
+    indicator_ref: speed_3d_ms          # referencia o threshold existente
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_at_level
+          level: 1                      # nivel 1 = > 22 m/s
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2                      # nivel 2 = > 18 m/s
+    title_template: "Velocidade excessiva em {affected_count} foto(s)"
+    impact: "Velocidade alta aumenta motion blur."
+    action: "Reduzir velocidade para 8-15 m/s."
+```
+
+**Zero linhas de Python.** O motor genérico processa automaticamente.
+
+#### Thresholds de Alerta vs. Thresholds de Classificação
+
+- **Thresholds de classificação** (seção `thresholds:`): usados pelo `RangeMetadataManager.classify()` para nível 1-5 por foto
+- **Alertas** (seção `alerts:`): referenciam `indicator_ref` para usar os mesmos thresholds. Ex: nível 1 do `motion_blur_risk` (=1.5) → severidade CRITICO
+
+Isso garante que **alterar thresholds no config.yaml afeta tanto a classificação individual quanto os alertas automaticamente**.
 ---
 
 ## 9. Regras de Ouro
@@ -340,3 +386,4 @@ Isso evita que fotos com dados parciais sejam penalizadas excessivamente.
 | 2026-06-03 | 1.0.0 | Criação inicial |
 | 2026-06-03 | 1.0.1 | Correção DewarpFlag: 0=sem dewarp (crítico). None/ausente=dewarp aplicado |
 | 2026-06-03 | 1.0.2 | Speed 3D: mudado de `range_best` para `lower_better` (≤8 m/s=ideal). EV Classification: nublado→5 (melhor), sol muito forte→2 (pior). Proteção nível 0 documentada |
+| **2026-06-03** | **2.0.0** | **AlertManager refatorado para motor genérico:** Todas as definições de alerta movidas para `config.yaml` (seção `alerts:`). Thresholds hardcoded removidos. Para adicionar/modificar alertas, edite apenas o YAML. |

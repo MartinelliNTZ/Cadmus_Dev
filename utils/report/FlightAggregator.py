@@ -531,15 +531,17 @@ class FlightAggregator:
             hour_float = dt.hour + dt.minute / 60.0 + dt.second / 3600.0
             v_temp = FlightAggregator._get_numeric(r, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
             v_lrf = FlightAggregator._get_numeric(r, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
+            v_relz = FlightAggregator._get_numeric(r, [MFK.RELATIVE_ALTITUDE.value, 'relative_altitude'])
             # LRF zero = sem alvo adquirido, nao deve entrar na media
             if v_lrf is not None and v_lrf <= 0:
                 v_lrf = None
-            if v_temp is not None or v_lrf is not None:
+            if v_temp is not None or v_lrf is not None or v_relz is not None:
                 entries.append({
                     'dt': dt,
                     'hour_float': hour_float,
                     'temp': v_temp,
                     'lrf': v_lrf,
+                    'relz': v_relz,
                 })
 
         if not entries:
@@ -567,6 +569,7 @@ class FlightAggregator:
 
         temp_buckets = defaultdict(list)
         lrf_buckets = defaultdict(list)
+        relz_buckets = defaultdict(list)
 
         for e in entries:
             # Arredonda para o bucket mais proximo (ex: 08:17 com 15min -> bucket 08:15)
@@ -578,11 +581,13 @@ class FlightAggregator:
                 temp_buckets[bucket_key].append(e['temp'])
             if e['lrf'] is not None:
                 lrf_buckets[bucket_key].append(e['lrf'])
+            if e['relz'] is not None:
+                relz_buckets[bucket_key].append(e['relz'])
 
         # ------------------------------------------------------------------
         # 4. Montar resultado ordenado
         # ------------------------------------------------------------------
-        all_keys = sorted(set(temp_buckets.keys()) | set(lrf_buckets.keys()))
+        all_keys = sorted(set(temp_buckets.keys()) | set(lrf_buckets.keys()) | set(relz_buckets.keys()))
 
         temp_result = []
         lrf_result = []
@@ -593,6 +598,7 @@ class FlightAggregator:
 
             t_vals = temp_buckets.get(key, [])
             l_vals = lrf_buckets.get(key, [])
+            z_vals = relz_buckets.get(key, [])
 
             temp_result.append({
                 'hour': key,
@@ -603,8 +609,10 @@ class FlightAggregator:
             lrf_result.append({
                 'hour': key,
                 'label': label,
-                'mean': round(statistics.mean(l_vals), 2) if l_vals else None,
-                'count': len(l_vals),
+                'lrf_mean': round(statistics.mean(l_vals), 2) if l_vals else None,
+                'lrf_count': len(l_vals),
+                'relz_mean': round(statistics.mean(z_vals), 2) if z_vals else None,
+                'relz_count': len(z_vals),
             })
 
         return temp_result, lrf_result, interval_minutes

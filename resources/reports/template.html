@@ -1135,28 +1135,36 @@
             if (!ctx || !lrfHourlyCfg) return;
             if (lrfHourlyChartInstance) lrfHourlyChartInstance.destroy();
             applyChartDefaults();
-            const ds = lrfHourlyCfg.datasets[0];
+            const datasets = lrfHourlyCfg.datasets.map(function(ds) {
+                return {
+                    label: ds.label,
+                    data: ds.data,
+                    borderColor: ds.borderColor,
+                    backgroundColor: ds.backgroundColor,
+                    borderWidth: ds.borderWidth || 0.5,
+                    borderDash: ds.borderDash || [],
+                    fill: false,
+                    tension: ds.tension || 0.4,
+                    pointRadius: ds.pointRadius || 4,
+                    pointBackgroundColor: ds.pointBackgroundColor,
+                    yAxisID: ds.yAxisID || 'y',
+                };
+            });
             lrfHourlyChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: lrfHourlyCfg.labels,
-                    datasets: [{
-                        label: ds.label,
-                        data: ds.data,
-                        borderColor: ds.borderColor,
-                        backgroundColor: ds.backgroundColor,
-                        fill: false,
-                        tension: ds.tension || 0.4,
-                        pointRadius: ds.pointRadius || 4,
-                        pointBackgroundColor: ds.pointBackgroundColor,
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         x: { title: { display: true, text: 'Hora do Dia' } },
-                        y: { title: { display: true, text: 'Distância (m)' } }
+                        y: {
+                            title: { display: true, text: 'Distância (m)' },
+                            position: 'left',
+                        }
                     },
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } }
                 }

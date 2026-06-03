@@ -183,15 +183,15 @@ class RenderEngine:
             }
 
         lrf_hourly = agg_data.get("lrf_hourly_avg", [])
-        if lrf_hourly and any(h.get("mean") is not None for h in lrf_hourly):
+        if lrf_hourly and any(h.get("lrf_mean") is not None or h.get("relz_mean") is not None for h in lrf_hourly):
             labels = [h["label"] for h in lrf_hourly]
-            data = [h["mean"] if h.get("mean") is not None else None for h in lrf_hourly]
-            charts["lrf_hourly_line"] = {
-                "type": "line",
-                "labels": labels,
-                "datasets": [{
+            lrf_data = [h["lrf_mean"] if h.get("lrf_mean") is not None else None for h in lrf_hourly]
+            relz_data = [h["relz_mean"] if h.get("relz_mean") is not None else None for h in lrf_hourly]
+            datasets = []
+            if any(d is not None for d in lrf_data):
+                datasets.append({
                     "label": "LRF Média (m)",
-                    "data": data,
+                    "data": lrf_data,
                     "borderColor": "#1e88e5",
                     "backgroundColor": ColorUtil.to_rgba("#1e88e5", 0.1),
                     "borderWidth": 0.5,
@@ -199,10 +199,30 @@ class RenderEngine:
                     "tension": 0.4,
                     "pointRadius": 4,
                     "pointBackgroundColor": "#1e88e5",
-                }],
+                    "yAxisID": "y",
+                })
+            if any(d is not None for d in relz_data):
+                datasets.append({
+                    "label": "Altitude Relativa Média (m)",
+                    "data": relz_data,
+                    "borderColor": "#FF9100",
+                    "backgroundColor": ColorUtil.to_rgba("#FF9100", 0.1),
+                    "borderWidth": 0.5,
+                    "borderDash": [5, 3],
+                    "fill": False,
+                    "tension": 0.4,
+                    "pointRadius": 4,
+                    "pointBackgroundColor": "#FF9100",
+                    "yAxisID": "y",
+                })
+            charts["lrf_hourly_line"] = {
+                "type": "line",
+                "labels": labels,
+                "datasets": datasets,
                 "interval_minutes": interval_minutes,
                 "interval_label": interval_label,
-                "title": f"LRF Target Distance Médio a cada {interval_label_pt} (m)",
+                "title": f"LRF e Altitude Relativa a cada {interval_label_pt}",
+                "dual_axis": True,
             }
 
         # ISO Speed Ratings médio por intervalo de hora do dia

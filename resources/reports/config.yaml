@@ -642,6 +642,57 @@ alerts:
     impact: "Temperatura elevada aumenta ruido termico, degrada qualidade radiometrica e pode causar artefatos."
     action: "Pausar voo para resfriamento, reduzir taxa de captura ou operar em horarios mais amenos."
 
+  # ---------------------------------------------------------------------------
+  # 14. SPEED - Velocidade de voo excessiva (mode: threshold_levels)
+  # Referencia: speed_3d_ms: nivel 1 = >22m/s (critico), nivel 2 = >18m/s (alta)
+  # ---------------------------------------------------------------------------
+  speed_alert:
+    enabled: true
+    mode: threshold_levels
+    category: SPEED
+    indicator_ref: speed_3d_ms
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_at_level
+          level: 1             # nivel 1 = > 22 m/s
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2             # nivel 2 = > 18 m/s
+    title_template: "Velocidade de voo excessiva em {affected_count} foto(s)"
+    impact: "Velocidade alta aumenta motion blur e rolling shutter, comprometendo nitidez e matching."
+    action: "Reduzir velocidade de voo para 8-15 m/s e ajustar taxa de obturação."
+
+  # ---------------------------------------------------------------------------
+  # 15. EXPOSICAO - Condicao de luz inadequada (mode: threshold_levels)
+  # Referencia: ev_classification (categorical):
+  #   nivel 1 = noite/escuro
+  #   nivel 2 = sol muito forte/neve
+  #   nivel 3 = indoor/sombra
+  # ---------------------------------------------------------------------------
+  exposure_alert:
+    enabled: true
+    mode: threshold_levels
+    category: ILLUMINATION
+    indicator_ref: ev_classification
+    severity_rules:
+      - severity: CRITICO
+        when:
+          type: any_at_level
+          level: 1             # noite/escuro - inviavel
+      - severity: ALERTA
+        when:
+          type: any_at_level
+          level: 2             # sol muito forte/neve - pior cenario
+      - severity: INFO
+        when:
+          type: any_at_level
+          level: 3             # indoor/sombra - subexposicao
+    title_template: "Condicao de luz inadequada em {affected_count} foto(s)"
+    impact: "Iluminacao inadequada prejudica extracao de tie points, qualidade radiometrica e consistencia da ortofoto."
+    action: "Planejar voos em horarios com luz difusa (nublado/amanhecer) e evitar Sol forte ou periodo noturno."
+
 templates:
   template_path: core/template.html
   output: relatorio.html

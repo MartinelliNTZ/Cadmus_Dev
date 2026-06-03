@@ -481,6 +481,14 @@ class AggregateAnalyzer:
         )
         relative_altitude_stats = AggregateAnalyzer.compute_percentile_stats(relative_altitude) if relative_altitude else {'mean': None, 'p5': None, 'p95': None, 'range': None}
 
+        # LRF Target Distance
+        lrf_target = AggregateAnalyzer._numeric_from_flight_values(
+            results, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance']
+        )
+        if lrf_target:
+            lrf_target = [v for v in lrf_target if v > 0]
+        lrf_target_stats = AggregateAnalyzer.compute_percentile_stats(lrf_target) if lrf_target else {'mean': None, 'p5': None, 'p95': None, 'range': None}
+
         # Light consistency
         light_consistency_vals = []
         for r in results:
@@ -552,6 +560,10 @@ class AggregateAnalyzer:
             'relative_altitude_p5': relative_altitude_stats['p5'],
             'relative_altitude_p95': relative_altitude_stats['p95'],
             'relative_altitude_range': relative_altitude_stats['range'],
+            'lrf_target_mean': lrf_target_stats['mean'],
+            'lrf_target_p5': lrf_target_stats['p5'],
+            'lrf_target_p95': lrf_target_stats['p95'],
+            'lrf_target_range': lrf_target_stats['range'],
             'dist3d_prev_mean': dist3d_prev_stats['mean'],
             'dist3d_prev_p5': dist3d_prev_stats['p5'],
             'dist3d_prev_p95': dist3d_prev_stats['p95'],

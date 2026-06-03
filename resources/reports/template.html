@@ -378,7 +378,7 @@
                         <td>{{ m.rtk_stability_class if m.rtk_stability_class is not none else '-' }}
                             {% if m.rtk_stability_mean is not none %}(media {{ '%.2f'|format(m.rtk_stability_mean) }}%){% endif %}</td>
                     </tr>
-                    <tr><th>Altura de voo media</th>
+                    <tr><th>Altitude Relativa</th>
                         <td>{% if m.relative_altitude_mean is not none %}
                                 <strong style="color: var(--l5);">{{ '%.2f'|format(m.relative_altitude_mean) }} m</strong>
                             {% else %}-{% endif %}
@@ -386,6 +386,17 @@
                                 <span class="muted" style="font-size: 12px; margin-left: 6px;">
                                     · p5%: {{ '%.2f'|format(m.relative_altitude_p5) }} m · p95%: {{ '%.2f'|format(m.relative_altitude_p95) }} m
                                     · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.relative_altitude_range) }} m</span>
+                                </span>
+                            {% endif %}</td>
+                    </tr>
+                    <tr><th>Altura do voo (LRF)</th>
+                        <td>{% if m.lrf_target_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.lrf_target_mean) }} m</strong>
+                            {% else %}-{% endif %}
+                            {% if m.lrf_target_p5 is not none and m.lrf_target_p95 is not none and m.lrf_target_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.lrf_target_p5) }} m · p95%: {{ '%.2f'|format(m.lrf_target_p95) }} m
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.lrf_target_range) }} m</span>
                                 </span>
                             {% endif %}</td>
                     </tr>

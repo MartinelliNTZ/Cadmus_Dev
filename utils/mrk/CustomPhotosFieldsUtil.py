@@ -917,6 +917,55 @@ class CustomPhotosFieldsUtil:
             MetadataFieldKey.CAPTURE_EFFICIENCY.value: round(capture_efficiency, DECIMAL_PLACES),
             MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX.value: 0.0,  # placeholder, atualizado no pós-processamento
         }
+    @staticmethod
+    def _calculate_mrk_differences(data: Dict) -> Dict:
+        """
+        Calcula as diferenças entre os dados do MRK e os metadados das imagens.
+
+        Campos calculados:
+        - X_DIFFERENCE: Diferença entre a Longitude do MRK e a Longitude do GPS do metadado.
+        - Y_DIFFERENCE: Diferença entre a Latitude do MRK e a Latitude do GPS do metadado.
+        - Z_DIFFERENCE: Diferença entre a Altitude do MRK e a Altitude Absoluta do metadado.
+        - XY_DIFFERENCE: Distância planimétrica (2D) via Haversine entre posição MRK e posição do metadado.
+        - THREE_D_DIFFERENCE: Distância tridimensional (3D) combinando XY + Z.
+        """
+        # MRK fields
+        mrk_lat = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.LAT, default=0.0)
+        mrk_lon = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.LON, default=0.0)
+        mrk_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.ALT, default=0.0)
+
+        # Metadata GPS fields
+        gps_lat = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.GPS_LATITUDE, default=0.0)
+        gps_lon = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.GPS_LONGITUDE, default=0.0)
+        abs_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0.0)
+
+        # Y_DIFFERENCE = Latitude difference (Northing/Y - Norte-Sul)
+        y_diff = round(mrk_lat - gps_lat, DECIMAL_PLACES)
+
+        # X_DIFFERENCE = Longitude difference (Easting/X - Leste-Oeste)
+        x_diff = round(mrk_lon - gps_lon, DECIMAL_PLACES)
+
+        # Z_DIFFERENCE = Altitude difference (Z - vertical)
+        z_diff = round(mrk_alt - abs_alt, DECIMAL_PLACES)
+
+        # XY_DIFFERENCE = Haversine 2D distance between MRK and metadata positions
+        xy_diff = 0.0
+        if mrk_lat != 0.0 or mrk_lon != 0.0 or gps_lat != 0.0 or gps_lon != 0.0:
+            xy_diff = round(
+                CustomPhotosFieldsUtil.haversine(mrk_lat, mrk_lon, gps_lat, gps_lon),
+                DECIMAL_PLACES,
+            )
+
+        # THREE_D_DIFFERENCE = 3D distance combining XY + Z
+        three_d_diff = round(math.sqrt(xy_diff**2 + z_diff**2), DECIMAL_PLACES)
+
+        return {
+            MetadataFieldKey.X_DIFFERENCE.value: x_diff,
+            MetadataFieldKey.Y_DIFFERENCE.value: y_diff,
+            MetadataFieldKey.Z_DIFFERENCE.value: z_diff,
+            MetadataFieldKey.XY_DIFFERENCE.value: xy_diff,
+            MetadataFieldKey.THREE_D_DIFFERENCE.value: three_d_diff,
+        }
 
     @classmethod
     def calculate_all_custom_fields(
@@ -1054,9 +1103,13 @@ class CustomPhotosFieldsUtil:
             ev_calculated = individual.get(MetadataFieldKey.EXPOSURE_VALUE_EV.value, 0.0)
             ev_classification = EvClassEnum.get_label(ev_calculated)
 
+            # MRK differences (MRK vs Metadata GPS)
+            mrk_diffs = cls._calculate_mrk_differences(data)
+
             custom = {
                 **individual,
                 **quality,
+                **mrk_diffs,
                 MetadataFieldKey.GROUND_ELEVATION.value: round(ground_elevation, DECIMAL_PLACES),
                 MetadataFieldKey.EV_CLASSIFICATION.value: ev_classification,
                 MetadataFieldKey.GIMBAL_OFFSET.value: round(gim_3d[MetadataFieldKey.GIMBAL_OFFSET.value], DECIMAL_PLACES),

@@ -453,8 +453,28 @@
                             {% else %}N/A{% endif %}</td>
                     </tr>
                     <tr><th>Sobreposicao frontal abaixo de 60%</th><td>{% if m.overlap_below_ideal_pct is not none %}{{ '%.2f'|format(m.overlap_below_ideal_pct) }}%{% else %}-{% endif %}</td></tr>
-                    <tr><th>Sobreposicao frontal media</th><td>{% if m.overlap_mean is not none %}{{ '%.2f'|format(m.overlap_mean) }} %{% else %}-{% endif %}</td></tr>
-                    <tr><th>Velocidade media</th><td>{% if m.speed_ms_mean is not none %}{{ '%.2f'|format(m.speed_ms_mean) }} m/s{% else %}-{% endif %}</td></tr>
+                    <tr><th>Sobreposicao frontal media</th>
+                        <td>{% if m.overlap_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.overlap_mean) }} %</strong>
+                            {% else %}-{% endif %}
+                            {% if m.overlap_p5 is not none and m.overlap_p95 is not none and m.overlap_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.overlap_p5) }} % · p95%: {{ '%.2f'|format(m.overlap_p95) }} %
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.overlap_range) }} %</span>
+                                </span>
+                            {% endif %}
+                        </td></tr>
+                    <tr><th>Velocidade media</th>
+                        <td>{% if m.speed_ms_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.speed_ms_mean) }} m/s</strong>
+                            {% else %}-{% endif %}
+                            {% if m.speed_ms_p5 is not none and m.speed_ms_p95 is not none and m.speed_ms_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.speed_ms_p5) }} m/s · p95%: {{ '%.2f'|format(m.speed_ms_p95) }} m/s
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.speed_ms_range) }} m/s</span>
+                                </span>
+                            {% endif %}
+                        </td></tr>
                     <tr><th>Direcao de voo inconsistente</th><td>{{ m.yaw_inconsistent_pct if m.yaw_inconsistent_pct is not none else '-' }}%</td></tr>
                     {% set mb_level = m.motion_blur_mean %}
                     {% if mb_level is not none %}
@@ -466,7 +486,17 @@
                         {% endif %}
                     {% else %}{% set mb_class = '-' %}
                     {% endif %}
-                    <tr><th>Motion Blur medio</th><td>{% if m.motion_blur_mean is not none %}{{ '%.2f'|format(m.motion_blur_mean) }} ({{ mb_class }}){% else %}-{% endif %}</td></tr>
+                    <tr><th>Motion Blur medio</th>
+                        <td>{% if m.motion_blur_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.motion_blur_mean) }} ({{ mb_class }})</strong>
+                            {% else %}-{% endif %}
+                            {% if m.motion_blur_p5 is not none and m.motion_blur_p95 is not none and m.motion_blur_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.motion_blur_p5) }} · p95%: {{ '%.2f'|format(m.motion_blur_p95) }}
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.motion_blur_range) }}</span>
+                                </span>
+                            {% endif %}
+                        </td></tr>
                     <tr><th>Indice de qualidade (PQI)</th><td>{% if m.pqi_last_quartile_mean is not none %}{{ '%.2f'|format(m.pqi_last_quartile_mean) }}{% else %}-{% endif %}</td></tr>
                     <tr><th>Tamanho medio do arquivo</th><td>{% if m.size_mb_mean is not none %}{{ '%.2f'|format(m.size_mb_mean) }} MB{% else %}-{% endif %}</td></tr>
                 </table>

@@ -389,6 +389,7 @@ class AggregateAnalyzer:
             overlap_below_ideal = [v for v in overlap_values if v < AggregateAnalyzer._OVERLAP_IDEAL]
             overlap_below_pct = (len(overlap_below_ideal) / len(overlap_values) * 100.0) if overlap_values else 0.0
         overlap_mean = statistics.mean(overlap_values) if overlap_values else None
+        overlap_stats = AggregateAnalyzer.compute_percentile_stats(overlap_values) if overlap_values else {'mean': None, 'p5': None, 'p95': None, 'range': None}
 
         # Yaw
         yaw_err_values = AggregateAnalyzer._numeric_from_flight_values(
@@ -443,9 +444,11 @@ class AggregateAnalyzer:
         speed_ms = AggregateAnalyzer._numeric_from_flight_values(
             results, [MFK.THREE_D_SPEED.value, 'speed_3d_ms']
         )
+        speed_ms_stats = AggregateAnalyzer.compute_percentile_stats(speed_ms) if speed_ms else {'mean': None, 'p5': None, 'p95': None, 'range': None}
         motion_blur = AggregateAnalyzer._numeric_from_flight_values(
             results, [MFK.MOTION_BLUR_RISK.value, 'motion_blur_risk']
         )
+        motion_blur_stats = AggregateAnalyzer.compute_percentile_stats(motion_blur) if motion_blur else {'mean': None, 'p5': None, 'p95': None, 'range': None}
         speed_var = AggregateAnalyzer._numeric_from_flight_values(
             results, [MFK.SPEED_VARIATION_INDEX.value, 'speed_variation_index']
         )
@@ -536,7 +539,13 @@ class AggregateAnalyzer:
             'size_mb_cv': round(size_cv, 4) if size_cv is not None else None,
             'overlap_below_ideal_pct': round(overlap_below_pct, 2) if overlap_values else None,
             'overlap_mean': round(overlap_mean, 2) if overlap_mean is not None else None,
+            'overlap_p5': overlap_stats['p5'],
+            'overlap_p95': overlap_stats['p95'],
+            'overlap_range': overlap_stats['range'],
             'speed_ms_mean': round(statistics.mean(speed_ms), 4) if speed_ms else None,
+            'speed_ms_p5': speed_ms_stats['p5'],
+            'speed_ms_p95': speed_ms_stats['p95'],
+            'speed_ms_range': speed_ms_stats['range'],
             'speed_ms_recommended': f'{AggregateAnalyzer._SPEED_RECOMMENDED_MIN_MS:.0f}-{AggregateAnalyzer._SPEED_RECOMMENDED_MAX_MS:.0f} m/s',
             'relative_altitude_mean': relative_altitude_stats['mean'],
             'relative_altitude_p5': relative_altitude_stats['p5'],
@@ -559,6 +568,9 @@ class AggregateAnalyzer:
             'flight_pitch_p95': flight_pitch_stats['p95'],
             'flight_pitch_range': flight_pitch_stats['range'],
             'motion_blur_mean': round(statistics.mean(motion_blur), 4) if motion_blur else None,
+            'motion_blur_p5': motion_blur_stats['p5'],
+            'motion_blur_p95': motion_blur_stats['p95'],
+            'motion_blur_range': motion_blur_stats['range'],
             'speed_variation_mean': round(statistics.mean(speed_var), 4) if speed_var else None,
             'light_inconsistent_pct': round(light_inconsistent_pct, 2),
         }

@@ -783,7 +783,7 @@ class MetadataFields:
             attribute="XDiff",
             description="Diferença entre a longitude (Easting/X) do MRK e do metadado das imagens. Representa o desvio na coordenada Leste-Oeste. [XDiff]",
             level=5,
-            key=MetadataFieldKey.X_DIFFERENCE
+            key=MetadataFieldKey.X_DIFFERENCE,
         ),
         MetadataFieldKey.Y_DIFFERENCE: Field(
             normalized="Custom:YDifference",
@@ -811,6 +811,15 @@ class MetadataFields:
             description="Diferença planimétrica total (2D) entre a posição do MRK e a posição do metadado das imagens, combinando os desvios de Latitude (Norte-Sul) e Longitude (Leste-Oeste). [XYDiff]",
             level=5,
             key=MetadataFieldKey.XY_DIFFERENCE,
+        ),
+        MetadataFieldKey.THREE_D_DIFFERENCE: Field(
+            normalized="Custom:3DDifference",
+            core="custom",
+            label="Diferença Tridimensional (3D)",
+            attribute="3DDiff",
+            description="Diferença tridimensional total (3D) entre a posição do MRK e a posição do metadado das imagens, combinando os desvios de Longitude (Leste-Oeste), Latitude (Norte-Sul) e Altitude (Z). [3DDiff]",
+            level=5,
+            key=MetadataFieldKey.THREE_D_DIFFERENCE,
         ),
         MetadataFieldKey.DT_DATE: Field(
             normalized="Custom:DtDate",

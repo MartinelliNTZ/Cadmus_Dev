@@ -85,6 +85,7 @@ class MetadataFieldKey(Enum):
     Y_DIFFERENCE = "YDifference"
     Z_DIFFERENCE = "ZDifference"
     XY_DIFFERENCE = "XYDifference"
+    THREE_D_DIFFERENCE = "3DDifference"
     FILE_TYPE = "FileType"
     DT_FULL = "DtFull"
     DT_DATE = "DtDate"

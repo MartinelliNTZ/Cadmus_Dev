@@ -935,8 +935,8 @@ class CustomPhotosFieldsUtil:
         mrk_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.ALT, default=0.0)
 
         # Metadata GPS fields
-        gps_lat = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.GPS_LATITUDE, default=0.0)
-        gps_lon = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.GPS_LONGITUDE, default=0.0)
+        gps_lat = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.GPS_LATITUDE_REF, default=0.0)
+        gps_lon = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.GPS_LONGITUDE_REF, default=0.0)
         abs_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0.0)
 
         # Y_DIFFERENCE = Latitude difference (Northing/Y - Norte-Sul)

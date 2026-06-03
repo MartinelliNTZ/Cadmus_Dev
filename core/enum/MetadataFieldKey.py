@@ -81,6 +81,10 @@ class MetadataFieldKey(Enum):
     QUALITY_FLAG = "QualityFlag"
 
     # CUSTOM_FIELDS
+    X_DIFFERENCE = "XDifference"
+    Y_DIFFERENCE = "YDifference"
+    Z_DIFFERENCE = "ZDifference"
+    XY_DIFFERENCE = "XYDifference"
     FILE_TYPE = "FileType"
     DT_FULL = "DtFull"
     DT_DATE = "DtDate"

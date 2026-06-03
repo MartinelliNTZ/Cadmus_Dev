@@ -994,10 +994,32 @@ class AlertManager:
             results, [MFK.RTK_DIFF_AGE.value, 'rtk_diff_age']
         )
         rtk_diff_age_mean = statistics.mean(rtk_diff_age) if rtk_diff_age else None
-        rtk_diff_age_max = max(rtk_diff_age) if rtk_diff_age else None
+        rtk_diff_age_p5 = (
+            sorted(rtk_diff_age)[int(0.05 * (len(rtk_diff_age) - 1))]
+            if rtk_diff_age else None
+        )
         rtk_diff_age_p95 = (
             sorted(rtk_diff_age)[int(0.95 * (len(rtk_diff_age) - 1))]
             if rtk_diff_age else None
+        )
+
+        # Ground Elevation (solo)
+        ground_elevation = AlertManager._numeric_from_flight_values(
+            results, [MFK.GROUND_ELEVATION.value, 'ground_elevation']
+        )
+        ground_elevation_mean = statistics.mean(ground_elevation) if ground_elevation else None
+        ground_elevation_p5 = (
+            sorted(ground_elevation)[int(0.05 * (len(ground_elevation) - 1))]
+            if ground_elevation else None
+        )
+        ground_elevation_p95 = (
+            sorted(ground_elevation)[int(0.95 * (len(ground_elevation) - 1))]
+            if ground_elevation else None
+        )
+        ground_elevation_range = (
+            round(ground_elevation_p95 - ground_elevation_p5, 2)
+            if ground_elevation_p5 is not None and ground_elevation_p95 is not None
+            else None
         )
 
         # Gimbal
@@ -1074,8 +1096,12 @@ class AlertManager:
 
         return {
             'rtk_diff_age_mean': round(rtk_diff_age_mean, 4) if rtk_diff_age_mean is not None else None,
-            'rtk_diff_age_max': round(rtk_diff_age_max, 4) if rtk_diff_age_max is not None else None,
+            'rtk_diff_age_p5': round(rtk_diff_age_p5, 4) if rtk_diff_age_p5 is not None else None,
             'rtk_diff_age_p95': round(rtk_diff_age_p95, 4) if rtk_diff_age_p95 is not None else None,
+            'ground_elevation_mean': round(ground_elevation_mean, 2) if ground_elevation_mean is not None else None,
+            'ground_elevation_p5': round(ground_elevation_p5, 2) if ground_elevation_p5 is not None else None,
+            'ground_elevation_p95': round(ground_elevation_p95, 2) if ground_elevation_p95 is not None else None,
+            'ground_elevation_range': ground_elevation_range,
             'rtk_effective_precision_mean': round(statistics.mean(rtk_effective_precision), 4) if rtk_effective_precision else None,
             'rtk_effective_precision_max': round(max(rtk_effective_precision), 4) if rtk_effective_precision else None,
             'rtk_effective_precision_raw': ', '.join(sorted(rtk_effective_raw)) if rtk_effective_raw else None,
@@ -1120,8 +1146,8 @@ class AlertManager:
         if gimbal_offset_over_1deg_pct is not None and gimbal_offset_over_1deg_pct > 20:
             recommendations.append('Recalibrar gimbal e validar alinhamento antes da decolagem.')
 
-        rtk_diff_age_max = advanced_metrics.get('rtk_diff_age_max')
-        if rtk_diff_age_max is not None and rtk_diff_age_max > 2:
+        rtk_diff_age_p95 = advanced_metrics.get('rtk_diff_age_p95')
+        if rtk_diff_age_p95 is not None and rtk_diff_age_p95 > 2:
             recommendations.append('Melhorar vinculacao RTK/base e reduzir idade de correcao RTK durante o voo.')
 
         light_inconsistent_pct = advanced_metrics.get('light_inconsistent_pct')

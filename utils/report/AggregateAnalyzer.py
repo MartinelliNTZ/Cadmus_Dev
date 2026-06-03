@@ -707,13 +707,13 @@ class AggregateAnalyzer:
             solo_variation_high = solo_range >= threshold
             
             if rel_variation_high and not solo_variation_high:
-                classification_label = 'AGL'
+                classification_label = 'Above Ground Level (AGL)'
                 classification_type = 'agl'
             elif not rel_variation_high and solo_variation_high:
-                classification_label = 'Relative'
+                classification_label = 'Relative to Takeoff Point (ALT)'
                 classification_type = 'relative'
             elif rel_variation_high and solo_variation_high:
-                classification_label = 'AGL (baixa acuracia)'
+                classification_label = 'Above Ground Level (AGL) - baixa acuracia'
                 classification_type = 'agl_low_accuracy'
             else:
                 classification_label = 'Area muito plana'

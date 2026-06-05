@@ -313,43 +313,6 @@
                             {{ agg.general_info.gps_status | join(', ') if agg.general_info.gps_status else 'N/A' }}
                         </td>
                     </tr>
-                    <tr><th>Tipo de voo</th>
-                        <td>
-                            {% set alt_class = agg.general_info.altitude_classification_type %}
-                            {% set alt_label = agg.general_info.altitude_classification_label %}
-                            {% if alt_class and alt_class != 'unavailable' %}
-                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; 
-                                    {% if alt_class == 'agl' %}background: #1a9850; color: #111;
-                                    {% elif alt_class == 'relative' %}background: #2196F3; color: #fff;
-                                    {% endif %}">
-                                    {{ alt_label }}
-                                </span>
-                            {% else %}
-                                <span class="muted">Indisponivel</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr><th>Declividade</th>
-                        <td>
-                            {% set sc = agg.general_info.slope_classification %}
-                            {% set sp = agg.general_info.slope_pct %}
-                            {% if sc and sc != 'Indisponivel' %}
-                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
-                                    {% if sp is not none and sp < 1 %}background: #1a9850; color: #111;
-                                    {% elif sp is not none and sp < 3 %}background: #66BD63; color: #111;
-                                    {% elif sp is not none and sp < 5 %}background: #FFEA00; color: #111;
-                                    {% elif sp is not none and sp < 10 %}background: #FF9100; color: #111;
-                                    {% elif sp is not none and sp < 15 %}background: #FF1744; color: #fff;
-                                    {% elif sp is not none and sp < 25 %}background: #D50000; color: #fff;
-                                    {% else %}background: #B71C1C; color: #fff;
-                                    {% endif %}">
-                                    {{ sc }} ({{ sp }}%)
-                                </span>
-                            {% else %}
-                                <span class="muted">Indisponivel</span>
-                            {% endif %}
-                        </td>
-                    </tr>
                     <tr><th>Tipo de voo · Qualidade</th>
                         <td>
                             {% set alt_class = agg.general_info.altitude_classification_type %}
@@ -398,6 +361,7 @@
                 <summary>METRICAS</summary>
                 {% set m = agg.advanced_analysis.metrics %}
                 <table>
+                    <!-- GSD -->
                     <tr><th>GSD médio</th>
                         <td>{% if per_indicator.get('gsd_cm') and per_indicator['gsd_cm'].get('value_mean') is not none %}
                                 <strong style="color: var(--l5);">{{ '%.2f'|format(per_indicator['gsd_cm']['value_mean']) }} cm</strong>
@@ -419,21 +383,7 @@
                                 </span>
                             {% endif %}
                         </td></tr>
-                    <tr><th>Idade do sinal RTK</th>
-                        <td>{% if m.rtk_diff_age_mean is not none %}
-                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.rtk_diff_age_mean) }}s</strong>
-                            {% else %}-{% endif %}
-                            {% if m.rtk_diff_age_p5 is not none and m.rtk_diff_age_p95 is not none and m.rtk_diff_age_range is not none %}
-                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
-                                    · p5%: {{ '%.2f'|format(m.rtk_diff_age_p5) }}s · p95%: {{ '%.2f'|format(m.rtk_diff_age_p95) }}s
-                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.rtk_diff_age_range) }}s</span>
-                                </span>
-                            {% endif %}</td>
-                    </tr>
-                    <tr><th>Estabilidade do sinal RTK</th>
-                        <td>{{ m.rtk_stability_class if m.rtk_stability_class is not none else '-' }}
-                            {% if m.rtk_stability_mean is not none %}(media {{ '%.2f'|format(m.rtk_stability_mean) }}%){% endif %}</td>
-                    </tr>
+                    <!-- Altitudes -->
                     <tr><th>Altitude Relativa</th>
                         <td>{% if m.relative_altitude_mean is not none %}
                                 <strong style="color: var(--l5);">{{ '%.2f'|format(m.relative_altitude_mean) }} m</strong>
@@ -467,8 +417,71 @@
                                     · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.ground_elevation_range) }} m</span>
                                 </span>
                             {% endif %}
+                            {% set sc = agg.general_info.slope_classification %}
+                            {% set sp = agg.general_info.slope_pct %}
+                            {% if sc and sc != 'Indisponivel' %}
+                                <span style="display: inline-block; margin-left: 6px; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+                                    {% if sp is not none and sp < 1 %}background: #1a9850; color: #111;
+                                    {% elif sp is not none and sp < 3 %}background: #66BD63; color: #111;
+                                    {% elif sp is not none and sp < 5 %}background: #FFEA00; color: #111;
+                                    {% elif sp is not none and sp < 10 %}background: #FF9100; color: #111;
+                                    {% elif sp is not none and sp < 15 %}background: #FF1744; color: #fff;
+                                    {% elif sp is not none and sp < 25 %}background: #D50000; color: #fff;
+                                    {% else %}background: #B71C1C; color: #fff;
+                                    {% endif %}">
+                                    {{ sc }} ({{ sp }}%)
+                                </span>
+                            {% endif %}
                         </td>
                     </tr>
+                    <!-- Distancia / Drone -->
+                    <tr><th>Distância entre fotos (m)</th>
+                        <td>{% if m.dist3d_prev_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.dist3d_prev_mean) }} m</strong>
+                            {% else %}-{% endif %}
+                            {% if m.dist3d_prev_p5 is not none and m.dist3d_prev_p95 is not none and m.dist3d_prev_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.dist3d_prev_p5) }} m · p95%: {{ '%.2f'|format(m.dist3d_prev_p95) }} m
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.dist3d_prev_range) }} m</span>
+                                </span>
+                            {% endif %}</td>
+                    </tr>
+                    <!-- RTK -->
+                    <tr><th>Idade do sinal RTK</th>
+                        <td>{% if m.rtk_diff_age_mean is not none %}
+                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.rtk_diff_age_mean) }}s</strong>
+                            {% else %}-{% endif %}
+                            {% if m.rtk_diff_age_p5 is not none and m.rtk_diff_age_p95 is not none and m.rtk_diff_age_range is not none %}
+                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
+                                    · p5%: {{ '%.2f'|format(m.rtk_diff_age_p5) }}s · p95%: {{ '%.2f'|format(m.rtk_diff_age_p95) }}s
+                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.rtk_diff_age_range) }}s</span>
+                                </span>
+                            {% endif %}
+                            {% if m.rtk_diff_age_mean is not none %}
+                                {% if m.rtk_diff_age_mean == 0 %}
+                                    <span style="display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #9E9E9E; color: #111;">
+                                        Voo sem RTK
+                                    </span>
+                                {% elif m.rtk_diff_age_range is not none and m.rtk_diff_age_range > 1.0 %}
+                                    <span style="display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #FF9100; color: #111;">
+                                        RTK Instavel
+                                    </span>
+                                {% elif m.rtk_diff_age_range is not none %}
+                                    <span style="display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #1a9850; color: #111;">
+                                        RTK Estavel
+                                    </span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr><th>Estabilidade do sinal RTK</th>
+                        <td>{{ m.rtk_stability_class if m.rtk_stability_class is not none else '-' }}
+                            {% if m.rtk_stability_mean is not none %}(media {{ '%.2f'|format(m.rtk_stability_mean) }}%){% endif %}</td>
+                    </tr>
+                    <tr><th>Precisão RTK efetiva</th>
+                        <td>{% if m.rtk_effective_precision_raw is not none %}{{ m.rtk_effective_precision_raw }}{% elif m.rtk_effective_precision_mean is not none %}{{ '%.3f'|format(m.rtk_effective_precision_mean) }} m (max {{ '%.3f'|format(m.rtk_effective_precision_max) }} m){% else %}-{% endif %}</td>
+                    </tr>
+                    <!-- Gimbal -->
                     <tr><th>Desalinhamento do gimbal</th>
                         <td>{% if m.gimbal_offset_mean is not none %}
                                 <strong style="color: var(--l5);">{{ '%.2f'|format(m.gimbal_offset_mean) }}°</strong>
@@ -477,20 +490,6 @@
                                 <span class="muted" style="font-size: 12px; margin-left: 6px;">
                                     · p5%: {{ '%.2f'|format(m.gimbal_offset_p5) }}° · p95%: {{ '%.2f'|format(m.gimbal_offset_p95) }}°
                                     · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.gimbal_offset_range) }}°</span>
-                                </span>
-                            {% endif %}</td>
-                    </tr>
-                    <tr><th>Precisão RTK</th>
-                        <td>{% if m.rtk_effective_precision_raw is not none %}{{ m.rtk_effective_precision_raw }}{% elif m.rtk_effective_precision_mean is not none %}{{ '%.3f'|format(m.rtk_effective_precision_mean) }} m (max {{ '%.3f'|format(m.rtk_effective_precision_max) }} m){% else %}-{% endif %}</td>
-                    </tr>
-                    <tr><th>Distância (m)</th>
-                        <td>{% if m.dist3d_prev_mean is not none %}
-                                <strong style="color: var(--l5);">{{ '%.2f'|format(m.dist3d_prev_mean) }} m</strong>
-                            {% else %}-{% endif %}
-                            {% if m.dist3d_prev_p5 is not none and m.dist3d_prev_p95 is not none and m.dist3d_prev_range is not none %}
-                                <span class="muted" style="font-size: 12px; margin-left: 6px;">
-                                    · p5%: {{ '%.2f'|format(m.dist3d_prev_p5) }} m · p95%: {{ '%.2f'|format(m.dist3d_prev_p95) }} m
-                                    · <span style="color: var(--l4);">variação: {{ '%.2f'|format(m.dist3d_prev_range) }} m</span>
                                 </span>
                             {% endif %}</td>
                     </tr>

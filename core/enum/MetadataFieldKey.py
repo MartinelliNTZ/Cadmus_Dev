@@ -28,7 +28,7 @@ class MetadataFieldKey(Enum):
     EXPOSURE_MODE = "ExposureMode"
     LENS_SPECIFICATION = "LensSpecification"
     DIGITAL_ZOOM_RATIO = "DigitalZoomRatio"
-    GPS_STATUS = "GpsStatus"
+    GPS_STATUS_EXIF = "GpsStatusExif"
     GPS_LATITUDE_REF = "GpsLatitudeRef"
     GPS_LONGITUDE_REF = "GpsLongitudeRef"
     ALTITUDE_TYPE = "AltitudeType"
@@ -135,6 +135,7 @@ class MetadataFieldKey(Enum):
     PHOTOGRAMMETRY_QUALITY_INDEX = "PhotogrammetryQualityIndex"
     STRIP_ID = "StripId"
     EV_CLASSIFICATION = "EvClassification"
+    FLIGHT_ALTITUDE = "FlightAltitude"
 
     # MRK_FIELDS
     FOTO = "Foto"

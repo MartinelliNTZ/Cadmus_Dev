@@ -178,10 +178,10 @@ class AggregateAnalyzer:
             not in {'', 'none', 'null'}
         })
         gps_status_values = sorted({
-            str(r.get_indicator(MFK.GPS_STATUS.value) or r.get_indicator('gps_status') or '').strip()
+            str(r.get_indicator(MFK.GPS_STATUS_EXIF.value) or r.get_indicator('gps_status') or '').strip()
             for r in results
-            if str(r.get_indicator(MFK.GPS_STATUS.value) or r.get_indicator('gps_status') or '').strip()
-            and str(r.get_indicator(MFK.GPS_STATUS.value) or r.get_indicator('gps_status') or '').strip().lower()
+            if str(r.get_indicator(MFK.GPS_STATUS_EXIF.value) or r.get_indicator('gps_status') or '').strip()
+            and str(r.get_indicator(MFK.GPS_STATUS_EXIF.value) or r.get_indicator('gps_status') or '').strip().lower()
             not in {'', 'none', 'null'}
         })
 

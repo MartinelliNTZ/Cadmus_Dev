@@ -1174,10 +1174,14 @@ class CustomPhotosFieldsUtil:
                 prev_segment_dir = current_segment_dir
 
             # Monta dicionário custom apenas com campos mapeados em MetadataFields.CUSTOM_FIELDS
-            # GroundElevation = AbsoluteAltitude - RelativeAltitude
+            # FlightAltitude = altura efetiva (LRF corrigido > RelativeAltitude)
+            fly_alt = CustomPhotosFieldsUtil._get_effective_height(data)
+            
+            # GroundElevation = AbsoluteAltitude - FlightAltitude
+            # Com LRF: AbsZ - (LRFDist * cos(incidence))
+            # Sem LRF: AbsZ - RelativeAltitude
             abs_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0)
-            rel_alt = CustomPhotosFieldsUtil._get_safe(data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0)
-            ground_elevation = abs_alt - rel_alt if rel_alt > 0 else 0.0
+            ground_elevation = abs_alt - fly_alt if fly_alt > 0 and abs_alt > 0 else 0.0
 
             # EV Classification (texto)
             ev_calculated = individual.get(MetadataFieldKey.EXPOSURE_VALUE_EV.value, 0.0)
@@ -1206,6 +1210,7 @@ class CustomPhotosFieldsUtil:
                 MetadataFieldKey.COVERAGE_HEIGHT.value: round(coverage_height, DECIMAL_PLACES),
                 MetadataFieldKey.TRAJECTORY_SMOOTHNESS.value: round(trajectory_smoothness, DECIMAL_PLACES),
                 MetadataFieldKey.STRIP_ID.value: strip_id,
+                MetadataFieldKey.FLIGHT_ALTITUDE.value: round(fly_alt, DECIMAL_PLACES),
                 MetadataFieldKey.LIGHT_SOURCE_CLASSIFICATION.value: cls._get_light_source_label(data.get(MetadataFieldKey.LIGHT_SOURCE.value)),
                 MetadataFieldKey.LIGHT_CONSISTENCY.value: cls._get_light_source_label(data.get(MetadataFieldKey.LIGHT_SOURCE.value)),
                 MetadataFieldKey.RTK_TYPE.value: cls._get_rtk_type_label(data.get(MetadataFieldKey.RTK_FLAG.value)),

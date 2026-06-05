@@ -293,14 +293,14 @@ class MetadataFields:
     }
 
     DJI_XMP_FIELDS = {
-        MetadataFieldKey.GPS_STATUS: Field(
+        MetadataFieldKey.GPS_STATUS_EXIF: Field(
             normalized="EXIF:GPSInfo:GPSStatus",
             core="xmp_bloco_1",
             label="GPS Status",
             attribute="GpsStatus",
             description="Status do GPS no momento da foto. [GpsStatus]",
             level=3,
-            key=MetadataFieldKey.GPS_STATUS,
+            key=MetadataFieldKey.GPS_STATUS_EXIF,
         ),
         MetadataFieldKey.ALTITUDE_TYPE: Field(
             normalized="xmp_bloco_1:drone-dji:AltitudeType",
@@ -1161,7 +1161,7 @@ class MetadataFields:
             core="custom",
             label="Ground Elevation",
             attribute="GrndElev",
-            description="Altitude do solo (MSL) calculada como AbsoluteAltitude - RelativeAltitude. [GrndElev]",
+            description="Altitude do solo (MSL) calculada como AbsoluteAltitude - FlightAltitude. Com LRF: AbsZ - (LRFDist * cos(incidence)). Sem LRF: AbsZ - RelativeAltitude. [GrndElev]",
             level=5,
             key=MetadataFieldKey.GROUND_ELEVATION,
         ),
@@ -1182,6 +1182,15 @@ class MetadataFields:
             description="Classificação textual da exposição baseada no EV. Valores: noite/escuro, indoor/sombra, nublado, luz solar normal, sol muito forte/neve. [EvClass]",
             level=5,
             key=MetadataFieldKey.EV_CLASSIFICATION,
+        ),
+        MetadataFieldKey.FLIGHT_ALTITUDE: Field(
+            normalized="Custom:FlightAltitude",
+            core="custom",
+            label="Flight Altitude",
+            attribute="FlyAlt",
+            description="Altitude de voo efetiva em metros. Prioridade: LRF_TARGET_DISTANCE corrigido pelo ângulo de incidência > RelativeAltitude. Representa a altura real da câmera em relação ao solo/alvo. [FlyAlt]",
+            level=5,
+            key=MetadataFieldKey.FLIGHT_ALTITUDE,
         ),
     }
 

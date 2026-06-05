@@ -184,6 +184,13 @@ class AggregateAnalyzer:
             and str(r.get_indicator(MFK.GPS_STATUS_EXIF.value) or r.get_indicator('gps_status') or '').strip().lower()
             not in {'', 'none', 'null'}
         })
+        gps_status_xmp_values = sorted({
+            str(r.get_indicator(MFK.GPS_STATUS_XMP.value) or '').strip()
+            for r in results
+            if str(r.get_indicator(MFK.GPS_STATUS_XMP.value) or '').strip()
+            and str(r.get_indicator(MFK.GPS_STATUS_XMP.value) or '').strip().lower()
+            not in {'', 'none', 'null'}
+        })
 
         return {
             'equipment_models': equipment_models,
@@ -193,6 +200,7 @@ class AggregateAnalyzer:
             'firmware_versions': firmware_versions,
             'gps_datum': gps_datum_values,
             'gps_status': gps_status_values,
+            'gps_status_xmp': gps_status_xmp_values,
             'capture_start': (
                 parsed_dates[0].strftime('%Y-%m-%d %H:%M:%S')
                 if parsed_dates else 'N/A'

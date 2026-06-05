@@ -311,6 +311,9 @@
                             {{ agg.general_info.gps_datum | join(', ') if agg.general_info.gps_datum else 'N/A' }}
                             ·
                             {{ agg.general_info.gps_status | join(', ') if agg.general_info.gps_status else 'N/A' }}
+                            {% if agg.general_info.gps_status_xmp %}
+                            - {{ agg.general_info.gps_status_xmp | join(', ') }}
+                            {% endif %}
                         </td>
                     </tr>
                     <tr><th>Tipo de voo · Qualidade</th>

@@ -321,10 +321,66 @@
                                 <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; 
                                     {% if alt_class == 'agl' %}background: #1a9850; color: #111;
                                     {% elif alt_class == 'relative' %}background: #2196F3; color: #fff;
-                                    {% elif alt_class == 'agl_low_accuracy' %}background: #FF9100; color: #111;
-                                    {% elif alt_class == 'flat_area' %}background: #9E9E9E; color: #111;
                                     {% endif %}">
                                     {{ alt_label }}
+                                </span>
+                            {% else %}
+                                <span class="muted">Indisponivel</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr><th>Declividade</th>
+                        <td>
+                            {% set sc = agg.general_info.slope_classification %}
+                            {% set sp = agg.general_info.slope_pct %}
+                            {% if sc and sc != 'Indisponivel' %}
+                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+                                    {% if sp is not none and sp < 1 %}background: #1a9850; color: #111;
+                                    {% elif sp is not none and sp < 3 %}background: #66BD63; color: #111;
+                                    {% elif sp is not none and sp < 5 %}background: #FFEA00; color: #111;
+                                    {% elif sp is not none and sp < 10 %}background: #FF9100; color: #111;
+                                    {% elif sp is not none and sp < 15 %}background: #FF1744; color: #fff;
+                                    {% elif sp is not none and sp < 25 %}background: #D50000; color: #fff;
+                                    {% else %}background: #B71C1C; color: #fff;
+                                    {% endif %}">
+                                    {{ sc }} ({{ sp }}%)
+                                </span>
+                            {% else %}
+                                <span class="muted">Indisponivel</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr><th>Estabilidade do GSD</th>
+                        <td>
+                            {% set gsd_stab = agg.general_info.gsd_stability_label %}
+                            {% set gsd_cv = agg.general_info.gsd_stability_cv %}
+                            {% if gsd_stab and gsd_stab != 'Indisponivel' %}
+                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+                                    {% if agg.general_info.gsd_stability_type == 'stable' %}background: #1a9850; color: #111;
+                                    {% else %}background: #FF9100; color: #111;
+                                    {% endif %}">
+                                    {{ gsd_stab }}
+                                </span>
+                                {% if gsd_cv is not none %}
+                                    <span class="muted" style="font-size: 12px; margin-left: 6px;">CV: {{ '%.3f'|format(gsd_cv) }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="muted">Indisponivel</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr><th>Qualidade do voo</th>
+                        <td>
+                            {% set fq = agg.general_info.flight_quality_label %}
+                            {% set fq_type = agg.general_info.flight_quality_type %}
+                            {% if fq and fq != 'Indisponivel' %}
+                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+                                    {% if fq_type == 'coerente' %}background: #1a9850; color: #111;
+                                    {% elif fq_type == 'agl_recomendado' %}background: #2196F3; color: #fff;
+                                    {% elif fq_type == 'agl_necessario' %}background: #FF9100; color: #111;
+                                    {% elif fq_type == 'agl_incoerente' %}background: #FF1744; color: #fff;
+                                    {% endif %}">
+                                    {{ fq }}
                                 </span>
                             {% else %}
                                 <span class="muted">Indisponivel</span>

@@ -10,6 +10,7 @@ from .AlertManager import AlertManager, AlertRecord
 from .JsonMetadataManager import JsonMetadataManager
 from .FlightAggregator import FlightAggregator
 from .AggregateAnalyzer import AggregateAnalyzer
+from ...core.enum import MetadataFieldKey as MFK
 from ...core.config.LogUtils import LogUtils
 from ..ToolKeys import ToolKey
 
@@ -167,6 +168,59 @@ class ReportPapelineManager:
         )
         general_info['total_flights'] = total_flights
         general_info['total_flight_time'] = FormatUtils.format_duration(total_flight_seconds)
+
+        # Declividade do terreno
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_terrain_slope...")
+        try:
+            ground_elevation_range = None
+            # Pegar o range da elevacao do solo das metricas avancadas (sera calculado depois)
+            # Como ainda nao temos advanced_metrics, calculamos aqui diretamente
+            solo_stats = AggregateAnalyzer.compute_percentile_stats(
+                AggregateAnalyzer._numeric_from_flight_values(
+                    results, [MFK.GROUND_ELEVATION.value, 'ground_elevation']
+                )
+            )
+            ground_elevation_range = solo_stats.get('range')
+            terrain_slope = AggregateAnalyzer.compute_terrain_slope(ground_elevation_range, area_ha)
+            general_info['slope_pct'] = terrain_slope.get('slope_pct')
+            general_info['slope_classification'] = terrain_slope.get('slope_classification')
+            general_info['slope_classification_type'] = terrain_slope.get('slope_classification_type')
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.terrain_slope OK: {terrain_slope.get('slope_pct')}% - {terrain_slope.get('slope_classification')}")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_terrain_slope: {e}", code="CRASH_TERRAIN_SLOPE")
+            general_info['slope_pct'] = None
+            general_info['slope_classification'] = 'Indisponivel'
+            general_info['slope_classification_type'] = 'unavailable'
+
+        # Estabilidade do GSD
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_gsd_stability...")
+        try:
+            gsd_stability = AggregateAnalyzer.compute_gsd_stability(results)
+            general_info['gsd_stability_type'] = gsd_stability.get('gsd_stability_type')
+            general_info['gsd_stability_label'] = gsd_stability.get('gsd_stability_label')
+            general_info['gsd_stability_cv'] = gsd_stability.get('gsd_cv')
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.gsd_stability OK: {gsd_stability.get('gsd_stability_label')}")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_gsd_stability: {e}", code="CRASH_GSD_STABILITY")
+            general_info['gsd_stability_type'] = 'unavailable'
+            general_info['gsd_stability_label'] = 'Indisponivel'
+            general_info['gsd_stability_cv'] = None
+
+        # Qualidade final do voo (a partir da classificacao de altitude, declividade e GSD)
+        ReportPapelineManager.logger.debug("DELEGANDO para AggregateAnalyzer.compute_flight_quality...")
+        try:
+            flight_quality = AggregateAnalyzer.compute_flight_quality(
+                altitude_classification_type=alt_classification.get('altitude_classification_type', 'unavailable'),
+                slope_pct=general_info.get('slope_pct'),
+                gsd_stability_type=general_info.get('gsd_stability_type', 'unavailable'),
+            )
+            general_info['flight_quality_label'] = flight_quality.get('flight_quality_label')
+            general_info['flight_quality_type'] = flight_quality.get('flight_quality_type')
+            ReportPapelineManager.logger.debug(f"AggregateAnalyzer.flight_quality OK: {flight_quality.get('flight_quality_label')}")
+        except Exception as e:
+            ReportPapelineManager.logger.error(f"CRASH em AggregateAnalyzer.compute_flight_quality: {e}", code="CRASH_FLIGHT_QUALITY")
+            general_info['flight_quality_label'] = 'Indisponivel'
+            general_info['flight_quality_type'] = 'unavailable'
 
         # ===================================================================
         # MONTA AGG BASE

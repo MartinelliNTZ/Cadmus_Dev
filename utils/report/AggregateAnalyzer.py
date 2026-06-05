@@ -37,7 +37,21 @@ class AggregateAnalyzer:
     _OVERLAP_IDEAL = 60.0
     _SPEED_RECOMMENDED_MIN_MS = 5.0
     _SPEED_RECOMMENDED_MAX_MS = 10.0
-    _ALTITUDE_CLASSIFICATION_THRESHOLD = 3.0  # threshold (metros) para classificar variacao de altitude
+    _ALTITUDE_CLASSIFICATION_THRESHOLD = 2.0  # threshold (metros) para classificar tipo de voo (AGL vs Relative)
+
+    # Tabela de classificacao de declividade (slope) em porcentagem
+    _SLOPE_CLASSIFICATION_TABLE = [
+        (0, 1, 'Plano'),
+        (1, 3, 'Leve Inclinacao'),
+        (3, 5, 'Inclinado'),
+        (5, 10, 'Moderadamente Inclinado'),
+        (10, 15, 'Inclinacao Acentuada'),
+        (15, 25, 'Relevo Acidentado'),
+        (25, 99, 'Nao Mecanizavel'),
+    ]
+
+    # Threshold de variacao de GSD para definir estabilidade (coeficiente de variacao)
+    _GSD_CV_STABILITY_THRESHOLD = 0.05  # 5% CV ou menos = estavel
 
     @staticmethod
     def _to_float(value: Any) -> Optional[float]:
@@ -648,14 +662,11 @@ class AggregateAnalyzer:
     # ===================================================================
     @staticmethod
     def compute_altitude_classification(results: List[Any]) -> Dict[str, Any]:
-        """Classifica o tipo de altitude do voo com base na variacao da altura relativa e do solo.
+        """Classifica o tipo de altitude do voo com base na variacao da altura relativa.
         
-        Regras:
-        - variacao_altura_relativa > 5 E variacao_solo < 5  → AGL
-        - variacao_altura_relativa < 5 E variacao_solo > 5  → Relative
-        - ambos > 5 → AGL (baixa acuracia)
-        - ambos < 5 → Area muito plana
-        - valores iguais ou proximos de 5 usam >= 5 para consistencia
+        Regras simplificadas:
+        - variacao_altura_relativa >= 2.0m → Above Ground Level (AGL)
+        - variacao_altura_relativa < 2.0m → Relative to Takeoff Point (ALT)
         
         Returns:
             Dict com altitude_classification_label, altitude_classification_type,
@@ -711,25 +722,16 @@ class AggregateAnalyzer:
         elif solo_alts:
             solo_range = 0.0
         
-        # Classificar
-        threshold = AggregateAnalyzer._ALTITUDE_CLASSIFICATION_THRESHOLD
+        # Classificar tipo de voo (apenas por variacao da altitude relativa)
+        threshold = AggregateAnalyzer._ALTITUDE_CLASSIFICATION_THRESHOLD  # 2.0m
         
-        if rel_range is not None and solo_range is not None:
-            rel_variation_high = rel_range >= threshold
-            solo_variation_high = solo_range >= threshold
-            
-            if rel_variation_high and not solo_variation_high:
+        if rel_range is not None:
+            if rel_range >= threshold:
                 classification_label = 'Above Ground Level (AGL)'
                 classification_type = 'agl'
-            elif not rel_variation_high and solo_variation_high:
+            else:
                 classification_label = 'Relative to Takeoff Point (ALT)'
                 classification_type = 'relative'
-            elif rel_variation_high and solo_variation_high:
-                classification_label = 'Above Ground Level (AGL) - baixa acuracia'
-                classification_type = 'agl_low_accuracy'
-            else:
-                classification_label = 'Area muito plana'
-                classification_type = 'flat_area'
         else:
             classification_label = 'Indisponivel'
             classification_type = 'unavailable'
@@ -739,6 +741,169 @@ class AggregateAnalyzer:
             'altitude_classification_type': classification_type,
             'altitude_classification_rel_range': rel_range,
             'altitude_classification_solo_range': solo_range,
+        }
+
+    # ===================================================================
+    # CLASSIFICACAO DE DECLIVIDADE DO TERRENO
+    # ===================================================================
+    @staticmethod
+    def compute_terrain_slope(ground_elevation_range: Optional[float], estimated_area_ha: Optional[float]) -> Dict[str, Any]:
+        """Calcula a declividade media do terreno com base na variacao altimetrica e area.
+        
+        Formula:
+        - Area em m² = estimated_area_ha * 10000
+        - Lado aproximado (area quadrada) = sqrt(area_m2)
+        - Declividade (%) = (variacao_altimetrica / lado) * 100
+        
+        Returns:
+            Dict com slope_pct, slope_classification, slope_classification_type
+        """
+        if ground_elevation_range is None or estimated_area_ha is None or estimated_area_ha <= 0:
+            return {
+                'slope_pct': None,
+                'slope_classification': 'Indisponivel',
+                'slope_classification_type': 'unavailable',
+            }
+        
+        area_m2 = estimated_area_ha * 10000.0
+        side_m = area_m2 ** 0.5  # raiz quadrada
+        
+        if side_m <= 0:
+            return {
+                'slope_pct': None,
+                'slope_classification': 'Indisponivel',
+                'slope_classification_type': 'unavailable',
+            }
+        
+        slope_pct = round((ground_elevation_range / side_m) * 100.0, 2)
+        
+        # Classificar usando tabela
+        classification_label = 'Indisponivel'
+        classification_type = 'unavailable'
+        for low, high, label in AggregateAnalyzer._SLOPE_CLASSIFICATION_TABLE:
+            if low <= slope_pct < high:
+                classification_label = label
+                classification_type = label.lower().replace(' ', '_').replace('ç', 'c').replace('ã', 'a').replace('ê', 'e')
+                break
+        
+        # Caso especial: se for exatamente 0
+        if slope_pct == 0:
+            classification_label = 'Plano'
+            classification_type = 'plano'
+        
+        return {
+            'slope_pct': slope_pct,
+            'slope_classification': classification_label,
+            'slope_classification_type': classification_type,
+        }
+
+    # ===================================================================
+    # CLASSIFICACAO DE ESTABILIDADE DO GSD
+    # ===================================================================
+    @staticmethod
+    def compute_gsd_stability(results: List[Any]) -> Dict[str, Any]:
+        """Classifica a estabilidade do GSD com base no coeficiente de variacao.
+        
+        Returns:
+            Dict com gsd_stability_type ('stable'/'unstable'), gsd_stability_label,
+            gsd_mean, gsd_std, gsd_cv
+        """
+        gsd_values = AggregateAnalyzer._numeric_from_flight_values(
+            results, [MFK.GROUND_SAMPLE_DISTANCE_CM.value, 'gsd_cm']
+        )
+        
+        if not gsd_values or len(gsd_values) < 2:
+            return {
+                'gsd_stability_type': 'unavailable',
+                'gsd_stability_label': 'Indisponivel',
+                'gsd_mean': None,
+                'gsd_std': None,
+                'gsd_cv': None,
+            }
+        
+        gsd_mean = statistics.mean(gsd_values)
+        gsd_std = statistics.stdev(gsd_values)
+        gsd_cv = gsd_std / gsd_mean if gsd_mean != 0 else 0.0
+        
+        if gsd_cv <= AggregateAnalyzer._GSD_CV_STABILITY_THRESHOLD:
+            stability_type = 'stable'
+            stability_label = 'GSD Estavel'
+        else:
+            stability_type = 'unstable'
+            stability_label = 'GSD Instavel'
+        
+        return {
+            'gsd_stability_type': stability_type,
+            'gsd_stability_label': stability_label,
+            'gsd_mean': round(gsd_mean, 4),
+            'gsd_std': round(gsd_std, 4),
+            'gsd_cv': round(gsd_cv, 4),
+        }
+
+    # ===================================================================
+    # CLASSIFICACAO FINAL DA QUALIDADE DO VOO
+    # ===================================================================
+    @staticmethod
+    def compute_flight_quality(
+        altitude_classification_type: str,
+        slope_pct: Optional[float],
+        gsd_stability_type: str,
+    ) -> Dict[str, Any]:
+        """Classifica a qualidade final do voo combinando tipo de voo, declividade e estabilidade do GSD.
+        
+        Arvore de decisao:
+        
+        RELATIVE + ate 5%
+        → Voo Coerente
+        
+        RELATIVE + 5% a 10%
+        → AGL Recomendado
+        
+        RELATIVE + acima de 10%
+        → AGL Necessario
+        
+        AGL + GSD Estavel
+        → Voo Coerente
+        
+        AGL + GSD Instavel
+        → AGL Incoerente
+        
+        Returns:
+            Dict com flight_quality_label, flight_quality_type
+        """
+        if altitude_classification_type == 'unavailable' or slope_pct is None or gsd_stability_type == 'unavailable':
+            return {
+                'flight_quality_label': 'Indisponivel',
+                'flight_quality_type': 'unavailable',
+            }
+        
+        if altitude_classification_type == 'relative':
+            # RELATIVE + declividade
+            if slope_pct < 5:
+                quality_label = 'Voo Coerente'
+                quality_type = 'coerente'
+            elif slope_pct < 10:
+                quality_label = 'AGL Recomendado'
+                quality_type = 'agl_recomendado'
+            else:
+                quality_label = 'AGL Necessario'
+                quality_type = 'agl_necessario'
+        
+        elif altitude_classification_type == 'agl':
+            # AGL + estabilidade do GSD
+            if gsd_stability_type == 'stable':
+                quality_label = 'Voo Coerente'
+                quality_type = 'coerente'
+            else:
+                quality_label = 'AGL Incoerente'
+                quality_type = 'agl_incoerente'
+        else:
+            quality_label = 'Indisponivel'
+            quality_type = 'unavailable'
+        
+        return {
+            'flight_quality_label': quality_label,
+            'flight_quality_type': quality_type,
         }
 
     # ===================================================================

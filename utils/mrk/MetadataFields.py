@@ -45,6 +45,15 @@ class MetadataFields:
             level=3,
             key=MetadataFieldKey.SIZE_MB,
         ),
+        MetadataFieldKey.GPS_STATUS_EXIF: Field(
+            normalized="EXIF:GPSInfo:GPSStatus",
+            core="EXIF",
+            label="GPS Status EXIF",
+            attribute="GpsStatusExif",
+            description="Status do GPS registrado no EXIF (ex: 'A' = Active). [GpsStatusExif]",
+            level=3,
+            key=MetadataFieldKey.GPS_STATUS_EXIF,
+        ),
         MetadataFieldKey.GPS_MAP_DATUM: Field(
             normalized="EXIF:GPSInfo:GPSMapDatum",
             core="EXIF",
@@ -53,6 +62,33 @@ class MetadataFields:
             description="Datum geodesico usado nas coordenadas GPS. [GPSDatum]",
             level=3,
             key=MetadataFieldKey.GPS_MAP_DATUM,
+        ),
+        MetadataFieldKey.GPS_VERSION_ID: Field(
+            normalized="EXIF:GPSInfo:GPSVersionID",
+            core="EXIF",
+            label="GPS Version ID",
+            attribute="GpsVersionId",
+            description="Versao do padrao GPS registrado no EXIF (ex: '2 3 0 0'). [GpsVersionId]",
+            level=3,
+            key=MetadataFieldKey.GPS_VERSION_ID,
+        ),
+        MetadataFieldKey.GPS_ALTITUDE_REF: Field(
+            normalized="EXIF:GPSInfo:GPSAltitudeRef",
+            core="EXIF",
+            label="GPS Altitude Ref",
+            attribute="GpsAltRef",
+            description="Referencia de altitude GPS (0 = nivel do mar / acima, 1 = abaixo). [GpsAltRef]",
+            level=3,
+            key=MetadataFieldKey.GPS_ALTITUDE_REF,
+        ),
+        MetadataFieldKey.GPS_ALTITUDE: Field(
+            normalized="EXIF:GPSInfo:GPSAltitude",
+            core="EXIF",
+            label="GPS Altitude",
+            attribute="GpsAltitude",
+            description="Altitude GPS registrada no EXIF em metros (MSL). [GpsAltitude]",
+            level=3,
+            key=MetadataFieldKey.GPS_ALTITUDE,
         ),
         MetadataFieldKey.GPS_LATITUDE_REF: Field(
             normalized="EXIF:GPSInfo:GPSLatitudeRef",
@@ -293,14 +329,14 @@ class MetadataFields:
     }
 
     DJI_XMP_FIELDS = {
-        MetadataFieldKey.GPS_STATUS_EXIF: Field(
-            normalized="EXIF:GPSInfo:GPSStatus",
+        MetadataFieldKey.GPS_STATUS_XMP: Field(
+            normalized="xmp_bloco_1:drone-dji:GpsStatus",
             core="xmp_bloco_1",
-            label="GPS Status",
-            attribute="GpsStatus",
-            description="Status do GPS no momento da foto. [GpsStatus]",
+            label="GPS Status XMP",
+            attribute="GpsStatusXmp",
+            description="Status do GPS DJI registrado no XMP (ex: 'RTK', 'Normal', 'A'). [GpsStatusXmp]",
             level=3,
-            key=MetadataFieldKey.GPS_STATUS_EXIF,
+            key=MetadataFieldKey.GPS_STATUS_XMP,
         ),
         MetadataFieldKey.ALTITUDE_TYPE: Field(
             normalized="xmp_bloco_1:drone-dji:AltitudeType",
@@ -316,7 +352,7 @@ class MetadataFields:
             core="xmp_bloco_1",
             label="GPS Latitude",
             attribute="GpsLat",
-            description="Latitude GPS da aeronave na captura. [GpsLat]",
+            description="Latitude GPS da aeronave na captura (tupla DMS do EXIF). [GpsLat]",
             level=3,
             key=MetadataFieldKey.GPS_LATITUDE,
         ),
@@ -325,9 +361,27 @@ class MetadataFields:
             core="xmp_bloco_1",
             label="GPS Longitude",
             attribute="GPSLong",
-            description="Longitude GPS da aeronave na captura. [GPSLong]",
+            description="Longitude GPS da aeronave na captura (tupla DMS do EXIF). [GPSLong]",
             level=3,
             key=MetadataFieldKey.GPS_LONGITUDE,
+        ),
+        MetadataFieldKey.GPS_LATITUDE_XMP: Field(
+            normalized="xmp_bloco_1:drone-dji:GPSLatitude",
+            core="xmp_bloco_1",
+            label="GPS Latitude XMP",
+            attribute="GpsLatXmp",
+            description="Latitude GPS do XMP DJI em decimal com sinal (ex: -12.21543681). [GpsLatXmp]",
+            level=3,
+            key=MetadataFieldKey.GPS_LATITUDE_XMP,
+        ),
+        MetadataFieldKey.GPS_LONGITUDE_XMP: Field(
+            normalized="xmp_bloco_1:drone-dji:GPSLongitude",
+            core="xmp_bloco_1",
+            label="GPS Longitude XMP",
+            attribute="GPSLongXmp",
+            description="Longitude GPS do XMP DJI em decimal com sinal (ex: -46.60643471). [GPSLongXmp]",
+            level=3,
+            key=MetadataFieldKey.GPS_LONGITUDE_XMP,
         ),
         MetadataFieldKey.ABSOLUTE_ALTITUDE: Field(
             normalized="xmp_bloco_1:drone-dji:AbsoluteAltitude",
@@ -1633,7 +1687,7 @@ class MetadataFields:
                 normalized = normalized[len(prefix) :]
                 break
 
-        # Mapeamento especial para campos de sistema
+        # Mapeamento especial para campos de sistema e variantes
         field_mappings = {
             "arquivo": "File",
             "caminho": "Path",
@@ -1646,15 +1700,33 @@ class MetadataFields:
             "width_px": "ExifImageWidth",
             "height_px": "ExifImageHeight",
             "coverage_width": "EstimatedCoverage",
-            # Variantes de nomes EXIF brutos
-            "gpsstatus": "GpsStatus",
-            "gpsversion": "GpsStatus",
+            # Variantes de nomes EXIF brutos (sem prefixo)
+            "gpsstatus": "GpsStatusExif",
+            "gpsversionid": "GpsVersionId",
+            "gpsaltituderef": "GpsAltRef",
+            "gpsaltitude": "GpsAltitude",
+            "gpslatituderef": "GpsLatRef",
+            "gpslongituderef": "GpsLongRef",
             # Variantes de datas
             "createdate": "DateTime",
             "modifydate": "DateTime",
         }
 
-        # Verifica mapemento especial (case-insensitive)
+        # Antes de remover prefixos, verifica se eh campo namespaced XMP especifico
+        # Esses precisam mapear para atributos XMP (nao EXIF) para evitar conflitos
+        normalized_lower_full = raw_field_name.strip().lower()
+        xmp_specific_mappings = {
+            "drone-dji:gpsstatus": "GpsStatusXmp",
+            "xmp:gpsstatus": "GpsStatusXmp",
+            "drone-dji:gpslatitude": "GpsLatXmp",
+            "xmp:gpslatitude": "GpsLatXmp",
+            "drone-dji:gpslongitude": "GPSLongXmp",
+            "xmp:gpslongitude": "GPSLongXmp",
+        }
+        if normalized_lower_full in xmp_specific_mappings:
+            return xmp_specific_mappings[normalized_lower_full]
+
+        # Verifica mapeamento especial (case-insensitive) APOS limpeza de prefixo
         normalized_lower = normalized.lower()
         if normalized_lower in field_mappings:
             return field_mappings[normalized_lower]

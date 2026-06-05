@@ -634,6 +634,42 @@ class CustomPhotosFieldsUtil:
             f"f={focal}mm → DOF={dof_m:.4f}m"
         )
 
+        # ── HyperfocalDistance ───────────────────────────────────────────
+        # H (mm) = f² / (N × CoC)  →  convertido para metros
+        if focal > 0 and fnumber > 0 and coc_mm > 0:
+            hyperfocal_mm = (focal**2) / (fnumber * coc_mm)
+            hyperfocal_m = hyperfocal_mm / 1000.0
+        else:
+            hyperfocal_m = 0.0
+        logger.debug(
+            f"HyperfocalDistance: f={focal}mm, N={fnumber}, CoC={coc_mm:.6f}mm → {hyperfocal_m:.4f}m"
+        )
+
+        # ── LightValue (LV / EV100) ──────────────────────────────────────
+        # LV = log₂(N² × 100 / (t × ISO))
+        # onde N = f-number, t = exposure_time (s), ISO = ISO speed
+        iso = CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.ISO_SPEED_RATINGS, default=100
+        )
+        light_value = 0.0
+        if fnumber > 0 and exp_time > 0 and iso > 0:
+            light_value = math.log2((fnumber**2 * 100.0) / (exp_time * iso))
+        logger.debug(
+            f"LightValue: N={fnumber}, t={exp_time:.6f}s, ISO={iso} → LV={light_value:.2f}"
+        )
+
+        # ── FocalLength35efl (equivalente 35mm) ──────────────────────────
+        # FocalLength35efl = FocalLength * (diagonal_full_frame / diagonal_sensor)
+        # diagonal full frame 35mm = sqrt(36² + 24²) = 43.2666 mm
+        FULL_FRAME_DIAGONAL_MM = 43.2666
+        if focal > 0 and diagonal_sensor_mm > 0:
+            focal_35efl = focal * (FULL_FRAME_DIAGONAL_MM / diagonal_sensor_mm)
+        else:
+            focal_35efl = 0.0
+        logger.debug(
+            f"FocalLength35efl: focal={focal}mm, sensor_diag={diagonal_sensor_mm:.4f}mm → {focal_35efl:.2f}mm"
+        )
+
         return {
             MetadataFieldKey.SHUTTER_LIFE_PCT.value: round(shutter_life_pct, DECIMAL_PLACES),
             MetadataFieldKey.GROUND_SAMPLE_DISTANCE_CM.value: round(gsd_cm_px, DECIMAL_PLACES),
@@ -643,6 +679,9 @@ class CustomPhotosFieldsUtil:
             MetadataFieldKey.FOV.value: round(fov_degrees, DECIMAL_PLACES),
             MetadataFieldKey.CIRCLE_OF_CONFUSION.value: round(coc_mm, 6),
             MetadataFieldKey.DOF.value: round(dof_m, DECIMAL_PLACES),
+            MetadataFieldKey.HYPERFOCAL_DISTANCE.value: round(hyperfocal_m, DECIMAL_PLACES),
+            MetadataFieldKey.LIGHT_VALUE.value: round(light_value, DECIMAL_PLACES),
+            MetadataFieldKey.FOCAL_LENGTH_35EFL.value: round(focal_35efl, DECIMAL_PLACES),
         }
 
     @staticmethod

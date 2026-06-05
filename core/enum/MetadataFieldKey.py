@@ -155,6 +155,9 @@ class MetadataFieldKey(Enum):
     FOV = "FOV"
     CIRCLE_OF_CONFUSION = "CircleOfConfusion"
     DOF = "DOF"
+    HYPERFOCAL_DISTANCE = "HyperfocalDistance"
+    LIGHT_VALUE = "LightValue"
+    FOCAL_LENGTH_35EFL = "FocalLength35efl"
 
     # MRK_FIELDS
     FOTO = "Foto"

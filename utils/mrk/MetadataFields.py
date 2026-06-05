@@ -1363,6 +1363,33 @@ class MetadataFields:
             level=5,
             key=MetadataFieldKey.DOF,
         ),
+        MetadataFieldKey.HYPERFOCAL_DISTANCE: Field(
+            normalized="Custom:HyperfocalDistance",
+            core="custom",
+            label="Hyperfocal Distance",
+            attribute="HypDist",
+            description="Distância hiperfocal em metros — a menor distância de foco na qual tudo a partir da metade dessa distância até o infinito aparece aceitavelmente nítido. Fórmula: f² / (N × CoC). Valores: 0-100 m. Valor referência: ~3-10 m para câmeras DJI. [HypDist]",
+            level=5,
+            key=MetadataFieldKey.HYPERFOCAL_DISTANCE,
+        ),
+        MetadataFieldKey.LIGHT_VALUE: Field(
+            normalized="Custom:LightValue",
+            core="custom",
+            label="Light Value",
+            attribute="LightVal",
+            description="Light Value (LV / EV100) — medida padronizada da luminosidade da cena no momento da captura. Fórmula: log₂(N² × 100 / (t × ISO)). Valores: 0-20. Valor referência: 12-13 (dia ensolarado), 10-11 (nublado), 8-9 (sombra). [LightVal]",
+            level=5,
+            key=MetadataFieldKey.LIGHT_VALUE,
+        ),
+        MetadataFieldKey.FOCAL_LENGTH_35EFL: Field(
+            normalized="Custom:FocalLength35efl",
+            core="custom",
+            label="Focal Length 35 EFL",
+            attribute="Focal35",
+            description="Distância focal equivalente em 35mm (full frame) — converte a distância focal real para o equivalente full frame usando o fator de corte (crop factor) do sensor. Fórmula: FocalLength × (43.2666 / diagonal_sensor). Valores: 0-1000 mm. Valor referência: ~24 mm para câmeras DJI. [Focal35]",
+            level=5,
+            key=MetadataFieldKey.FOCAL_LENGTH_35EFL,
+        ),
     }
 
     MRK_FIELDS = {

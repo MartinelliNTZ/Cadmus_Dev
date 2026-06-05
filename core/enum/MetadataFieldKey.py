@@ -152,6 +152,9 @@ class MetadataFieldKey(Enum):
     STRIP_ID = "StripId"
     EV_CLASSIFICATION = "EvClassification"
     FLIGHT_ALTITUDE = "FlightAltitude"
+    FOV = "FOV"
+    CIRCLE_OF_CONFUSION = "CircleOfConfusion"
+    DOF = "DOF"
 
     # MRK_FIELDS
     FOTO = "Foto"

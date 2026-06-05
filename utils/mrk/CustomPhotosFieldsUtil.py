@@ -595,12 +595,54 @@ class CustomPhotosFieldsUtil:
         motion_blur_risk = (speed_3d * exp_time / gsd_m_px) if gsd_m_px > 0 else 0.0
         exposure_value_ev = math.log2(fnumber**2 / exp_time) if exp_time > 0 else 0.0
 
+        # ── FOV (Field of View) ──────────────────────────────────────────
+        # FOV = 2 * arctan(diagonal_sensor / (2 * focal_real))
+        diagonal_sensor_mm = math.sqrt(sensor_w**2 + sensor_h**2)
+        if focal > 0:
+            fov_degrees = 2 * math.degrees(math.atan(diagonal_sensor_mm / (2 * focal)))
+        else:
+            fov_degrees = 0.0
+        logger.debug(f"FOV: sensor_diagonal={diagonal_sensor_mm:.4f}mm, focal={focal}mm → {fov_degrees:.2f}°")
+
+        # ── Circle of Confusion (CoC) ────────────────────────────────────
+        # CoC (mm) = diagonal_sensor / 1730
+        if diagonal_sensor_mm > 0:
+            coc_mm = diagonal_sensor_mm / 1730.0
+        else:
+            coc_mm = 0.0
+        logger.debug(f"CircleOfConfusion: diagonal={diagonal_sensor_mm:.4f}mm → CoC={coc_mm:.6f}mm")
+
+        # ── DOF (Depth of Field) ─────────────────────────────────────────
+        # DOF = (2 * u² * N * C) / f²
+        # Onde:
+        #   u = distância de foco (FocusDistance) em mm
+        #   N = número f (FNumber)
+        #   C = Circle of Confusion em mm
+        #   f = distância focal real em mm
+        # Resultado em mm (dividido por 1000 p/ metros)
+        focus_distance_m = CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.FOCUS_DISTANCE, default=0
+        )
+        focus_distance_mm = focus_distance_m * 1000.0 if focus_distance_m > 0 else 0.0
+        if focal > 0 and fnumber > 0 and coc_mm > 0 and focus_distance_mm > 0:
+            dof_mm = (2.0 * focus_distance_mm**2 * fnumber * coc_mm) / (focal**2)
+            dof_m = dof_mm / 1000.0
+        else:
+            dof_m = 0.0
+        logger.debug(
+            f"DOF: u={focus_distance_mm:.2f}mm, N={fnumber}, C={coc_mm:.6f}mm, "
+            f"f={focal}mm → DOF={dof_m:.4f}m"
+        )
+
         return {
             MetadataFieldKey.SHUTTER_LIFE_PCT.value: round(shutter_life_pct, DECIMAL_PLACES),
             MetadataFieldKey.GROUND_SAMPLE_DISTANCE_CM.value: round(gsd_cm_px, DECIMAL_PLACES),
             MetadataFieldKey.TOTAL_HEAT_INDEX.value: round(total_heat_index, DECIMAL_PLACES),
             MetadataFieldKey.MOTION_BLUR_RISK.value: round(motion_blur_risk, DECIMAL_PLACES),
             MetadataFieldKey.EXPOSURE_VALUE_EV.value: round(exposure_value_ev, DECIMAL_PLACES),
+            MetadataFieldKey.FOV.value: round(fov_degrees, DECIMAL_PLACES),
+            MetadataFieldKey.CIRCLE_OF_CONFUSION.value: round(coc_mm, 6),
+            MetadataFieldKey.DOF.value: round(dof_m, DECIMAL_PLACES),
         }
 
     @staticmethod

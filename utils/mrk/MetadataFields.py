@@ -1336,6 +1336,33 @@ class MetadataFields:
             level=5,
             key=MetadataFieldKey.FLIGHT_ALTITUDE,
         ),
+        MetadataFieldKey.FOV: Field(
+            normalized="Custom:FOV",
+            core="custom",
+            label="FOV",
+            attribute="FOV",
+            description="Field of View (Campo de Visão) — ângulo diagonal total que a câmera enxerga em graus. Fórmula: 2 × arctan(diagonal_sensor / (2 × focal_real)). Valores: 0-180°. Valor referência: ~73-84° para câmeras DJI. [FOV]",
+            level=5,
+            key=MetadataFieldKey.FOV,
+        ),
+        MetadataFieldKey.CIRCLE_OF_CONFUSION: Field(
+            normalized="Custom:CircleOfConfusion",
+            core="custom",
+            label="Circle Of Confusion",
+            attribute="CoC",
+            description="Circle of Confusion — diâmetro máximo de desfoque no sensor ainda percebido como nítido em mm. Fórmula: diagonal_sensor / 1730. Valores: 0-0.05 mm. Valor referência: ~0.015 mm para sensores DJI. [CoC]",
+            level=5,
+            key=MetadataFieldKey.CIRCLE_OF_CONFUSION,
+        ),
+        MetadataFieldKey.DOF: Field(
+            normalized="Custom:DOF",
+            core="custom",
+            label="DOF",
+            attribute="DOF",
+            description="Depth of Field (Profundidade de Campo) em metros — distância total entre o ponto mais próximo e o mais distante do plano focal com nitidez aceitável. Fórmula baseada em FocalLength, FNumber, FocusDistance e CircleOfConfusion. Valores: 0-100 m. Valor referência: ~0.5-50 m. [DOF]",
+            level=5,
+            key=MetadataFieldKey.DOF,
+        ),
     }
 
     MRK_FIELDS = {

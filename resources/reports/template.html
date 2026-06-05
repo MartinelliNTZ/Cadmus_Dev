@@ -350,31 +350,24 @@
                             {% endif %}
                         </td>
                     </tr>
-                    <tr><th>Estabilidade do GSD</th>
+                    <tr><th>Tipo de voo · Qualidade</th>
                         <td>
-                            {% set gsd_stab = agg.general_info.gsd_stability_label %}
-                            {% set gsd_cv = agg.general_info.gsd_stability_cv %}
-                            {% if gsd_stab and gsd_stab != 'Indisponivel' %}
-                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
-                                    {% if agg.general_info.gsd_stability_type == 'stable' %}background: #1a9850; color: #111;
-                                    {% else %}background: #FF9100; color: #111;
+                            {% set alt_class = agg.general_info.altitude_classification_type %}
+                            {% set alt_label = agg.general_info.altitude_classification_label %}
+                            {% set fq = agg.general_info.flight_quality_label %}
+                            {% set fq_type = agg.general_info.flight_quality_type %}
+                            {% if alt_class and alt_class != 'unavailable' %}
+                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; 
+                                    {% if alt_class == 'agl' %}background: #1a9850; color: #111;
+                                    {% elif alt_class == 'relative' %}background: #2196F3; color: #fff;
                                     {% endif %}">
-                                    {{ gsd_stab }}
+                                    {{ alt_label }}
                                 </span>
-                                {% if gsd_cv is not none %}
-                                    <span class="muted" style="font-size: 12px; margin-left: 6px;">CV: {{ '%.3f'|format(gsd_cv) }}</span>
-                                {% endif %}
                             {% else %}
                                 <span class="muted">Indisponivel</span>
                             {% endif %}
-                        </td>
-                    </tr>
-                    <tr><th>Qualidade do voo</th>
-                        <td>
-                            {% set fq = agg.general_info.flight_quality_label %}
-                            {% set fq_type = agg.general_info.flight_quality_type %}
                             {% if fq and fq != 'Indisponivel' %}
-                                <span style="display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+                                <span style="display: inline-block; margin-left: 6px; padding: 2px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
                                     {% if fq_type == 'coerente' %}background: #1a9850; color: #111;
                                     {% elif fq_type == 'agl_recomendado' %}background: #2196F3; color: #fff;
                                     {% elif fq_type == 'agl_necessario' %}background: #FF9100; color: #111;
@@ -382,8 +375,6 @@
                                     {% endif %}">
                                     {{ fq }}
                                 </span>
-                            {% else %}
-                                <span class="muted">Indisponivel</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -416,6 +407,15 @@
                                 <span class="muted" style="font-size: 12px; margin-left: 6px;">
                                     · p5%: {{ '%.2f'|format(gsd['value_p5']) }} cm · p95%: {{ '%.2f'|format(gsd['value_p95']) }} cm
                                     · <span style="color: var(--l4);">variação: {{ '%.2f'|format(gsd['value_percentile_range']) }} cm</span>
+                                </span>
+                            {% endif %}
+                            {% set gsd_stab = agg.general_info.gsd_stability_label %}
+                            {% if gsd_stab and gsd_stab != 'Indisponivel' %}
+                                <span style="display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+                                    {% if agg.general_info.gsd_stability_type == 'stable' %}background: #1a9850; color: #111;
+                                    {% else %}background: #FF9100; color: #111;
+                                    {% endif %}">
+                                    {{ gsd_stab }}
                                 </span>
                             {% endif %}
                         </td></tr>

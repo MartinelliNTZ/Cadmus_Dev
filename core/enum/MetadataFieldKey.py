@@ -85,6 +85,16 @@ class MetadataFieldKey(Enum):
     EXIF_COLOR_SPACE = "ExifColorSpace"
     COORD_SOURCE = "CoordSource"
     QUALITY_FLAG = "QualityFlag"
+    DEWARP_DATE = "DewarpDate"
+    DEWARP_FOCAL_X = "DewarpFocalX"
+    DEWARP_FOCAL_Y = "DewarpFocalY"
+    DEWARP_CX = "DewarpCx"
+    DEWARP_CY = "DewarpCy"
+    DEWARP_K1 = "DewarpK1"
+    DEWARP_K2 = "DewarpK2"
+    DEWARP_K3 = "DewarpK3"
+    DEWARP_P1 = "DewarpP1"
+    DEWARP_P2 = "DewarpP2"
 
     # CUSTOM_FIELDS
     X_DIFFERENCE = "XDifference"

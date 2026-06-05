@@ -7,6 +7,7 @@ from xml.etree import ElementTree as ET
 
 from ...core.config.LogUtils import LogUtils
 from ..ToolKeys import ToolKey
+from ...core.enum import MetadataFieldKey
 from .MetadataFields import MetadataFields
 
 
@@ -156,6 +157,64 @@ class XmpUtil:
             return value
 
     @staticmethod
+    def parse_dewarp_string(dewarp_raw: str) -> dict:
+        """
+        Interpreta a string XMP:DewarpData e retorna dicionario com 
+        campos individuais (DewarpDate, DewarpFocalX, ...).
+
+        As chaves retornadas sao os valores dos enum MetadataFieldKey
+        (ex.: MetadataFieldKey.DEWARP_FOCAL_X.value = "DewarpFocalX"),
+        garantindo consistencia com o catalogo MetadataFields.
+
+        Formato esperado::
+
+            YYYY-MM-DD;focal_x,focal_y,cx,cy,k1,k2,k3,p1,p2
+
+        Exemplo::
+
+            2022-06-08;3713.29,3713.29,7.02,-8.72,-0.11257524,0.01487443,-8.572e-05,1e-07,-0.02706411
+
+        Returns:
+            dict com chaves canonicas (ex.: "DewarpDate", "DewarpFocalX", "DewarpCx", ...)
+            ou dict vazio se o parse falhar.
+        """
+        result = {}
+        if not dewarp_raw or not isinstance(dewarp_raw, str):
+            return result
+
+        parts = dewarp_raw.split(";")
+        if len(parts) < 2:
+            return result
+
+        # Data — usa MetadataFieldKey.DEWARP_DATE.value
+        result[MetadataFieldKey.DEWARP_DATE.value] = parts[0].strip()
+
+        # Valores numericos
+        try:
+            vals = list(map(float, parts[1].split(",")))
+        except (ValueError, TypeError):
+            return result
+
+        # Mapeamento posicional usando MetadataFieldKey enum values
+        dewarp_keys = [
+            MetadataFieldKey.DEWARP_FOCAL_X.value,
+            MetadataFieldKey.DEWARP_FOCAL_Y.value,
+            MetadataFieldKey.DEWARP_CX.value,
+            MetadataFieldKey.DEWARP_CY.value,
+            MetadataFieldKey.DEWARP_K1.value,
+            MetadataFieldKey.DEWARP_K2.value,
+            MetadataFieldKey.DEWARP_K3.value,
+            MetadataFieldKey.DEWARP_P1.value,
+            MetadataFieldKey.DEWARP_P2.value,
+        ]
+
+        for i, key in enumerate(dewarp_keys):
+            if i < len(vals):
+                result[key] = vals[i]
+
+        return result
+
+    @staticmethod
     def _sanitize_metadata(data: dict, logger: LogUtils) -> dict:
         """
         Valida e sanitiza metadata contra MetadataFields.
@@ -249,6 +308,20 @@ class XmpUtil:
             # SANITIZA dados XMP antes de adicionar ao resultado
             ordered_data = XmpUtil._order_fields_by_priority(xmp_data)
             sanitized_xmp = XmpUtil._sanitize_metadata(ordered_data, logger)
+            
+            # ── Parsing do DewarpData ──
+            # O campo bruto "drone-dji:DewarpData" nao e autorizado em MetadataFields,
+            # mas seus valores individuais (focal_x, cx, cy, k1..k3, p1..p2, date) sao.
+            # Extrai o raw, parseia e adiciona ao resultado sanitizado.
+            dewarp_raw = ordered_data.get("drone-dji:DewarpData")
+            if dewarp_raw:
+                dewarp_parsed = XmpUtil.parse_dewarp_string(str(dewarp_raw))
+                if dewarp_parsed:
+                    # Os campos retornados por parse_dewarp_string sao nomes canonicos
+                    # (ex.: DewarpDate, DewarpFocalX, ...) e serao mapeados corretamente
+                    # pelo sanitize_field_name / _sanitize_metadata
+                    sanitized_dewarp = XmpUtil._sanitize_metadata(dewarp_parsed, logger)
+                    sanitized_xmp.update(sanitized_dewarp)
             
             # Mescla dados sanitizados
             data.update(sanitized_xmp)

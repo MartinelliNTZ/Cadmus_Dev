@@ -351,6 +351,69 @@ class CustomPhotosFieldsUtil:
         return (sensor_w, sensor_h, focal, img_w, img_h)
 
     @staticmethod
+    def _get_effective_height(data: Dict) -> float:
+        """
+        Obtém a altura efetiva (H) para cálculos de GSD e cobertura.
+        
+        Ordem de precedência:
+        1. LRF_TARGET_DISTANCE (>0) → H = LRFDist * cos(incidence_angle_rad)
+           O LRF mede a distância real até o alvo. Quando o gimbal está a nadir
+           (pitch efetivo = -90°), LRFDist = altura. Com angulação, a altura
+           efetiva é a projeção vertical: H = LRFDist * cos(incidence_angle).
+        2. RelativeAltitude (>0)
+        3. AbsoluteAltitude (>0)
+        
+        Returns:
+            Altura efetiva em metros, ou 0.0 se nenhuma fonte disponível.
+        """
+        logger = CustomPhotosFieldsUtil._get_logger()
+        
+        # 1. Tenta LRF_TARGET_DISTANCE com correção do ângulo de incidência
+        lrf_dist = CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.LRF_TARGET_DISTANCE, default=0
+        )
+        if lrf_dist > 0:
+            # Calcula incidence angle (mesma lógica de _calculate_quality_scores)
+            gim_pitch = CustomPhotosFieldsUtil._get_safe(
+                data, MetadataFieldKey.GIMBAL_PITCH_DEGREE, default=0
+            )
+            flight_pitch = CustomPhotosFieldsUtil._get_safe(
+                data, MetadataFieldKey.FLIGHT_PITCH_DEGREE, default=0
+            )
+            effective_pitch = gim_pitch + flight_pitch
+            # Incidence angle = ângulo entre a linha de visada da câmera e a vertical
+            # Pitch -90° = nadir (apontando para baixo) → incidence = 0°
+            inc_angle = abs(90.0 - abs(effective_pitch))
+            inc_rad = math.radians(inc_angle)
+            # Altura efetiva = distância real * cos(ângulo de incidência)
+            h_effective = lrf_dist * math.cos(inc_rad)
+            logger.debug(
+                f"_get_effective_height via LRF: LRFDist={lrf_dist:.2f}m, "
+                f"gim_pitch={gim_pitch:.1f}°, flight_pitch={flight_pitch:.1f}°, "
+                f"inc_angle={inc_angle:.2f}°, H_effective={h_effective:.4f}m"
+            )
+            return h_effective
+        
+        # 2. Fallback: RelativeAltitude (altitude sobre o terreno)
+        h_m = CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0
+        )
+        if h_m > 0:
+            logger.debug(f"_get_effective_height via RelativeAltitude: H={h_m:.4f}m")
+            return h_m
+        
+        # 3. Fallback: AbsoluteAltitude
+        h_m = CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0
+        )
+        if h_m > 0:
+            logger.debug(f"_get_effective_height via AbsoluteAltitude: H={h_m:.4f}m")
+            return h_m
+        
+        logger.debug("_get_effective_height: nenhuma fonte de altura disponível, retornando 0.0")
+        return 0.0
+
+    @staticmethod
     def calculate_estimated_coverage(data: Dict) -> Tuple[float, float]:
         """
         Estimativa de cobertura no solo (largura, altura) em metros.
@@ -360,20 +423,13 @@ class CustomPhotosFieldsUtil:
             Altura_solo  = H * S_h / f
         
         Onde:
-            H = RelativeAltitude (metros)
+            H = altura efetiva (LRF_TARGET_DISTANCE corrigido > RelativeAltitude > AbsoluteAltitude)
             S_w = largura física do sensor (mm)
             S_h = altura física do sensor (mm)
             f = distância focal real (mm)
         """
-        # Usa RelativeAltitude como altura primária (altitude sobre o terreno)
-        h_m = CustomPhotosFieldsUtil._get_safe(
-            data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0
-        )
-        if h_m <= 0:
-            # Fallback: AbsoluteAltitude - pode não representar altura sobre o terreno
-            h_m = CustomPhotosFieldsUtil._get_safe(
-                data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0
-            )
+        # Usa altura efetiva com LRF como primário
+        h_m = CustomPhotosFieldsUtil._get_effective_height(data)
         
         sensor_w, sensor_h, focal, _, _ = CustomPhotosFieldsUtil._get_camera_params(data)
         
@@ -475,14 +531,8 @@ class CustomPhotosFieldsUtil:
         # Obtém parâmetros da câmera do dicionário CAMERA_MODEL_PARAMS
         sensor_w, sensor_h, focal, img_w, img_h = CustomPhotosFieldsUtil._get_camera_params(data)
 
-        # Usa RelativeAltitude como altura primária (altitude sobre o terreno)
-        h_m = CustomPhotosFieldsUtil._get_safe(
-            data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0
-        )
-        if h_m <= 0:
-            h_m = CustomPhotosFieldsUtil._get_safe(
-                data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0
-            )
+        # Altura efetiva: LRF_TARGET_DISTANCE (corrigido) > RelativeAltitude > AbsoluteAltitude
+        h_m = CustomPhotosFieldsUtil._get_effective_height(data)
 
         logger = CustomPhotosFieldsUtil._get_logger()
         logger.debug(f"_calculate_individual_fields: H={h_m:.4f} m, sensor={sensor_w}x{sensor_h} mm, focal={focal} mm, imagem={img_w}x{img_h} px")

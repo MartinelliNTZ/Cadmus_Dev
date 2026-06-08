@@ -28,6 +28,7 @@ class ToolKey:
     CREATE_PROJECT = "create_project"
     DIFFERENCE_BETWEEN_LINES= "difference_between_lines"
     SAVE_TEMPORARY_LAYER = "save_temporary_layer"
+    PATH_EXTENSION_TOOL = "path_extension_tool"
 
     # model3 / panel tool
     # processing/
@@ -68,6 +69,7 @@ class ToolKey:
         VECTOR_FIELDS: "#C39BD3",  # purpura -> calculos vetoriais
         VECTOR_TO_SVG: "#7FB3D5",  # azul suave -> exportacao vetorial
         CREATE_PROJECT: "#73C6B6",  # verde agua -> criacao de projeto
+        PATH_EXTENSION_TOOL: "#E67E22",  # laranja -> path extension
         # === Processing / analises ===
         ATTRIBUTE_STATISTICS: "#F7DC6F",  # amarelo -> estatistica
         DIFFERENCE_FIELDS: "#BB8FCE",  # roxo -> comparacao

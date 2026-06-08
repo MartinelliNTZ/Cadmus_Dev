@@ -377,6 +377,20 @@ class ToolRegistry:
         )
         tools.append(divide_points_by_strips)
 
+        path_extension = Tool(
+            tool_key=ToolKey.PATH_EXTENSION_TOOL,
+            name=STR.PATH_EXTENSION_TITLE,
+            icon=im.icon(im.PATH_EXTENSION),
+            category=self.AGRICULTURE,
+            tool_type=ToolTypeEnum.DIALOG,
+            main_action=self._main_action_prefs.get(ToolKey.PATH_EXTENSION_TOOL, False),
+            executor=self._make_plugin_executor("...plugins.PathExtensionPlugin"),
+            tooltip=STR.PATH_EXTENSION_TOOLTIP,
+            order=70,
+            show_in_toolbar=True,
+        )
+        tools.append(path_extension)
+
         # =====================================================
         # AGRICULTURE (Ordem: Drone=10, Trail=20, Report=30)
         # =====================================================

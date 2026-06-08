@@ -186,6 +186,21 @@ class LayerInputWidget(QWidget):
     def set_layer(self, layer):
         self._combo.setLayer(layer)
 
+    def on_layer_change(self, callback):
+        """
+        Conecta um callback ao sinal layerChanged.
+        Já invoca imediatamente para popular o dropdown
+        logo na abertura, independente do estado da camada.
+
+        Uso no plugin:
+            self.layer_input.on_layer_change(self._on_layer_changed)
+
+        O plugin apenas informa qual callback conectar,
+        o widget gerencia o ciclo de vida.
+        """
+        self.layerChanged.connect(callback)
+        callback()
+
     # --------------------------------------------------
     # Utils
     # --------------------------------------------------

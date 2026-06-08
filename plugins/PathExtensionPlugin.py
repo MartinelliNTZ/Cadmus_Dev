@@ -49,8 +49,8 @@ class PathExtensionPlugin(BasePluginMTL):
         )
         self.logger.debug("Componente de seletor de atributo adicionado")
 
-        # Conectar mudança de camada para atualizar combo de atributos
-        self.layer_input.layerChanged.connect(self._on_layer_changed)
+        # Widget gerencia conexão e já invoca callback se houver layer
+        self.layer_input.on_layer_change(self._on_layer_changed)
 
         # Seletor de modo via radio button grid
         mode_layout, self.radio_mode = WidgetFactory.create_radio_button_grid(
@@ -129,9 +129,12 @@ class PathExtensionPlugin(BasePluginMTL):
             self.logger.warning("Nenhum modo selecionado")
             return
 
+        only_selected = self.layer_input.only_selected_enabled()
+
         self.logger.info(
             f"Parâmetros: layer='{layer.name()}', "
-            f"attribute='{attribute}', mode='{mode}'"
+            f"attribute='{attribute}', mode='{mode}', "
+            f"only_selected={only_selected}"
         )
 
         context = ExecutionContext()
@@ -140,6 +143,7 @@ class PathExtensionPlugin(BasePluginMTL):
         context.set("mode", mode)
         context.set("tool_key", self.TOOL_KEY)
         context.set("iface", self.iface)
+        context.set("only_selected", only_selected)
 
         self._run_async_pipeline(context)
 

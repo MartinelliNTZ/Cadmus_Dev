@@ -33,6 +33,8 @@ class PathExtensionStep(BaseStep):
         if not isinstance(layer, QgsVectorLayer):
             raise RuntimeError("layer não é QgsVectorLayer")
 
+        only_selected = context.get("only_selected", False)
+
         # Extrair dados na main thread (thread-safe)
         fields = layer.fields()
         field_idx = fields.lookupField(attribute)
@@ -46,8 +48,15 @@ class PathExtensionStep(BaseStep):
             layer.dataProvider().addAttributes([new_field])
             layer.updateFields()
 
+        # Iterar sobre todas ou apenas selecionadas
+        if only_selected:
+            features_iter = layer.selectedFeatures()
+            logger.info(f"Usando apenas {len(features_iter)} feições selecionadas")
+        else:
+            features_iter = layer.getFeatures()
+
         features_data = []
-        for feature in layer.getFeatures():
+        for feature in features_iter:
             path_value = feature.attribute(attribute)
             features_data.append((feature.id(), str(path_value) if path_value else ""))
 

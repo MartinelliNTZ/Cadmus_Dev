@@ -676,3 +676,5 @@ class Strings_pt_BR:
     PATH_EXTENSION_TOOLTIP = "Remove ou restaura a extensão de arquivos nos paths das feições"
     MODE_REMOVE = "Remover extensão"
     MODE_RESTORE = "Restaurar extensão"
+    MODE_ZIP = "Zipar arquivos"
+    MODE_UNZIP = "Deszipar arquivos"

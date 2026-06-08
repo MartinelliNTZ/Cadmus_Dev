@@ -12,9 +12,17 @@ from ..utils.Preferences import Preferences
 
 class PathExtensionPlugin(BasePluginMTL):
     """
-    Ferramenta para remover ou restaurar extensão de arquivos
-    nos paths armazenados em feições vetoriais.
+    Ferramenta para remover/restaurar extensão de arquivos
+    ou zipar/deszipar fotos nos paths armazenados em feições vetoriais.
     """
+
+    # Mapeamento índice do radio → string de modo
+    _MODE_MAP = {
+        0: "remove",
+        1: "restore",
+        2: "zip",
+        3: "unzip",
+    }
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
@@ -52,9 +60,14 @@ class PathExtensionPlugin(BasePluginMTL):
         # Widget gerencia conexão e já invoca callback se houver layer
         self.layer_input.on_layer_change(self._on_layer_changed)
 
-        # Seletor de modo via radio button grid
+        # Seletor de modo via radio button grid (4 modos)
         mode_layout, self.radio_mode = WidgetFactory.create_radio_button_grid(
-            items=[STR.MODE_REMOVE, STR.MODE_RESTORE],
+            items=[
+                STR.MODE_REMOVE,
+                STR.MODE_RESTORE,
+                STR.MODE_ZIP,
+                STR.MODE_UNZIP,
+            ],
             columns=2,
             checked_index=0,
             tool_key=self.TOOL_KEY,
@@ -124,7 +137,7 @@ class PathExtensionPlugin(BasePluginMTL):
             return
 
         mode_index = self.radio_mode.get_selected_index()
-        mode = "remove" if mode_index == 0 else "restore"
+        mode = self._MODE_MAP.get(mode_index, "remove")
         if not mode:
             self.logger.warning("Nenhum modo selecionado")
             return

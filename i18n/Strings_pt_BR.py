@@ -668,3 +668,11 @@ class Strings_pt_BR:
     CURVE = "Curva"
     STRAIGHT = "Reta"
     BOTH_PATH = "Ambas"
+
+    PATH = "Path"
+
+    # plugins/PathExtensionPlugin.py
+    PATH_EXTENSION_TITLE = "Remover/Restaurar Extensão"
+    PATH_EXTENSION_TOOLTIP = "Remove ou restaura a extensão de arquivos nos paths das feições"
+    MODE_REMOVE = "Remover extensão"
+    MODE_RESTORE = "Restaurar extensão"

@@ -2,34 +2,41 @@ bandit -r . -f html -o bandit-report.html
 flake8 . --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
 flake8 . --ignore=E501 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
 flake8 . --max-line-length=100 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
-ferramentas = name                              tipo                            plugin_class                resumo
-    - 01: Exportar Todos os Layouts             janela                          ExportAllLayoutsPlugin      substituir produtos antigos
-    - 02: Substituir Textos nos Layouts         janela                          ReplaceInLayoutsPlugin      crítico/alteração QGZ
-    - 03: Salvar, Fechar e Reabrir Projeto      instantânea                     RestartQGISPlugin           crítico/alteração QGZ
-    - 04: Carregar Pasta de Arquivos            janela                          LoadFolderLayersPlugin      alteração QGZ
-    - 05: Gerar Rastro de Implemento            janela                          GenerateTrailPlugin         nenhum
-    - 06: Sobre o Cadmus                        janela                          AboutDialog                 nenhum
-    - 07: Capturar Coordenadas                  instantânea+resultado           CoordClickTool              travamento da task
-    - 08: Calcular Campos Vetoriais             instantânea                     VectorFieldPlugin          manipulação de vetores
-    - 09: Obter Coordenadas de Drone            janela                          DroneCoordinatesPlugin      travamento por excesso de dados
-    - 10: Converter Multipart                   instantânea                     VectorMultipartPlugin       manipulação de vetores
-    - 11: Copiar Atributos de Vetores           janela                          CopyAttributesPlugin        manipulação de vetores
-    - 12: LogCat Viewer                         janela (multithread)            LogCatPlugin                nenhum
-    - 13: SettingsPlugin                        janela                                                      nenhum
-    - 14: AmostradorMassivo de Raster           Processing
-    - 15: Gerador de diferença entre campos     Processing
-    - 16: Estatisticas de atributos             Processing
-    - 17: Recortador Massivo de Raster          Processing                      RasterMassClipper              manipulação de raster
-    - 18: Gerador de Linhas entre Pontos        Processing                      GeometryLineFromPoints         manipulação de vetores
-    - 19: Gerador de diferença entre rasters    Processing                      RasterDifferenceStats          manipulação de raster
-    - 20: Ferramenta de remoção de campos KML   instantânea                     RemoveKmlFieldsPlugin         manipulação de vetores
-    - 21: Vetor para SVG                        Janela
-    - 22: Criador de Projeto                    Instantânea
-    - 23: Metadata de fotos
-    - 24: Relatorio de fotos 
-    - 25: Media Ponderada de Raster
-    - 26: Separacao de faixas
-    - 27: Gerador de Grade
+ferramentas = #                              tool_key                          tipo                            plugin_class / algorithm             categoria      resumo
+    - 01: Exportar Todos os Layouts             EXPORT_ALL_LAYOUTS               DIALOG                           ExportAllLayoutsPlugin                LAYOUTS        Exporta todos os layouts (PDF/PNG) em livro; substitui produtos antigos
+    - 02: Substituir Textos nos Layouts         REPLACE_IN_LAYOUTS               DIALOG                           ReplaceInLayoutsPlugin                LAYOUTS        Substitui textos nos layouts do projeto; alteração crítica no QGZ
+    - 03: Salvar, Fechar e Reabrir Projeto      RESTART_QGIS                     INSTANT                          RestartQGISPlugin                     SYSTEM         Salva, fecha e reabre o QGIS; ação crítica/alteração do QGZ
+    - 04: Carregar Pasta de Arquivos            LOAD_FOLDER_LAYERS               DIALOG                           LoadFolderLayersPlugin                FOLDER         Carrega todos os arquivos vetoriais/raster de uma pasta como camadas
+    - 05: Gerar Rastro de Implemento            GENERATE_TRAIL                   DIALOG                           GenerateTrailPlugin                   AGRICULTURE    Gera geometria de rastro (linha) a partir de pontos consecutivos
+    - 06: Sobre o Cadmus                        ABOUT_DIALOG                     DIALOG                           AboutDialog                          SYSTEM         Exibe diálogo "Sobre" com informações do plugin Cadmus
+    - 07: Capturar Coordenadas                  COORD_CLICK_TOOL                 MAP_TOOL                         CoordClickTool                        VECTOR         Captura coordenadas UTM/altitude ao clicar no mapa (resultado em diálogo)
+    - 08: Calcular Campos Vetoriais             VECTOR_FIELDS                    INSTANT                          VectorFieldsCalculationPlugin         VECTOR         Calcula XY/length/area automaticamente (elipsoidal ou cartesiano)
+    - 09: Obter Coordenadas de Drone            DRONE_COORDINATES                DIALOG                           DroneCoordinatesPlugin                AGRICULTURE    Lê arquivos MRK do drone e gera camadas de pontos + trilha
+    - 10: Converter Multipart                   CONVERTER_MULTIPART              INSTANT                          VectorMultipartPlugin                 VECTOR         Converte feições multipart para singlepart
+    - 11: Copiar Atributos de Vetores           COPY_ATTRIBUTES                  DIALOG                           CopyAttributesPlugin                  VECTOR         Copia atributos entre camadas com renomeação automática
+    - 12: LogCat Viewer                         LOGCAT                          DIALOG (multithread)             logcat.logcat_plugin                  SYSTEM         Visualizador de logs do plugin em tempo real (multithread)
+    - 13: Configurações                         SETTINGS                        DIALOG                           SettingsPlugin                        SYSTEM         Tela de preferências e configurações gerais do plugin
+    - 14: Amostrador Massivo de Raster          RASTER_MASS_SAMPLER              PROCESSING                       RasterMassSampler                     RASTER         Amostragem em massa de valores de raster sobre pontos
+    - 15: Gerador de Diferença entre Campos     DIFFERENCE_FIELDS                PROCESSING                       DifferenceFieldsAlgorithm             RASTER         Gera camada de diferença entre dois campos da tabela de atributos
+    - 16: Estatísticas de Atributos             ATTRIBUTE_STATISTICS             PROCESSING                       AttributeStatistics                   RASTER         Estatísticas (min/max/média/desvio) por categoria de atributo
+    - 17: Recortador Massivo de Raster          RASTER_MASS_CLIPPER              PROCESSING                       RasterMassClipper                     RASTER         Recorta rasters em massa por camada polígono
+    - 18: Gerador de Linhas entre Pontos        GEOMETRY_LINE_FROM_POINTS        PROCESSING                       GeometryLineFromPoints                RASTER         Cria linhas entre pontos (por grupo de atributo ou par A→B)
+    - 19: Gerador de Diferença entre Rasters    RASTER_DIFERENCE_STATISTICS      PROCESSING                       RasterDifferenceStatiscs              RASTER         Calcula estatísticas de diferença entre rasters (HTML)
+    - 20: Ferramenta de Remoção de Campos KML   REMOVE_KML_FIELDS                INSTANT                          RemoveKmlFieldsPlugin                 VECTOR         Remove campos KML (descriptio, timestamp, etc.) da camada ativa
+    - 21: Vetor para SVG                        VECTOR_TO_SVG                    DIALOG                           VectorToSvgPlugin                     FOLDER         Exporta camada vetorial ativa para arquivo SVG estilizado
+    - 22: Criador de Projeto                    CREATE_PROJECT                   INSTANT                          CreateProjectPlugin                   FOLDER         Cria estrutura padrão de projeto (pastas, basemap, CRS) em nova pasta
+    - 23: Vetorização de Fotos                  PHOTO_VECTORIZATION              DIALOG                           PhotoVectorizationPlugin              AGRICULTURE    Gera camada vetorial de pontos a partir de fotos + metadados EXIF/XMP
+    - 24: Relatório de Fotos                    REPORT_METADATA                  DIALOG                           ReportMetadataPlugin                  AGRICULTURE    Lista JSONs de metadados e regenera relatório HTML consolidado
+    - 25: Média Ponderada de Raster             RASTER_WEIGHTED_AVERAGE          PROCESSING                       RasterWeightedAverage                 RASTER         Calcula média ponderada entre múltiplos rasters (com reamostragem)
+    - 26: Separação de Faixas                   DIVIDE_POINTS_BY_STRIPS          DIALOG                           DividePointsByStripsPlugin            VECTOR         Segmenta pontos de drone em faixas/curvas por análise de azimute
+    - 27: Gerador de Grade                      GRID_GENERATOR                   PROCESSING                       GridGenerator                         RASTER         Gera camada de grade regular (linhas ou polígonos) na extensão definida
+    - 28: Otimizador de Raster                  RASTER_OPTIMIZER                 PROCESSING                       RasterOptimizer                       RASTER         Otimiza/comprime rasters (pirâmides, tiling, compressão)
+    - 29: Calculadora NDVI                      NDVI_CALCULATOR                  PROCESSING                       NdviCalculator                        RASTER         Calcula índice de vegetação NDVI a partir de bandas RED/NIR
+    - 30: Criador de Mosaico RGB                RGB_MOSAIC_CREATOR               PROCESSING                       RgbMosaicCreator                      RASTER         Monta mosaico RGB a partir de bandas separadas
+    - 31: Padronizador de Estilo RGB            RGB_STYLE_STANDARDIZER           PROCESSING                       RgbStyleStandardizer                  RASTER         Aplica estilo padronizado (rampa de cor) a bandas RGB
+    - 32: Extensão de Caminho (Path Extension)  PATH_EXTENSION_TOOL              DIALOG                           PathExtensionPlugin                   AGRICULTURE    Gera extensão/continuação de linha a partir do último segmento de uma trilha
+======= REPLACE
+
 
 
 Documentação de cenarios: 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13

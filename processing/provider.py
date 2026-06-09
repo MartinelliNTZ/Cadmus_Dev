@@ -14,6 +14,7 @@ from .GridGenerator import GridGenerator
 from .NdviCalculator import NdviCalculator
 from .RgbMosaicCreator import RgbMosaicCreator
 from .RgbStyleStandardizer import RgbStyleStandardizer
+from .GliCalculator import GliCalculator
 from ..i18n.TranslationManager import STR
 
 
@@ -33,6 +34,7 @@ class MTLProvider(QgsProcessingProvider):
         self.addAlgorithm(NdviCalculator())
         self.addAlgorithm(RgbMosaicCreator())
         self.addAlgorithm(RgbStyleStandardizer())
+        self.addAlgorithm(GliCalculator())
 
     def id(self):
         return "cadmus"

@@ -47,6 +47,8 @@ class ToolKey:
     RGB_MOSAIC_CREATOR = "rgb_mosaic_creator"
     RASTER_OPTIMIZER = "raster_optimizer"
     RGB_STYLE_STANDARDIZER = "rgb_style_standardizer"
+    GLI_CALCULATOR = "gli_calculator"
+
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {
@@ -82,4 +84,5 @@ class ToolKey:
         NDVI_CALCULATOR: "#27AE60",  # verde -> ndvi / vegetacao
         RGB_MOSAIC_CREATOR: "#E74C3C",  # vermelho -> rgb / cor
         RGB_STYLE_STANDARDIZER: "#8E44AD",  # roxo -> padronizacao de estilo
+        GLI_CALCULATOR: "#2ECC71",  # verde claro -> gli / vegetacao verde
     }

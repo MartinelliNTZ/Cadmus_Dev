@@ -661,6 +661,15 @@ class Strings_pt_BR:
     SENTINEL_BANDS_INFO = "Sentinel-2: Banda 8 (NIR) e Banda 4 (Red)"
     LANDSAT_BANDS_INFO = "Landsat 8/9: Banda 5 (NIR) e Banda 4 (Red) | Landsat 5/7: Banda 4 (NIR) e Banda 3 (Red)"
     NDVI = "NDVI"
+    GLI_CALCULATOR_TITLE = "Calculadora GLI (Green Leaf Index)"
+    INPUT_RASTER_RGB_GLI = "Raster RGB de entrada (3 ou 4 bandas)"
+    GLI = "GLI"
+    GLI_STYLE_PATH = "Caminho do estilo QML GLI"
+    GLI_INTERPRETATION = """Interpretacao dos valores GLI:
+  -1.0 a 0.0  : Solo exposto, agua, superficies nao vegetadas
+   0.0 a 0.2  : Vegetacao esparsa ou estressada
+   0.2 a 0.5  : Vegetacao moderada
+   0.5 a 1.0  : Vegetacao densa e saudavel"""
     RGB_STYLE_STANDARDIZER_TITLE = "Padronizar Estilo RGB (Percentil)"
     INPUT_RASTER_RGB = "Raster RGB de entrada"
     RGB_STANDARDIZER_OUTPUT = "Raster RGB padronizado"

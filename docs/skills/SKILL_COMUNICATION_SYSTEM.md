@@ -1,357 +1,138 @@
-# 🧠 SKILL: LogUtils — Sistema de Logging Estruturado
+# 🧠 SKILL: Sistema de Comunicação — responsabilidades e padrões
 
-## 📋 RESUMO EXECUTIVO
+## 📋 Objetivo desta Skill
 
-**LogUtils** é um sistema de logging estruturado que:
-- Centraliza toda saída de eventos em JSON estruturado
-- Funciona em **métodos de instância** e **métodos estáticos**
-- Integra com QGIS MessageLog (UI) + arquivo de log
-- Rastreia **contexto completo** (tool, class, session, thread, etc)
+Reestruturar e documentar, com clareza de responsabilidades, quais mecanismos de comunicação devem ser usados em cada cenário da base Cadmus: logs (dev), sinais (inter-componentes), mensagens ao usuário (UI) e quando usar IPC/fora do processo. A meta é evitar ambiguidade e padronizar comportamentos.
 
 ---
 
-## 🎯 OBJETIVO
+## 🔑 Resumo curto
 
-Fornecer logging consistente, rastreável e sem acoplamento, funcionando em qualquer contexto (normal, estático, assíncrono).
-
----
-
-## 📥 ENTRADAS
-
-- **tool**: Identificador único do plugin/funcionalidade (ToolKey)
-- **class_name**: Nome da classe que está logando
-- **msg**: Mensagem legível
-- **level**: DEBUG, INFO, WARNING, ERROR, CRITICAL
-- **code**: Código de evento (opcional, para rastreamento)
-- **data**: Dados estruturados adicionais (kwargs)
-- **exc**: Exception (para logging de erros)
+- **Log (`LogUtils`)**: destinado ao desenvolvimento, auditoria e investigação. Todas as classes podem ter um logger; **`tool_key` é exclusivo para classes que representam ferramentas** (features/plugins). Classes que não são ferramentas NÃO devem declarar `TOOL_KEY` internamente — quando precisarem logar em contexto de uma ferramenta, devem receber `tool_key` como parâmetro na assinatura do método ou receber um `logger` pré-injetado.
+- **SignalManager / PluginSignalHub / PyQtSignalManager**: meio para comunicação entre ferramentas e subsistemas complexos do plugin — usar com cautela; reservado para eventos de ciclo de vida, coordenação de UI e notificações internas entre componentes desacoplados.
+- **QgisMessageUtil**: único canal para mensagens dirigidas ao usuário final (message bars, modais, progressos). Nunca usar `LogUtils` sozinho para UX.
+- **IPC / Arquivo / Sockets**: apenas para comunicação entre processos ou scripts externos; não substituir sinais locais.
 
 ---
 
-## 📤 SAÍDAS
+## 📚 Princípios e responsabilidades
 
-1. **Arquivo JSON** (`cadmus_<timestamp>_pid<pid>.log`)
-   - Uma linha JSON por evento
-   - Estrutura completa: ts, level, plugin, session_id, thread, tool, class, msg, data
+- **Seja explícito sobre o público-alvo da mensagem**:
+    - Desenvolvedor / Operador → `LogUtils` (arquivo JSON + QGIS log para erros críticos)
+    - Outro componente / ferramenta → `PluginSignalHub` (sinais PyQt via `PyQtSignalManager` listeners)
+    - Usuário final (UX) → `QgisMessageUtil`
 
-2. **QGIS MessageLog** (para ERROR e CRITICAL)
-   - Visível na UI do QGIS
+- **Separação de responsabilidades**:
+    - `LogUtils`: apenas gravação observacional e diagnóstico. Não controla fluxo de aplicação.
+    - `SignalManager`: coordenação e injeção de eventos (ex.: rebuilds, atualização de ações). Não deve carregar lógica de negócio pesada — apenas notificar.
+    - `QgisMessageUtil`: apresentar informação ao usuário. Deve receber mensagens de componentes que já tenham logado internamente.
 
-3. **Stderr** (fallback)
-   - Se arquivo não disponível
-
----
-
-## ⚙️ PROCESSAMENTO
-
-### **FASE 1: Inicialização Global (Execute UMA VEZ)**
-
-```python
-from pathlib import Path
-from core.config.LogUtils import LogUtils
-
-# Na inicialização do plugin (cadmus_plugin.py)
-plugin_root = Path(__file__).parent
-LogUtils.init(plugin_root)
-```
-
-**Resultado:**
-- Session ID único gerado
-- Arquivo de log criado
-- Sistema pronto para uso
+- **ToolKey**: somente ferramentas (os itens do plugin que representam funcionalidades acionáveis pelo usuário) devem declarar uma `TOOL_KEY` e passá-la ao criar loggers. Classes utilitárias, modelos ou helpers não devem inventariar `tool_key`.
 
 ---
 
-### **FASE 2: Logging em Métodos de Instância**
+## 🧭 Quando usar cada mecanismo (cenários)
 
-**PADRÃO RECOMENDADO:**
+- Cenário: inicialização de plugin / registro de ferramenta
+    - Use: `LogUtils` (INFO/DEBUG) para auditoria; emitir `plugin_instantiated` via `PluginSignalHub` para que `PyQtSignalManager` atualize menus/toolbars; `QgisMessageUtil` apenas se houver erro que o usuário precise ver.
 
-```python
-from core.config.LogUtils import LogUtils
-from utils.ToolKeys import ToolKey
+- Cenário: tarefa de processamento assincrona longa (ex.: processamento raster)
+    - Use: `LogUtils` para eventos internos e progresso; `QgisMessageUtil.show_progress_message_bar` para feedback ao usuário (via iface); se múltiplos componentes precisarem coordenar, emitir sinais específicos (payloads pequenos) via `PluginSignalHub`.
 
-class MyPlugin:
-    TOOL_KEY = ToolKey.MY_PLUGIN
-    
-    def __init__(self):
-        self.logger = LogUtils(
-            tool=self.TOOL_KEY,
-            class_name=self.__class__.__name__,
-            level=LogUtils.INFO
-        )
-    
-    def do_something(self):
-        self.logger.info("Iniciando processamento", code="PROCESS_START")
-        
-        try:
-            result = self._process_data()
-            self.logger.info(
-                "Processamento concluído",
-                code="PROCESS_END",
-                result_type=type(result).__name__,
-                result_size=len(result)
-            )
-            return result
-        except Exception as e:
-            self.logger.exception(e, code="PROCESS_ERROR", input_data="...")
-            raise
-    
-    def _process_data(self):
-        # Privado — também logado
-        self.logger.debug("Processando dados internos")
-        return [1, 2, 3]
-```
+- Cenário: erro crítico que impede operação
+    - Use: `LogUtils.exception()` para registrar traceback estruturado; chamar `QgisMessageUtil.modal_error` ou `bar_critical` para notificar usuário; emitir sinal se outros subsistemas precisarem reagir (ex.: limpar estado compartilhado).
 
-**Métodos disponíveis:**
-- `logger.debug(msg, code=None, **data)`
-- `logger.info(msg, code=None, **data)`
-- `logger.warning(msg, code=None, **data)`
-- `logger.error(msg, code=None, **data)`
-- `logger.critical(msg, code=None, **data)`
-- `logger.exception(exc, code=None, **data)`
+- Cenário: comunicação entre ferramentas (ex.: Tool A altera dados que Tool B consome)
+    - Use: `PluginSignalHub` com payloads mínimos (ids, paths, tool_key). Evitar passar objetos Qt/Widgets. Preferir notificações tipo `data_updated` com `resource_id`.
+
+- Cenário: integração com processos externos ou múltiplos processos
+    - Use: IPC (arquivo, socket, DB) — documentar contrato de mensagem. `PluginSignalHub` NÃO atravessa processos.
 
 ---
 
-### **FASE 3: Logging em Métodos Estáticos**
+## 🧩 Contratos e formato de mensagens
 
-**PADRÃO RECOMENDADO:**
+- Regras gerais de payload:
+    - Payloads devem ser JSON-serializáveis (dicts com strings, números, lists, booleans).
+    - Evitar referências diretas a QObjects, handlers, ou dados binários.
+    - Campos recomendados: `event` (string), `tool_key` (quando aplicável), `timestamp` (ISO), `actor` (opcional), `id`/`resource`.
 
-```python
-from core.config.LogUtils import LogUtils
-from utils.ToolKeys import ToolKey
+- Exemplo padrão de payload mínimo:
 
-class UtilityClass:
-    """Classe com métodos estáticos puros"""
-    
-    @staticmethod
-    def format_data(data, *, tool_key=None):
-        """
-        Formata dados. Requer tool_key porque é estático.
-        
-        Args:
-            data: Dados a formatar
-            tool_key: Identificador do plugin (OBRIGATÓRIO)
-        """
-        logger = LogUtils(
-            tool=tool_key or ToolKey.SYSTEM,
-            class_name="UtilityClass",
-            level=LogUtils.DEBUG
-        )
-        
-        logger.debug("Iniciando formatação")
-        
-        try:
-            formatted = ", ".join(str(x) for x in data)
-            logger.info("Formatação bem-sucedida", output_length=len(formatted))
-            return formatted
-        except Exception as e:
-            logger.exception(e, code="FORMAT_ERROR")
-            raise
-
-# Uso:
-UtilityClass.format_data([1, 2, 3], tool_key=ToolKey.MY_PLUGIN)
-```
-
-**ALTERNATIVA: Passando logger como parâmetro:**
-
-```python
-class UtilityClass:
-    @staticmethod
-    def process(data, logger):
-        """
-        Usa logger pré-existente.
-        
-        Args:
-            data: Dados
-            logger: Instância de LogUtils
-        """
-        logger.debug("Processando")
-        return [x * 2 for x in data]
-
-# Uso:
-logger = LogUtils(tool=ToolKey.MY_PLUGIN, class_name="MyClass")
-result = UtilityClass.process([1, 2, 3], logger)
+```json
+{
+    "event": "plugin_instantiated",
+    "tool_key": "processing",
+    "timestamp": "2026-06-09T12:34:56Z",
+    "meta": { "user": "alice" }
+}
 ```
 
 ---
 
-### **FASE 4: Tratamento de Exceções**
+## ✍️ Políticas de logging (LogUtils)
 
-**REGRA:** Sempre capturar `Exception` (nunca bare `except:`), logar e relancar ou tratar.
-
-```python
-def risky_operation(self):
-    try:
-        result = self._do_something_risky()
-        self.logger.info("Operação bem-sucedida", result=result)
-        return result
-    except ValueError as e:
-        # Erro esperado — convertido
-        self.logger.warning(f"Valor inválido: {e}", code="INVALID_VALUE")
-        return None
-    except Exception as e:
-        # Erro não esperado — logar traceback completo
-        self.logger.exception(e, code="UNEXPECTED_ERROR")
-        raise
-```
-
-**LogUtils.exception() automáticamente inclui:**
-- Tipo da exceção
-- Mensagem
-- Traceback completo
+- Escopo: diagnóstico e auditoria.
+- Quem pode ter logger: qualquer classe pode ter um logger, mas **somente classes que representam ferramentas** devem declarar `TOOL_KEY` e instanciar `LogUtils` com `tool=ToolKey.X`.
+- Para utilitários e helpers: **não** declarar `TOOL_KEY`. Se o utilitário precisa registrar eventos ligados a uma ferramenta, use uma das abordagens abaixo:
+    1. Receber `tool_key` como parâmetro na assinatura do método (ex.: `def process(data, *, tool_key):`) e criar `LogUtils(tool=tool_key, class_name=...)` dentro do método.
+    2. Receber um `logger` já instanciado como argumento (ex.: `def process(data, logger):`) e usar este logger diretamente.
+    3. Evitar definir `ToolKey` internamente em utilitários; se for imprescindível usar um valor genérico, documente explicitamente essa escolha.
+- Convenção: classes que representam ferramentas públicas devem declarar `TOOL_KEY = ToolKey.X` como constante de classe.
+- Exceções: sempre use `logger.exception(e, code=...)` para erros não tratados.
+- Dados sensíveis: nunca logar credenciais ou PII; sanitizar antes de registrar.
 
 ---
 
-### **FASE 5: Níveis de Log**
+## 🔔 SignalManager (PluginSignalHub / PyQtSignalManager)
 
-```python
-# DEBUG — informação detalhada para diagnóstico
-logger.debug("Variável x = 10", x=10)
-
-# INFO — evento normal bem-sucedido
-logger.info("Arquivo carregado", file="data.csv", rows=1000)
-
-# WARNING — comportamento inesperado mas não crítico
-logger.warning("Retry necessário", attempt=2, max_attempts=3)
-
-# ERROR — erro que impede operação
-logger.error("Falha ao conectar", code="CONNECTION_FAILED", host="server.com")
-
-# CRITICAL — falha do sistema
-logger.critical("Plugin não inicializou", code="INIT_FAILED")
-```
+- Propósito: servir de barramento interno para eventos entre subsistemas do plugin (menu/toolbar updates, lifecycle events, sync notifications).
+- Uso restrito: deve ser tratado como recurso compartilhado com impacto em toda a aplicação — **emitir com cuidado**. Antes de adicionar um novo sinal, avaliar se não existe alternativa local (call/callback).
+- Design recomendado:
+    - Sinais nomeados por domínio: `plugin_instantiated`, `plugin_finished`, `data_changed`, `toolbar_category_visibility_changed`, `resource_locked`
+    - Handlers devem ser idempotentes e rápidos; evitar longas tarefas no slot (delegar a thread/process worker).
+    - Emitir apenas dados leves (ids, paths, enums).
 
 ---
 
-## 📏 REGRAS
+## 🧑‍💻 QgisMessageUtil — regras UX
 
-### ✅ **SEMPRE:**
-
-- Inicializar LogUtils UMA VEZ na startup: `LogUtils.init(plugin_root)`
-- Usar `tool_key` correto (enum de ToolKeys)
-- Incluir `class_name` (para rastreamento)
-- Usar `code` para eventos importantes (facilita busca posterior)
-- Passar dados estruturados como kwargs: `logger.info("msg", key1=val1, key2=val2)`
-- Logar exceções com `logger.exception(e, code=...)`
-
-### ❌ **NUNCA:**
-
-- Não criar múltiplas instâncias LogUtils com init à cada operação
-- Não usar bare `except:` — sempre capturar Exception
-- Não silenciar exceções com `pass`
-- Não misturar print() com logger — usar logger em produção
-- Não passar dados não-serializáveis (objetos complexos direto; converter para string/dict primeiro)
+- Único responsável por mensagens ao usuário no QGIS.
+- Padrões:
+    - Mensagens informativas de rotina → `bar_info`/`bar_success` (não modal).
+    - Erros críticos → `modal_error` (bloqueante) + log.
+    - Perguntas → `confirm`/`ask_overwrite` (usar padrões existentes).
+- Sempre logar o evento correspondente com `LogUtils` antes/ao mostrar a UI.
 
 ---
 
-## 📦 DEPENDÊNCIAS
+## 🧪 Testes e validação
 
-```python
-from core.config.LogUtils import LogUtils
-from utils.ToolKeys import ToolKey
-```
+- Unit tests:
+    - Testar que emissões de sinais chegam aos listeners (usar `get_plugin_signal_hub()` isolado);
+    - Testar que `LogUtils` grava eventos com `session_id` constante;
+    - Testar que `QgisMessageUtil` é chamado apenas para mensagens ao usuário (mock iface em testes).
 
-**ToolKeys disponíveis:** (verificar [ToolKeys.py](../../utils/ToolKeys.py))
-
-```python
-class ToolKey:
-    SYSTEM = "system"
-    PROCESSING = "processing"
-    VECTOR_FIELD = "vector_field"
-    # ... etc
-```
+- Teste de integração:
+    - Simular fluxo: plugin inicia → emit `plugin_instantiated` → `PyQtSignalManager` atualiza menu → checar que log e UI foram acionados.
 
 ---
 
-## 🔧 EXEMPLOS
+## ⚠️ Limitações e riscos
 
-### **Exemplo 1: Plugin Simples**
-
-```python
-# plugins/MyPlugin.py
-from core.config.LogUtils import LogUtils
-from utils.ToolKeys import ToolKey
-
-class MyPlugin:
-    TOOL_KEY = ToolKey.PROCESSING
-    
-    def __init__(self):
-        self.logger = LogUtils(tool=self.TOOL_KEY, class_name=self.__class__.__name__)
-    
-    def execute(self):
-        self.logger.info("Iniciando execução", task="main")
-        # ... fazer algo
-        self.logger.info("Execução concluída")
-```
-
-### **Exemplo 2: Classe de Utilidade com Státicos**
-
-```python
-# utils/DataProcessor.py
-from core.config.LogUtils import LogUtils
-from utils.ToolKeys import ToolKey
-
-class DataProcessor:
-    @staticmethod
-    def validate(data, *, tool_key):
-        logger = LogUtils(tool=tool_key, class_name="DataProcessor")
-        
-        if not isinstance(data, list):
-            logger.warning("Tipo inesperado", expected="list", got=type(data).__name__)
-            return False
-        
-        logger.info("Validação bem-sucedida", count=len(data))
-        return True
-```
-
-### **Exemplo 3: Tratamento de Erro em Pipeline**
-
-```python
-def process_pipeline(self, items):
-    self.logger.info("Pipeline iniciado", item_count=len(items))
-    
-    results = []
-    for i, item in enumerate(items):
-        try:
-            result = self._process_item(item)
-            results.append(result)
-            self.logger.debug(f"Item {i} processado", index=i, success=True)
-        except Exception as e:
-            self.logger.exception(e, code="ITEM_PROCESS_ERROR", index=i, item_id=item.get("id"))
-            results.append(None)  # ou relancar se crítico
-    
-    self.logger.info("Pipeline finalizado", total=len(items), successful=sum(1 for r in results if r))
-    return results
-```
+- `PluginSignalHub` não atravessa processos. Use IPC quando houver múltiplos processos.
+- Sinais podem poluir se usados indiscriminadamente; prefira contratos claros e nomes estáveis.
+- Logs crescem indefinidamente — implementar `LogCleanupUtils` ou rotação se necessário.
 
 ---
 
-## ⚠️ LIMITAÇÕES
+## ✅ Conclusão (resumo de responsabilidades)
 
-- **JSON estruturado:** dados complexos precisam ser serializáveis (use `.to_dict()`, converter objetos)
-- **Sem async context:** logger é thread-safe mas context pode se misturar em async — use thread_name para rastrear
-- **Arquivo único por PID:** se multiple processes abrem simultânea, haverá múltiplos arquivos (esperado)
-- **Sem rotação automática:** arquivos de log crescem indefinidamente (implementar LogCleanupUtils)
-
----
-
-## 🔍 VALIDAÇÃO
-
-| Critério | Status |
-|----------|--------|
-| **Reutilizável?** | ✅ SIM — usado em toda a codebase |
-| **Clara?** | ✅ SIM — API simples e documentada |
-| **Independente?** | ✅ SIM — funciona com/sem QGIS, com/sem arquivo |
+- `LogUtils` = desenvolvedor / auditoria (todas as classes podem usar, `tool_key` só para ferramentas).
+- `PluginSignalHub` / `PyQtSignalManager` = comunicação entre ferramentas / subsistemas complexos (usar com cuidado).
+- `QgisMessageUtil` = todas as mensagens ao usuário final.
+- IPC/Arquivo/Sockets = apenas para comunicação entre processos.
 
 ---
 
-## 🎓 CONCLUSÃO
-
-**LogUtils é a forma correta e única de fazer log no Cadmus.**
-
-- **Instância normal:** `self.logger = LogUtils(...)`
-- **Estático:** criar nova instância com `tool_key` ou passar logger
-- **Sempre inicializar:** `LogUtils.init(plugin_root)` na startup
-- **Exceções:** usar `logger.exception(e, code=...)`
-
-Qualquer log fora deste padrão será desconsiderado na análise de eventos.
+Se aprovar este rework, aplico uma entrada de changelog e crio exemplos de testes unitários e um diagrama Mermaid resumo.

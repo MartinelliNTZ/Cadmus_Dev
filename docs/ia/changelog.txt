@@ -11,3 +11,10 @@
   - Fusão de shots (_fuse_small_shots) recalcula tamanhos incrementalmente com loop while + set fused_from, corrigindo fusões em cadeia que usavam estatísticas obsoletas.
   - _apply_retroactive_relabel_guarded verifica se o shot de origem atingiu minimum_point_count antes de permitir relabel, evitando destruir strips válidas ao retirar seus pontos de cauda.
   - Duplo check de azimute anterior+posterior: para cada ponto i, compara raw_az[i] (segmento i-1→i) e raw_az[i+1] (segmento i→i+1) contra a média da strip. Se AMBOS desviam > severe_azimuth_threshold → dual_angle_break: +2 no score, quebra antecipada (R0.5), sobrepõe falsos positivos da checagem bidirecional, reduz confirmações prospectivas necessárias, transforma ambíguo em quebra, relaxa guard do relabel retroativo (janela dobrada + threshold severo). Se ambos desviam > light_azimuth_threshold → dual_angle_light: +1 score, reduz required_conf. Também estende detecção de bordadura para dual_angle_break com distância < 2× border_distance_threshold.
+
+2.3.30 09/06/2026
+[2.3.30.1][09/06/2026] Consolidada documentação da skill de comunicação (SignalHub / PyQtSignalManager / QgisMessageUtil) em docs/skills/SKILL_COMUNICATION_SYSTEM.md — inclui padrões de payload, exemplos de uso, integração com LogUtils e recomendações de segurança/threads.
+2.3.31 09/06/2026
+[2.3.31.1][09/06/2026] Reestruturada skill de comunicação: clarificados cenários de uso para LogUtils, PluginSignalHub/PyQtSignalManager e QgisMessageUtil; adicionadas políticas sobre `tool_key`, payloads, responsabilidades e testes.
+2.3.32 09/06/2026
+[2.3.32.1][09/06/2026] Ajuste da skill de comunicação: `tool_key` declarado exclusivo para ferramentas; classes não-ferramentas devem receber `tool_key` como parâmetro ou receber `logger` injetado. Exemplos padronizados atualizados.

@@ -13,12 +13,10 @@ Histograma de distribuição de IncidenceAngle por faixa de valores
 Histograma de MotionBlurRisk mostrando cauda de fotos problemáticas
 Scatter plot de GimbalOffset vs MotionBlurRisk por foto
 Scatter plot de velocidade vs PQI para ver correlação
-Linha de LRFTargetDistance ao longo do voo mostrando variação de terreno
 Heatmap de densidade de fotos sobre o mapa por hectare
 Linha de RtkDiffAge ao longo do tempo para ver instabilidades pontuais
 Boxplot de PQI por voo para comparar distribuição entre voos
 Gráfico de barras empilhadas de IsIdealOverlap por voo — quantas fotos dentro e fora do ideal
-Linha de GroundElevation ao longo do trajeto mostrando perfil do terreno sobrevoado
 Radar chart comparando voos em múltiplas métricas simultaneamente
 Linha de ISOSpeedRatings ao longo do tempo indicando adaptação à luz
 

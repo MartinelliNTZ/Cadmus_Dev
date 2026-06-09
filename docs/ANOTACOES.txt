@@ -2,7 +2,7 @@ bandit -r . -f html -o bandit-report.html
 flake8 . --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
 flake8 . --ignore=E501 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
 flake8 . --max-line-length=100 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
-ferramentas = name                              tipo                            plugin_class                risco
+ferramentas = name                              tipo                            plugin_class                resumo
     - 01: Exportar Todos os Layouts             janela                          ExportAllLayoutsPlugin      substituir produtos antigos
     - 02: Substituir Textos nos Layouts         janela                          ReplaceInLayoutsPlugin      crítico/alteração QGZ
     - 03: Salvar, Fechar e Reabrir Projeto      instantânea                     RestartQGISPlugin           crítico/alteração QGZ

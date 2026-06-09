@@ -4,11 +4,11 @@ import os
 from qgis.core import (
     QgsProcessingException,
     QgsProcessingParameterBoolean,
+    QgsProcessingParameterNumber,
     QgsProcessingParameterRasterDestination,
     QgsProcessingParameterRasterLayer,
     QgsProcessingParameterBand,
     QgsProcessingMultiStepFeedback,
-    QgsExpression,
     QgsProcessing,
 )
 import processing
@@ -24,6 +24,11 @@ class GliCalculator(BaseProcessingAlgorithm):
     QgsProcessingAlgorithm: Calcula o GLI (Green Leaf Index)
     a partir de um mosaico RGB ou RGBA (3 ou 4 bandas).
     GLI = (2*G - R - B) / (2*G + R + B)
+
+    Fluxo:
+      [Opcional] Step 0: gdal:warpreproject (reamostragem para resolucao alvo)
+      Step 1: gdal:rastercalculator (calculo GLI)
+      Step 2: native:setlayerstyle (aplica QML pseudocolor)
 
     Usa gdal:rastercalculator para o calculo e native:setlayerstyle
     para aplicar o estilo QML pseudocolor.
@@ -41,6 +46,7 @@ class GliCalculator(BaseProcessingAlgorithm):
     BAND_RED = "BAND_RED"
     BAND_GREEN = "BAND_GREEN"
     BAND_BLUE = "BAND_BLUE"
+    TARGET_RESOLUTION = "TARGET_RESOLUTION"
     OUTPUT = "OUTPUT"
     DISPLAY_HELP = BaseProcessingAlgorithm.PARAM_DISPLAY_HELP
     OPEN_OUTPUT_FOLDER = BaseProcessingAlgorithm.PARAM_OPEN_OUTPUT_FOLDER
@@ -218,6 +224,16 @@ class GliCalculator(BaseProcessingAlgorithm):
         )
 
         self.addParameter(
+            QgsProcessingParameterNumber(
+                self.TARGET_RESOLUTION,
+                "Reamostragem (resolucao alvo em metros, 0=original)",
+                type=QgsProcessingParameterNumber.Double,
+                defaultValue=self.prefs.get("target_resolution", 0.0),
+                minValue=0.0,
+            )
+        )
+
+        self.addParameter(
             QgsProcessingParameterRasterDestination(self.OUTPUT, STR.GLI)
         )
 
@@ -239,11 +255,8 @@ class GliCalculator(BaseProcessingAlgorithm):
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm do GliCalculator...")
 
-        # Use a multi-step feedback: step0=calculo, step1=estilo
-        steps = 2
-        multi_feedback = QgsProcessingMultiStepFeedback(steps, feedback)
-
         try:
+            # --- Leitura dos parametros ---
             raster = self.parameterAsRasterLayer(params, self.INPUT_RASTER, context)
             if not raster or not raster.isValid():
                 raise QgsProcessingException("Raster RGB invalido ou nao encontrado.")
@@ -251,9 +264,19 @@ class GliCalculator(BaseProcessingAlgorithm):
             band_red = self.parameterAsInt(params, self.BAND_RED, context)
             band_green = self.parameterAsInt(params, self.BAND_GREEN, context)
             band_blue = self.parameterAsInt(params, self.BAND_BLUE, context)
+            target_res = self.parameterAsDouble(params, self.TARGET_RESOLUTION, context)
             open_output_folder = self.parameterAsBool(params, self.OPEN_OUTPUT_FOLDER, context)
             display_help = self.parameterAsBool(params, self.DISPLAY_HELP, context)
             output_path = self.parameterAsOutputLayer(params, self.OUTPUT, context)
+
+            needs_resample = target_res > 0.0
+
+            # Calcula numero de steps:
+            # 0 (opcional): warp reamostragem
+            # 1: raster calculator
+            # 2: setlayerstyle
+            steps = 3 if needs_resample else 2
+            multi_feedback = QgsProcessingMultiStepFeedback(steps, feedback)
 
             # --- Banner inicial ---
             self._push_banner(feedback, "CALCULADORA GLI - CADMUS")
@@ -264,23 +287,73 @@ class GliCalculator(BaseProcessingAlgorithm):
             self._push_info_line(feedback, "Banda R (Red)", str(band_red))
             self._push_info_line(feedback, "Banda G (Green)", str(band_green))
             self._push_info_line(feedback, "Banda B (Blue)", str(band_blue))
+            if needs_resample:
+                self._push_info_line(feedback, "Resolucao alvo", f"{target_res}m")
+            else:
+                feedback.pushInfo("Resolucao alvo: original (sem reamostragem)")
             self._push_info_line(feedback, "Output", output_path)
             feedback.pushInfo("")
 
-            # --- Step 0: gdal:rastercalculator ---
-            # GLI = (2*G - R - B) / (2*G + R + B)
-            # Mapeamento: A = Red, B = Green, C = Blue
-            # Formula: (B*2 - A - C) / (B*2 + A + C)
-            multi_feedback.setCurrentStep(0)
+            # --- Qual raster usar como fonte para o calculo? ---
+            calc_source = raster.source()
+            step_index = 0
+
+            # --- Step opcional: reamostragem via gdal:warpreproject ---
+            if needs_resample:
+                multi_feedback.setCurrentStep(step_index)
+                if multi_feedback.isCanceled():
+                    return {}
+
+                feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Reamostrando para {target_res}m...")
+
+                # Cria um temporario para o raster reamostrado
+                import tempfile
+                temp_dir = tempfile.gettempdir()
+                resampled_path = os.path.join(
+                    temp_dir,
+                    f"gli_resampled_{os.path.basename(raster.source())}"
+                )
+
+                resample_params = {
+                    'INPUT': raster.source(),
+                    'SOURCE_CRS': None,
+                    'TARGET_CRS': None,
+                    'RESAMPLING': 0,  # nearest neighbour (rapido para preservar valores)
+                    'NODATA': None,
+                    'TARGET_RESOLUTION': target_res,
+                    'OPTIONS': '',
+                    'DATA_TYPE': 0,  # manter tipo original
+                    'TARGET_EXTENT': None,
+                    'TARGET_EXTENT_CRS': None,
+                    'MULTITHREADING': True,
+                    'OUTPUT': resampled_path,
+                }
+                self.logger.debug(f"Reamostrando raster para resolucao {target_res}m...")
+                warp_result = processing.run(
+                    'gdal:warpreproject',
+                    resample_params,
+                    context=context,
+                    feedback=multi_feedback,
+                    is_child_algorithm=True,
+                )
+                calc_source = warp_result.get('OUTPUT', resampled_path)
+                feedback.pushInfo(f"Raster reamostrado salvo em: {calc_source}")
+                feedback.pushInfo("")
+                step_index += 1
+
+            # --- Step 1 (ou 0 se sem reamostragem): gdal:rastercalculator ---
+            multi_feedback.setCurrentStep(step_index)
             if multi_feedback.isCanceled():
                 return {}
 
+            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Calculando GLI via gdal:rastercalculator...")
+
             calc_params = {
-                'INPUT_A': raster.source(),
+                'INPUT_A': calc_source,
                 'BAND_A': band_red,
-                'INPUT_B': raster.source(),
+                'INPUT_B': calc_source,
                 'BAND_B': band_green,
-                'INPUT_C': raster.source(),
+                'INPUT_C': calc_source,
                 'BAND_C': band_blue,
                 'INPUT_D': None,
                 'BAND_D': None,
@@ -298,7 +371,7 @@ class GliCalculator(BaseProcessingAlgorithm):
                 'OUTPUT': output_path,
             }
 
-            feedback.pushInfo("Calculando GLI via gdal:rastercalculator...")
+            self.logger.debug("Executando gdal:rastercalculator para GLI...")
             calc_result = processing.run(
                 'gdal:rastercalculator',
                 calc_params,
@@ -310,16 +383,19 @@ class GliCalculator(BaseProcessingAlgorithm):
             calc_output = calc_result.get('OUTPUT', output_path)
             feedback.pushInfo("GLI calculado com sucesso!")
             feedback.pushInfo("")
+            step_index += 1
 
             # --- Exibe interpretacao ---
             for line in STR.GLI_INTERPRETATION.split("\n"):
                 feedback.pushInfo(line)
             feedback.pushInfo("")
 
-            # --- Step 1: Gerar e aplicar estilo QML via native:setlayerstyle ---
-            multi_feedback.setCurrentStep(1)
+            # --- Step 2 (ou 1): Gerar e aplicar estilo QML via native:setlayerstyle ---
+            multi_feedback.setCurrentStep(step_index)
             if multi_feedback.isCanceled():
                 return {}
+
+            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Gerando e aplicando estilo QML GLI...")
 
             qml_path = self._build_gli_qml_path()
 
@@ -327,12 +403,16 @@ class GliCalculator(BaseProcessingAlgorithm):
             if not os.path.exists(qml_path):
                 self.logger.debug(f"Gerando arquivo de estilo QML: {qml_path}")
                 self._generate_gli_qml(qml_path)
+                feedback.pushInfo(f"Arquivo QML gerado em: {qml_path}")
+            else:
+                feedback.pushInfo(f"Usando QML existente: {qml_path}")
 
             if qml_path and os.path.exists(qml_path) and os.path.exists(calc_output):
                 style_params = {
                     'INPUT': calc_output,
                     'STYLE': qml_path,
                 }
+                self.logger.debug("Aplicando estilo QML via native:setlayerstyle...")
                 style_result = processing.run(
                     'native:setlayerstyle',
                     style_params,
@@ -342,11 +422,15 @@ class GliCalculator(BaseProcessingAlgorithm):
                 )
                 feedback.pushInfo("Estilo QML GLI aplicado com sucesso!")
 
+            feedback.pushInfo("")
+            step_index += 1
+
             # --- Salva o caminho do QML nas preferencias ---
             self.prefs.update({
                 "band_red": band_red,
                 "band_green": band_green,
                 "band_blue": band_blue,
+                "target_resolution": target_res,
                 "open_output_folder": open_output_folder,
                 "display_help": display_help,
                 "last_gli_style_path": qml_path,
@@ -360,6 +444,7 @@ class GliCalculator(BaseProcessingAlgorithm):
                     self.open_folder_in_explorer(out_folder)
 
             feedback.pushInfo("Processamento concluido com sucesso.")
+            self.logger.info("Processamento GLI concluido com sucesso.")
             return {self.OUTPUT: output_path}
 
         except QgsProcessingException:

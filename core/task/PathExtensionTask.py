@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-import zipfile
 from collections import defaultdict
 from typing import List, Tuple
+
 from .BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
+from ..utils.ExplorerUtils import ExplorerUtils
+from ..utils.FileCompressUtils import FileCompressUtils
 
 
 class PathExtensionTask(BaseTask):
@@ -14,31 +16,31 @@ class PathExtensionTask(BaseTask):
 
     Modo REMOVE:
       - path da feature = C:/fotos/foto.jpg
-      - os.rename(foto.jpg, fotojpg) → remove o ponto
+      - ExplorerUtils.remove_extension_dot() → remove o ponto
       - NewPath = C:/fotos/fotojpg
 
     Modo RESTORE:
       - path da feature = C:/fotos/foto.jpg (TEM ponto)
       - arquivo no disco = C:/fotos/fotojpg
-      - os.rename(fotojpg, foto.jpg) → restaura
+      - ExplorerUtils.restore_extension_dot() → restaura
       - NewPath = C:/fotos/foto.jpg
 
     Modo ZIP (lote por pasta):
       - Agrupa TODAS as features da MESMA pasta
-      - Cria UM zip por pasta: {dirname}/{nome_da_pasta}.zip
+      - FileCompressUtils.zip_directory() → Cria UM zip por pasta
       - Ex: C:/fotos/ → C:/fotos/fotos.zip contendo todas as fotos
       - Remove os arquivos originais
       - NewPath = C:/fotos/fotos.zip (todas as fids da pasta)
 
     Modo UNZIP (lote por pasta):
       - Agrupa TODAS as features da MESMA pasta
-      - Localiza {dirname}/{nome_da_pasta}.zip
-      - Extrai todo o conteúdo do zip para o diretório
+      - FileCompressUtils.unzip_directory() → Extrai o zip
       - Remove o zip após extração
       - NewPath = path original da foto (agora existe de novo)
 
     A Task NÃO toca em QgsVectorLayer.
     O Step.on_success aplica as mudanças no atributo NewPath (main thread).
+    A Task DELEGA operações de arquivo para ExplorerUtils e FileCompressUtils.
     """
 
     def __init__(self, features_data: List[Tuple[int, str]], mode: str, tool_key: str):
@@ -87,11 +89,11 @@ class PathExtensionTask(BaseTask):
         return True
 
     # ---------------------------------------------------------------
-    # Modo individual (remove / restore) — igual ao original
+    # Modo individual (remove / restore) — delegado ao ExplorerUtils
     # ---------------------------------------------------------------
 
     def _run_feature_by_feature(self, mode, logger):
-        """Processa feature por feature (remove/restore)."""
+        """Processa feature por feature (remove/restore) via ExplorerUtils."""
         changes = {}
         errors = 0
         skipped = 0
@@ -107,14 +109,14 @@ class PathExtensionTask(BaseTask):
                 continue
 
             try:
-                dirname = os.path.dirname(path)
-                basename = os.path.basename(path)
-                stem, ext = os.path.splitext(basename)
-
                 if mode == "remove":
-                    result = self._do_remove(path, dirname, basename, stem, ext, logger)
+                    result = ExplorerUtils.remove_extension_dot(
+                        file_path=path, tool_key=self.tool_key,
+                    )
                 else:  # restore
-                    result = self._do_restore(path, dirname, basename, stem, ext, logger)
+                    result = ExplorerUtils.restore_extension_dot(
+                        file_path=path, tool_key=self.tool_key,
+                    )
 
                 if result is not None:
                     changes[fid] = result
@@ -134,13 +136,13 @@ class PathExtensionTask(BaseTask):
         return changes, errors, skipped
 
     # ---------------------------------------------------------------
-    # Modo ZIP — agrupa por pasta, cria UM zip por pasta
+    # Modo ZIP — agrupa por pasta, delega ao FileCompressUtils
     # ---------------------------------------------------------------
 
     def _run_zip_mode(self, logger):
         """
         Agrupa features por diretório e cria UM zip por pasta.
-        O zip tem o nome da pasta. NewPath de todas fids aponta para o zip.
+        Delega a compressão para FileCompressUtils.zip_directory().
         """
         changes = {}
         errors = 0
@@ -167,13 +169,31 @@ class PathExtensionTask(BaseTask):
                 return changes, errors, skipped
 
             try:
-                zip_result = self._do_zip_dir(dirname, items, logger)
-                if zip_result is not None:
-                    zip_path, fid_list = zip_result
-                    for fid in fid_list:
-                        changes[fid] = zip_path
+                # Para zip, não podemos usar zip_directory diretamente
+                # porque só queremos zipar os arquivos das features,
+                # não todos do diretório.
+                # Usamos zip_files com paths específicos.
+                file_paths = [path for _, path in items]
+                folder_name = os.path.basename(dirname) or "pasta"
+                zip_path = os.path.join(dirname, f"{folder_name}.zip")
+
+                success, result = FileCompressUtils.zip_files(
+                    file_paths=file_paths,
+                    zip_path=zip_path,
+                    tool_key=self.tool_key,
+                    remove_originals=True,
+                )
+
+                if success:
+                    zip_path_result = result  # result é o caminho do zip
+                    fids_in_dir = [fid for fid, _ in items]
+                    for fid in fids_in_dir:
+                        changes[fid] = zip_path_result
                 else:
+                    # result é a mensagem de erro
+                    logger.warning(f"ZIP: falha em '{dirname}': {result}")
                     skipped += len(items)
+
             except PermissionError:
                 errors += len(items)
                 logger.error(f"Permissão negada no diretório: '{dirname}'")
@@ -183,82 +203,14 @@ class PathExtensionTask(BaseTask):
 
         return changes, errors, skipped
 
-    @staticmethod
-    def _do_zip_dir(dirname, items, logger):
-        """
-        Cria UM zip com todas as fotos do diretório.
-        Nome do zip = nome da pasta. Ex: C:/fotos/ → C:/fotos/fotos.zip
-
-        Args:
-            dirname: diretório alvo
-            items: lista de (fid, path_completo)
-
-        Returns:
-            (zip_path, [fid1, fid2, ...]) ou None se falhar
-        """
-        if not os.path.isdir(dirname):
-            logger.warning(f"ZIP: diretório inválido: '{dirname}'")
-            return None
-
-        folder_name = os.path.basename(dirname) or "pasta"
-        zip_path = os.path.join(dirname, f"{folder_name}.zip")
-
-        if os.path.isfile(zip_path):
-            logger.warning(
-                f"ZIP: zip já existe no diretório: '{zip_path}'"
-            )
-            return None
-
-        # Coletar paths dos arquivos que realmente existem
-        file_paths = []
-        fids = []
-        for fid, path in items:
-            if os.path.isfile(path):
-                file_paths.append(path)
-                fids.append(fid)
-            else:
-                logger.warning(f"ZIP: arquivo não encontrado, ignorado: '{path}'")
-
-        if not file_paths:
-            logger.warning(f"ZIP: nenhum arquivo válido em '{dirname}'")
-            return None
-
-        try:
-            with zipfile.ZipFile(
-                zip_path, mode="w", compression=zipfile.ZIP_DEFLATED,
-            ) as zf:
-                for file_path in file_paths:
-                    # Adiciona cada foto com seu basename (sem caminho completo)
-                    basename = os.path.basename(file_path)
-                    zf.write(file_path, arcname=basename)
-
-            # Remover todos os arquivos originais
-            for file_path in file_paths:
-                os.remove(file_path)
-
-            logger.info(
-                f"ZIP: '{folder_name}.zip' criado com {len(file_paths)} arquivos "
-                f"em '{dirname}'"
-            )
-            return zip_path, fids
-
-        except zipfile.BadZipFile:
-            logger.error(f"ZIP: erro ao criar zip em '{dirname}'")
-            if os.path.isfile(zip_path):
-                try:
-                    os.remove(zip_path)
-                except OSError:
-                    pass
-            return None
-
     # ---------------------------------------------------------------
-    # Modo UNZIP — agrupa por pasta, extrai UM zip por pasta
+    # Modo UNZIP — agrupa por pasta, delega ao FileCompressUtils
     # ---------------------------------------------------------------
 
     def _run_unzip_mode(self, logger):
         """
         Agrupa features por diretório e extrai o zip da pasta.
-        Remove o zip após extração. NewPath = path original das fotos.
+        Delega a extração para FileCompressUtils.unzip_directory().
         """
         changes = {}
         errors = 0
@@ -285,13 +237,20 @@ class PathExtensionTask(BaseTask):
                 return changes, errors, skipped
 
             try:
-                unzip_result = self._do_unzip_dir(dirname, items, logger)
-                if unzip_result is not None:
+                success, result = FileCompressUtils.unzip_directory(
+                    dir_path=dirname,
+                    tool_key=self.tool_key,
+                    remove_zip=True,
+                )
+
+                if success:
                     # Mapeia cada fid para seu path original (agora extraído)
                     for fid, path in items:
                         changes[fid] = path
                 else:
+                    logger.warning(f"UNZIP: falha em '{dirname}': {result}")
                     skipped += len(items)
+
             except PermissionError:
                 errors += len(items)
                 logger.error(f"Permissão negada no diretório: '{dirname}'")
@@ -300,63 +259,6 @@ class PathExtensionTask(BaseTask):
                 logger.error(f"Erro ao deszipar diretório '{dirname}': {e}")
 
         return changes, errors, skipped
-
-    @staticmethod
-    def _do_unzip_dir(dirname, items, logger):
-        """
-        Extrai o zip de uma pasta e remove o zip.
-
-        Args:
-            dirname: diretório alvo
-            items: lista de (fid, path_completo)
-                   (usado apenas para log, não para extração em si)
-
-        Returns:
-            True se sucesso, None se falha
-        """
-        if not os.path.isdir(dirname):
-            logger.warning(f"UNZIP: diretório inválido: '{dirname}'")
-            return None
-
-        folder_name = os.path.basename(dirname) or "pasta"
-        zip_path = os.path.join(dirname, f"{folder_name}.zip")
-
-        if not os.path.isfile(zip_path):
-            logger.warning(
-                f"UNZIP: zip não encontrado: '{zip_path}'"
-            )
-            return None
-
-        try:
-            with zipfile.ZipFile(zip_path, mode="r") as zf:
-                # Listar conteúdo
-                names = zf.namelist()
-                if not names:
-                    logger.warning(f"UNZIP: zip vazio: '{zip_path}'")
-                    return None
-
-                # Extrair todos para o diretório
-                zf.extractall(path=dirname)
-
-                logger.info(
-                    f"UNZIP: extraídos {len(names)} arquivo(s) de "
-                    f"'{os.path.basename(zip_path)}'"
-                )
-
-            # Remover o zip
-            os.remove(zip_path)
-            logger.info(
-                f"UNZIP: zip removido: '{os.path.basename(zip_path)}'"
-            )
-
-            return True
-
-        except zipfile.BadZipFile:
-            logger.error(f"UNZIP: zip corrompido: '{zip_path}'")
-            return None
-        except Exception as e:
-            logger.error(f"UNZIP: erro ao extrair '{zip_path}': {e}")
-            return None
 
     # ---------------------------------------------------------------
     # Utilitários
@@ -371,58 +273,3 @@ class PathExtensionTask(BaseTask):
         if not path:
             return None
         return path
-
-    # ---------------------------------------------------------------
-    # Modos individuais (preservados)
-    # ---------------------------------------------------------------
-
-    @staticmethod
-    def _do_remove(path, dirname, basename, stem, ext, logger):
-        """Remove o ponto da extensão: foto.jpg → fotojpg"""
-        if not os.path.isfile(path):
-            logger.warning(f"REMOVE: arquivo não encontrado: '{path}'")
-            return None
-
-        ext_sem_ponto = ext.replace(".", "")
-        novo_basename = stem + ext_sem_ponto
-        novo_path = os.path.join(dirname, novo_basename)
-
-        os.rename(path, novo_path)
-        logger.info(f"REMOVE: '{basename}' → '{novo_basename}'")
-        return novo_path
-
-    @staticmethod
-    def _do_restore(path, dirname, basename, stem, ext, logger):
-        """Restaura o ponto na extensão: fotojpg → foto.jpg"""
-        if os.path.isfile(path):
-            logger.info(f"RESTORE: '{basename}' já existe no disco, mantendo")
-            return path
-
-        ext_sem_ponto = ext.replace(".", "")
-        flat_name = stem + ext_sem_ponto
-
-        target_dir = dirname if dirname else os.getcwd()
-        if not os.path.isdir(target_dir):
-            logger.warning(f"RESTORE: diretório inválido: '{target_dir}'")
-            return None
-
-        arquivo_encontrado = None
-        for f_name in os.listdir(target_dir):
-            f_path = os.path.join(target_dir, f_name)
-            if not os.path.isfile(f_path):
-                continue
-            if f_name == flat_name:
-                arquivo_encontrado = f_name
-                break
-
-        if arquivo_encontrado:
-            src = os.path.join(target_dir, arquivo_encontrado)
-            os.rename(src, path)
-            logger.info(f"RESTORE: '{arquivo_encontrado}' → '{basename}'")
-            return path
-        else:
-            logger.warning(
-                f"RESTORE: nenhum arquivo '{flat_name}' encontrado "
-                f"em '{target_dir}'"
-            )
-            return None

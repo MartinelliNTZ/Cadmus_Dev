@@ -6,7 +6,7 @@ import json
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 
@@ -282,6 +282,146 @@ class ExplorerUtils:
         else:
             file_name = f"{prefix}_{stamp}{ext}"
         return os.path.join(temp_dir, file_name)
+
+    @staticmethod
+    def rename_file(
+        src: str,
+        dst: str,
+        tool_key: str,
+        overwrite: bool = False,
+    ) -> bool:
+        """Renomeia/move um arquivo no disco.
+
+        Args:
+            src: caminho original do arquivo
+            dst: novo caminho do arquivo
+            tool_key: para logging
+            overwrite: se True, sobrescreve arquivo de destino se existir
+
+        Returns:
+            True se renomeado com sucesso, False caso contrário
+        """
+        logger = ExplorerUtils._get_logger(tool_key)
+        try:
+            if not src or not os.path.isfile(src):
+                logger.error(f"rename_file: arquivo origem inválido: '{src}'")
+                return False
+
+            if not dst:
+                logger.error("rename_file: caminho destino vazio")
+                return False
+
+            if os.path.isfile(dst) and not overwrite:
+                logger.warning(
+                    f"rename_file: destino já existe (sem overwrite): '{dst}'"
+                )
+                return False
+
+            # Garantir que diretório pai existe
+            parent = os.path.dirname(dst)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+
+            os.rename(src, dst)
+            logger.info(
+                f"rename_file: '{os.path.basename(src)}' → "
+                f"'{os.path.basename(dst)}'"
+            )
+            return True
+        except PermissionError:
+            logger.error(f"rename_file: permissão negada ao renomear '{src}'")
+            return False
+        except Exception as e:
+            logger.error(f"rename_file: erro ao renomear '{src}': {e}")
+            return False
+
+    @staticmethod
+    def remove_extension_dot(
+        file_path: str,
+        tool_key: str,
+    ) -> Optional[str]:
+        """Remove o ponto da extensão do arquivo: foto.jpg → fotojpg.
+
+        Args:
+            file_path: caminho completo do arquivo (ex: C:/fotos/foto.jpg)
+            tool_key: para logging
+
+        Returns:
+            Novo caminho se sucesso, None se falha
+        """
+        logger = ExplorerUtils._get_logger(tool_key)
+        if not file_path or not os.path.isfile(file_path):
+            logger.warning(f"remove_extension_dot: arquivo não encontrado: '{file_path}'")
+            return None
+
+        dirname = os.path.dirname(file_path)
+        basename = os.path.basename(file_path)
+        stem, ext = os.path.splitext(basename)
+        ext_sem_ponto = ext.replace(".", "")
+        novo_basename = stem + ext_sem_ponto
+        novo_path = os.path.join(dirname, novo_basename)
+
+        ok = ExplorerUtils.rename_file(file_path, novo_path, tool_key)
+        if ok:
+            return novo_path
+        return None
+
+    @staticmethod
+    def restore_extension_dot(
+        file_path: str,
+        tool_key: str,
+    ) -> Optional[str]:
+        """Restaura o ponto na extensão: fotojpg → foto.jpg.
+
+        Procura no diretório o arquivo sem o ponto na extensão
+        e renomeia para o formato original com ponto.
+
+        Args:
+            file_path: caminho completo desejado (ex: C:/fotos/foto.jpg)
+            tool_key: para logging
+
+        Returns:
+            Caminho restaurado se sucesso, None se falha
+        """
+        logger = ExplorerUtils._get_logger(tool_key)
+
+        # Se o arquivo com ponto já existe, está ok
+        if os.path.isfile(file_path):
+            logger.info(
+                f"restore_extension_dot: '{os.path.basename(file_path)}' "
+                f"já existe no disco, mantendo"
+            )
+            return file_path
+
+        dirname = os.path.dirname(file_path)
+        basename = os.path.basename(file_path)
+        stem, ext = os.path.splitext(basename)
+        ext_sem_ponto = ext.replace(".", "")
+        flat_name = stem + ext_sem_ponto  # nome sem ponto: "fotojpg"
+
+        target_dir = dirname if dirname else os.getcwd()
+        if not os.path.isdir(target_dir):
+            logger.warning(
+                f"restore_extension_dot: diretório inválido: '{target_dir}'"
+            )
+            return None
+
+        # Procurar arquivo sem ponto no diretório
+        for f_name in os.listdir(target_dir):
+            f_path = os.path.join(target_dir, f_name)
+            if not os.path.isfile(f_path):
+                continue
+            if f_name == flat_name:
+                ok = ExplorerUtils.rename_file(f_path, file_path, tool_key)
+                if ok:
+                    return file_path
+                return None
+
+        logger.warning(
+            f"restore_extension_dot: nenhum arquivo '{flat_name}' "
+            f"encontrado em '{target_dir}'"
+        )
+        return None
 
     @staticmethod
     def scan_folder(folder: str, extensions: List[str], tool_key: str) -> List[Dict]:

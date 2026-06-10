@@ -26,12 +26,10 @@ class GliCalculator(BaseProcessingAlgorithm):
     GLI = (2*G - R - B) / (2*G + R + B)
 
     Fluxo:
-      [Opcional] Step 0: gdal:warpreproject (reamostragem para resolucao alvo)
-      Step 1: gdal:rastercalculator (calculo GLI)
-      Step 2: native:setlayerstyle (aplica QML pseudocolor)
-
-    Usa gdal:rastercalculator para o calculo e native:setlayerstyle
-    para aplicar o estilo QML pseudocolor.
+      [Opcional] Step 0: gdal:warpreproject (reamostragem)
+      Step 1: gdal:translate (extrai so as 3 bandas RGB, descarta alpha)
+      Step 2: gdal:rastercalculator (calculo GLI com Float32)
+      Step 3: native:setlayerstyle (aplica QML pseudocolor)
     """
 
     TOOL_KEY = ToolKey.GLI_CALCULATOR
@@ -80,14 +78,12 @@ class GliCalculator(BaseProcessingAlgorithm):
                 "autoRefreshTime": "0",
             })
 
-            # flags
             flags = ET.SubElement(root, "flags")
             ET.SubElement(flags, "Identifiable").text = "1"
             ET.SubElement(flags, "Removable").text = "1"
             ET.SubElement(flags, "Searchable").text = "1"
             ET.SubElement(flags, "Private").text = "0"
 
-            # temporal
             temporal = ET.SubElement(root, "temporal", {
                 "fetchMode": "0", "enabled": "0", "mode": "0"
             })
@@ -95,16 +91,13 @@ class GliCalculator(BaseProcessingAlgorithm):
             ET.SubElement(fixed_range, "start")
             ET.SubElement(fixed_range, "end")
 
-            # elevation
             ET.SubElement(root, "elevation", {
                 "zoffset": "0", "symbology": "Line", "enabled": "0",
                 "band": "1", "zscale": "1"
             })
 
-            # pipe
             pipe = ET.SubElement(root, "pipe")
 
-            # provider
             provider = ET.SubElement(pipe, "provider")
             ET.SubElement(provider, "resampling", {
                 "zoomedOutResamplingMethod": "nearestNeighbour",
@@ -113,7 +106,6 @@ class GliCalculator(BaseProcessingAlgorithm):
                 "zoomedInResamplingMethod": "nearestNeighbour",
             })
 
-            # rasterrenderer - singleband pseudocolor
             renderer = ET.SubElement(pipe, "rasterrenderer", {
                 "alphaBand": "-1",
                 "blueBand": "-1",
@@ -129,7 +121,6 @@ class GliCalculator(BaseProcessingAlgorithm):
 
             ET.SubElement(renderer, "rasterTransparency")
 
-            # minMaxOrigin
             min_max = ET.SubElement(renderer, "minMaxOrigin")
             ET.SubElement(min_max, "limits").text = "None"
             ET.SubElement(min_max, "extent").text = "WholeRaster"
@@ -138,7 +129,6 @@ class GliCalculator(BaseProcessingAlgorithm):
             ET.SubElement(min_max, "cumulativeCutUpper").text = "0.98"
             ET.SubElement(min_max, "stdDevFactor").text = "2"
 
-            # Color ramp items
             items = [
                 ("-1.000000", "#8B4513", "-1.000000"),
                 ("-0.500000", "#D2691E", "-0.500000"),
@@ -160,7 +150,6 @@ class GliCalculator(BaseProcessingAlgorithm):
                     "alpha": "255",
                 })
 
-            # Contrast enhancement
             ce = ET.SubElement(renderer, "contrastEnhancement")
             ET.SubElement(ce, "minValue").text = "-1.0000000"
             ET.SubElement(ce, "maxValue").text = "1.0000000"
@@ -271,11 +260,8 @@ class GliCalculator(BaseProcessingAlgorithm):
 
             needs_resample = target_res > 0.0
 
-            # Calcula numero de steps:
-            # 0 (opcional): warp reamostragem
-            # 1: raster calculator
-            # 2: setlayerstyle
-            steps = 3 if needs_resample else 2
+            # steps: warp(0), translate_rgb(1), calculator(2), setlayerstyle(3)
+            steps = 4 if needs_resample else 3
             multi_feedback = QgsProcessingMultiStepFeedback(steps, feedback)
 
             # --- Banner inicial ---
@@ -294,11 +280,15 @@ class GliCalculator(BaseProcessingAlgorithm):
             self._push_info_line(feedback, "Output", output_path)
             feedback.pushInfo("")
 
-            # --- Qual raster usar como fonte para o calculo? ---
-            calc_source = raster.source()
             step_index = 0
 
-            # --- Step opcional: reamostragem via gdal:warpreproject ---
+            # ===================================================================
+            # STEP 0 (opcional): Reamostragem via gdal:warpreproject
+            # ===================================================================
+            working_raster = raster.source()
+            import tempfile
+            temp_dir = tempfile.gettempdir()
+
             if needs_resample:
                 multi_feedback.setCurrentStep(step_index)
                 if multi_feedback.isCanceled():
@@ -306,23 +296,20 @@ class GliCalculator(BaseProcessingAlgorithm):
 
                 feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Reamostrando para {target_res}m...")
 
-                # Cria um temporario para o raster reamostrado
-                import tempfile
-                temp_dir = tempfile.gettempdir()
                 resampled_path = os.path.join(
                     temp_dir,
                     f"gli_resampled_{os.path.basename(raster.source())}"
                 )
 
-                resample_params = {
+                warp_params = {
                     'INPUT': raster.source(),
                     'SOURCE_CRS': None,
                     'TARGET_CRS': None,
-                    'RESAMPLING': 0,  # nearest neighbour (rapido para preservar valores)
+                    'RESAMPLING': 0,
                     'NODATA': None,
                     'TARGET_RESOLUTION': target_res,
                     'OPTIONS': '',
-                    'DATA_TYPE': 0,  # manter tipo original
+                    'DATA_TYPE': 0,
                     'TARGET_EXTENT': None,
                     'TARGET_EXTENT_CRS': None,
                     'MULTITHREADING': True,
@@ -331,17 +318,70 @@ class GliCalculator(BaseProcessingAlgorithm):
                 self.logger.debug(f"Reamostrando raster para resolucao {target_res}m...")
                 warp_result = processing.run(
                     'gdal:warpreproject',
-                    resample_params,
+                    warp_params,
                     context=context,
                     feedback=multi_feedback,
                     is_child_algorithm=True,
                 )
-                calc_source = warp_result.get('OUTPUT', resampled_path)
-                feedback.pushInfo(f"Raster reamostrado salvo em: {calc_source}")
+                working_raster = warp_result.get('OUTPUT', resampled_path)
+                feedback.pushInfo(f"Raster reamostrado: {working_raster}")
                 feedback.pushInfo("")
                 step_index += 1
 
-            # --- Step 1 (ou 0 se sem reamostragem): gdal:rastercalculator ---
+            # ===================================================================
+            # STEP 1: Extrair so as 3 bandas RGB (gdal:translate)
+            #   Descarta banda alpha (banda 4) se existir
+            # ===================================================================
+            multi_feedback.setCurrentStep(step_index)
+            if multi_feedback.isCanceled():
+                return {}
+
+            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Extraindo bandas RGB (descartando alpha)...")
+
+            rgb_path = os.path.join(temp_dir, f"gli_rgb_{os.path.basename(working_raster)}")
+
+            # Pega o numero de bandas do raster de trabalho
+            from osgeo import gdal
+            ds = gdal.Open(working_raster, gdal.GA_ReadOnly)
+            n_bands = ds.RasterCount if ds else 3
+            ds = None
+
+            # Se tem mais de 3 bandas (ex: RGBA), extrai so as 3 primeiras
+            if n_bands > 3:
+                band_list = [1, 2, 3]
+                band_str = ",".join(str(b) for b in band_list)
+                feedback.pushInfo(f"Raster tem {n_bands} bandas. Extraindo bandas {band_str} (RGB)...")
+
+                translate_params = {
+                    'INPUT': working_raster,
+                    'TARGET_CRS': None,
+                    'NODATA': None,
+                    'COPY_SUBDATASETS': False,
+                    'OPTIONS': '',
+                    'EXTRA': f'-b 1 -b 2 -b 3',
+                    'DATA_TYPE': 0,
+                    'TARGET_EXTENT': None,
+                    'TARGET_EXTENT_CRS': None,
+                    'OUTPUT': rgb_path,
+                }
+                translate_result = processing.run(
+                    'gdal:translate',
+                    translate_params,
+                    context=context,
+                    feedback=multi_feedback,
+                    is_child_algorithm=True,
+                )
+                working_raster = translate_result.get('OUTPUT', rgb_path)
+                feedback.pushInfo(f"Raster RGB puro (3 bandas): {working_raster}")
+            else:
+                feedback.pushInfo(f"Raster ja tem {n_bands} bandas (RGB puro). Sem alpha para descartar.")
+
+            feedback.pushInfo("")
+            step_index += 1
+
+            # ===================================================================
+            # STEP 2: Calcular GLI via gdal:rastercalculator
+            # ===================================================================
             multi_feedback.setCurrentStep(step_index)
             if multi_feedback.isCanceled():
                 return {}
@@ -349,22 +389,22 @@ class GliCalculator(BaseProcessingAlgorithm):
             feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Calculando GLI via gdal:rastercalculator...")
 
             calc_params = {
-                'INPUT_A': calc_source,
-                'BAND_A': band_red,
-                'INPUT_B': calc_source,
-                'BAND_B': band_green,
-                'INPUT_C': calc_source,
-                'BAND_C': band_blue,
+                'INPUT_A': working_raster,
+                'BAND_A': 1,
+                'INPUT_B': working_raster,
+                'BAND_B': 2,
+                'INPUT_C': working_raster,
+                'BAND_C': 3,
                 'INPUT_D': None,
                 'BAND_D': None,
                 'INPUT_E': None,
                 'BAND_E': None,
                 'INPUT_F': None,
                 'BAND_F': None,
-                'FORMULA': '(B*2 - A - C) / (B*2 + A + C + 1e-10) * (abs(B*2 + A + C) > 1e-10)',
+                'FORMULA': '(B*2.0 - A - C) / (B*2.0 + A + C + 1e-10) * (abs(B*2.0 + A + C) > 1e-10)',
                 'NO_DATA': None,
                 'RTYPE': 5,  # Float32
-                'EXTENT_OPT': 0,  # Ignore
+                'EXTENT_OPT': 0,
                 'PROJWIN': None,
                 'OPTIONS': '',
                 'EXTRA': '',
@@ -390,7 +430,9 @@ class GliCalculator(BaseProcessingAlgorithm):
                 feedback.pushInfo(line)
             feedback.pushInfo("")
 
-            # --- Step 2 (ou 1): Gerar e aplicar estilo QML via native:setlayerstyle ---
+            # ===================================================================
+            # STEP 3: Aplicar estilo QML via native:setlayerstyle
+            # ===================================================================
             multi_feedback.setCurrentStep(step_index)
             if multi_feedback.isCanceled():
                 return {}
@@ -399,7 +441,6 @@ class GliCalculator(BaseProcessingAlgorithm):
 
             qml_path = self._build_gli_qml_path()
 
-            # Gera o QML se nao existir
             if not os.path.exists(qml_path):
                 self.logger.debug(f"Gerando arquivo de estilo QML: {qml_path}")
                 self._generate_gli_qml(qml_path)
@@ -413,7 +454,7 @@ class GliCalculator(BaseProcessingAlgorithm):
                     'STYLE': qml_path,
                 }
                 self.logger.debug("Aplicando estilo QML via native:setlayerstyle...")
-                style_result = processing.run(
+                processing.run(
                     'native:setlayerstyle',
                     style_params,
                     context=context,
@@ -423,7 +464,6 @@ class GliCalculator(BaseProcessingAlgorithm):
                 feedback.pushInfo("Estilo QML GLI aplicado com sucesso!")
 
             feedback.pushInfo("")
-            step_index += 1
 
             # --- Salva o caminho do QML nas preferencias ---
             self.prefs.update({

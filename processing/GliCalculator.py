@@ -35,7 +35,7 @@ class GliCalculator(BaseProcessingAlgorithm):
       [Opcional] Step 0: gdal:warpreproject (reamostragem)
       Step 1: gdal:translate (extrai bandas RGB / RGBA, identifica alpha/nodata)
       Step 2: gdal:rastercalculator (calculo GLI com Float32, tratando alpha/nodata)
-      Step 3: native:setlayerstyle (aplica estilo de cores do arquivo .txt)
+      Step 3: native:setlayerstyle (aplica estilo QML de 8 classes)
     """
 
     TOOL_KEY = ToolKey.GLI_CALCULATOR

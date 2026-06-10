@@ -6,8 +6,8 @@ import os
 class OtherFilesManager:
     VECTOR_PATH = os.path.join(os.path.dirname(__file__), "vectors")
     LINE_VECTOR = 'line.gpkg'
-    INDICE_GLI_STYLE = "indice_gli_8_classes.txt"
-    STYLE_PATH = os.path.join(os.path.dirname(__file__), "qgis_styles")
+    INDICE_GLI_STYLE = "indice_gli_8_classes.qml"
+    STYLE_PATH = os.path.join(os.path.dirname(__file__), "qml")
 
     @classmethod
     def vector_path(cls, name: str) -> str:

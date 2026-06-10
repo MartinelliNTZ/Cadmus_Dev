@@ -5,9 +5,12 @@ from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.core import QgsProcessingAlgorithm
 
+import processing
+
 from ..core.config.LogUtils import LogUtils
 from ..resources.HtmlInstructionsProvider import HtmlInstructionsProvider
 from ..resources.IconManager import IconManager as im
+from ..resources.OtherFilesManager import OtherFilesManager
 from ..utils.Preferences import Preferences
 from ..utils.ToolKeys import ToolKey
 from ..i18n.TranslationManager import STR
@@ -134,3 +137,44 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
         if feedback is None:
             return
         feedback.pushInfo(f"{label}: {value}")
+
+    @staticmethod
+    def _apply_qml_style(feedback, logger, calc_output: str, qml_filename: str, context=None) -> bool:
+        """
+        Aplica um arquivo QML de estilo a um raster de saída via native:setlayerstyle.
+
+        O caminho é resolvido automaticamente via OtherFilesManager (resources/qml/).
+
+        Retorna True se o estilo foi aplicado com sucesso, False caso contrário.
+
+        Parâmetros:
+            feedback          - objeto feedback do processing
+            logger            - logger da classe (LogUtils)
+            calc_output (str) - caminho do raster de saída
+            qml_filename (str)- nome do arquivo .qml (ex: "indice_gli_8_classes.qml")
+            context           - contexto do processing (obrigatório para executar o algoritmo)
+        """
+        style_file_path = OtherFilesManager.style_path(qml_filename)
+
+        if os.path.exists(style_file_path):
+            style_params = {
+                'INPUT': calc_output,
+                'STYLE': style_file_path,
+            }
+            logger.debug(f"Aplicando estilo via native:setlayerstyle: {style_file_path}")
+            processing.run(
+                'native:setlayerstyle',
+                style_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+            feedback.pushInfo(f"Estilo aplicado: {style_file_path}")
+            return True
+        else:
+            feedback.pushInfo(
+                f"Arquivo de estilo nao encontrado: {style_file_path}. "
+                "O raster sera carregado sem estilo personalizado."
+            )
+            logger.warning(f"Arquivo de estilo nao encontrado: {style_file_path}")
+            return False

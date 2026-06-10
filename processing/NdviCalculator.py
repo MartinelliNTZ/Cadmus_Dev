@@ -7,10 +7,12 @@ from qgis.core import (
     QgsProcessingParameterBand,
     QgsProcessingParameterRasterDestination,
     QgsProcessingParameterRasterLayer,
+    QgsProcessingMultiStepFeedback,
 )
 
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
+from ..resources.OtherFilesManager import OtherFilesManager
 from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
@@ -19,6 +21,10 @@ class NdviCalculator(BaseProcessingAlgorithm):
     """
     QgsProcessingAlgorithm: Calcula o NDVI (Normalized Difference Vegetation Index)
     a partir de dois rasters (NIR e RED).
+
+    Fluxo:
+      Step 1: QgsRasterCalculator (calculo NDVI com Float32)
+      Step 2: native:setlayerstyle (aplica estilo QML de 8 classes)
     """
 
     TOOL_KEY = ToolKey.NDVI_CALCULATOR
@@ -101,6 +107,10 @@ class NdviCalculator(BaseProcessingAlgorithm):
             display_help = self.parameterAsBool(params, self.DISPLAY_HELP, context)
             output_path = self.parameterAsOutputLayer(params, self.OUTPUT, context)
 
+            # steps: calculator(0), setlayerstyle(1)
+            steps = 2
+            multi_feedback = QgsProcessingMultiStepFeedback(steps, feedback)
+
             # --- Banner inicial ---
             self._push_banner(feedback, "CALCULADORA NDVI - CADMUS")
             feedback.pushInfo("")
@@ -122,6 +132,15 @@ class NdviCalculator(BaseProcessingAlgorithm):
                     "O NDVI pode resultar em valores nulos."
                 )
 
+            step_index = 0
+
+            # ===================================================================
+            # STEP 1: Calcular NDVI via QgsRasterCalculator
+            # ===================================================================
+            multi_feedback.setCurrentStep(step_index)
+            if multi_feedback.isCanceled():
+                return {}
+
             from qgis.analysis import QgsRasterCalculator, QgsRasterCalculatorEntry
 
             entry_nir = QgsRasterCalculatorEntry()
@@ -141,7 +160,7 @@ class NdviCalculator(BaseProcessingAlgorithm):
                 '("NIR@1" + "RED@1" != 0)'
             )
 
-            feedback.pushInfo(f"Formula NDVI: {formula}")
+            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Formula NDVI: {formula}")
             feedback.pushInfo("Calculando NDVI...")
 
             calc = QgsRasterCalculator(
@@ -167,6 +186,26 @@ class NdviCalculator(BaseProcessingAlgorithm):
             feedback.pushInfo("   0.0 a 0.2  : Solo exposto, vegetacao esparsa")
             feedback.pushInfo("   0.2 a 0.5  : Vegetacao moderada")
             feedback.pushInfo("   0.5 a 1.0  : Vegetacao densa e saudavel")
+            feedback.pushInfo("")
+            step_index += 1
+
+            # ===================================================================
+            # STEP 2: Aplicar estilo de cores via native:setlayerstyle
+            # ===================================================================
+            multi_feedback.setCurrentStep(step_index)
+            if multi_feedback.isCanceled():
+                return {}
+
+            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Aplicando estilo de cores NDVI...")
+
+            self._apply_qml_style(
+                feedback=multi_feedback,
+                logger=self.logger,
+                calc_output=output_path,
+                qml_filename=OtherFilesManager.INDICE_NDVI_STYLE,
+                context=context,
+            )
+
             feedback.pushInfo("")
 
             self.prefs.update({

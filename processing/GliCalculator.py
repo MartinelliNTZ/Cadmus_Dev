@@ -15,8 +15,8 @@ import processing
 
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
-from ..utils.ToolKeys import ToolKey
 from ..resources.OtherFilesManager import OtherFilesManager
+from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
@@ -446,28 +446,13 @@ class GliCalculator(BaseProcessingAlgorithm):
 
             feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Aplicando estilo de cores GLI...")
 
-            style_file_path = OtherFilesManager.style_path(OtherFilesManager.INDICE_GLI_STYLE)
-
-            if os.path.exists(style_file_path):
-                style_params = {
-                    'INPUT': calc_output,
-                    'STYLE': style_file_path,
-                }
-                self.logger.debug(f"Aplicando estilo via native:setlayerstyle: {style_file_path}")
-                processing.run(
-                    'native:setlayerstyle',
-                    style_params,
-                    context=context,
-                    feedback=multi_feedback,
-                    is_child_algorithm=True,
-                )
-                feedback.pushInfo(f"Estilo aplicado: {style_file_path}")
-            else:
-                feedback.pushInfo(
-                    f"Arquivo de estilo nao encontrado: {style_file_path}. "
-                    "O raster sera carregado sem estilo personalizado."
-                )
-                self.logger.warning(f"Arquivo de estilo nao encontrado: {style_file_path}")
+            self._apply_qml_style(
+                feedback=multi_feedback,
+                logger=self.logger,
+                calc_output=calc_output,
+                qml_filename=OtherFilesManager.INDICE_GLI_STYLE,
+                context=context,
+            )
 
             feedback.pushInfo("")
 

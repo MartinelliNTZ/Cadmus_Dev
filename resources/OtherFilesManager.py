@@ -7,6 +7,7 @@ class OtherFilesManager:
     VECTOR_PATH = os.path.join(os.path.dirname(__file__), "vectors")
     LINE_VECTOR = 'line.gpkg'
     INDICE_GLI_STYLE = "indice_gli_8_classes.qml"
+    INDICE_NDVI_STYLE = "indice_ndvi_8_classes.qml"
     STYLE_PATH = os.path.join(os.path.dirname(__file__), "qml")
 
     @classmethod

@@ -16,6 +16,7 @@ import processing
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
 from ..utils.ToolKeys import ToolKey
+from ..resources.OtherFilesManager import OtherFilesManager
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
@@ -34,6 +35,7 @@ class GliCalculator(BaseProcessingAlgorithm):
       [Opcional] Step 0: gdal:warpreproject (reamostragem)
       Step 1: gdal:translate (extrai bandas RGB / RGBA, identifica alpha/nodata)
       Step 2: gdal:rastercalculator (calculo GLI com Float32, tratando alpha/nodata)
+      Step 3: native:setlayerstyle (aplica estilo de cores do arquivo .txt)
     """
 
     TOOL_KEY = ToolKey.GLI_CALCULATOR
@@ -52,6 +54,7 @@ class GliCalculator(BaseProcessingAlgorithm):
     OUTPUT = "OUTPUT"
     DISPLAY_HELP = BaseProcessingAlgorithm.PARAM_DISPLAY_HELP
     OPEN_OUTPUT_FOLDER = BaseProcessingAlgorithm.PARAM_OPEN_OUTPUT_FOLDER
+
 
     def initAlgorithm(self, config=None):
         self.logger.debug("Inicializando algoritmo GliCalculator...")
@@ -175,8 +178,8 @@ class GliCalculator(BaseProcessingAlgorithm):
 
             needs_resample = target_res > 0.0
 
-            # steps: warp(0), translate_rgb(1), calculator(2)
-            steps = 3 if needs_resample else 2
+            # steps: warp(0), translate_rgb(1), calculator(2), setlayerstyle(3)
+            steps = 4 if needs_resample else 3
             multi_feedback = QgsProcessingMultiStepFeedback(steps, feedback)
 
             # --- Banner inicial ---
@@ -427,10 +430,45 @@ class GliCalculator(BaseProcessingAlgorithm):
             calc_output = calc_result.get('OUTPUT', output_path)
             feedback.pushInfo("GLI calculado com sucesso!")
             feedback.pushInfo("")
+            step_index += 1
 
             # --- Exibe interpretacao ---
             for line in STR.GLI_INTERPRETATION.split("\n"):
                 feedback.pushInfo(line)
+            feedback.pushInfo("")
+
+            # ===================================================================
+            # STEP 3: Aplicar estilo de cores via native:setlayerstyle
+            # ===================================================================
+            multi_feedback.setCurrentStep(step_index)
+            if multi_feedback.isCanceled():
+                return {}
+
+            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Aplicando estilo de cores GLI...")
+
+            style_file_path = OtherFilesManager.style_path(OtherFilesManager.INDICE_GLI_STYLE)
+
+            if os.path.exists(style_file_path):
+                style_params = {
+                    'INPUT': calc_output,
+                    'STYLE': style_file_path,
+                }
+                self.logger.debug(f"Aplicando estilo via native:setlayerstyle: {style_file_path}")
+                processing.run(
+                    'native:setlayerstyle',
+                    style_params,
+                    context=context,
+                    feedback=multi_feedback,
+                    is_child_algorithm=True,
+                )
+                feedback.pushInfo(f"Estilo aplicado: {style_file_path}")
+            else:
+                feedback.pushInfo(
+                    f"Arquivo de estilo nao encontrado: {style_file_path}. "
+                    "O raster sera carregado sem estilo personalizado."
+                )
+                self.logger.warning(f"Arquivo de estilo nao encontrado: {style_file_path}")
+
             feedback.pushInfo("")
 
             # --- Salva preferencias ---

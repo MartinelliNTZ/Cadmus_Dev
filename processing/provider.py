@@ -12,6 +12,7 @@ from .RasterDifferenceStatiscs import RasterDifferenceStatiscs
 from .RasterWeightedAverage import RasterWeightedAverage
 from .GridGenerator import GridGenerator
 from .NdviCalculator import NdviCalculator
+from .NdreCalculator import NdreCalculator
 from .RgbMosaicCreator import RgbMosaicCreator
 from .RgbStyleStandardizer import RgbStyleStandardizer
 from .GliCalculator import GliCalculator
@@ -32,6 +33,7 @@ class MTLProvider(QgsProcessingProvider):
         self.addAlgorithm(RasterWeightedAverage())
         self.addAlgorithm(GridGenerator())
         self.addAlgorithm(NdviCalculator())
+        self.addAlgorithm(NdreCalculator())
         self.addAlgorithm(RgbMosaicCreator())
         self.addAlgorithm(RgbStyleStandardizer())
         self.addAlgorithm(GliCalculator())

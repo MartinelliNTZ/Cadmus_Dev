@@ -48,6 +48,7 @@ class ToolKey:
     RASTER_OPTIMIZER = "raster_optimizer"
     RGB_STYLE_STANDARDIZER = "rgb_style_standardizer"
     GLI_CALCULATOR = "gli_calculator"
+    NDRE_CALCULATOR = "ndre_calculator"
 
 
     # Cores por tool_key (toolbar-first, semantica)

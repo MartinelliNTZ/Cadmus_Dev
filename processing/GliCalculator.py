@@ -22,14 +22,18 @@ from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 class GliCalculator(BaseProcessingAlgorithm):
     """
     QgsProcessingAlgorithm: Calcula o GLI (Green Leaf Index)
-    a partir de um mosaico RGB ou RGBA (3 ou 4 bandas).
+    a partir de um mosaico RGB(A) (3 ou 4 bandas).
     GLI = (2*G - R - B) / (2*G + R + B)
+
+    Tratamento de banda alpha:
+      - Se identificar banda alpha (banda 4), pixel valido se alpha > 250,
+        caso contrario define como nodata (-9999).
+      - Se nao houver banda alpha, verifica nodata existente no raster.
 
     Fluxo:
       [Opcional] Step 0: gdal:warpreproject (reamostragem)
-      Step 1: gdal:translate (extrai so as 3 bandas RGB, descarta alpha)
-      Step 2: gdal:rastercalculator (calculo GLI com Float32)
-      Step 3: native:setlayerstyle (aplica QML pseudocolor)
+      Step 1: gdal:translate (extrai bandas RGB / RGBA, identifica alpha/nodata)
+      Step 2: gdal:rastercalculator (calculo GLI com Float32, tratando alpha/nodata)
     """
 
     TOOL_KEY = ToolKey.GLI_CALCULATOR
@@ -48,134 +52,6 @@ class GliCalculator(BaseProcessingAlgorithm):
     OUTPUT = "OUTPUT"
     DISPLAY_HELP = BaseProcessingAlgorithm.PARAM_DISPLAY_HELP
     OPEN_OUTPUT_FOLDER = BaseProcessingAlgorithm.PARAM_OPEN_OUTPUT_FOLDER
-
-    _STYLE_FILENAME = "gli_pseudocolor.qml"
-
-    @staticmethod
-    def _build_gli_qml_path() -> str:
-        """Retorna o caminho completo para o arquivo QML do estilo GLI."""
-        plugin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        style_dir = os.path.join(plugin_dir, "resources", "styles", "qml")
-        os.makedirs(style_dir, exist_ok=True)
-        return os.path.join(style_dir, GliCalculator._STYLE_FILENAME)
-
-    @staticmethod
-    def _generate_gli_qml(qml_path: str) -> bool:
-        """
-        Gera um arquivo QML de estilo pseudocolor para o GLI (-1 a 1)
-        com rampa de cores: marrom -> laranja -> amarelo -> verde claro -> verde escuro.
-        """
-        try:
-            import xml.etree.ElementTree as ET
-
-            root = ET.Element("qgis", {
-                "version": "3.34.12-Prizren",
-                "styleCategories": "AllStyleCategories",
-                "maxScale": "0",
-                "hasScaleBasedVisibilityFlag": "0",
-                "minScale": "1e+08",
-                "autoRefreshMode": "Disabled",
-                "autoRefreshTime": "0",
-            })
-
-            flags = ET.SubElement(root, "flags")
-            ET.SubElement(flags, "Identifiable").text = "1"
-            ET.SubElement(flags, "Removable").text = "1"
-            ET.SubElement(flags, "Searchable").text = "1"
-            ET.SubElement(flags, "Private").text = "0"
-
-            temporal = ET.SubElement(root, "temporal", {
-                "fetchMode": "0", "enabled": "0", "mode": "0"
-            })
-            fixed_range = ET.SubElement(temporal, "fixedRange")
-            ET.SubElement(fixed_range, "start")
-            ET.SubElement(fixed_range, "end")
-
-            ET.SubElement(root, "elevation", {
-                "zoffset": "0", "symbology": "Line", "enabled": "0",
-                "band": "1", "zscale": "1"
-            })
-
-            pipe = ET.SubElement(root, "pipe")
-
-            provider = ET.SubElement(pipe, "provider")
-            ET.SubElement(provider, "resampling", {
-                "zoomedOutResamplingMethod": "nearestNeighbour",
-                "enabled": "false",
-                "maxOversampling": "2",
-                "zoomedInResamplingMethod": "nearestNeighbour",
-            })
-
-            renderer = ET.SubElement(pipe, "rasterrenderer", {
-                "alphaBand": "-1",
-                "blueBand": "-1",
-                "type": "singlebandpseudocolor",
-                "greenBand": "-1",
-                "nodataColor": "",
-                "band": "1",
-                "redBand": "-1",
-                "opacity": "1.0",
-                "classificationMin": "-1",
-                "classificationMax": "1",
-            })
-
-            ET.SubElement(renderer, "rasterTransparency")
-
-            min_max = ET.SubElement(renderer, "minMaxOrigin")
-            ET.SubElement(min_max, "limits").text = "None"
-            ET.SubElement(min_max, "extent").text = "WholeRaster"
-            ET.SubElement(min_max, "statAccuracy").text = "Estimated"
-            ET.SubElement(min_max, "cumulativeCutLower").text = "0.02"
-            ET.SubElement(min_max, "cumulativeCutUpper").text = "0.98"
-            ET.SubElement(min_max, "stdDevFactor").text = "2"
-
-            items = [
-                ("-1.000000", "#8B4513", "-1.000000"),
-                ("-0.500000", "#D2691E", "-0.500000"),
-                ("-0.200000", "#EDC848", "-0.200000"),
-                ("0.000000", "#FFFF00", "0.000000"),
-                ("0.200000", "#ADFF2F", "0.200000"),
-                ("0.400000", "#7CFC00", "0.400000"),
-                ("0.600000", "#32CD32", "0.600000"),
-                ("0.800000", "#228B22", "0.800000"),
-                ("1.000000", "#006400", "1.000000"),
-            ]
-
-            color_palette = ET.SubElement(renderer, "colorPalette")
-            for value, color, label in items:
-                ET.SubElement(color_palette, "paletteEntry", {
-                    "value": value,
-                    "color": color,
-                    "label": label,
-                    "alpha": "255",
-                })
-
-            ce = ET.SubElement(renderer, "contrastEnhancement")
-            ET.SubElement(ce, "minValue").text = "-1.0000000"
-            ET.SubElement(ce, "maxValue").text = "1.0000000"
-            ET.SubElement(ce, "algorithm").text = "StretchToMinimumMaximum"
-
-            ET.SubElement(pipe, "brightnesscontrast", {
-                "brightness": "0", "gamma": "1", "contrast": "0",
-            })
-
-            ET.SubElement(pipe, "huesaturation", {
-                "colorizeGreen": "128", "grayscaleMode": "0",
-                "invertColors": "0", "colorizeStrength": "100",
-                "colorizeBlue": "128", "colorizeRed": "255",
-                "saturation": "0", "colorizeOn": "0",
-            })
-
-            ET.SubElement(pipe, "rasterresampler", {"maxOversampling": "2"})
-            ET.SubElement(pipe, "resamplingStage").text = "resamplingFilter"
-            ET.SubElement(root, "blendMode").text = "0"
-
-            from ..utils.XmlUtil import XmlUtil
-            return XmlUtil.save_qml_style(root, qml_path)
-
-        except Exception as e:
-            GliCalculator.logger.warning(f"Falha ao gerar QML GLI: {e}")
-            return False
 
     def initAlgorithm(self, config=None):
         self.logger.debug("Inicializando algoritmo GliCalculator...")
@@ -241,6 +117,45 @@ class GliCalculator(BaseProcessingAlgorithm):
             )
         )
 
+    def _detect_alpha_and_nodata(self, raster_path: str):
+        """
+        Abre o raster com GDAL e identifica:
+          - Se possui banda alpha (banda 4 com color interpretation AlphaBand)
+          - Se possui nodata definido na banda 1
+
+        Retorna (has_alpha: bool, nodata_value: float|None)
+        """
+        from osgeo import gdal, gdalconst
+
+        ds = gdal.Open(raster_path, gdal.GA_ReadOnly)
+        if ds is None:
+            return False, None
+
+        n_bands = ds.RasterCount
+        has_alpha = False
+
+        if n_bands >= 4:
+            band4 = ds.GetRasterBand(4)
+            # Verifica color interpretation
+            color_interp = band4.GetColorInterpretation()
+            has_alpha = (color_interp == gdalconst.GCI_AlphaBand)
+
+            # Fallback: verifica descricao da banda
+            if not has_alpha:
+                desc = (band4.GetDescription() or '').lower()
+                has_alpha = 'alpha' in desc or 'transparency' in desc
+
+        # Verifica nodata na banda 1
+        nodata_value = None
+        if n_bands >= 1:
+            band1 = ds.GetRasterBand(1)
+            nd_val = band1.GetNoDataValue()
+            if nd_val is not None:
+                nodata_value = float(nd_val)
+
+        ds = None
+        return has_alpha, nodata_value
+
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm do GliCalculator...")
 
@@ -260,8 +175,8 @@ class GliCalculator(BaseProcessingAlgorithm):
 
             needs_resample = target_res > 0.0
 
-            # steps: warp(0), translate_rgb(1), calculator(2), setlayerstyle(3)
-            steps = 4 if needs_resample else 3
+            # steps: warp(0), translate_rgb(1), calculator(2)
+            steps = 3 if needs_resample else 2
             multi_feedback = QgsProcessingMultiStepFeedback(steps, feedback)
 
             # --- Banner inicial ---
@@ -329,40 +244,46 @@ class GliCalculator(BaseProcessingAlgorithm):
                 step_index += 1
 
             # ===================================================================
-            # STEP 1: Extrair so as 3 bandas RGB (gdal:translate)
-            #   Descarta banda alpha (banda 4) se existir
+            # STEP 1: Identificar alpha/nodata e extrair bandas necessarias
+            #   - Se tiver banda alpha (RGBA), preserva as 4 bandas
+            #   - Se tiver nodata mas sem alpha, extrai RGB puro
+            #   - Se for RGB puro sem nodata, usa como esta
             # ===================================================================
             multi_feedback.setCurrentStep(step_index)
             if multi_feedback.isCanceled():
                 return {}
 
-            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Extraindo bandas RGB (descartando alpha)...")
+            # Detecta alpha e nodata
+            has_alpha, nodata_value = self._detect_alpha_and_nodata(working_raster)
 
-            rgb_path = os.path.join(temp_dir, f"gli_rgb_{os.path.basename(working_raster)}")
+            if has_alpha:
+                feedback.pushInfo(
+                    f"[Step {step_index + 1}/{steps}] Banda alpha detectada. "
+                    "Preservando 4 bandas (RGBA)..."
+                )
+                feedback.pushInfo(
+                    "Tratamento: pixel valido se alpha > 250, "
+                    "caso contrario definido como nodata."
+                )
+                feedback.pushInfo("")
 
-            # Pega o numero de bandas do raster de trabalho
-            from osgeo import gdal
-            ds = gdal.Open(working_raster, gdal.GA_ReadOnly)
-            n_bands = ds.RasterCount if ds else 3
-            ds = None
+                alpha_path = os.path.join(
+                    temp_dir,
+                    f"gli_rgba_{os.path.basename(working_raster)}"
+                )
 
-            # Se tem mais de 3 bandas (ex: RGBA), extrai so as 3 primeiras
-            if n_bands > 3:
-                band_list = [1, 2, 3]
-                band_str = ",".join(str(b) for b in band_list)
-                feedback.pushInfo(f"Raster tem {n_bands} bandas. Extraindo bandas {band_str} (RGB)...")
-
+                # Extrai todas as 4 bandas (RGBA)
                 translate_params = {
                     'INPUT': working_raster,
                     'TARGET_CRS': None,
                     'NODATA': None,
                     'COPY_SUBDATASETS': False,
                     'OPTIONS': '',
-                    'EXTRA': f'-b 1 -b 2 -b 3',
+                    'EXTRA': '-b 1 -b 2 -b 3 -b 4',
                     'DATA_TYPE': 0,
                     'TARGET_EXTENT': None,
                     'TARGET_EXTENT_CRS': None,
-                    'OUTPUT': rgb_path,
+                    'OUTPUT': alpha_path,
                 }
                 translate_result = processing.run(
                     'gdal:translate',
@@ -371,16 +292,66 @@ class GliCalculator(BaseProcessingAlgorithm):
                     feedback=multi_feedback,
                     is_child_algorithm=True,
                 )
-                working_raster = translate_result.get('OUTPUT', rgb_path)
-                feedback.pushInfo(f"Raster RGB puro (3 bandas): {working_raster}")
+                working_raster = translate_result.get('OUTPUT', alpha_path)
+                feedback.pushInfo(f"Raster RGBA (4 bandas): {working_raster}")
+
             else:
-                feedback.pushInfo(f"Raster ja tem {n_bands} bandas (RGB puro). Sem alpha para descartar.")
+                from osgeo import gdal as _gdal
+                ds_check = _gdal.Open(working_raster, _gdal.GA_ReadOnly)
+                n_bands = ds_check.RasterCount if ds_check else 3
+                ds_check = None
+
+                if nodata_value is not None:
+                    feedback.pushInfo(
+                        f"[Step {step_index + 1}/{steps}] Sem banda alpha. "
+                        f"Nodata detectado: {nodata_value}."
+                    )
+                else:
+                    feedback.pushInfo(
+                        f"[Step {step_index + 1}/{steps}] Raster RGB puro "
+                        f"({n_bands} banda(s)). Sem alpha nem nodata."
+                    )
+
+                # Se tiver mais de 3 bandas (ex: 4 mas sem ser alpha), extrai so RGB
+                if n_bands > 3:
+                    feedback.pushInfo("Extraindo apenas as 3 primeiras bandas (RGB)...")
+                    rgb_path = os.path.join(
+                        temp_dir,
+                        f"gli_rgb_{os.path.basename(working_raster)}"
+                    )
+                    translate_params = {
+                        'INPUT': working_raster,
+                        'TARGET_CRS': None,
+                        'NODATA': nodata_value if nodata_value is not None else None,
+                        'COPY_SUBDATASETS': False,
+                        'OPTIONS': '',
+                        'EXTRA': '-b 1 -b 2 -b 3',
+                        'DATA_TYPE': 0,
+                        'TARGET_EXTENT': None,
+                        'TARGET_EXTENT_CRS': None,
+                        'OUTPUT': rgb_path,
+                    }
+                    translate_result = processing.run(
+                        'gdal:translate',
+                        translate_params,
+                        context=context,
+                        feedback=multi_feedback,
+                        is_child_algorithm=True,
+                    )
+                    working_raster = translate_result.get('OUTPUT', rgb_path)
+                    feedback.pushInfo(f"Raster RGB puro (3 bandas): {working_raster}")
+                else:
+                    feedback.pushInfo(
+                        f"Raster ja tem {n_bands} banda(s). Utilizando como esta."
+                    )
 
             feedback.pushInfo("")
             step_index += 1
 
             # ===================================================================
             # STEP 2: Calcular GLI via gdal:rastercalculator
+            #   - Se 4 bandas (RGBA): usa formula com alpha mask
+            #   - Se 3 bandas (RGB): formula padrao
             # ===================================================================
             multi_feedback.setCurrentStep(step_index)
             if multi_feedback.isCanceled():
@@ -388,28 +359,61 @@ class GliCalculator(BaseProcessingAlgorithm):
 
             feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Calculando GLI via gdal:rastercalculator...")
 
-            calc_params = {
-                'INPUT_A': working_raster,
-                'BAND_A': 1,
-                'INPUT_B': working_raster,
-                'BAND_B': 2,
-                'INPUT_C': working_raster,
-                'BAND_C': 3,
-                'INPUT_D': None,
-                'BAND_D': None,
-                'INPUT_E': None,
-                'BAND_E': None,
-                'INPUT_F': None,
-                'BAND_F': None,
-                'FORMULA': '(B*2.0 - A - C) / (B*2.0 + A + C + 1e-10) * (abs(B*2.0 + A + C) > 1e-10)',
-                'NO_DATA': None,
-                'RTYPE': 5,  # Float32
-                'EXTENT_OPT': 0,
-                'PROJWIN': None,
-                'OPTIONS': '',
-                'EXTRA': '',
-                'OUTPUT': output_path,
-            }
+            # Verifica quantas bandas tem o raster de trabalho
+            from osgeo import gdal as _gdal2
+            ds_final = _gdal2.Open(working_raster, _gdal2.GA_ReadOnly)
+            current_nbands = ds_final.RasterCount if ds_final else 3
+            ds_final = None
+
+            gli_nodata = -9999.0
+
+            if current_nbands >= 4:
+                # Temos banda alpha: usa formula que mascara alpha <= 250 como nodata
+                feedback.pushInfo("Usando formula GLI com tratamento de banda alpha (banda 4)...")
+                formula = (
+                    '((D > 250) * ((B*2.0 - A - C) / (B*2.0 + A + C + 1e-10) '
+                    '* (abs(B*2.0 + A + C) > 1e-10))) '
+                    '+ ((D <= 250) * ' + str(gli_nodata) + ')'
+                )
+                calc_params = {
+                    'INPUT_A': working_raster, 'BAND_A': 1,
+                    'INPUT_B': working_raster, 'BAND_B': 2,
+                    'INPUT_C': working_raster, 'BAND_C': 3,
+                    'INPUT_D': working_raster, 'BAND_D': 4,
+                    'INPUT_E': None, 'BAND_E': None,
+                    'INPUT_F': None, 'BAND_F': None,
+                    'FORMULA': formula,
+                    'NO_DATA': gli_nodata,
+                    'RTYPE': 5,  # Float32
+                    'EXTENT_OPT': 0,
+                    'PROJWIN': None,
+                    'OPTIONS': '',
+                    'EXTRA': '',
+                    'OUTPUT': output_path,
+                }
+            else:
+                # Sem alpha: formula padrao, passa nodata se existir
+                feedback.pushInfo("Usando formula GLI padrao (3 bandas RGB)...")
+                formula = (
+                    '(B*2.0 - A - C) / (B*2.0 + A + C + 1e-10) '
+                    '* (abs(B*2.0 + A + C) > 1e-10)'
+                )
+                calc_params = {
+                    'INPUT_A': working_raster, 'BAND_A': 1,
+                    'INPUT_B': working_raster, 'BAND_B': 2,
+                    'INPUT_C': working_raster, 'BAND_C': 3,
+                    'INPUT_D': None, 'BAND_D': None,
+                    'INPUT_E': None, 'BAND_E': None,
+                    'INPUT_F': None, 'BAND_F': None,
+                    'FORMULA': formula,
+                    'NO_DATA': gli_nodata if nodata_value is not None else None,
+                    'RTYPE': 5,  # Float32
+                    'EXTENT_OPT': 0,
+                    'PROJWIN': None,
+                    'OPTIONS': '',
+                    'EXTRA': '',
+                    'OUTPUT': output_path,
+                }
 
             self.logger.debug("Executando gdal:rastercalculator para GLI...")
             calc_result = processing.run(
@@ -423,49 +427,13 @@ class GliCalculator(BaseProcessingAlgorithm):
             calc_output = calc_result.get('OUTPUT', output_path)
             feedback.pushInfo("GLI calculado com sucesso!")
             feedback.pushInfo("")
-            step_index += 1
 
             # --- Exibe interpretacao ---
             for line in STR.GLI_INTERPRETATION.split("\n"):
                 feedback.pushInfo(line)
             feedback.pushInfo("")
 
-            # ===================================================================
-            # STEP 3: Aplicar estilo QML via native:setlayerstyle
-            # ===================================================================
-            multi_feedback.setCurrentStep(step_index)
-            if multi_feedback.isCanceled():
-                return {}
-
-            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Gerando e aplicando estilo QML GLI...")
-
-            qml_path = self._build_gli_qml_path()
-
-            if not os.path.exists(qml_path):
-                self.logger.debug(f"Gerando arquivo de estilo QML: {qml_path}")
-                self._generate_gli_qml(qml_path)
-                feedback.pushInfo(f"Arquivo QML gerado em: {qml_path}")
-            else:
-                feedback.pushInfo(f"Usando QML existente: {qml_path}")
-
-            if qml_path and os.path.exists(qml_path) and os.path.exists(calc_output):
-                style_params = {
-                    'INPUT': calc_output,
-                    'STYLE': qml_path,
-                }
-                self.logger.debug("Aplicando estilo QML via native:setlayerstyle...")
-                processing.run(
-                    'native:setlayerstyle',
-                    style_params,
-                    context=context,
-                    feedback=multi_feedback,
-                    is_child_algorithm=True,
-                )
-                feedback.pushInfo("Estilo QML GLI aplicado com sucesso!")
-
-            feedback.pushInfo("")
-
-            # --- Salva o caminho do QML nas preferencias ---
+            # --- Salva preferencias ---
             self.prefs.update({
                 "band_red": band_red,
                 "band_green": band_green,
@@ -473,7 +441,6 @@ class GliCalculator(BaseProcessingAlgorithm):
                 "target_resolution": target_res,
                 "open_output_folder": open_output_folder,
                 "display_help": display_help,
-                "last_gli_style_path": qml_path,
             })
             self.save_preferences()
 

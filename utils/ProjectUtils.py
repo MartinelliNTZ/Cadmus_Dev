@@ -38,16 +38,41 @@ class ProjectUtils:
 
     @staticmethod
     def ensure_editable(layer, logger=None):
-        """Verifica se a camada estÃ¡ em modo ediÃ§Ã£o.
+        """Verifica se a camada está em modo edição.
         Recebe: layer (QgsVectorLayer), logger.
         Retorna: bool.
-        NÃ£o acessa iface nem exibe mensagens.
+        Não acessa iface nem exibe mensagens.
         """
         if logger:
             logger.debug(
-                f"Verificando se camada estÃ¡ em ediÃ§Ã£o: {layer.name()}. EditÃ¡vel: {layer.isEditable()}"
+                f"Verificando se camada está em edição: {layer.name()}. Editável: {layer.isEditable()}"
             )
         return layer.isEditable()
+
+    @staticmethod
+    def ask_and_make_editable(iface, layer, logger=None):
+        """Pergunta ao usuário se deseja tornar a camada editável.
+        Recebe: iface (QgisInterface), layer (QgsVectorLayer), logger.
+        Retorna: bool (True se tornou editável ou já era, False se recusou).
+        """
+        if layer.isEditable():
+            return True
+
+        from ..utils.QgisMessageUtil import QgisMessageUtil
+        from ..i18n.TranslationManager import STR
+
+        msg = STR.LAYER_NOT_EDITABLE_ASK.format(layer_name=layer.name())
+        resposta = QgisMessageUtil.confirm(iface, msg, "Camada não editável")
+        if resposta:
+            layer.startEditing()
+            if logger:
+                logger.debug(f"Camada '{layer.name()}' colocada em modo edição pelo usuário")
+            QgisMessageUtil.bar_info(iface, STR.LAYER_NOW_EDITABLE)
+            return True
+
+        if logger:
+            logger.debug(f"Usuário recusou tornar camada '{layer.name()}' editável")
+        return False
 
     @staticmethod
     def get_project_instance() -> QgsProject:

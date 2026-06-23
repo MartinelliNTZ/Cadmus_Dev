@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from qgis.core import QgsWkbTypes
+from qgis.core import QgsVectorLayer, QgsWkbTypes
 from ..utils.Preferences import Preferences
 
 from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
@@ -46,16 +46,20 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
         self.logger.info("Iniciando Calcular Campos Vetoriais")
 
         from ..utils.ProjectUtils import ProjectUtils
-        self.on_finish_plugin()
-        Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
 
-        layer = ProjectUtils.get_active_vector_layer(
-            self.iface.activeLayer(), self.logger, require_editable=True
-        )
-        if not layer:
-            QgisMessageUtil.bar_critical(self.iface, STR.SELECT_EDITABLE_VECTOR_LAYER)
-            self.logger.warning("Nenhuma camada vetorial editável disponível")
+        layer = self.iface.activeLayer()
+        if not layer or not isinstance(layer, QgsVectorLayer):
+            QgisMessageUtil.bar_critical(self.iface, STR.SELECT_VECTOR_LAYER)
+            self.logger.warning("Nenhuma camada vetorial ativa")
             return
+
+        # --- 1. VERIFICAR SE CAMADA É EDITÁVEL (com pergunta) ---
+        if not ProjectUtils.ask_and_make_editable(self.iface, layer, self.logger):
+            QgisMessageUtil.bar_critical(self.iface, STR.SELECT_EDITABLE_VECTOR_LAYER)
+            self.logger.warning("Usuário recusou tornar camada editável")
+            return
+
+        self.logger.info(f"Camada editável confirmada: {layer.name()}")
 
         try:
             self.start_stats(layer)
@@ -133,6 +137,9 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
                 )
                 try:
                     self.finish_stats()
+                    # Salvar prefs e incrementar uso APÓS execução bem-sucedida
+                    Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
+                    self.on_finish_plugin()
                 except Exception:
                     self.logger.debug("Falha ao finalizar estatísticas")
         except Exception as e:
@@ -208,21 +215,26 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
     # ==================== HELPERS ====================
 
     def _resolve_calculation_mode(self, layer, requested_mode):
-        """Valida e ajusta modo de cálculo (CRS geográfico -> Ambos por padrão)."""
-        if VectorLayerProjection.is_geographic_crs(layer):
-            if requested_mode != STR.BOTH:
-                self.logger.warning("CRS geográfico -> calculando ambos os modos")
-                msg = (
-                    f"⚠️ {STR.LAYER_USES_GEOGRAPHIC_CRS} ({layer.crs().authid()})\n\n"
-                    f"{STR.CALCULATING_BOTH_MODES_AUTOMATICALLY}"
-                )
-                QgisMessageUtil.bar_warning(self.iface, msg)
-                self.logger.info(msg)
-                return STR.BOTH, True
-            else:
-                return requested_mode, False
-        else:
-            return requested_mode, False
+        """Valida e ajusta modo de cálculo.
+        
+        Fluxo correto:
+        - Se modo solicitado é Cartesiano E CRS é geográfico → força Ambos
+        - Caso contrário (Elipsoidal, Ambos, ou Cartesiano em CRS projetado) → segue solicitado
+        """
+        if requested_mode == STR.CARTESIAN and VectorLayerProjection.is_geographic_crs(layer):
+            self.logger.warning(
+                "Modo Cartesiano em CRS geográfico -> calculando ambos os modos"
+            )
+            msg = (
+                f"⚠️ {STR.LAYER_USES_GEOGRAPHIC_CRS} ({layer.crs().authid()})\n\n"
+                f"{STR.CARTESIAN_MODE_RESULTS_IN_DEGREES2}\n"
+                f"{STR.CALCULATING_BOTH_MODES_AUTOMATICALLY}"
+            )
+            QgisMessageUtil.bar_warning(self.iface, msg)
+            self.logger.info(msg)
+            return STR.BOTH, True
+
+        return requested_mode, False
 
     def _resolve_field_name(self, layer, base_name):
         """Resolve conflito de nomes de campo."""
@@ -268,7 +280,7 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
                     f"Criando campos de coordenadas com precisão {const_prec}"
                 )
                 VectorLayerAttributes.create_point_coordinate_fields(
-                    layer, field_map, precision=const_prec
+                    layer, field_map, precision=const_prec, tool_key=self.TOOL_KEY
                 )
                 self.logger.debug("Atualizando coordenadas X/Y")
                 VectorLayerAttributes.update_point_xy_coordinates(
@@ -279,7 +291,7 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
             elif geom_type == QgsWkbTypes.LineGeometry:
                 self.logger.debug("Criando campos de comprimento")
                 VectorLayerAttributes.create_point_coordinate_fields(
-                    layer, field_map, precision=precision
+                    layer, field_map, precision=precision, tool_key=self.TOOL_KEY
                 )
                 if STR.ELLIPSOIDAL in field_map:
                     self.logger.debug("Calculando comprimento elipsoidal")
@@ -288,6 +300,7 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
                         field_map[STR.ELLIPSOIDAL],
                         use_ellipsoidal=True,
                         precision=precision,
+                        tool_key=self.TOOL_KEY,
                     )
                 if STR.CARTESIAN in field_map:
                     self.logger.debug("Calculando comprimento cartesiano")
@@ -296,13 +309,14 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
                         field_map[STR.CARTESIAN],
                         use_ellipsoidal=False,
                         precision=precision,
+                        tool_key=self.TOOL_KEY,
                     )
                 msg = STR.LINE_LENGTH_CALCULATED_SUCCESS
 
             elif geom_type == QgsWkbTypes.PolygonGeometry:
                 self.logger.debug("Criando campos de área")
                 VectorLayerAttributes.create_point_coordinate_fields(
-                    layer, field_map, precision=precision
+                    layer, field_map, precision=precision, tool_key=self.TOOL_KEY
                 )
                 if STR.ELLIPSOIDAL in field_map:
                     self.logger.debug("Calculando área elipsoidal")
@@ -311,6 +325,7 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
                         field_map[STR.ELLIPSOIDAL],
                         use_ellipsoidal=True,
                         precision=precision,
+                        tool_key=self.TOOL_KEY,
                     )
                 if STR.CARTESIAN in field_map:
                     self.logger.debug("Calculando área cartesiana")
@@ -319,6 +334,7 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
                         field_map[STR.CARTESIAN],
                         use_ellipsoidal=False,
                         precision=precision,
+                        tool_key=self.TOOL_KEY,
                     )
                 msg = STR.POLYGON_AREA_CALCULATED_SUCCESS
 
@@ -393,7 +409,9 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
 
         try:
             self.finish_stats()
-            self.logger.debug("Estatísticas finalizadas")
+            Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
+            self.on_finish_plugin()
+            self.logger.debug("Estatísticas finalizadas após sucesso")
         except Exception as e:
             self.logger.debug(f"Falha ao finalizar estatísticas: {e}")
 

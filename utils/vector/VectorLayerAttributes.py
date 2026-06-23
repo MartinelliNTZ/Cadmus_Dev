@@ -421,7 +421,7 @@ class VectorLayerAttributes:
             return None
 
     @staticmethod
-    def create_point_coordinate_fields(layer, field_map, precision: int = 8):
+    def create_point_coordinate_fields(layer, field_map, precision: int = 8, tool_key=None):
         """
         Cria campos double para armazenar coordenadas de ponto.
 
@@ -433,6 +433,8 @@ class VectorLayerAttributes:
             Mapeamento {"x": "x", "y": "y", "z": "z_1"} (z é opcional)
         precision : int
             Casas decimais para o campo
+        tool_key : str, optional
+            ToolKey da ferramenta chamadora para rastreamento em logs
 
         Returns
         -------
@@ -454,7 +456,10 @@ class VectorLayerAttributes:
             layer.updateFields()
             return True
         except Exception as e:
-            logger = LogUtils(tool="untraceable", class_name="VectorLayerAttributes")
+            logger = LogUtils(
+                tool=tool_key or "untraceable",
+                class_name="VectorLayerAttributes",
+            )
             logger.error(f"Erro criando campos de coordenada: {e}")
             return False
 

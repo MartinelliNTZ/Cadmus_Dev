@@ -550,6 +550,8 @@ class Strings_pt_BR:
         "Mostra informacoes gerais sobre o plugin,\n"
         "como versao, autoria e contexto do projeto."
     )
+    LAYER_NOT_EDITABLE_ASK = "A camada '{layer_name}' não está no modo de edição.\n\nDeseja torná-la editável agora?"
+    LAYER_NOW_EDITABLE = "Camada colocada em modo de edição automaticamente."
     VECTOR_FIELDS_TITLE = "Calcular Campos Vetoriais"
     VECTOR_FIELDS_TOOLTIP = (
         "Calcula automaticamente campos vetoriais como area,\n"

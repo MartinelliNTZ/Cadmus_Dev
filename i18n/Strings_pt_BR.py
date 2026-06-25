@@ -401,6 +401,11 @@ class Strings_pt_BR:
     PHOTO_FOLDER = "Pasta de fotos:"
     VECTORIZE_PHOTOS = "Gerar vetor de fotos"
     PHOTOS_WITHOUT_MRK_LAYER_NAME = "Image_Points"
+    VETORIZE_FLIGHT = "Vetorizar voo"
+    VETORIZE_FLIGHT_TOOLTIP = (
+        "Gera camada vetorial de pontos e rastro a partir do JSON de metadata selecionado.\n"
+        "Equivalente a executar o pipeline de coordenadas de drone apenas com o JSON."
+    )
     NO_JSON_FOUND = "Nenhum JSON temporario encontrado."
 
     # plugins/SettingsPlugin.py

@@ -238,6 +238,28 @@ class SimpleSPBJudge:
             prev_segment_az = raw_az[i] if i >= 1 else None
             next_segment_az = raw_az[i + 1] if i + 1 < n else None
             dd = distances[i]
+
+            # calcula azimute instantâneo e variações antes de decidir o tipo de segmento
+            if prev_segment_az is not None and next_segment_az is not None:
+                az_instant = MathUtils.circular_mean([prev_segment_az, next_segment_az])
+            elif prev_segment_az is not None:
+                az_instant = prev_segment_az
+            elif next_segment_az is not None:
+                az_instant = next_segment_az
+            else:
+                az_instant = 0.0
+
+            delta_prev = (
+                MathUtils.angular_diff(az_instant, prev_segment_az)
+                if prev_segment_az is not None
+                else 0.0
+            )
+            delta_next = (
+                MathUtils.angular_diff(az_instant, next_segment_az)
+                if next_segment_az is not None
+                else 0.0
+            )
+
             if i == 0:
                 seg_type = "start"
 
@@ -282,26 +304,6 @@ class SimpleSPBJudge:
 
                 else:
                     seg_type = "noisy"
-
-            if prev_segment_az is not None and next_segment_az is not None:
-                az_instant = MathUtils.circular_mean([prev_segment_az, next_segment_az])
-            elif prev_segment_az is not None:
-                az_instant = prev_segment_az
-            elif next_segment_az is not None:
-                az_instant = next_segment_az
-            else:
-                az_instant = 0.0
-
-            delta_prev = (
-                MathUtils.angular_diff(az_instant, prev_segment_az)
-                if prev_segment_az is not None
-                else 0.0
-            )
-            delta_next = (
-                MathUtils.angular_diff(az_instant, next_segment_az)
-                if next_segment_az is not None
-                else 0.0
-            )
 
             updates[ordered_points[i]["fid"]] = {
                 StripOutputFieldKey.SHOT_ID.value: str(validated_shot_ids[i]),
@@ -355,7 +357,6 @@ class SimpleSPBJudge:
             )
 
     def _load_ordered_points(self, layer, field_id, field_time):
-        from datetime import datetime
 
         t0 = time.time()
         ordered = []

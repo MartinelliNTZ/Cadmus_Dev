@@ -1,4 +1,4 @@
-﻿from typing import List, Dict, Any, Optional
+﻿from typing import List, Dict, Any
 from collections import defaultdict
 import statistics
 
@@ -6,7 +6,7 @@ from .IMGMetadata import IMGMetadata
 from ..FormatUtils import FormatUtils
 from ..MathUtils import MathUtils
 from .RangeMetadataManager import range_metadata_manager as config
-from .AlertManager import AlertManager, AlertRecord
+from .AlertManager import AlertManager
 from .JsonMetadataManager import JsonMetadataManager
 from .FlightAggregator import FlightAggregator
 from .AggregateAnalyzer import AggregateAnalyzer

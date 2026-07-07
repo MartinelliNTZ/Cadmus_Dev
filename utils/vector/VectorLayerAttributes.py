@@ -348,12 +348,12 @@ class VectorLayerAttributes:
         """
         Cria uma nova layer com campos reordenados em ordem alfabética (case-insensitive).
         Compatível com QGIS 3.16+.
-        
+
         A ordenação segue o padrão key=str.lower:
         - Case-insensitive: 'A' e 'a' na mesma sequência
         - Números e símbolos vêm antes das letras (ordem ASCII)
         - 'abacate', 'Alicate', 'arcelga': 'abacate' -> 'Alicate' -> 'arcelga'
-        
+
         Parameters
         ----------
         layer : QgsVectorLayer
@@ -421,7 +421,9 @@ class VectorLayerAttributes:
             return None
 
     @staticmethod
-    def create_point_coordinate_fields(layer, field_map, precision: int = 8, tool_key=None):
+    def create_point_coordinate_fields(
+        layer, field_map, precision: int = 8, tool_key=None
+    ):
         """
         Cria campos double para armazenar coordenadas de ponto.
 

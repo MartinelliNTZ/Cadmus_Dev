@@ -1,5 +1,4 @@
 ﻿import math
-import traceback
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -76,8 +75,8 @@ class RangeMetadataManager:
             return []
         levels = thresh.get("levels", [])
         return [
-            RangeMetadataManager._parse_num(l) if not isinstance(l, list) else l
-            for l in levels
+            RangeMetadataManager._parse_num(level) if not isinstance(level, list) else level
+            for level in levels
         ]
 
     @staticmethod
@@ -112,7 +111,7 @@ class RangeMetadataManager:
 
         ttype = thresh.get("type")
         levels = thresh.get("levels", [])
-        messages = thresh.get("messages", [f"Nivel {{}}" for _ in levels])
+        messages = thresh.get("messages", ["Nivel {{}}" for _ in levels])
 
         if ttype == "categorical":
             mapping = thresh.get("mapping", {})

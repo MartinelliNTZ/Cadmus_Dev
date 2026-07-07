@@ -1,5 +1,4 @@
 ﻿# -*- coding: utf-8 -*-
-import json as json_mod
 import os
 import re
 from typing import List, Dict, Any, Tuple, Optional

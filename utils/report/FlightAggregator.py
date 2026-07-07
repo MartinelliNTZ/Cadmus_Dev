@@ -1,14 +1,11 @@
 from typing import List, Dict, Any, Optional, Tuple
 from collections import defaultdict
 import statistics
-from datetime import datetime
-
 from .IMGMetadata import IMGMetadata
 from ..FormatUtils import FormatUtils
 from ..MathUtils import MathUtils
 from ..mrk.MetadataFields import MetadataFields
 from ...core.enum import MetadataFieldKey as MFK
-from ...core.config.LogUtils import LogUtils
 from ..ToolKeys import ToolKey
 
 

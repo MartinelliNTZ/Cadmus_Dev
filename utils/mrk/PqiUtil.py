@@ -11,7 +11,7 @@ Uso:
     pqi, details = PqiUtil.calculate(data_record)
 """
 
-from typing import Dict, List, Tuple, Optional, Callable
+from typing import Dict, List, Tuple, Optional
 from ...core.enum import MetadataFieldKey
 from ..report.RangeMetadataManager import RangeMetadataManager
 

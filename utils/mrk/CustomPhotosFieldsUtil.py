@@ -783,7 +783,6 @@ class CustomPhotosFieldsUtil:
 
         # Diferença absoluta
         diff = abs(gim_yaw_norm - flight_yaw_norm)
-        diff_min = min(diff, 360 - diff)
         if diff > 150 and diff < 300:
             diff = abs(180 - diff)
         elif diff > 300:
@@ -1182,7 +1181,6 @@ class CustomPhotosFieldsUtil:
 
         # PQI será calculado pelo PqiUtil no pós-processamento (calculate_all_custom_fields)
         # Placeholder: valor temporário que será sobrescrito
-        photogrammetry_quality_index = 0.0
 
         return {
             MetadataFieldKey.RTK_EFFECTIVE_PRECISION.value: rtk_prec,
@@ -1338,7 +1336,6 @@ class CustomPhotosFieldsUtil:
             next_item = sorted_items[i + 1] if i < len(sorted_items) - 1 else None
 
             prev_data = prev_item[1] if prev_item else None
-            prev_prev_data = prev_prev_item[1] if prev_prev_item else None
             next_data = next_item[1] if next_item else None
 
             # Validações sequência
@@ -1368,15 +1365,12 @@ class CustomPhotosFieldsUtil:
                     f"voo_curr={voo_curr}, voo_prev={voo_prev}, "
                     f"dt_curr={dt_curr}, dt_prev={dt_prev}, "
                     f"alt_curr={alt_curr:.1f}, alt_prev={alt_prev:.1f}, "
-                    f"shutter_curr={shutter_curr}, shutter_prev={shutter_prev}"
+                    f"shutter_curr={shutter_curr}, shutter_prev={shutter_prev}{prev_prev_item}{valid_next}"
                 )
 
             # Sequência campos
             prev_seq = cls._calculate_sequence_fields(
                 data, prev_data, valid_prev, "prev"
-            )
-            next_seq = cls._calculate_sequence_fields(
-                data, next_data, valid_next, "next"
             )
 
             estimated_coverage = cls.calculate_estimated_coverage(data)

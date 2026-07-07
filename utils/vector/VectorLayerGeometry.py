@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 import math
 import re
-from typing import Union, Tuple, List
+from typing import Union, Tuple
 
 from typing import Optional
 

@@ -838,7 +838,7 @@ class AggregateAnalyzer:
             else None
         )
         pqi_last = (
-            statistics.mean([v for _, v in pqi_series[-max(1, len(pqi_series) // 4) :]])
+            statistics.mean([v for _, v in pqi_series[-max(1, len(pqi_series) // 4):]])
             if pqi_series
             else None
         )

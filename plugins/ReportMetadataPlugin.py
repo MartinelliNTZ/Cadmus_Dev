@@ -133,6 +133,7 @@ class ReportMetadataPlugin(BasePluginMTL):
                 "%Y-%m-%d %H:%M:%S"
             )
             size_kb = round(os.path.getsize(file_path) / 1024.0, 1)
+            self.logger.debug(f"JSON: {file_name}, mtime: {mtime}, size: {size_kb} KB")
             return f"{file_name}"
         except Exception:
             return file_name

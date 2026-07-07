@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from enum import Enum
-from typing import Tuple
 
 
 class EvClassEnum(Enum):
     """Classificação textual do Exposure Value (EV) para fotografia aérea.
-    
+
     A ordem de prioridade para fotogrametria (melhor para pior):
     5 - Nublado (luz difusa, sem sombras)
     4 - Luz solar normal (iluminacao equilibrada)

@@ -83,13 +83,10 @@ class PathExtensionStep(BaseStep):
         )
         iface = context.get("iface", None)
         layer = context.get("_layer")
-        attribute = context.get("_attribute")
         changes = result.get("changes", {})
         processed = result.get("processed", 0)
 
-        logger.info(
-            f"PathExtension concluído: {processed} feições alteradas"
-        )
+        logger.info(f"PathExtension concluído: {processed} feições alteradas")
 
         # Aplicar mudanças na main thread
         if changes and isinstance(layer, QgsVectorLayer):
@@ -111,9 +108,7 @@ class PathExtensionStep(BaseStep):
 
         # Exibir mensagem de sucesso
         if iface:
-            msg = (
-                f"Processamento concluído: {processed} feições alteradas"
-            )
+            msg = f"Processamento concluído: {processed} feições alteradas"
             QgisMessageUtil.bar_success(iface, msg)
             logger.info("Mensagem de sucesso exibida na barra")
 

@@ -237,22 +237,24 @@ class MenuManager:
         Requisita ToolList (não Preferences).
         """
         from .ToolRegistry import ToolRegistry
-        
+
         tool_registry = ToolRegistry.get_instance()
         if tool_registry is None:
-            self.logger.error("[_refresh_tool_main_actions] ToolRegistry não inicializado!")
+            self.logger.error(
+                "[_refresh_tool_main_actions] ToolRegistry não inicializado!"
+            )
             return
-        
+
         # Requisitar ToolList atualizada
         updated_tools = tool_registry.get_tools()
         updated_tools_dict = {t.tool_key: t for t in updated_tools}
-        
+
         # Sincronizar main_action
         for tool in self.tools:
             updated_tool = updated_tools_dict.get(tool.tool_key)
             if updated_tool:
                 tool.main_action = updated_tool.main_action
-        
+
         self.logger.debug("[_refresh_tool_main_actions] ✓ Main_actions sincronizados")
 
     def reconstruct_toolbar(self):
@@ -267,7 +269,9 @@ class MenuManager:
                 self.toolbar.setParent(None)
                 self.toolbar.deleteLater()
             except Exception as e:
-                self.logger.error(f"Erro ao remover toolbar anterior durante reconstrução: {e}")
+                self.logger.error(
+                    f"Erro ao remover toolbar anterior durante reconstrução: {e}"
+                )
             finally:
                 self.toolbar = None
 

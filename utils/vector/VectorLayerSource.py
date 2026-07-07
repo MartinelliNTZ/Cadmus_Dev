@@ -321,7 +321,9 @@ class VectorLayerSource:
                     try:
                         os.remove(f)
                     except Exception as e:
-                        logger.error(f"Erro removendo arquivo do shapefile set: {f} | {e}")
+                        logger.error(
+                            f"Erro removendo arquivo do shapefile set: {f} | {e}"
+                        )
                         errors.append((f, str(e)))
 
             if not errors:
@@ -436,7 +438,9 @@ class VectorLayerSource:
             normalized_name = layer_name or Path(source_path.split("|", 1)[0]).stem
             layer = QgsVectorLayer(source_path, normalized_name, "ogr")
             if not layer or not layer.isValid():
-                logger.error(f"Falha ao carregar camada a partir de source path: {source_path}")
+                logger.error(
+                    f"Falha ao carregar camada a partir de source path: {source_path}"
+                )
                 return None
 
             logger.info(f"Camada vetorial carregada por source path: {source_path}")
@@ -444,5 +448,3 @@ class VectorLayerSource:
         except Exception as e:
             logger.error(f"Erro carregando camada por source path {source_path}: {e}")
             return None
-
-   

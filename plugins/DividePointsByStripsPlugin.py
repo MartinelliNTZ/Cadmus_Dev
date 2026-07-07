@@ -77,7 +77,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.OPERATIONAL_PARAMETERS,
-                expanded_by_default=self.preferences.get("",False),
+                expanded_by_default=self.preferences.get("", False),
                 separator_top=False,
                 separator_bottom=True,
             )
@@ -134,7 +134,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
-        self.operational_params.add_content_layout(id_field_layout) 
+        self.operational_params.add_content_layout(id_field_layout)
         self.operational_params.add_content_layout(group_field_layout)
         self.operational_params.add_content_layout(operational_layout)
 
@@ -146,17 +146,16 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
-        
+
         sensitivity_layout, self.advanced_params = (
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.SENSITIVITY_PARAMETERS,
-                expanded_by_default=self.preferences.get("",False),
+                expanded_by_default=self.preferences.get("", False),
                 separator_top=False,
                 separator_bottom=True,
             )
-        )       
-        
+        )
 
         radio_layout, self.radio_path_mode = WidgetFactory.create_radio_button_grid(
             items=self.PATH_MODES,
@@ -168,7 +167,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             separator_top=False,
             separator_bottom=True,
         )
-        
+
         self.advanced_params.add_content_layout(sensitivity_fields_layout)
         self.advanced_params.add_content_layout(time_field_layout)
         self.advanced_params.add_content_layout(judge_mode_layout)
@@ -195,7 +194,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.ATTRIBUTES,
-                expanded_by_default=self.preferences.get("",False),
+                expanded_by_default=self.preferences.get("", False),
                 separator_top=False,
                 separator_bottom=True,
             )
@@ -211,17 +210,21 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=True,
             )
         )
-        save_pts_layout, self.save_points_selector = WidgetFactory.create_save_file_selector(
-            parent=self,
-            file_filter=StringManager.FILTER_VECTOR,
-            checkbox_text=STR.SAVE_POINTS_CHECKBOX,
-            label_text=STR.SAVE_IN,
+        save_pts_layout, self.save_points_selector = (
+            WidgetFactory.create_save_file_selector(
+                parent=self,
+                file_filter=StringManager.FILTER_VECTOR,
+                checkbox_text=STR.SAVE_POINTS_CHECKBOX,
+                label_text=STR.SAVE_IN,
+            )
         )
-        save_lines_layout, self.save_track_selector = WidgetFactory.create_save_file_selector(
-            parent=self,
-            file_filter=StringManager.FILTER_VECTOR,
-            checkbox_text=STR.SAVE_TRACK_CHECKBOX,
-            label_text=STR.SAVE_IN,
+        save_lines_layout, self.save_track_selector = (
+            WidgetFactory.create_save_file_selector(
+                parent=self,
+                file_filter=StringManager.FILTER_VECTOR,
+                checkbox_text=STR.SAVE_TRACK_CHECKBOX,
+                label_text=STR.SAVE_IN,
+            )
         )
         self.save_collapsible.add_content_layout(save_pts_layout)
         self.save_collapsible.add_content_layout(save_lines_layout)
@@ -241,9 +244,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.layout.add_items(
             [
                 intro_label,
-                layer_layout,                
+                layer_layout,
                 operational_container_layout,
-                sensitivity_layout,                
+                sensitivity_layout,
                 attributes_layout,
                 save_layout,
                 buttons_layout,
@@ -298,17 +301,25 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.save_track_selector.set_file_path(
             self.preferences.get("last_output_track_file", "")
         )
-        
-        self.group_field_selector.set_selected_key(self.preferences.get("group_field", ""))
+
+        self.group_field_selector.set_selected_key(
+            self.preferences.get("group_field", "")
+        )
         self.judge_mode_selector.set_selected_key(
             self.preferences.get(self.PREF_JUDGE_MODE, "Complexo")
         )
 
         # Restaurar estado de expansão dos colapsáveis
-        self.operational_params.set_expanded(self.preferences.get("expanded_operational", True))
-        self.advanced_params.set_expanded(self.preferences.get("expanded_sensitivity", True))
-        self.attributes_params.set_expanded(self.preferences.get("expanded_attributes", True))
-        
+        self.operational_params.set_expanded(
+            self.preferences.get("expanded_operational", True)
+        )
+        self.advanced_params.set_expanded(
+            self.preferences.get("expanded_sensitivity", True)
+        )
+        self.attributes_params.set_expanded(
+            self.preferences.get("expanded_attributes", True)
+        )
+
         self.save_collapsible.set_expanded(self.preferences.get("expanded_save", False))
 
         self._refresh_field_selectors()
@@ -319,7 +330,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.preferences["time_field"] = (
             self.time_field_selector.get_selected_key() or ""
         )
-        self.preferences["group_field"] = self.group_field_selector.get_selected_key() or ""
+        self.preferences["group_field"] = (
+            self.group_field_selector.get_selected_key() or ""
+        )
         self.preferences[self.PREF_JUDGE_MODE] = (
             self.judge_mode_selector.get_selected_key() or "Complexo"
         )
@@ -329,10 +342,16 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.preferences[self.PREF_SELECTED_OUTPUT_FIELDS] = (
             self._get_selected_output_fields()
         )
-        self.preferences["save_to_folder"] = bool(self.save_points_selector.is_enabled())
+        self.preferences["save_to_folder"] = bool(
+            self.save_points_selector.is_enabled()
+        )
         self.preferences["last_output_file"] = self.save_points_selector.get_file_path()
-        self.preferences["save_track_to_folder"] = bool(self.save_track_selector.is_enabled())
-        self.preferences["last_output_track_file"] = self.save_track_selector.get_file_path()
+        self.preferences["save_track_to_folder"] = bool(
+            self.save_track_selector.is_enabled()
+        )
+        self.preferences["last_output_track_file"] = (
+            self.save_track_selector.get_file_path()
+        )
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
 
@@ -340,7 +359,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.preferences["expanded_operational"] = self.operational_params.is_expanded()
         self.preferences["expanded_sensitivity"] = self.advanced_params.is_expanded()
         self.preferences["expanded_attributes"] = self.attributes_params.is_expanded()
-        
+
         self.preferences["expanded_save"] = self.save_collapsible.is_expanded()
 
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
@@ -398,21 +417,25 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     def _build_filtered_result_layer(
         self,
-        result_layer,      # camada de resultado (já com todos os campos)
-        original_layer,    # camada de entrada original (para obter os campos originais)
+        result_layer,  # camada de resultado (já com todos os campos)
+        original_layer,  # camada de entrada original (para obter os campos originais)
         selected_output_fields,
-        field_name_map
+        field_name_map,
     ):
         """Monta camada final com atributos filtrados."""
         if not result_layer or not result_layer.isValid():
             return result_layer
         if not original_layer or not original_layer.isValid():
-            self.logger.warning("Camada original inválida, retornando resultado sem filtro")
+            self.logger.warning(
+                "Camada original inválida, retornando resultado sem filtro"
+            )
             return result_layer
 
         normalized_map = self._normalize_field_name_map(field_name_map)
         if not selected_output_fields or not normalized_map:
-            self.logger.info("Filtro de campos não aplicado (sem seleção ou mapa vazio)")
+            self.logger.info(
+                "Filtro de campos não aplicado (sem seleção ou mapa vazio)"
+            )
             return result_layer
 
         normalized_selected = set(
@@ -453,7 +476,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         orig_kept = [f for f in original_fields if f.name() not in extra_field_names]
 
         uri = f"Point?crs={result_layer.crs().authid()}"
-        filtered_layer = QgsVectorLayer(uri, f"{original_layer.name()}_filtered", "memory")
+        filtered_layer = QgsVectorLayer(
+            uri, f"{original_layer.name()}_filtered", "memory"
+        )
         if not filtered_layer.isValid():
             self.logger.error("Falha ao criar camada temporária filtrada")
             return result_layer
@@ -474,17 +499,23 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 source_idx = result_layer.fields().lookupField(field_name)
                 target_idx = filtered_layer.fields().lookupField(field_name)
                 if source_idx >= 0 and target_idx >= 0:
-                    new_feature.setAttribute(target_idx, result_feature.attribute(source_idx))
+                    new_feature.setAttribute(
+                        target_idx, result_feature.attribute(source_idx)
+                    )
 
             # Copia campos calculados selecionados (sobrescrevem originais se mesmo nome)
             for logical_key in selected_keys:
-                resolved_name = self._resolve_field_name_from_map(normalized_map, logical_key)
+                resolved_name = self._resolve_field_name_from_map(
+                    normalized_map, logical_key
+                )
                 if not resolved_name:
                     continue
                 source_idx = result_layer.fields().lookupField(resolved_name)
                 target_idx = filtered_layer.fields().lookupField(resolved_name)
                 if source_idx >= 0 and target_idx >= 0:
-                    new_feature.setAttribute(target_idx, result_feature.attribute(source_idx))
+                    new_feature.setAttribute(
+                        target_idx, result_feature.attribute(source_idx)
+                    )
 
             filtered_layer.addFeature(new_feature)
 
@@ -556,9 +587,15 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     def _resolve_strip_line_fields(self, field_name_map):
         """Resolve campos usados na linha de strip."""
-        sid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_ID)
-        valid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_VALID)
-        az_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.AZIMUTH_INSTANT)
+        sid_key = self._resolve_field_name_from_map(
+            field_name_map, StripOutputFieldKey.SHOT_ID
+        )
+        valid_key = self._resolve_field_name_from_map(
+            field_name_map, StripOutputFieldKey.SHOT_VALID
+        )
+        az_key = self._resolve_field_name_from_map(
+            field_name_map, StripOutputFieldKey.AZIMUTH_INSTANT
+        )
         self.logger.debug(
             "Campos resolvidos para geração de strips",
             sid_key=sid_key,
@@ -645,9 +682,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 az_values.append(float(az))
 
         avg_az = (
-            VectorLayerGeometry.circular_mean_degrees(az_values)
-            if az_values
-            else 0.0
+            VectorLayerGeometry.circular_mean_degrees(az_values) if az_values else 0.0
         )
         return {
             "shot_id": sid_val,
@@ -706,7 +741,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 "Aplicação de prefixo pulada",
                 reason="layer inválido ou prefixo vazio",
                 prefix=prefix,
-                layer_valid=layer.isValid() if layer else False
+                layer_valid=layer.isValid() if layer else False,
             )
             return
 
@@ -715,7 +750,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             self.logger.warning(
                 "Campo shot_id não encontrado na camada",
                 required_field=self.REQUIRED_OUTPUT_FIELD,
-                available_fields=[f.name() for f in layer.fields()]
+                available_fields=[f.name() for f in layer.fields()],
             )
             return
 
@@ -737,7 +772,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     if old_sid is not None:
                         old_sid_str = str(old_sid)
                         if old_sid_str != "0":
-                            layer.changeAttributeValue(feat.id(), old_shot_idx, f"{prefix}{old_sid_str}")
+                            layer.changeAttributeValue(
+                                feat.id(), old_shot_idx, f"{prefix}{old_sid_str}"
+                            )
                 modified_count += 1
         layer.commitChanges()
 
@@ -745,14 +782,16 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             "Prefixo aplicado aos shot_ids",
             prefix=prefix,
             modified_features=modified_count,
-            total_features=layer.featureCount()
+            total_features=layer.featureCount(),
         )
 
     def _create_subset_layer_for_group(self, layer, field_group, group_value):
         """Cria subcamada por valor de grupo."""
         crs = layer.crs().authid()
-        uri = 'Point?crs=%s' % crs
-        subset = QgsVectorLayer(uri, '{}_{}'.format(layer.name(), str(group_value)), "memory")
+        uri = "Point?crs=%s" % crs
+        subset = QgsVectorLayer(
+            uri, "{}_{}".format(layer.name(), str(group_value)), "memory"
+        )
         subset_data = subset.dataProvider()
         subset_data.addAttributes(layer.fields())
         subset.updateFields()
@@ -779,13 +818,15 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         field_id = self.id_field_selector.get_selected_key()
         field_time = self.time_field_selector.get_selected_key()
         field_group = self.group_field_selector.get_selected_key()
-        
+
         # O campo ID continua obrigatório para ordenação, mas tempo agora é opcional.
         if not field_id:
             QgisMessageUtil.bar_warning(self.iface, STR.SELECT_REQUIRED_FIELDS)
             return
 
-        self.logger.info(f"Campos selecionados: ID={field_id}, Tempo={field_time or 'N/A'}, Grupo={field_group or 'N/A'}")
+        self.logger.info(
+            f"Campos selecionados: ID={field_id}, Tempo={field_time or 'N/A'}, Grupo={field_group or 'N/A'}"
+        )
 
         operational_values = self.operational_fields.get_values()
         sensitivity_values = self.sensitivity_fields.get_values()
@@ -818,7 +859,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             judge_args = {
                 "field_id": field_id,
                 "field_time": field_time,
-                "point_frequency_seconds": float(sensitivity_values["frequencia_pontos"]),
+                "point_frequency_seconds": float(
+                    sensitivity_values["frequencia_pontos"]
+                ),
                 "strip_width_meters": float(sensitivity_values["largura_tiro"]),
                 "azimuth_window": int(sensitivity_values["janela_azimute"]),
                 "light_azimuth_threshold": float(
@@ -866,8 +909,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             group_prefixes = self._build_group_prefixes(group_values)
 
             self.logger.info(
-                "Prefixos de grupo construídos",
-                group_prefixes=group_prefixes
+                "Prefixos de grupo construídos", group_prefixes=group_prefixes
             )
 
             all_result_layers = []
@@ -881,9 +923,14 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
             for gv in group_values:
                 if field_group:
-                    process_layer = self._create_subset_layer_for_group(layer, field_group, gv)
+                    process_layer = self._create_subset_layer_for_group(
+                        layer, field_group, gv
+                    )
                     group_label = str(gv)
-                    self.logger.info(f"Processando grupo: {group_label}", features=process_layer.featureCount())
+                    self.logger.info(
+                        f"Processando grupo: {group_label}",
+                        features=process_layer.featureCount(),
+                    )
                     if process_layer.featureCount() == 0:
                         self.logger.warning(f"Grupo '{group_label}' vazio, ignorando.")
                         continue
@@ -916,7 +963,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                         group_value=gv,
                         prefix=prefix,
                         layer_name=raw_result_layer.name(),
-                        feature_count=raw_result_layer.featureCount()
+                        feature_count=raw_result_layer.featureCount(),
                     )
                     self._apply_group_prefix_to_shot_ids(raw_result_layer, prefix)
 
@@ -927,9 +974,13 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                                 layer.fields().lookupField(field_group)
                             )
                             if orig_field.isValid():
-                                raw_result_layer.dataProvider().addAttributes([orig_field])
+                                raw_result_layer.dataProvider().addAttributes(
+                                    [orig_field]
+                                )
                                 raw_result_layer.updateFields()
-                                group_idx = raw_result_layer.fields().lookupField(field_group)
+                                group_idx = raw_result_layer.fields().lookupField(
+                                    field_group
+                                )
                                 raw_result_layer.startEditing()
                                 for feat in raw_result_layer.getFeatures():
                                     raw_result_layer.changeAttributeValue(
@@ -948,7 +999,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     if strip_lines_layer and strip_lines_layer.isValid():
                         if field_group and gv is not None:
                             lines_data = strip_lines_layer.dataProvider()
-                            group_field_idx = strip_lines_layer.fields().lookupField(field_group)
+                            group_field_idx = strip_lines_layer.fields().lookupField(
+                                field_group
+                            )
                             if group_field_idx == -1:
                                 try:
                                     orig_field_val = layer.fields().field(
@@ -980,7 +1033,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                         all_strip_layers.append(strip_lines_layer)
 
             if not all_result_layers:
-                QgisMessageUtil.bar_warning(self.iface, "Nenhum grupo produziu resultado.")
+                QgisMessageUtil.bar_warning(
+                    self.iface, "Nenhum grupo produziu resultado."
+                )
                 return
 
             crs_authid = layer.crs().authid()
@@ -1065,7 +1120,10 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                         "Camada de linhas (strips) adicionada ao projeto como camada temporaria"
                     )
 
-                    if self.save_track_selector and self.save_track_selector.is_enabled():
+                    if (
+                        self.save_track_selector
+                        and self.save_track_selector.is_enabled()
+                    ):
                         line_out_path = self.save_track_selector.get_file_path().strip()
                         if line_out_path:
                             saved_line_layer = VectorLayerSource.save_and_load_layer(
@@ -1078,7 +1136,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                                 ProjectUtils.add_layer(saved_line_layer)
                                 self.logger.info(
                                     "Camada de linhas salva em disco e carregada",
-                                    path=line_out_path
+                                    path=line_out_path,
                                 )
                             else:
                                 self.logger.warning(
@@ -1140,11 +1198,10 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             duration=8,
         )
 
+
 def run(iface):
     """Abre o diálogo do plugin."""
     dlg = DividePointsByStripsPlugin(iface)
     dlg.setModal(False)
     dlg.show()
     return dlg
-
-

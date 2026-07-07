@@ -152,7 +152,6 @@ class VectorToSvgPlugin(BasePluginMTL):
     def _load_prefs(self):
         self.logger.debug("Carregando preferencias do VectorToSvg")
 
-
         self.fill_color_widget.set_color(
             QColor(self.preferences.get("fill_color", "#ffffff"))
         )
@@ -162,9 +161,7 @@ class VectorToSvgPlugin(BasePluginMTL):
         self.label_color_widget.set_color(
             QColor(self.preferences.get("label_color", "#000000"))
         )
-        self.label_size_spin.setValue(
-            float(self.preferences.get("label_size", 14.0))
-        )
+        self.label_size_spin.setValue(float(self.preferences.get("label_size", 14.0)))
         self.border_width_spin.setValue(
             float(self.preferences.get("border_width", 1.2))
         )
@@ -270,9 +267,7 @@ class VectorToSvgPlugin(BasePluginMTL):
                 ]
         except Exception as e:
             self.logger.error(f"Erro ao gerar SVG: {e}")
-            QgisMessageUtil.modal_error(
-                self.iface, f"{STR.ERROR}\n{e}"
-            )
+            QgisMessageUtil.modal_error(self.iface, f"{STR.ERROR}\n{e}")
             return
 
         if not generated:
@@ -304,9 +299,7 @@ class VectorToSvgPlugin(BasePluginMTL):
             return output_folder
         except Exception as e:
             self.logger.error(f"Erro ao preparar pasta de saida '{output_folder}': {e}")
-            QgisMessageUtil.modal_error(
-                self.iface, f"{STR.ERROR}\n{e}"
-            )
+            QgisMessageUtil.modal_error(self.iface, f"{STR.ERROR}\n{e}")
             return None
 
     def _resolve_export_layer(self, layer, only_selected):

@@ -11,7 +11,7 @@ from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
 from ..utils.StringManager import StringManager
-from ..utils.Preferences import load_tool_prefs, save_tool_prefs
+from ..utils.Preferences import save_tool_prefs
 from ..utils.ToolKeys import ToolKey
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
@@ -19,7 +19,6 @@ from ..utils.DependenciesManager import DependenciesManager
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.adapter.StringAdapter import StringAdapter
 from ..utils.mrk.MetadataFields import MetadataFields
-from ..core.services.ReportGenerationService import ReportGenerationService
 
 
 class DroneCordinates(BasePluginMTL):
@@ -191,14 +190,18 @@ class DroneCordinates(BasePluginMTL):
                 expanded_by_default=False,
             )
         )
-        initial_items = StringAdapter.to_key_label_description(MetadataFields.INITIAL_FIELDS)
-        initial_grid_layout, self.initial_fields_grid = WidgetFactory.create_checkbox_grid(
-            options_data=initial_items,
-            items_per_row=2,
-            checked_by_default=True,
-            return_widget=True,
-            separator_bottom=False,
-            show_control_buttons=True,
+        initial_items = StringAdapter.to_key_label_description(
+            MetadataFields.INITIAL_FIELDS
+        )
+        initial_grid_layout, self.initial_fields_grid = (
+            WidgetFactory.create_checkbox_grid(
+                options_data=initial_items,
+                items_per_row=2,
+                checked_by_default=True,
+                return_widget=True,
+                separator_bottom=False,
+                show_control_buttons=True,
+            )
         )
         self.initial_fields_collapsible.add_content_layout(initial_grid_layout)
 
@@ -515,7 +518,9 @@ class DroneCordinates(BasePluginMTL):
         self.preferences["output_path_pts"] = self.save_points_selector.get_file_path()
         # Logo e titulo do projeto
         project_title_values = self.title_input.get_values()
-        self.preferences["project_title"] = project_title_values.get("project_title", "")
+        self.preferences["project_title"] = project_title_values.get(
+            "project_title", ""
+        )
         self.preferences["logo_path"] = self.logo_selector.get_file_path().strip()
         self.preferences["logo_enabled"] = self.logo_selector.is_enabled()
 
@@ -530,7 +535,9 @@ class DroneCordinates(BasePluginMTL):
         self.preferences["custom_expanded"] = (
             self.custom_fields_collapsible.is_expanded()
         )
-        self.preferences["initial_expanded"] = self.initial_fields_collapsible.is_expanded()
+        self.preferences["initial_expanded"] = (
+            self.initial_fields_collapsible.is_expanded()
+        )
         self.preferences["mrk_expanded"] = self.mrk_fields_collapsible.is_expanded()
         self.preferences["save_expanded"] = self.save_collapsible.is_expanded()
         self.preferences["styles_expanded"] = self.styles_collapsible.is_expanded()
@@ -618,7 +625,11 @@ class DroneCordinates(BasePluginMTL):
         # Projeto e logotipo
         project_title_values = self.title_input.get_values()
         project_title = project_title_values.get("project_title", "")
-        logo_path = self.logo_selector.get_file_path().strip() if self.logo_selector.is_enabled() else ""
+        logo_path = (
+            self.logo_selector.get_file_path().strip()
+            if self.logo_selector.is_enabled()
+            else ""
+        )
         context.set("project_title", project_title)
         context.set("logo_path", logo_path)
 
@@ -758,7 +769,10 @@ class DroneCordinates(BasePluginMTL):
             ),
         ]
         for a, b in pairs:
-            if layer.fields().lookupField(a) != -1 and layer.fields().lookupField(b) != -1:
+            if (
+                layer.fields().lookupField(a) != -1
+                and layer.fields().lookupField(b) != -1
+            ):
                 return [a, b]
         return None
 

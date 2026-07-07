@@ -16,6 +16,8 @@ from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.StringManager import StringManager
 from ..utils.ToolKeys import ToolKey
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
+
+
 class PhotoVectorizationPlugin(BasePluginMTL):
     """Ferramenta dedicada para geração de vetores a partir de imagens."""
 
@@ -123,7 +125,9 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         )
         # Logo e titulo do projeto
         project_title_values = self.title_input.get_values()
-        self.preferences["project_title"] = project_title_values.get("project_title", "")
+        self.preferences["project_title"] = project_title_values.get(
+            "project_title", ""
+        )
         self.preferences["logo_path"] = self.logo_selector.get_file_path().strip()
         self.preferences["logo_enabled"] = self.logo_selector.is_enabled()
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
@@ -165,7 +169,11 @@ class PhotoVectorizationPlugin(BasePluginMTL):
             # Projeto e logotipo
             project_title_values = self.title_input.get_values()
             project_title = project_title_values.get("project_title", "")
-            logo_path = self.logo_selector.get_file_path().strip() if self.logo_selector.is_enabled() else ""
+            logo_path = (
+                self.logo_selector.get_file_path().strip()
+                if self.logo_selector.is_enabled()
+                else ""
+            )
 
             context = ExecutionContext()
             context.set("base_folder", photo_folder)
@@ -183,11 +191,14 @@ class PhotoVectorizationPlugin(BasePluginMTL):
             if generate_report:
                 steps.append(ReportGenerationStep())
 
-            self.logger.info("Iniciando pipeline de vetorização de fotos", data={
-                "base_folder": photo_folder,
-                "recursive": recursive,
-                "generate_report": generate_report
-            })
+            self.logger.info(
+                "Iniciando pipeline de vetorização de fotos",
+                data={
+                    "base_folder": photo_folder,
+                    "recursive": recursive,
+                    "generate_report": generate_report,
+                },
+            )
 
             engine = AsyncPipelineEngine(
                 steps=steps,
@@ -218,10 +229,7 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         json_path = context.get("json_path")
         report_payload = context.get("report_payload")
 
-        summary = (
-            f"{STR.SUCCESS_MESSAGE} "
-            f"{STR.POINTS}: {total_points}"
-        )
+        summary = f"{STR.SUCCESS_MESSAGE} " f"{STR.POINTS}: {total_points}"
 
         if json_path:
             summary += f" | JSON: {json_path}"
@@ -231,12 +239,15 @@ class PhotoVectorizationPlugin(BasePluginMTL):
             if html_path:
                 summary += f" | HTML: {html_path}"
 
-        self.logger.info("Pipeline de vetorização concluído", data={
-            "total_points": total_points,
-            "has_layer": layer is not None,
-            "has_json": json_path is not None,
-            "has_report": report_payload is not None
-        })
+        self.logger.info(
+            "Pipeline de vetorização concluído",
+            data={
+                "total_points": total_points,
+                "has_layer": layer is not None,
+                "has_json": json_path is not None,
+                "has_report": report_payload is not None,
+            },
+        )
 
         QgisMessageUtil.bar_success(self.iface, summary, duration=8)
 

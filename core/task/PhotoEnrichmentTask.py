@@ -150,15 +150,16 @@ class PhotoEnrichmentTask(BaseTask):
                 filtered_record = {
                     k: v
                     for k, v in record.items()
-                    if k in selected_keys
-                    or k in skip_keys
+                    if k in selected_keys or k in skip_keys
                 }
                 if filtered_record:
                     filtered.append(filtered_record)
             records = filtered
 
         if not records:
-            logger.warning("Todos os registros foram filtrados pelas chaves selecionadas")
+            logger.warning(
+                "Todos os registros foram filtrados pelas chaves selecionadas"
+            )
             self.exception = "Nenhuma imagem encontrada no diretório"
             return False
 
@@ -252,7 +253,9 @@ class PhotoEnrichmentTask(BaseTask):
 
         if layer and layer.isValid():
             photo_field_name = MetadataFields.get_attribute("foto", "foto")
-            mrk_folder_field_name = MetadataFields.get_attribute("mrk_folder", "mrk_folder")
+            mrk_folder_field_name = MetadataFields.get_attribute(
+                "mrk_folder", "mrk_folder"
+            )
             for feat in layer.getFeatures():
                 foto = feat.attribute(photo_field_name)
                 if foto is None:
@@ -277,6 +280,7 @@ class PhotoEnrichmentTask(BaseTask):
             src = self.source_points
             if not src and self.json_path:
                 from ...utils.JsonUtil import JsonUtil
+
                 src = JsonUtil.load_records(self.json_path)
             for s in src:
                 canonical = MetadataFields.normalize_record_to_keys(s or {})
@@ -298,7 +302,9 @@ class PhotoEnrichmentTask(BaseTask):
         source_by_key = {}
         for p in self.source_points:
             try:
-                source_by_key[(str(p.get("mrk_folder", "")).strip(), int(p.get("foto")))] = p
+                source_by_key[
+                    (str(p.get("mrk_folder", "")).strip(), int(p.get("foto")))
+                ] = p
             except Exception:
                 continue
         for p in pontos:

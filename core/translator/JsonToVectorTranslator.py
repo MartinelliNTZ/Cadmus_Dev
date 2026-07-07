@@ -2,7 +2,7 @@
 import json
 from typing import List, Dict, Any, Optional, Tuple
 
-from qgis.core import QgsVectorLayer, QgsField, QgsPointXY
+from qgis.core import QgsVectorLayer, QgsPointXY
 from qgis.PyQt.QtCore import QVariant
 
 from ..config.LogUtils import LogUtils
@@ -55,10 +55,11 @@ class JsonToVectorTranslator:
         if source is None:
             # Tentar ler source do JSON raiz
             try:
-                with open(json_path, 'r', encoding='utf-8') as f:
+                with open(json_path, "r", encoding="utf-8") as f:
                     json_data = json.load(f)
                 source = json_data.get("source", "unknown")
-            except:
+            except Exception as e:
+                self.logger.warning(f"Erro ao ler source do JSON: {e}")
                 source = "unknown"
 
         # Resolver geometria para todos os registros
@@ -70,10 +71,14 @@ class JsonToVectorTranslator:
                 valid_records.append(record)
 
         if not valid_records:
-            raise ValueError(f"Nenhum registro com geometria válida encontrado")
+            raise ValueError(
+                f"Nenhum registro com geometria válida encontrado: {valid_records}"
+            )
 
         # Construir schema (usando todos os registros para inferir tipo corretamente)
-        schema = self._build_schema(valid_records[0], selected_keys, all_records=valid_records)
+        schema = self._build_schema(
+            valid_records[0], selected_keys, all_records=valid_records
+        )
 
         # Preparar registros para VectorLayerGeometry
         points = []
@@ -108,8 +113,8 @@ class JsonToVectorTranslator:
                 "total_records": len(records),
                 "valid_records": len(valid_records),
                 "schema_fields": len(schema),
-                "source": source
-            }
+                "source": source,
+            },
         )
 
         return layer
@@ -202,7 +207,6 @@ class JsonToVectorTranslator:
             return native_type
 
         # 2. Se é string no sample, varre todos os records em busca de valor numérico
-        is_string_but_numeric = False
         has_real_float = False
         has_real_int = False
         has_non_numeric = False
@@ -243,10 +247,10 @@ class JsonToVectorTranslator:
     def _resolve_geometry(self, record: Dict, source: str) -> Optional[QgsPointXY]:
         """
         Resolve coordenadas por tentativas (fallback chain).
-        
+
         Tenta fontes de coordenada em ordem decrescente de precisão,
         usando exclusivamente as chaves do MetadataFieldKey.
-        
+
         Ordem de tentativas:
         1. GpsLatitude/GpsLongitude (XMP do drone, ou mapeado de MRK via pipeline)
         2. Lat/Lon (coordenada original do MRK, não enriquecida)
@@ -322,7 +326,11 @@ class JsonToVectorTranslator:
                 p_list = list(p)
                 if len(p_list) >= 2:
                     try:
-                        return float(p_list[0]) / float(p_list[1]) if float(p_list[1]) != 0 else 0.0
+                        return (
+                            float(p_list[0]) / float(p_list[1])
+                            if float(p_list[1]) != 0
+                            else 0.0
+                        )
                     except (ValueError, ZeroDivisionError):
                         return 0.0
             try:

@@ -6,6 +6,7 @@ from PyQt5.QtCore import QVariant
 if TYPE_CHECKING:
     from ..enum import MetadataFieldKey
 
+
 @dataclass
 class Field:
     normalized: Optional[str] = None

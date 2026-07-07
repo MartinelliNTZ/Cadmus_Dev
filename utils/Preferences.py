@@ -84,33 +84,33 @@ class Preferences:
     def set_value_for_all_tools(pref_key, value, filter_by=None):
         """
         Define um valor em chave específica para ferramentas, com filtro opcional.
-        
+
         Exemplos:
-            - set_value_for_all_tools("main_action", False)  
+            - set_value_for_all_tools("main_action", False)
               → seta main_action=False para TODOS
             - set_value_for_all_tools("main_action", False, filter_by={"category": "VECTOR"})
               → seta apenas onde category=="VECTOR"
-        
+
         Args:
             pref_key (str): Chave a atualizar
             value: Novo valor
             filter_by (dict): Filtro opcional {chave: valor}
-        
+
         Returns:
             int: Número de ferramentas modificadas
         """
         if filter_by is None:
             filter_by = {}
-        
+
         prefs = Preferences.load_prefs()
         modified_count = 0
-        
+
         for tool_key in list(prefs.keys()):
             if not isinstance(prefs[tool_key], dict):
                 continue
-            
+
             tool_prefs = prefs[tool_key]
-            
+
             # Verificar filtro: TODAS as condições devem ser atendidas
             skip_tool = False
             if filter_by:
@@ -118,49 +118,51 @@ class Preferences:
                     if tool_prefs.get(filter_key) != filter_value:
                         skip_tool = True
                         break
-            
+
             if skip_tool:
                 continue
-            
+
             # Atualizar valor
             prefs[tool_key][pref_key] = value
             modified_count += 1
-        
+
         Preferences.save_prefs(prefs)
-        logger.debug(f"[set_value_for_all_tools] {modified_count} ferramentas atualizadas ('{pref_key}' → {value})")
-        
+        logger.debug(
+            f"[set_value_for_all_tools] {modified_count} ferramentas atualizadas ('{pref_key}' → {value})"
+        )
+
         return modified_count
 
     @staticmethod
     def delete_value_for_all_tools(pref_key, filter_by=None):
         """
         Deleta chave específica em ferramentas, com filtro opcional.
-        
+
         Exemplos:
-            - delete_value_for_all_tools("width")  
+            - delete_value_for_all_tools("width")
               → deleta "width" de TODOS
             - delete_value_for_all_tools("width", filter_by={"category": "VECTOR"})
               → deleta apenas onde category=="VECTOR"
-        
+
         Args:
             pref_key (str): Chave a deletar
             filter_by (dict): Filtro opcional {chave: valor}
-        
+
         Returns:
             int: Número de ferramentas modificadas
         """
         if filter_by is None:
             filter_by = {}
-        
+
         prefs = Preferences.load_prefs()
         deleted_count = 0
-        
+
         for tool_key in list(prefs.keys()):
             if not isinstance(prefs[tool_key], dict):
                 continue
-            
+
             tool_prefs = prefs[tool_key]
-            
+
             # Verificar filtro
             skip_tool = False
             if filter_by:
@@ -168,18 +170,20 @@ class Preferences:
                     if tool_prefs.get(filter_key) != filter_value:
                         skip_tool = True
                         break
-            
+
             if skip_tool:
                 continue
-            
+
             # Deletar chave se existir
             if pref_key in tool_prefs:
                 tool_prefs.pop(pref_key)
                 deleted_count += 1
-        
+
         Preferences.save_prefs(prefs)
-        logger.debug(f"[delete_value_for_all_tools] {deleted_count} ferramentas modificadas ('{pref_key}' deletado)")
-        
+        logger.debug(
+            f"[delete_value_for_all_tools] {deleted_count} ferramentas modificadas ('{pref_key}' deletado)"
+        )
+
         return deleted_count
 
 

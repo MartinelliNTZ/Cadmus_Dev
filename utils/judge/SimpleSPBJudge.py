@@ -2,7 +2,7 @@
 """
 SimpleSPBJudge — Juiz Simplificado de Segmentação
 ==================================================
-Versão leve focada em retas. Apenas calcula métricas de azimute 
+Versão leve focada em retas. Apenas calcula métricas de azimute
 por ponto, sem lógica de julgamento de quebra (ainda).
 
 Parâmetros de entrada:
@@ -49,19 +49,20 @@ class SimpleSPBJudge:
     Versão atual apenas calcula métricas; o julgamento (quebra) será
     implementado em fase posterior.
     """
-    
 
     from ..StringManager import StringManager
+
     DIVIDE_STRIP_FIELDS = StringManager.DIVIDE_STRIP_FIELDS
 
-    def __init__(self, *, layer=None, source_path: str = "", tool_key: str = ToolKey.UNTRACEABLE):
-        self.layer       = layer
+    def __init__(
+        self, *, layer=None, source_path: str = "", tool_key: str = ToolKey.UNTRACEABLE
+    ):
+        self.layer = layer
         self.source_path = source_path or (layer.source() if layer is not None else "")
-        self.tool_key    = tool_key
-        self.logger      = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
+        self.tool_key = tool_key
+        self.logger = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
         self.JUDGEMENT_MODES = ["ANGLE", "DISTANCE"]
         self.JUDGEMENT_MODE = self.JUDGEMENT_MODES[0]
-        
 
     # -------------------------------------------------------------------
     # Ponto de entrada público (mesma assinatura simplificada)
@@ -110,7 +111,7 @@ class SimpleSPBJudge:
 
         summary = {
             "total_points": len(ordered_points),
-            "total_shots": 0,       # sem julgamento ainda
+            "total_shots": 0,  # sem julgamento ainda
             "valid_shots": 0,
             "invalid_shots": 0,
             "source_path": self.source_path,
@@ -162,8 +163,10 @@ class SimpleSPBJudge:
             )
 
         # Determina onde ocorrem as quebras
-        break_points = [False] * n  # break_points[i] = True se há quebra ANTES do ponto i
-        break_reasons = [""] * n    # motivo simples da quebra no ponto i
+        break_points = [
+            False
+        ] * n  # break_points[i] = True se há quebra ANTES do ponto i
+        break_reasons = [""] * n  # motivo simples da quebra no ponto i
         # (i.e., o ponto i inicia um novo shot)
 
         # O primeiro ponto nunca é quebra (início da trilha)
@@ -255,7 +258,10 @@ class SimpleSPBJudge:
                 local_variation = max(delta_prev, delta_next)
 
                 # suspeita de gap (quase quebra por distância)
-                if max_distance_meters > 0.0 and distances[i] > max_distance_meters * 0.7:
+                if (
+                    max_distance_meters > 0.0
+                    and distances[i] > max_distance_meters * 0.7
+                ):
                     seg_type = "gap_suspect"
 
                 # trajetória muito estável
@@ -298,21 +304,25 @@ class SimpleSPBJudge:
             )
 
             updates[ordered_points[i]["fid"]] = {
-                StripOutputFieldKey.SHOT_ID.value:          str(validated_shot_ids[i]),
-                StripOutputFieldKey.OLD_SHOT_ID.value:      str(original_shot_ids[i]),
-                StripOutputFieldKey.SHOT_VALID.value:       0,
-                StripOutputFieldKey.AZIMUTH_INSTANT.value:  float(az_instant),
-                StripOutputFieldKey.AZIMUTH_MEAN.value:     float(az_instant),
-                StripOutputFieldKey.AZIMUTH_PREV.value:     float(prev_segment_az) if prev_segment_az is not None else 0.0,
-                StripOutputFieldKey.AZIMUTH_NEXT.value:     float(next_segment_az) if next_segment_az is not None else 0.0,
-                StripOutputFieldKey.DELTA_AZ_PREV.value:    float(delta_prev),
-                StripOutputFieldKey.DELTA_AZ_NEXT.value:    float(delta_next),
-                StripOutputFieldKey.DELTA_DISTANCE.value:   float(dd),
-                StripOutputFieldKey.SCORE.value:            0,
-                StripOutputFieldKey.SCORE_DIRECTION.value:  0,
+                StripOutputFieldKey.SHOT_ID.value: str(validated_shot_ids[i]),
+                StripOutputFieldKey.OLD_SHOT_ID.value: str(original_shot_ids[i]),
+                StripOutputFieldKey.SHOT_VALID.value: 0,
+                StripOutputFieldKey.AZIMUTH_INSTANT.value: float(az_instant),
+                StripOutputFieldKey.AZIMUTH_MEAN.value: float(az_instant),
+                StripOutputFieldKey.AZIMUTH_PREV.value: (
+                    float(prev_segment_az) if prev_segment_az is not None else 0.0
+                ),
+                StripOutputFieldKey.AZIMUTH_NEXT.value: (
+                    float(next_segment_az) if next_segment_az is not None else 0.0
+                ),
+                StripOutputFieldKey.DELTA_AZ_PREV.value: float(delta_prev),
+                StripOutputFieldKey.DELTA_AZ_NEXT.value: float(delta_next),
+                StripOutputFieldKey.DELTA_DISTANCE.value: float(dd),
+                StripOutputFieldKey.SCORE.value: 0,
+                StripOutputFieldKey.SCORE_DIRECTION.value: 0,
                 StripOutputFieldKey.SCORE_CONTINUITY.value: 0,
-                StripOutputFieldKey.SEG_TYPE.value:         seg_type,
-                StripOutputFieldKey.DELTA_TIME.value:       0.0,
+                StripOutputFieldKey.SEG_TYPE.value: seg_type,
+                StripOutputFieldKey.DELTA_TIME.value: 0.0,
                 StripOutputFieldKey.VELOCITY_INSTANT.value: 0.0,
             }
 
@@ -340,13 +350,15 @@ class SimpleSPBJudge:
         if layer.fields().lookupField(field_id) == -1:
             raise RuntimeError(f"Campo de ID nao encontrado: {field_id}")
         if field_time and layer.fields().lookupField(field_time) == -1:
-            raise RuntimeError(f"Campo de timestamp '{field_time}' nao encontrado na camada.")
+            raise RuntimeError(
+                f"Campo de timestamp '{field_time}' nao encontrado na camada."
+            )
 
     def _load_ordered_points(self, layer, field_id, field_time):
         from datetime import datetime
 
-        t0       = time.time()
-        ordered  = []
+        t0 = time.time()
+        ordered = []
         use_time = bool(field_time)
         for feature in layer.getFeatures():
             geometry = feature.geometry()
@@ -359,18 +371,24 @@ class SimpleSPBJudge:
             if use_time:
                 ts = self._parse_timestamp(feature.attribute(field_time))
                 timestamp = ts if ts is not None else 0.0
-            ordered.append({
-                "fid":          feature.id(),
-                "seq_id_sort":  self._build_sort_key(feature.attribute(field_id)),
-                "timestamp":    timestamp,
-                "point":        point,
-            })
+            ordered.append(
+                {
+                    "fid": feature.id(),
+                    "seq_id_sort": self._build_sort_key(feature.attribute(field_id)),
+                    "timestamp": timestamp,
+                    "point": point,
+                }
+            )
         ordered.sort(key=lambda x: (x["seq_id_sort"], x["timestamp"], x["fid"]))
-        self.logger.info("Pontos carregados (simples)", valid=len(ordered), elapsed=round(time.time() - t0, 2))
+        self.logger.info(
+            "Pontos carregados (simples)",
+            valid=len(ordered),
+            elapsed=round(time.time() - t0, 2),
+        )
         return ordered
 
     def _resolve_output_fields(self, layer):
-        resolved   = {}
+        resolved = {}
         for logical_key, field_spec in self.DIVIDE_STRIP_FIELDS.items():
             resolved[logical_key] = field_spec.attribute
         return resolved
@@ -388,6 +406,7 @@ class SimpleSPBJudge:
     @staticmethod
     def _parse_timestamp(value):
         from datetime import datetime
+
         if value is None:
             return None
         if hasattr(value, "toSecsSinceEpoch"):
@@ -440,7 +459,12 @@ class SimpleSPBJudge:
             field_name = field_name_map[logical_key]
             if new_fields.lookupField(field_name) == -1:
                 new_fields.append(
-                    QgsField(field_name, field_spec.type, len=field_spec.length, prec=field_spec.precision)
+                    QgsField(
+                        field_name,
+                        field_spec.type,
+                        len=field_spec.length,
+                        prec=field_spec.precision,
+                    )
                 )
 
         new_layer.dataProvider().addAttributes(new_fields)
@@ -457,9 +481,12 @@ class SimpleSPBJudge:
                 new_feature.setAttribute(field.name(), feature.attribute(field.name()))
             for attr_key, attr_val in updates[fid].items():
                 resolved = field_name_map.get(attr_key, attr_key)
-                idx      = new_layer.fields().lookupField(resolved)
+                idx = new_layer.fields().lookupField(resolved)
                 if idx >= 0:
-                    if attr_key == StripOutputFieldKey.SHOT_ID.value and attr_val is not None:
+                    if (
+                        attr_key == StripOutputFieldKey.SHOT_ID.value
+                        and attr_val is not None
+                    ):
                         attr_val = str(attr_val)
                     new_feature.setAttribute(idx, attr_val)
             new_layer.addFeature(new_feature)
@@ -473,5 +500,3 @@ class SimpleSPBJudge:
             elapsed=round(time.time() - t0, 2),
         )
         return new_layer
-
-

@@ -75,7 +75,10 @@ class RangeMetadataManager:
         if not thresh:
             return []
         levels = thresh.get("levels", [])
-        return [RangeMetadataManager._parse_num(l) if not isinstance(l, list) else l for l in levels]
+        return [
+            RangeMetadataManager._parse_num(l) if not isinstance(l, list) else l
+            for l in levels
+        ]
 
     @staticmethod
     def _parse_num(raw: Any) -> float:
@@ -85,7 +88,14 @@ class RangeMetadataManager:
         if isinstance(raw, (int, float)):
             return float(raw)
         text = str(raw).strip().lower()
-        if text in {"inf", "+inf", "infinity", "+infinity", "float('inf')", 'float("inf")'}:
+        if text in {
+            "inf",
+            "+inf",
+            "infinity",
+            "+infinity",
+            "float('inf')",
+            'float("inf")',
+        }:
             return math.inf
         if text in {"-inf", "-infinity", "float('-inf')", 'float("-inf")'}:
             return -math.inf
@@ -132,8 +142,12 @@ class RangeMetadataManager:
         elif ttype == "range_best":
             for i, interval in enumerate(levels):
                 if isinstance(interval, list):
-                    minv = self._parse_num(interval[0]) if len(interval) > 0 else -math.inf
-                    maxv = self._parse_num(interval[1]) if len(interval) > 1 else math.inf
+                    minv = (
+                        self._parse_num(interval[0]) if len(interval) > 0 else -math.inf
+                    )
+                    maxv = (
+                        self._parse_num(interval[1]) if len(interval) > 1 else math.inf
+                    )
                 else:
                     minv, maxv = -math.inf, self._parse_num(interval)
                 maxv = math.inf if maxv is None else maxv

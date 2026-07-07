@@ -68,7 +68,9 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
 
         source = layer.source().lower()
         if source.endswith(".kml") or (
-            "|layername=" in source and source.startswith("file://") and ".kml" in source
+            "|layername=" in source
+            and source.startswith("file://")
+            and ".kml" in source
         ):
             self.logger.warning("Camada KML não pode ser editada")
             QgisMessageUtil.bar_critical(
@@ -216,12 +218,14 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
 
     def _resolve_calculation_mode(self, layer, requested_mode):
         """Valida e ajusta modo de cálculo.
-        
+
         Fluxo correto:
         - Se modo solicitado é Cartesiano E CRS é geográfico → força Ambos
         - Caso contrário (Elipsoidal, Ambos, ou Cartesiano em CRS projetado) → segue solicitado
         """
-        if requested_mode == STR.CARTESIAN and VectorLayerProjection.is_geographic_crs(layer):
+        if requested_mode == STR.CARTESIAN and VectorLayerProjection.is_geographic_crs(
+            layer
+        ):
             self.logger.warning(
                 "Modo Cartesiano em CRS geográfico -> calculando ambos os modos"
             )

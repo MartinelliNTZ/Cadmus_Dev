@@ -131,25 +131,25 @@ class XmpUtil:
         """
         Tenta converter valor string para int ou float.
         Mantem string original se falhar.
-        
+
         Lida com: '+123.4', '-89.90', '1.20000', '50', '-1', '0.000'
         """
         if value is None:
             return None
         if not isinstance(value, str):
             return value
-            
+
         raw = value.strip().replace("+", "")
         if not raw or raw.lower() in ("none", "null", "nan", "inf"):
             return value
-        
+
         # Tenta int primeiro (se nao tiver ponto decimal)
         if "." not in raw:
             try:
                 return int(raw)
             except (ValueError, TypeError):
                 pass
-        
+
         # Tenta float
         try:
             return float(raw)
@@ -159,7 +159,7 @@ class XmpUtil:
     @staticmethod
     def parse_dewarp_string(dewarp_raw: str) -> dict:
         """
-        Interpreta a string XMP:DewarpData e retorna dicionario com 
+        Interpreta a string XMP:DewarpData e retorna dicionario com
         campos individuais (DewarpDate, DewarpFocalX, ...).
 
         As chaves retornadas sao os valores dos enum MetadataFieldKey
@@ -218,25 +218,25 @@ class XmpUtil:
     def _sanitize_metadata(data: dict, logger: LogUtils) -> dict:
         """
         Valida e sanitiza metadata contra MetadataFields.
-        
+
         Mapeia nomes de campos ilegais para campos canonicos usando MetadataFields.sanitize_field_name().
         Campos nao autorizados sao ignorados.
         Converte valores numericos de string para float/int automaticamente.
-        
+
         Args:
             data: Dicionario bruto com campos potencialmente ilegais
             logger: Logger para registrar campos rejeitados
-            
+
         Returns:
             Dicionario com apenas campos autorizados, com nomes sanitizados e valores convertidos
         """
         sanitized = {}
         rejected = []
-        
+
         for field_name, field_value in data.items():
             # Tenta sanitizar o nome do campo
             canonical_name = MetadataFields.sanitize_field_name(field_name)
-            
+
             if canonical_name:
                 # Campo e autorizado - converte valor para numerico se possivel
                 if canonical_name not in sanitized:
@@ -244,18 +244,20 @@ class XmpUtil:
             else:
                 # Campo nao e autorizado - registra rejeicao
                 rejected.append(field_name)
-        
+
         # Log de campos rejeitados
         if rejected:
-            logger.debug(f"Campos rejeitados (nao autorizados em MetadataFields): {sorted(set(rejected))}")
-        
+            logger.debug(
+                f"Campos rejeitados (nao autorizados em MetadataFields): {sorted(set(rejected))}"
+            )
+
         return sanitized
 
     @staticmethod
     def _extract_file_metadata(image_path: str) -> dict:
         """
         Extrai metadados do arquivo do sistema operacional.
-        
+
         Retorna campos CANONICOS (legalizados em MetadataFields):
         - File: nome do arquivo
         - Path: caminho completo
@@ -276,14 +278,14 @@ class XmpUtil:
     def extract_metadata(image_path: str, tool_key: str = ToolKey.UNTRACEABLE) -> dict:
         """
         Extrai metadados XMP de uma imagem com validacao contra MetadataFields.
-        
+
         Apenas campos autorizados em MetadataFields sao retornados.
         Campos ilegais sao silenciosamente descartados (log em DEBUG).
-        
+
         Args:
             image_path: Caminho para a imagem
             tool_key: Chave de ferramenta para logging
-            
+
         Returns:
             Dicionario com metadados sanitizados (apenas campos autorizados)
         """
@@ -293,7 +295,7 @@ class XmpUtil:
         try:
             # Extrai metadados do arquivo (retorna nomes canonicos)
             data = XmpUtil._extract_file_metadata(image_path)
-            
+
             # Extrai XMP bruto
             xmp_text = XmpUtil._extract_xmp_text_raw(image_path)
             if not xmp_text:
@@ -302,13 +304,15 @@ class XmpUtil:
 
             xmp_data = XmpUtil._parse_xmp_xml(xmp_text)
             if "xmp_erro" in xmp_data:
-                logger.warning(f"Erro ao parsear XMP em {image_path}: {xmp_data.get('xmp_erro')}")
+                logger.warning(
+                    f"Erro ao parsear XMP em {image_path}: {xmp_data.get('xmp_erro')}"
+                )
                 return data
 
             # SANITIZA dados XMP antes de adicionar ao resultado
             ordered_data = XmpUtil._order_fields_by_priority(xmp_data)
             sanitized_xmp = XmpUtil._sanitize_metadata(ordered_data, logger)
-            
+
             # ── Parsing do DewarpData ──
             # O campo bruto "drone-dji:DewarpData" nao e autorizado em MetadataFields,
             # mas seus valores individuais (focal_x, cx, cy, k1..k3, p1..p2, date) sao.
@@ -322,11 +326,11 @@ class XmpUtil:
                     # pelo sanitize_field_name / _sanitize_metadata
                     sanitized_dewarp = XmpUtil._sanitize_metadata(dewarp_parsed, logger)
                     sanitized_xmp.update(sanitized_dewarp)
-            
+
             # Mescla dados sanitizados
             data.update(sanitized_xmp)
             return data
-            
+
         except Exception as exc:
             logger.error(f"Erro ao extrair metadata XMP de {image_path}: {exc}")
             # Retorna pelo menos os metadados de arquivo (legalizados)
@@ -349,7 +353,9 @@ class XmpUtil:
 
                 full_path = os.path.join(root, name)
                 try:
-                    all_data.append(XmpUtil.extract_metadata(full_path, tool_key=tool_key))
+                    all_data.append(
+                        XmpUtil.extract_metadata(full_path, tool_key=tool_key)
+                    )
                 except Exception as exc:
                     all_data.append(
                         {

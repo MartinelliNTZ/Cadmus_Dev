@@ -49,19 +49,19 @@ class ScoreSPBJudge:
       - Segundo ponto de cada shot contribui com peso 2 para a votação.
     """
 
-    
-
     from ..StringManager import StringManager
+
     DIVIDE_STRIP_FIELDS = StringManager.DIVIDE_STRIP_FIELDS
 
-    def __init__(self, *, layer=None, source_path: str = "", tool_key: str = ToolKey.UNTRACEABLE):
-        self.layer       = layer
+    def __init__(
+        self, *, layer=None, source_path: str = "", tool_key: str = ToolKey.UNTRACEABLE
+    ):
+        self.layer = layer
         self.source_path = source_path or (layer.source() if layer is not None else "")
-        self.tool_key    = tool_key
-        self.logger      = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
+        self.tool_key = tool_key
+        self.logger = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
         self.JUDGEMENT_MODES = ["ANGLE", "DISTANCE"]
         self.JUDGEMENT_MODE = self.JUDGEMENT_MODES[0]
-        
 
     # -------------------------------------------------------------------
     # Ponto de entrada público (mesma assinatura simplificada)
@@ -110,7 +110,7 @@ class ScoreSPBJudge:
 
         summary = {
             "total_points": len(ordered_points),
-            "total_shots": 0,       # sem julgamento ainda
+            "total_shots": 0,  # sem julgamento ainda
             "valid_shots": 0,
             "invalid_shots": 0,
             "source_path": self.source_path,
@@ -151,39 +151,44 @@ class ScoreSPBJudge:
         if n == 0:
             return {}
 
-        N             = max_deviation_points
+        N = max_deviation_points
         # Limiar individual: um candidato é "diferente" se desviar mais que este valor
         sub_threshold = severe_azimuth_threshold / max(N, 1)
 
         # ── Pré-computa azimutes brutos e distâncias ─────────────────────────
         # raw_az[i]   = azimute do segmento (i-1) → i   (None para i=0)
         # distances[i]= distância do segmento (i-1) → i (0.0 para i=0)
-        raw_az:    list[Optional[float]] = [None] * n
-        distances: list[float]           = [0.0]  * n
+        raw_az: list[Optional[float]] = [None] * n
+        distances: list[float] = [0.0] * n
 
         for i in range(1, n):
             p1, p2 = ordered_points[i - 1], ordered_points[i]
-            raw_az[i]    = float(VectorLayerGeometry.calculate_point_azimuth(
-                p1["point"], p2["point"]
-            )) % 360.0
+            raw_az[i] = (
+                float(
+                    VectorLayerGeometry.calculate_point_azimuth(
+                        p1["point"], p2["point"]
+                    )
+                )
+                % 360.0
+            )
             distances[i] = VectorLayerGeometry.measure_distance_between_points(
                 p1["point"], p2["point"], crs
             )
 
         # ── Arrays de estado ─────────────────────────────────────────────────
-        scores    = [0]       * n   # votos acumulados (candidato a quebra)
-        shot_ids  = [1]       * n   # id do shot original (antes de validar min)
-        seg_types = ["noisy"] * n   # tipo semântico do segmento
-        is_start  = [False]   * n   # True: ponto inicia um novo shot
-        is_second = [False]   * n   # True: segundo ponto do shot (sem prev completo)
+        scores = [0] * n  # votos acumulados (candidato a quebra)
+        shot_ids = [1] * n  # id do shot original (antes de validar min)
+        seg_types = ["noisy"] * n  # tipo semântico do segmento
+        is_start = [False] * n  # True: ponto inicia um novo shot
+        is_second = [False] * n  # True: segundo ponto do shot (sem prev completo)
 
         # Ponto 0 é sempre o início do shot 1
-        is_start[0]  = True
+        is_start[0] = True
         if n > 1:
             is_second[1] = True
 
-        current_shot       = 1
-        current_shot_start = 0   # índice do início do shot atual
+        current_shot = 1
+        current_shot_start = 0  # índice do início do shot atual
 
         # ── Passagem principal ───────────────────────────────────────────────
         for i in range(n):
@@ -196,17 +201,17 @@ class ScoreSPBJudge:
                 and max_distance_meters > 0.0
                 and distances[i] > max_distance_meters
             ):
-                current_shot      += 1
+                current_shot += 1
                 current_shot_start = i
-                is_start[i]        = True
-                is_second[i]       = False          # cancela eventual "second" anterior
+                is_start[i] = True
+                is_second[i] = False  # cancela eventual "second" anterior
                 if i + 1 < n:
                     is_second[i + 1] = True
-                for j in range(i + 1, n):           # zera todos os scores futuros
+                for j in range(i + 1, n):  # zera todos os scores futuros
                     scores[j] = 0
-                shot_ids[i]  = current_shot
+                shot_ids[i] = current_shot
                 seg_types[i] = "break_distance"
-                continue                             # não processa mais nada para este ponto
+                continue  # não processa mais nada para este ponto
 
             # ── (B) Quebra por score acumulado ───────────────────────────────
             # ── (B) Quebra por score acumulado ───────────────────────────────
@@ -215,18 +220,20 @@ class ScoreSPBJudge:
                 prev_score = scores[i - 1] if i - 1 >= 0 else 0
                 if next_score == 0 and prev_score == 0:
                     seg_types[i] = "outlier"
-                    LogUtils(tool=self.tool_key, class_name=self.__class__.__name__).debug(
+                    LogUtils(
+                        tool=self.tool_key, class_name=self.__class__.__name__
+                    ).debug(
                         f"Ponto marcado como outlier por score alto {next_score} → {prev_score} namas sem suporte de vizinhos",
                         index=i,
                         score=scores[i],
                     )
                 else:
-                    current_shot      += 1
+                    current_shot += 1
                     current_shot_start = i
-                    is_start[i]        = True
+                    is_start[i] = True
                     if i + 1 < n:
                         is_second[i + 1] = True
-                    for j in range(i + 1, n):       # zera todos os scores futuros
+                    for j in range(i + 1, n):  # zera todos os scores futuros
                         scores[j] = 0
                     # seg_type será "break_direction" — definido abaixo após atribuir shot_id
 
@@ -249,11 +256,9 @@ class ScoreSPBJudge:
             # ── Baseline: circular_mean dos últimos N segmentos do shot atual ─
             # Segmentos considerados: raw_az[prev_start] … raw_az[i]
             # onde prev_start garante que não cruzamos a fronteira do shot.
-            prev_start   = max(current_shot_start + 1, i - N + 1)
+            prev_start = max(current_shot_start + 1, i - N + 1)
             prev_az_list = [
-                raw_az[j]
-                for j in range(prev_start, i + 1)
-                if raw_az[j] is not None
+                raw_az[j] for j in range(prev_start, i + 1) if raw_az[j] is not None
             ]
             if not prev_az_list:
                 continue
@@ -272,10 +277,9 @@ class ScoreSPBJudge:
                         scores[j] += score_inc
 
         # ── Valida tamanho mínimo de shot ────────────────────────────────────
-        shot_sizes        = Counter(shot_ids)
+        shot_sizes = Counter(shot_ids)
         validated_shot_ids = [
-            sid if shot_sizes[sid] >= minimum_point_count else 0
-            for sid in shot_ids
+            sid if shot_sizes[sid] >= minimum_point_count else 0 for sid in shot_ids
         ]
 
         # ── Refina seg_types para pontos "normais" (ainda "noisy") ───────────
@@ -314,9 +318,9 @@ class ScoreSPBJudge:
         updates: dict[int, dict] = {}
 
         for i in range(n):
-            prev_az = raw_az[i]           if i >= 1     else None
-            next_az = raw_az[i + 1]       if i + 1 < n  else None
-            dd      = distances[i]
+            prev_az = raw_az[i] if i >= 1 else None
+            next_az = raw_az[i + 1] if i + 1 < n else None
+            dd = distances[i]
 
             # az_instant: média axial entre segmento de chegada e de saída
             if prev_az is not None and next_az is not None:
@@ -331,30 +335,38 @@ class ScoreSPBJudge:
             # Deltas locais (ângulo entre az_instant e cada segmento adjacente)
             delta_prev = (
                 MathUtils.angular_diff(az_instant, prev_az)
-                if prev_az is not None else 0.0
+                if prev_az is not None
+                else 0.0
             )
             delta_next = (
                 MathUtils.angular_diff(az_instant, next_az)
-                if next_az is not None else 0.0
+                if next_az is not None
+                else 0.0
             )
 
             updates[ordered_points[i]["fid"]] = {
-                StripOutputFieldKey.SHOT_ID.value:           str(validated_shot_ids[i]),
-                StripOutputFieldKey.OLD_SHOT_ID.value:       str(shot_ids[i]),
-                StripOutputFieldKey.SHOT_VALID.value:        1 if validated_shot_ids[i] != 0 else 0,
-                StripOutputFieldKey.AZIMUTH_INSTANT.value:   float(az_instant),
-                StripOutputFieldKey.AZIMUTH_MEAN.value:      float(az_instant),
-                StripOutputFieldKey.AZIMUTH_PREV.value:      float(prev_az)  if prev_az is not None else 0.0,
-                StripOutputFieldKey.AZIMUTH_NEXT.value:      float(next_az)  if next_az is not None else 0.0,
-                StripOutputFieldKey.DELTA_AZ_PREV.value:     float(delta_prev),
-                StripOutputFieldKey.DELTA_AZ_NEXT.value:     float(delta_next),
-                StripOutputFieldKey.DELTA_DISTANCE.value:    float(dd),
-                StripOutputFieldKey.SCORE.value:             scores[i],
-                StripOutputFieldKey.SCORE_DIRECTION.value:   scores[i],
-                StripOutputFieldKey.SCORE_CONTINUITY.value:  0,
-                StripOutputFieldKey.SEG_TYPE.value:          seg_types[i],
-                StripOutputFieldKey.DELTA_TIME.value:        0.0,
-                StripOutputFieldKey.VELOCITY_INSTANT.value:  0.0,
+                StripOutputFieldKey.SHOT_ID.value: str(validated_shot_ids[i]),
+                StripOutputFieldKey.OLD_SHOT_ID.value: str(shot_ids[i]),
+                StripOutputFieldKey.SHOT_VALID.value: (
+                    1 if validated_shot_ids[i] != 0 else 0
+                ),
+                StripOutputFieldKey.AZIMUTH_INSTANT.value: float(az_instant),
+                StripOutputFieldKey.AZIMUTH_MEAN.value: float(az_instant),
+                StripOutputFieldKey.AZIMUTH_PREV.value: (
+                    float(prev_az) if prev_az is not None else 0.0
+                ),
+                StripOutputFieldKey.AZIMUTH_NEXT.value: (
+                    float(next_az) if next_az is not None else 0.0
+                ),
+                StripOutputFieldKey.DELTA_AZ_PREV.value: float(delta_prev),
+                StripOutputFieldKey.DELTA_AZ_NEXT.value: float(delta_next),
+                StripOutputFieldKey.DELTA_DISTANCE.value: float(dd),
+                StripOutputFieldKey.SCORE.value: scores[i],
+                StripOutputFieldKey.SCORE_DIRECTION.value: scores[i],
+                StripOutputFieldKey.SCORE_CONTINUITY.value: 0,
+                StripOutputFieldKey.SEG_TYPE.value: seg_types[i],
+                StripOutputFieldKey.DELTA_TIME.value: 0.0,
+                StripOutputFieldKey.VELOCITY_INSTANT.value: 0.0,
             }
 
         return updates
@@ -381,13 +393,15 @@ class ScoreSPBJudge:
         if layer.fields().lookupField(field_id) == -1:
             raise RuntimeError(f"Campo de ID nao encontrado: {field_id}")
         if field_time and layer.fields().lookupField(field_time) == -1:
-            raise RuntimeError(f"Campo de timestamp '{field_time}' nao encontrado na camada.")
+            raise RuntimeError(
+                f"Campo de timestamp '{field_time}' nao encontrado na camada."
+            )
 
     def _load_ordered_points(self, layer, field_id, field_time):
         from datetime import datetime
 
-        t0       = time.time()
-        ordered  = []
+        t0 = time.time()
+        ordered = []
         use_time = bool(field_time)
         for feature in layer.getFeatures():
             geometry = feature.geometry()
@@ -400,18 +414,24 @@ class ScoreSPBJudge:
             if use_time:
                 ts = self._parse_timestamp(feature.attribute(field_time))
                 timestamp = ts if ts is not None else 0.0
-            ordered.append({
-                "fid":          feature.id(),
-                "seq_id_sort":  self._build_sort_key(feature.attribute(field_id)),
-                "timestamp":    timestamp,
-                "point":        point,
-            })
+            ordered.append(
+                {
+                    "fid": feature.id(),
+                    "seq_id_sort": self._build_sort_key(feature.attribute(field_id)),
+                    "timestamp": timestamp,
+                    "point": point,
+                }
+            )
         ordered.sort(key=lambda x: (x["seq_id_sort"], x["timestamp"], x["fid"]))
-        self.logger.info("Pontos carregados (simples)", valid=len(ordered), elapsed=round(time.time() - t0, 2))
+        self.logger.info(
+            "Pontos carregados (simples)",
+            valid=len(ordered),
+            elapsed=round(time.time() - t0, 2),
+        )
         return ordered
 
     def _resolve_output_fields(self, layer):
-        resolved   = {}
+        resolved = {}
         for logical_key, field_spec in self.DIVIDE_STRIP_FIELDS.items():
             resolved[logical_key] = field_spec.attribute
         return resolved
@@ -429,6 +449,7 @@ class ScoreSPBJudge:
     @staticmethod
     def _parse_timestamp(value):
         from datetime import datetime
+
         if value is None:
             return None
         if hasattr(value, "toSecsSinceEpoch"):
@@ -481,7 +502,12 @@ class ScoreSPBJudge:
             field_name = field_name_map[logical_key]
             if new_fields.lookupField(field_name) == -1:
                 new_fields.append(
-                    QgsField(field_name, field_spec.type, len=field_spec.length, prec=field_spec.precision)
+                    QgsField(
+                        field_name,
+                        field_spec.type,
+                        len=field_spec.length,
+                        prec=field_spec.precision,
+                    )
                 )
 
         new_layer.dataProvider().addAttributes(new_fields)
@@ -498,9 +524,12 @@ class ScoreSPBJudge:
                 new_feature.setAttribute(field.name(), feature.attribute(field.name()))
             for attr_key, attr_val in updates[fid].items():
                 resolved = field_name_map.get(attr_key, attr_key)
-                idx      = new_layer.fields().lookupField(resolved)
+                idx = new_layer.fields().lookupField(resolved)
                 if idx >= 0:
-                    if attr_key == StripOutputFieldKey.SHOT_ID.value and attr_val is not None:
+                    if (
+                        attr_key == StripOutputFieldKey.SHOT_ID.value
+                        and attr_val is not None
+                    ):
                         attr_val = str(attr_val)
                     new_feature.setAttribute(idx, attr_val)
             new_layer.addFeature(new_feature)
@@ -514,5 +543,3 @@ class ScoreSPBJudge:
             elapsed=round(time.time() - t0, 2),
         )
         return new_layer
-
-

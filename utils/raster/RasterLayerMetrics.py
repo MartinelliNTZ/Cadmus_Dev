@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 from ..ToolKeys import ToolKey
 from ...core.config.LogUtils import LogUtils
@@ -100,7 +100,9 @@ class RasterLayerMetrics:
         finally:
             ds = None
 
-        logger.debug(f"get_band_percentiles: {lower_pct}%={p_low:.7f}, {upper_pct}%={p_high:.7f}")
+        logger.debug(
+            f"get_band_percentiles: {lower_pct}%={p_low:.7f}, {upper_pct}%={p_high:.7f}"
+        )
         return p_low, p_high
 
     # ------------------------------------------------------------------

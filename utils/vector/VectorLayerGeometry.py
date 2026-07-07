@@ -303,8 +303,6 @@ class VectorLayerGeometry:
             )
             return None
         return vl
-    
-
 
     def natural_sort_key(value: Union[str, int, float, None]) -> Tuple:
         """
@@ -319,14 +317,14 @@ class VectorLayerGeometry:
             None   -> ('',)  # ou (float('-inf'),)
         """
         if value is None:
-            return ('',)  # valores nulos vão para o início
+            return ("",)  # valores nulos vão para o início
 
         if isinstance(value, (int, float)):
             return (value,)
 
         # Converte para string e separa partes numéricas e não numéricas
         s = str(value)
-        parts = re.split(r'(\d+)', s)  # ex: 'A10' -> ['A', '10', '']
+        parts = re.split(r"(\d+)", s)  # ex: 'A10' -> ['A', '10', '']
         key_parts = []
         for part in parts:
             if part.isdigit():
@@ -335,7 +333,6 @@ class VectorLayerGeometry:
                 key_parts.append(part)
         return tuple(key_parts)
 
-    
     @staticmethod
     def create_line_layer_from_points(
         points: list,
@@ -400,8 +397,7 @@ class VectorLayerGeometry:
             groups: dict = {}
             for feat in points:
                 key = tuple(
-                    str(_safe_attribute(feat, f) or "").strip()
-                    for f in group_by_fields
+                    str(_safe_attribute(feat, f) or "").strip() for f in group_by_fields
                 )
                 groups.setdefault(key, []).append(feat)
         else:
@@ -415,12 +411,14 @@ class VectorLayerGeometry:
             for spec in output_field_specs:
                 if not spec:
                     continue
-                fields.append(QgsField(
-                    spec[0],
-                    spec[1] if len(spec) > 1 else QVariant.String,
-                    len=spec[2] if len(spec) > 2 else 0,
-                    prec=spec[3] if len(spec) > 3 else 0,
-                ))
+                fields.append(
+                    QgsField(
+                        spec[0],
+                        spec[1] if len(spec) > 1 else QVariant.String,
+                        len=spec[2] if len(spec) > 2 else 0,
+                        prec=spec[3] if len(spec) > 3 else 0,
+                    )
+                )
 
         elif attribute_fields:
             seen = set()
@@ -460,7 +458,9 @@ class VectorLayerGeometry:
                 except TypeError:
                     custom_attrs = attributes_resolver(group) or {}
                 except Exception as e:
-                    logger.warning(f"attributes_resolver falhou para grupo {group_key}: {e}")
+                    logger.warning(
+                        f"attributes_resolver falhou para grupo {group_key}: {e}"
+                    )
                     custom_attrs = {}
                 for attr_name, attr_value in custom_attrs.items():
                     if line_layer.fields().lookupField(attr_name) != -1:
@@ -555,7 +555,7 @@ class VectorLayerGeometry:
         merged.updateExtents()
         merged.updateFields()
         return merged
-    
+
     @staticmethod
     def create_buffer_geometry(
         *,
@@ -574,7 +574,9 @@ class VectorLayerGeometry:
         logger.debug(
             f"create_buffer_geometry: distance={distance}, segments={segments}, dissolve={dissolve}"
         )
-        if VectorLayerGeometry.get_layer_type(layer, tool_key=external_tool_key) not in (
+        if VectorLayerGeometry.get_layer_type(
+            layer, tool_key=external_tool_key
+        ) not in (
             QgsWkbTypes.PointGeometry,
             QgsWkbTypes.LineGeometry,
             QgsWkbTypes.PolygonGeometry,
@@ -650,7 +652,10 @@ class VectorLayerGeometry:
 
         logger = VectorLayerGeometry._get_logger(external_tool_key)
         logger.debug(f"explode_multipart_features(layer={layer})")
-        if VectorLayerGeometry.get_layer_type(layer, tool_key=external_tool_key) == QgsWkbTypes.LineGeometry:
+        if (
+            VectorLayerGeometry.get_layer_type(layer, tool_key=external_tool_key)
+            == QgsWkbTypes.LineGeometry
+        ):
             result = processing.run(
                 "native:explodelines",
                 {"INPUT": layer, "OUTPUT": "memory:"},
@@ -681,7 +686,10 @@ class VectorLayerGeometry:
 
     @staticmethod
     def explode_lines_to_path_safe(
-        *, layer: QgsVectorLayer, output_path: str, external_tool_key=ToolKey.UNTRACEABLE
+        *,
+        layer: QgsVectorLayer,
+        output_path: str,
+        external_tool_key=ToolKey.UNTRACEABLE,
     ) -> str:
         """
         Explode linhas (LineString / MultiLineString) manualmente.
@@ -879,7 +887,9 @@ class VectorLayerGeometry:
         logger.debug(f"convert_geometry_type(layer={layer}, target_type={target_type})")
         pass
 
-    def simplify_geometry(self, layer, tolerance, external_tool_key=ToolKey.UNTRACEABLE):
+    def simplify_geometry(
+        self, layer, tolerance, external_tool_key=ToolKey.UNTRACEABLE
+    ):
         """Simplifica geometrias reduzindo vértices mantendo forma geral."""
         logger = VectorLayerGeometry._get_logger(external_tool_key)
         logger.debug(f"simplify_geometry(layer={layer}, tolerance={tolerance})")
@@ -917,10 +927,14 @@ class VectorLayerGeometry:
         )
         pass
 
-    def get_geometry_union(self, geometry1, geometry2, external_tool_key=ToolKey.UNTRACEABLE):
+    def get_geometry_union(
+        self, geometry1, geometry2, external_tool_key=ToolKey.UNTRACEABLE
+    ):
         """Calcula a união entre duas geometrias."""
         logger = VectorLayerGeometry._get_logger(external_tool_key)
-        logger.debug(f"get_geometry_union(geometry1={geometry1}, geometry2={geometry2})")
+        logger.debug(
+            f"get_geometry_union(geometry1={geometry1}, geometry2={geometry2})"
+        )
         pass
 
     def dissolve_geometries_by_attribute(

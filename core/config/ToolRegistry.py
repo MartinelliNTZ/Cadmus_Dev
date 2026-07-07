@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
-import traceback
 from ..model.Tool import Tool
 from ...resources.IconManager import IconManager as im
 from .LogUtils import LogUtils
@@ -17,7 +15,7 @@ class ToolRegistry:
     SYSTEM, LAYOUTS, FOLDER, VECTOR, AGRICULTURE, RASTER = (
         StringManager.MENU_CATEGORIES.keys()
     )
-    
+
     _instance = None  # Singleton instance
 
     @classmethod
@@ -28,26 +26,30 @@ class ToolRegistry:
     def __init__(self, iface):
         self.iface = iface
         self.logger = LogUtils(tool=ToolKey.SYSTEM, class_name="ToolRegistry")
-        
-        self.logger.info("[ToolRegistry.__init__] Inicializando ToolRegistry (singleton)")
-        
+
+        self.logger.info(
+            "[ToolRegistry.__init__] Inicializando ToolRegistry (singleton)"
+        )
+
         # Inicializar vazio, será carregado
         self._main_action_prefs = {}
-        
+
         # Criar ToolList lendo Preferences UMA ÚNICA VEZ
         self.tools = self._create_tool_list()
-        
+
         # Salvar metadata
         self._save_tool_metadata()
-        
+
         # Validar e atualizar main_actions
         self._main_action_prefs = self._load_and_validate_main_actions_strict()
-        
+
         # Recriar tools com main_actions validadas
         self.tools = self._create_tool_list()
-        
-        self.logger.info(f"[ToolRegistry.__init__] ✓ Inicializado com {len(self.tools)} ferramentas")
-        
+
+        self.logger.info(
+            f"[ToolRegistry.__init__] ✓ Inicializado com {len(self.tools)} ferramentas"
+        )
+
         # Armazenar como singleton
         ToolRegistry._instance = self
         self._package = __package__
@@ -146,7 +148,6 @@ class ToolRegistry:
             f"{main_action_prefs}"
         )
         return main_action_prefs
-
 
     def _create_tool_list(self):
         tools = []
@@ -300,7 +301,9 @@ class ToolRegistry:
             category=self.VECTOR,
             tool_type=ToolTypeEnum.INSTANT,
             main_action=self._main_action_prefs.get(ToolKey.VECTOR_FIELDS, True),
-            executor=self._make_plugin_executor("...plugins.VectorFieldsCalculationPlugin"),
+            executor=self._make_plugin_executor(
+                "...plugins.VectorFieldsCalculationPlugin"
+            ),
             tooltip=STR.VECTOR_FIELDS_TOOLTIP,
             order=10,
             show_in_toolbar=True,
@@ -369,8 +372,12 @@ class ToolRegistry:
             icon=im.icon(im.DIVIDE_POINTS_BY_STRIPS),
             category=self.VECTOR,
             tool_type=ToolTypeEnum.DIALOG,
-            main_action=self._main_action_prefs.get(ToolKey.DIVIDE_POINTS_BY_STRIPS, False),
-            executor=self._make_plugin_executor("...plugins.DividePointsByStripsPlugin"),
+            main_action=self._main_action_prefs.get(
+                ToolKey.DIVIDE_POINTS_BY_STRIPS, False
+            ),
+            executor=self._make_plugin_executor(
+                "...plugins.DividePointsByStripsPlugin"
+            ),
             tooltip=STR.DIVIDE_POINTS_BY_STRIPS_TOOLTIP,
             order=60,
             show_in_toolbar=True,
@@ -461,8 +468,12 @@ class ToolRegistry:
             icon=im.icon(im.RASTER_MASS_CLIPPER),
             category=self.RASTER,
             tool_type=ToolTypeEnum.PROCESSING,
-            main_action=self._main_action_prefs.get(ToolKey.RASTER_MASS_CLIPPER, True), # Alterado para False para que o Sampler seja o principal por padrão
-            executor=self._make_provider_executor("cadmus:raster_mass_clipper", STR.RASTER_MASS_CLIPPER_TITLE),
+            main_action=self._main_action_prefs.get(
+                ToolKey.RASTER_MASS_CLIPPER, True
+            ),  # Alterado para False para que o Sampler seja o principal por padrão
+            executor=self._make_provider_executor(
+                "cadmus:raster_mass_clipper", STR.RASTER_MASS_CLIPPER_TITLE
+            ),
             tooltip=STR.RASTER_MASS_CLIPPER_TOOLTIP,
             order=10,
             show_in_toolbar=True,
@@ -475,8 +486,12 @@ class ToolRegistry:
             icon=im.icon(im.RASTER_MASS_SAMPLER),
             category=self.RASTER,
             tool_type=ToolTypeEnum.PROCESSING,
-            main_action=self._main_action_prefs.get(ToolKey.RASTER_MASS_SAMPLER, False), # Alterado para True para ser o principal por padrão
-            executor=self._make_provider_executor("cadmus:raster_mass_sampler", STR.RASTER_MASS_SAMPLER_TITLE),
+            main_action=self._main_action_prefs.get(
+                ToolKey.RASTER_MASS_SAMPLER, False
+            ),  # Alterado para True para ser o principal por padrão
+            executor=self._make_provider_executor(
+                "cadmus:raster_mass_sampler", STR.RASTER_MASS_SAMPLER_TITLE
+            ),
             tooltip=STR.RASTER_MASS_SAMPLER_TOOLTIP,
             order=20,
             show_in_toolbar=True,
@@ -491,17 +506,17 @@ class ToolRegistry:
     def update_tool_main_action(self, tool_key, category=None):
         """
         Atualiza main_action de uma ferramenta quando ela abre/fecha.
-        
+
         Operações:
         1. Encontra ferramenta na ToolList
         2. Reseta main_action em categoria
         3. Seta main_action=True para ferramenta
         4. Persiste em Preferences
-        
+
         Args:
             tool_key (str): Identificador da ferramenta
             category (str, optional): Categoria (auto-detectada se omitida)
-        
+
         Returns:
             str or None: Categoria da ferramenta (para reconstrução de toolbar)
         """
@@ -513,28 +528,34 @@ class ToolRegistry:
                     tool_found = tool
                     category = tool.category
                     break
-            
+
             if tool_found is None:
-                self.logger.warning(f"[update_tool_main_action] Ferramenta '{tool_key}' não encontrada")
+                self.logger.warning(
+                    f"[update_tool_main_action] Ferramenta '{tool_key}' não encontrada"
+                )
                 return None
-            
+
             # 2. Resetar main_action em categoria
             for tool in self.tools:
                 if tool.category == category and tool.tool_key != tool_key:
                     tool.main_action = False
-            
+
             # 3. Setar main_action=True para esta ferramenta
             tool_found.main_action = True
-            
+
             # 4. Persistir em Preferences
-            Preferences.set_value_for_all_tools("main_action", False, filter_by={"category": category})
+            Preferences.set_value_for_all_tools(
+                "main_action", False, filter_by={"category": category}
+            )
             tool_prefs = Preferences.load_tool_prefs(tool_key)
             tool_prefs["main_action"] = True
             Preferences.save_tool_prefs(tool_key, tool_prefs)
-            
-            self.logger.info(f"[update_tool_main_action] '{tool_key}' definido como main_action (categoria: {category})")
+
+            self.logger.info(
+                f"[update_tool_main_action] '{tool_key}' definido como main_action (categoria: {category})"
+            )
             return category
-            
+
         except Exception as e:
             self.logger.error(f"[update_tool_main_action] Erro: {e}", exc_info=True)
             return None
@@ -543,7 +564,7 @@ class ToolRegistry:
         """
         Gera um executor para ferramentas do tipo DIALOG.
         attr_name e log_name são inferidos automaticamente do module_path.
-        
+
         Ex: '...plugins.ExportAllLayouts'
             → attr_name = 'export_all_layouts_dlg'
             → log_name  = 'Export All Layouts'
@@ -551,17 +572,20 @@ class ToolRegistry:
         import re
 
         module_name = module_path.split(".")[-1]  # 'ExportAllLayouts'
-        
+
         # CamelCase → snake_case para attr_name
-        snake = re.sub(r'(?<!^)(?=[A-Z])', '_', module_name).lower()  # 'export_all_layouts'
-        attr_name = f"{snake}_dlg"                                      # 'export_all_layouts_dlg'
-        
+        snake = re.sub(
+            r"(?<!^)(?=[A-Z])", "_", module_name
+        ).lower()  # 'export_all_layouts'
+        attr_name = f"{snake}_dlg"  # 'export_all_layouts_dlg'
+
         # CamelCase → palavras separadas para log
-        log_name = re.sub(r'(?<!^)(?=[A-Z])', ' ', module_name)        # 'Export All Layouts'
+        log_name = re.sub(r"(?<!^)(?=[A-Z])", " ", module_name)  # 'Export All Layouts'
 
         def executor():
             try:
                 import importlib
+
                 module = importlib.import_module(module_path, package=self._package)
                 fn = getattr(module, run_func)
                 self.logger.info(f"Abrindo diálogo: {log_name}")
@@ -570,7 +594,9 @@ class ToolRegistry:
                 self.logger.info(f"Diálogo {log_name} aberto com sucesso")
             except Exception as e:
                 self.logger.error(f"Erro ao executar {log_name}: {str(e)}")
-                QgisMessageUtil.bar_critical(self.iface, f"Erro no plugin {log_name}:\n{str(e)}")
+                QgisMessageUtil.bar_critical(
+                    self.iface, f"Erro no plugin {log_name}:\n{str(e)}"
+                )
 
         return executor
 
@@ -578,15 +604,26 @@ class ToolRegistry:
         """
         Gera um executor para ferramentas do tipo PROCESSING.
         """
+
         def executor():
             try:
                 import processing
-                self.logger.info(f"Abrindo diálogo do Processing para algoritmo: {log_name} ({algorithm_id})")
+
+                self.logger.info(
+                    f"Abrindo diálogo do Processing para algoritmo: {log_name} ({algorithm_id})"
+                )
                 processing.execAlgorithmDialog(algorithm_id, {})
-                self.logger.info(f"Diálogo do {log_name} aberto com sucesso pelo provider")
+                self.logger.info(
+                    f"Diálogo do {log_name} aberto com sucesso pelo provider"
+                )
             except Exception as e:
-                self.logger.error(f"Erro ao executar {log_name} ({algorithm_id}): {str(e)}")
-                QgisMessageUtil.bar_critical(self.iface, f"Erro ao abrir {log_name} no Processing:\n{str(e)}")
+                self.logger.error(
+                    f"Erro ao executar {log_name} ({algorithm_id}): {str(e)}"
+                )
+                QgisMessageUtil.bar_critical(
+                    self.iface, f"Erro ao abrir {log_name} no Processing:\n{str(e)}"
+                )
+
         return executor
 
     # =====================================================
@@ -595,6 +632,7 @@ class ToolRegistry:
     def run_coord_click(self):
         try:
             from ...plugins.CoordClickTool import CoordClickTool
+
             self.logger.info("Ativando ferramenta: Capturar Coordenadas")
             self.coord_click_tool = CoordClickTool(self.iface)
             self.iface.mapCanvas().setMapTool(self.coord_click_tool)

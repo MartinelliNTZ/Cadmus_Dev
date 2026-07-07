@@ -55,13 +55,14 @@ class GliCalculator(BaseProcessingAlgorithm):
     DISPLAY_HELP = BaseProcessingAlgorithm.PARAM_DISPLAY_HELP
     OPEN_OUTPUT_FOLDER = BaseProcessingAlgorithm.PARAM_OPEN_OUTPUT_FOLDER
 
-
     def initAlgorithm(self, config=None):
         self.logger.debug("Inicializando algoritmo GliCalculator...")
         self.load_preferences()
 
         self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_RASTER, STR.INPUT_RASTER_RGB_GLI)
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_RASTER, STR.INPUT_RASTER_RGB_GLI
+            )
         )
 
         self.addParameter(
@@ -101,9 +102,7 @@ class GliCalculator(BaseProcessingAlgorithm):
             )
         )
 
-        self.addParameter(
-            QgsProcessingParameterRasterDestination(self.OUTPUT, STR.GLI)
-        )
+        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT, STR.GLI))
 
         self.addParameter(
             QgsProcessingParameterBoolean(
@@ -141,12 +140,12 @@ class GliCalculator(BaseProcessingAlgorithm):
             band4 = ds.GetRasterBand(4)
             # Verifica color interpretation
             color_interp = band4.GetColorInterpretation()
-            has_alpha = (color_interp == gdalconst.GCI_AlphaBand)
+            has_alpha = color_interp == gdalconst.GCI_AlphaBand
 
             # Fallback: verifica descricao da banda
             if not has_alpha:
-                desc = (band4.GetDescription() or '').lower()
-                has_alpha = 'alpha' in desc or 'transparency' in desc
+                desc = (band4.GetDescription() or "").lower()
+                has_alpha = "alpha" in desc or "transparency" in desc
 
         # Verifica nodata na banda 1
         nodata_value = None
@@ -172,7 +171,9 @@ class GliCalculator(BaseProcessingAlgorithm):
             band_green = self.parameterAsInt(params, self.BAND_GREEN, context)
             band_blue = self.parameterAsInt(params, self.BAND_BLUE, context)
             target_res = self.parameterAsDouble(params, self.TARGET_RESOLUTION, context)
-            open_output_folder = self.parameterAsBool(params, self.OPEN_OUTPUT_FOLDER, context)
+            open_output_folder = self.parameterAsBool(
+                params, self.OPEN_OUTPUT_FOLDER, context
+            )
             display_help = self.parameterAsBool(params, self.DISPLAY_HELP, context)
             output_path = self.parameterAsOutputLayer(params, self.OUTPUT, context)
 
@@ -205,6 +206,7 @@ class GliCalculator(BaseProcessingAlgorithm):
             # ===================================================================
             working_raster = raster.source()
             import tempfile
+
             temp_dir = tempfile.gettempdir()
 
             if needs_resample:
@@ -212,36 +214,39 @@ class GliCalculator(BaseProcessingAlgorithm):
                 if multi_feedback.isCanceled():
                     return {}
 
-                feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Reamostrando para {target_res}m...")
+                feedback.pushInfo(
+                    f"[Step {step_index + 1}/{steps}] Reamostrando para {target_res}m..."
+                )
 
                 resampled_path = os.path.join(
-                    temp_dir,
-                    f"gli_resampled_{os.path.basename(raster.source())}"
+                    temp_dir, f"gli_resampled_{os.path.basename(raster.source())}"
                 )
 
                 warp_params = {
-                    'INPUT': raster.source(),
-                    'SOURCE_CRS': None,
-                    'TARGET_CRS': None,
-                    'RESAMPLING': 0,
-                    'NODATA': None,
-                    'TARGET_RESOLUTION': target_res,
-                    'OPTIONS': '',
-                    'DATA_TYPE': 0,
-                    'TARGET_EXTENT': None,
-                    'TARGET_EXTENT_CRS': None,
-                    'MULTITHREADING': True,
-                    'OUTPUT': resampled_path,
+                    "INPUT": raster.source(),
+                    "SOURCE_CRS": None,
+                    "TARGET_CRS": None,
+                    "RESAMPLING": 0,
+                    "NODATA": None,
+                    "TARGET_RESOLUTION": target_res,
+                    "OPTIONS": "",
+                    "DATA_TYPE": 0,
+                    "TARGET_EXTENT": None,
+                    "TARGET_EXTENT_CRS": None,
+                    "MULTITHREADING": True,
+                    "OUTPUT": resampled_path,
                 }
-                self.logger.debug(f"Reamostrando raster para resolucao {target_res}m...")
+                self.logger.debug(
+                    f"Reamostrando raster para resolucao {target_res}m..."
+                )
                 warp_result = processing.run(
-                    'gdal:warpreproject',
+                    "gdal:warpreproject",
                     warp_params,
                     context=context,
                     feedback=multi_feedback,
                     is_child_algorithm=True,
                 )
-                working_raster = warp_result.get('OUTPUT', resampled_path)
+                working_raster = warp_result.get("OUTPUT", resampled_path)
                 feedback.pushInfo(f"Raster reamostrado: {working_raster}")
                 feedback.pushInfo("")
                 step_index += 1
@@ -271,35 +276,35 @@ class GliCalculator(BaseProcessingAlgorithm):
                 feedback.pushInfo("")
 
                 alpha_path = os.path.join(
-                    temp_dir,
-                    f"gli_rgba_{os.path.basename(working_raster)}"
+                    temp_dir, f"gli_rgba_{os.path.basename(working_raster)}"
                 )
 
                 # Extrai todas as 4 bandas (RGBA)
                 translate_params = {
-                    'INPUT': working_raster,
-                    'TARGET_CRS': None,
-                    'NODATA': None,
-                    'COPY_SUBDATASETS': False,
-                    'OPTIONS': '',
-                    'EXTRA': '-b 1 -b 2 -b 3 -b 4',
-                    'DATA_TYPE': 0,
-                    'TARGET_EXTENT': None,
-                    'TARGET_EXTENT_CRS': None,
-                    'OUTPUT': alpha_path,
+                    "INPUT": working_raster,
+                    "TARGET_CRS": None,
+                    "NODATA": None,
+                    "COPY_SUBDATASETS": False,
+                    "OPTIONS": "",
+                    "EXTRA": "-b 1 -b 2 -b 3 -b 4",
+                    "DATA_TYPE": 0,
+                    "TARGET_EXTENT": None,
+                    "TARGET_EXTENT_CRS": None,
+                    "OUTPUT": alpha_path,
                 }
                 translate_result = processing.run(
-                    'gdal:translate',
+                    "gdal:translate",
                     translate_params,
                     context=context,
                     feedback=multi_feedback,
                     is_child_algorithm=True,
                 )
-                working_raster = translate_result.get('OUTPUT', alpha_path)
+                working_raster = translate_result.get("OUTPUT", alpha_path)
                 feedback.pushInfo(f"Raster RGBA (4 bandas): {working_raster}")
 
             else:
                 from osgeo import gdal as _gdal
+
                 ds_check = _gdal.Open(working_raster, _gdal.GA_ReadOnly)
                 n_bands = ds_check.RasterCount if ds_check else 3
                 ds_check = None
@@ -319,29 +324,28 @@ class GliCalculator(BaseProcessingAlgorithm):
                 if n_bands > 3:
                     feedback.pushInfo("Extraindo apenas as 3 primeiras bandas (RGB)...")
                     rgb_path = os.path.join(
-                        temp_dir,
-                        f"gli_rgb_{os.path.basename(working_raster)}"
+                        temp_dir, f"gli_rgb_{os.path.basename(working_raster)}"
                     )
                     translate_params = {
-                        'INPUT': working_raster,
-                        'TARGET_CRS': None,
-                        'NODATA': nodata_value if nodata_value is not None else None,
-                        'COPY_SUBDATASETS': False,
-                        'OPTIONS': '',
-                        'EXTRA': '-b 1 -b 2 -b 3',
-                        'DATA_TYPE': 0,
-                        'TARGET_EXTENT': None,
-                        'TARGET_EXTENT_CRS': None,
-                        'OUTPUT': rgb_path,
+                        "INPUT": working_raster,
+                        "TARGET_CRS": None,
+                        "NODATA": nodata_value if nodata_value is not None else None,
+                        "COPY_SUBDATASETS": False,
+                        "OPTIONS": "",
+                        "EXTRA": "-b 1 -b 2 -b 3",
+                        "DATA_TYPE": 0,
+                        "TARGET_EXTENT": None,
+                        "TARGET_EXTENT_CRS": None,
+                        "OUTPUT": rgb_path,
                     }
                     translate_result = processing.run(
-                        'gdal:translate',
+                        "gdal:translate",
                         translate_params,
                         context=context,
                         feedback=multi_feedback,
                         is_child_algorithm=True,
                     )
-                    working_raster = translate_result.get('OUTPUT', rgb_path)
+                    working_raster = translate_result.get("OUTPUT", rgb_path)
                     feedback.pushInfo(f"Raster RGB puro (3 bandas): {working_raster}")
                 else:
                     feedback.pushInfo(
@@ -360,10 +364,13 @@ class GliCalculator(BaseProcessingAlgorithm):
             if multi_feedback.isCanceled():
                 return {}
 
-            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Calculando GLI via gdal:rastercalculator...")
+            feedback.pushInfo(
+                f"[Step {step_index + 1}/{steps}] Calculando GLI via gdal:rastercalculator..."
+            )
 
             # Verifica quantas bandas tem o raster de trabalho
             from osgeo import gdal as _gdal2
+
             ds_final = _gdal2.Open(working_raster, _gdal2.GA_ReadOnly)
             current_nbands = ds_final.RasterCount if ds_final else 3
             ds_final = None
@@ -372,62 +379,76 @@ class GliCalculator(BaseProcessingAlgorithm):
 
             if current_nbands >= 4:
                 # Temos banda alpha: usa formula que mascara alpha <= 250 como nodata
-                feedback.pushInfo("Usando formula GLI com tratamento de banda alpha (banda 4)...")
+                feedback.pushInfo(
+                    "Usando formula GLI com tratamento de banda alpha (banda 4)..."
+                )
                 formula = (
-                    '((D > 250) * ((B*2.0 - A - C) / (B*2.0 + A + C + 1e-10) '
-                    '* (abs(B*2.0 + A + C) > 1e-10))) '
-                    '+ ((D <= 250) * ' + str(gli_nodata) + ')'
+                    "((D > 250) * ((B*2.0 - A - C) / (B*2.0 + A + C + 1e-10) "
+                    "* (abs(B*2.0 + A + C) > 1e-10))) "
+                    "+ ((D <= 250) * " + str(gli_nodata) + ")"
                 )
                 calc_params = {
-                    'INPUT_A': working_raster, 'BAND_A': 1,
-                    'INPUT_B': working_raster, 'BAND_B': 2,
-                    'INPUT_C': working_raster, 'BAND_C': 3,
-                    'INPUT_D': working_raster, 'BAND_D': 4,
-                    'INPUT_E': None, 'BAND_E': None,
-                    'INPUT_F': None, 'BAND_F': None,
-                    'FORMULA': formula,
-                    'NO_DATA': gli_nodata,
-                    'RTYPE': 5,  # Float32
-                    'EXTENT_OPT': 0,
-                    'PROJWIN': None,
-                    'OPTIONS': '',
-                    'EXTRA': '',
-                    'OUTPUT': output_path,
+                    "INPUT_A": working_raster,
+                    "BAND_A": 1,
+                    "INPUT_B": working_raster,
+                    "BAND_B": 2,
+                    "INPUT_C": working_raster,
+                    "BAND_C": 3,
+                    "INPUT_D": working_raster,
+                    "BAND_D": 4,
+                    "INPUT_E": None,
+                    "BAND_E": None,
+                    "INPUT_F": None,
+                    "BAND_F": None,
+                    "FORMULA": formula,
+                    "NO_DATA": gli_nodata,
+                    "RTYPE": 5,  # Float32
+                    "EXTENT_OPT": 0,
+                    "PROJWIN": None,
+                    "OPTIONS": "",
+                    "EXTRA": "",
+                    "OUTPUT": output_path,
                 }
             else:
                 # Sem alpha: formula padrao, passa nodata se existir
                 feedback.pushInfo("Usando formula GLI padrao (3 bandas RGB)...")
                 formula = (
-                    '(B*2.0 - A - C) / (B*2.0 + A + C + 1e-10) '
-                    '* (abs(B*2.0 + A + C) > 1e-10)'
+                    "(B*2.0 - A - C) / (B*2.0 + A + C + 1e-10) "
+                    "* (abs(B*2.0 + A + C) > 1e-10)"
                 )
                 calc_params = {
-                    'INPUT_A': working_raster, 'BAND_A': 1,
-                    'INPUT_B': working_raster, 'BAND_B': 2,
-                    'INPUT_C': working_raster, 'BAND_C': 3,
-                    'INPUT_D': None, 'BAND_D': None,
-                    'INPUT_E': None, 'BAND_E': None,
-                    'INPUT_F': None, 'BAND_F': None,
-                    'FORMULA': formula,
-                    'NO_DATA': gli_nodata if nodata_value is not None else None,
-                    'RTYPE': 5,  # Float32
-                    'EXTENT_OPT': 0,
-                    'PROJWIN': None,
-                    'OPTIONS': '',
-                    'EXTRA': '',
-                    'OUTPUT': output_path,
+                    "INPUT_A": working_raster,
+                    "BAND_A": 1,
+                    "INPUT_B": working_raster,
+                    "BAND_B": 2,
+                    "INPUT_C": working_raster,
+                    "BAND_C": 3,
+                    "INPUT_D": None,
+                    "BAND_D": None,
+                    "INPUT_E": None,
+                    "BAND_E": None,
+                    "INPUT_F": None,
+                    "BAND_F": None,
+                    "FORMULA": formula,
+                    "NO_DATA": gli_nodata if nodata_value is not None else None,
+                    "RTYPE": 5,  # Float32
+                    "EXTENT_OPT": 0,
+                    "PROJWIN": None,
+                    "OPTIONS": "",
+                    "EXTRA": "",
+                    "OUTPUT": output_path,
                 }
 
             self.logger.debug("Executando gdal:rastercalculator para GLI...")
             calc_result = processing.run(
-                'gdal:rastercalculator',
+                "gdal:rastercalculator",
                 calc_params,
                 context=context,
                 feedback=multi_feedback,
                 is_child_algorithm=True,
             )
 
-            calc_output = calc_result.get('OUTPUT', output_path)
+            calc_output = calc_result.get("OUTPUT", output_path)
             feedback.pushInfo("GLI calculado com sucesso!")
             feedback.pushInfo("")
             step_index += 1
@@ -444,7 +465,9 @@ class GliCalculator(BaseProcessingAlgorithm):
             if multi_feedback.isCanceled():
                 return {}
 
-            feedback.pushInfo(f"[Step {step_index + 1}/{steps}] Aplicando estilo de cores GLI...")
+            feedback.pushInfo(
+                f"[Step {step_index + 1}/{steps}] Aplicando estilo de cores GLI..."
+            )
 
             self._apply_qml_style(
                 feedback=multi_feedback,
@@ -457,18 +480,24 @@ class GliCalculator(BaseProcessingAlgorithm):
             feedback.pushInfo("")
 
             # --- Salva preferencias ---
-            self.prefs.update({
-                "band_red": band_red,
-                "band_green": band_green,
-                "band_blue": band_blue,
-                "target_resolution": target_res,
-                "open_output_folder": open_output_folder,
-                "display_help": display_help,
-            })
+            self.prefs.update(
+                {
+                    "band_red": band_red,
+                    "band_green": band_green,
+                    "band_blue": band_blue,
+                    "target_resolution": target_res,
+                    "open_output_folder": open_output_folder,
+                    "display_help": display_help,
+                }
+            )
             self.save_preferences()
 
             # --- Abre pasta se solicitado ---
-            if output_path and isinstance(output_path, str) and not output_path.startswith("memory:"):
+            if (
+                output_path
+                and isinstance(output_path, str)
+                and not output_path.startswith("memory:")
+            ):
                 out_folder = os.path.dirname(output_path)
                 if out_folder and open_output_folder:
                     self.open_folder_in_explorer(out_folder)

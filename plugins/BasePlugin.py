@@ -6,7 +6,6 @@ from typing import Optional
 import time
 from ..utils.FormatUtils import FormatUtils
 from ..core.config.LogUtils import LogUtils
-from ..core.config.MenuManager import MenuManager
 from ..core.ui.info_dialog import InfoDialog
 from ..utils.Preferences import Preferences
 from ..utils.ToolKeys import ToolKey
@@ -35,9 +34,8 @@ class BasePluginMTL(BaseDialog):
         # Inicializar contexto de sinal ANTES de chamar super().__init__
         # Será preenchido completamente no método init()
         self._plugin_signal_context = {}
-        
-        super().__init__(parent)
 
+        super().__init__(parent)
 
     def init(
         self,
@@ -51,9 +49,9 @@ class BasePluginMTL(BaseDialog):
         self.logger = LogUtils(
             tool=self.TOOL_KEY, class_name=class_name, level=LogUtils.DEBUG
         )
-        
+
         self.preferences = Preferences.load_tool_prefs(self.TOOL_KEY)
-        
+
         # Criar contexto para sinal (emitido após setup completo)
         self._plugin_signal_context = {
             "tool_key": self.TOOL_KEY,
@@ -74,15 +72,17 @@ class BasePluginMTL(BaseDialog):
             self._load_prefs()
 
         # Emitir sinal após setup completo
-        self.logger.debug(f"[init] Emitindo sinal plugin_instantiated ({self.TOOL_KEY})")
+        self.logger.debug(
+            f"[init] Emitindo sinal plugin_instantiated ({self.TOOL_KEY})"
+        )
         try:
             from ..core.config.PyQtSignalManager import get_plugin_signal_hub
+
             hub = get_plugin_signal_hub()
             hub.plugin_instantiated.emit(self._plugin_signal_context)
         except Exception as e:
             self.logger.error(f"[init] Erro ao emitir sinal: {e}", exc_info=True)
 
- 
     """
     Classe base para plugins do Cadmus.
 
@@ -159,7 +159,6 @@ class BasePluginMTL(BaseDialog):
 
         super().closeEvent(event)
 
-
     def on_finish_plugin(self):
         """
         Callback executado ao fechar o plugin.
@@ -173,13 +172,16 @@ class BasePluginMTL(BaseDialog):
             # Emitir sinal
             try:
                 from ..core.config.PyQtSignalManager import get_plugin_signal_hub
+
                 hub = get_plugin_signal_hub()
                 plugin_finished_context = {
                     "tool_key": self.TOOL_KEY,
                     "preferences": self.preferences,
                 }
                 hub.plugin_finished.emit(plugin_finished_context)
-                self.logger.debug(f"[on_finish_plugin] Plugin finalizado ({self.TOOL_KEY})")
+                self.logger.debug(
+                    f"[on_finish_plugin] Plugin finalizado ({self.TOOL_KEY})"
+                )
             except Exception as e:
                 self.logger.error(f"[on_finish_plugin] Erro ao emitir sinal: {e}")
 
@@ -378,8 +380,6 @@ class BasePluginMTL(BaseDialog):
         exc = errors[0] if errors else Exception("Erro desconhecido")
 
         QgisMessageUtil.modal_error(self.iface, f"Erro durante processamento:\n{exc}")
-
-
 
     def show_info_dialog(self, title=f"📘 {STR.INSTRUCTIONS}"):
         """Mostra diálogo de instruções do plugin.

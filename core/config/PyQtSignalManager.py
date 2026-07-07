@@ -26,16 +26,18 @@ def get_plugin_signal_hub():
 class PyQtSignalManager(QObject):
     """Escuta sinais globais do plugin e registra eventos relevantes no log."""
 
-
     def create_menu_manager(self, iface, tools, logger):
         """Cria e retorna uma instância de MenuManager, menus e toolbar."""
         from .MenuManager import MenuManager
+
         menu_manager = MenuManager(iface, tools, logger)
         menu_manager.create_menu()
         logger.debug("Criando toolbar para o plugin via PyQtSignalManager")
         menu_manager.create_toolbar()
         menu_manager.populate_menus()
-        logger.info(f"MenuManager criado e menus/toolbars populados via PyQtSignalManager: {menu_manager}.")
+        logger.info(
+            f"MenuManager criado e menus/toolbars populados via PyQtSignalManager: {menu_manager}."
+        )
         return menu_manager
 
     def __init__(self, tool_key=ToolKey.UNTRACEABLE, parent=None):
@@ -72,9 +74,7 @@ class PyQtSignalManager(QObject):
             self._signal_hub.plugin_instantiated.disconnect(
                 self._on_plugin_instantiated
             )
-            self._signal_hub.plugin_finished.disconnect(
-                self._on_plugin_finished
-            )
+            self._signal_hub.plugin_finished.disconnect(self._on_plugin_finished)
             self._signal_hub.toolbar_category_visibility_changed.disconnect(
                 self._on_toolbar_category_visibility_changed
             )
@@ -99,7 +99,9 @@ class PyQtSignalManager(QObject):
 
             tool_registry = ToolRegistry.get_instance()
             if tool_registry is None:
-                self.logger.error("[_on_plugin_instantiated] ToolRegistry não inicializado!")
+                self.logger.error(
+                    "[_on_plugin_instantiated] ToolRegistry não inicializado!"
+                )
                 return
 
             category = tool_registry.update_tool_main_action(event_tool_key)
@@ -149,7 +151,9 @@ class PyQtSignalManager(QObject):
 
             tool_registry = ToolRegistry.get_instance()
             if tool_registry is None:
-                self.logger.error("[_on_plugin_finished] ToolRegistry não inicializado!")
+                self.logger.error(
+                    "[_on_plugin_finished] ToolRegistry não inicializado!"
+                )
                 return
 
             category = tool_registry.update_tool_main_action(tool_key)

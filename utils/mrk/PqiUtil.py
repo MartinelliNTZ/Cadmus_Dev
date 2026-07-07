@@ -115,13 +115,13 @@ def _extract_dewarp_value(record: Dict) -> float:
     """
     raw = record.get(MetadataFieldKey.DEWARP_FLAG.value)
     if raw is None:
-        return 5.0   # Ausente/sem flag = dewarp aplicado = excelente
+        return 5.0  # Ausente/sem flag = dewarp aplicado = excelente
     flag_str = str(raw).strip()
     if flag_str in ("", "None", "null"):
-        return 5.0   # Vazio = dewarp aplicado = excelente
+        return 5.0  # Vazio = dewarp aplicado = excelente
     if flag_str == "0":
-        return 1.0   # 0 = sem dewarp = critico
-    return 5.0       # Qualquer outro valor = dewarp aplicado = excelente
+        return 1.0  # 0 = sem dewarp = critico
+    return 5.0  # Qualquer outro valor = dewarp aplicado = excelente
 
 
 def _extract_ev_classification_value(record: Dict) -> str:
@@ -139,7 +139,7 @@ def _extract_ev_classification_value(record: Dict) -> str:
 def _level_to_score(level: int) -> float:
     """
     Converte nível (1-5) para pontuação (0-100).
-    
+
     Nível 1 (crítico) → 0 pontos
     Nível 2 (ruim)    → 25 pontos
     Nível 3 (regular) → 50 pontos
@@ -153,7 +153,7 @@ def _level_to_score(level: int) -> float:
 def _extract_value(record: Dict, indicator: Dict) -> Optional[float]:
     """
     Extrai o valor numérico de um indicador a partir do record.
-    
+
     Suporta:
     - Busca direta por metadata_key.value
     - Transformações customizadas via value_extractor
@@ -174,7 +174,7 @@ def _extract_value(record: Dict, indicator: Dict) -> Optional[float]:
                 return float(str(raw).replace(",", "."))
             except (ValueError, TypeError):
                 pass
-    
+
     return None
 
 
@@ -188,7 +188,7 @@ class PqiUtil:
     def configure(cls, indicators: List[Dict]):
         """
         Substitui a lista de indicadores (para testes ou customização).
-        
+
         Cada item deve conter:
         - metadata_key: MetadataFieldKey (obrigatório)
         - threshold_name: str (nome no config.yaml)
@@ -209,11 +209,11 @@ class PqiUtil:
     ) -> Tuple[float, List[Dict]]:
         """
         Calcula o PQI para um record.
-        
+
         Args:
             record: Dicionário contendo os campos calculados (custom fields + qualidade)
             tool_key: Chave para logging
-        
+
         Returns:
             Tuple (pqi_score, details)
             - pqi_score: float (0-100)
@@ -260,18 +260,22 @@ class PqiUtil:
             total_weighted_score += score_weighted
             total_weight += weight
 
-            details.append({
-                "name": metadata_key.value if metadata_key else threshold_name,
-                "level": level,
-                "value": value,
-                "score_raw": round(score_raw, 2),
-                "score_weighted": round(score_weighted, 2),
-                "weight": weight,
-                "threshold_msg": threshold_msg,
-            })
+            details.append(
+                {
+                    "name": metadata_key.value if metadata_key else threshold_name,
+                    "level": level,
+                    "value": value,
+                    "score_raw": round(score_raw, 2),
+                    "score_weighted": round(score_weighted, 2),
+                    "weight": weight,
+                    "threshold_msg": threshold_msg,
+                }
+            )
 
         # Calcula PQI final (0-100)
-        pqi_score = round(total_weighted_score / total_weight, 2) if total_weight > 0 else 50.0
+        pqi_score = (
+            round(total_weighted_score / total_weight, 2) if total_weight > 0 else 50.0
+        )
         pqi_score = max(0.0, min(100.0, pqi_score))
 
         return pqi_score, details
@@ -280,10 +284,10 @@ class PqiUtil:
     def interpret(pqi_score: float) -> str:
         """
         Retorna interpretação textual do PQI.
-        
+
         Args:
             pqi_score: Pontuação PQI (0-100)
-        
+
         Returns:
             String com interpretação
         """

@@ -17,7 +17,9 @@ class XmlUtil:
     """
 
     @staticmethod
-    def create_element(tag: str, attrib: Optional[Dict[str, str]] = None, text: str = None) -> ET.Element:
+    def create_element(
+        tag: str, attrib: Optional[Dict[str, str]] = None, text: str = None
+    ) -> ET.Element:
         """Cria um elemento XML com atributos e texto opcionais."""
         elem = ET.Element(tag, attrib or {})
         if text is not None:
@@ -25,7 +27,12 @@ class XmlUtil:
         return elem
 
     @staticmethod
-    def add_sub_element(parent: ET.Element, tag: str, attrib: Optional[Dict[str, str]] = None, text: str = None) -> ET.Element:
+    def add_sub_element(
+        parent: ET.Element,
+        tag: str,
+        attrib: Optional[Dict[str, str]] = None,
+        text: str = None,
+    ) -> ET.Element:
         """Adiciona um sub-elemento a um elemento pai."""
         child = XmlUtil.create_element(tag, attrib, text)
         parent.append(child)
@@ -37,7 +44,7 @@ class XmlUtil:
 
         Args:
             root: Elemento raiz
-            with_declaration: Se True, inclui <?xml version="1.0" ?>. 
+            with_declaration: Se True, inclui <?xml version="1.0" ?>.
                               QML nao deve ter declaracao - use False.
         """
         rough_string = ET.tostring(root, encoding="unicode")
@@ -46,7 +53,7 @@ class XmlUtil:
         if not with_declaration:
             # Remove a primeira linha <?xml version="1.0" ?> se presente
             lines = result.splitlines()
-            if lines and '<?xml' in lines[0]:
+            if lines and "<?xml" in lines[0]:
                 result = "\n".join(lines[1:])
         return result
 
@@ -87,7 +94,7 @@ class XmlUtil:
             lines = xml_str.splitlines()
             cleaned_lines = [l for l in lines if "<!DOCTYPE" not in l]
             # Reconstroi com o DOCTYPE na primeira linha
-            doctype = '<!DOCTYPE qgis PUBLIC \'http://mrcc.com/qgis.dtd\' \'SYSTEM\'>'
+            doctype = "<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>"
             # Remove linhas vazias do inicio
             while cleaned_lines and cleaned_lines[0].strip() == "":
                 cleaned_lines.pop(0)
@@ -147,26 +154,60 @@ class XmlUtil:
         ET.SubElement(flags, "Private").text = "0"
 
         # temporal
-        temporal = ET.SubElement(root, "temporal", {"fetchMode": "0", "enabled": "0", "mode": "0"})
+        temporal = ET.SubElement(
+            root, "temporal", {"fetchMode": "0", "enabled": "0", "mode": "0"}
+        )
         fixed_range = ET.SubElement(temporal, "fixedRange")
         ET.SubElement(fixed_range, "start")
         ET.SubElement(fixed_range, "end")
 
         # elevation
-        elevation = ET.SubElement(root, "elevation", {"zoffset": "0", "symbology": "Line", "enabled": "0", "band": "1", "zscale": "1"})
+        elevation = ET.SubElement(
+            root,
+            "elevation",
+            {
+                "zoffset": "0",
+                "symbology": "Line",
+                "enabled": "0",
+                "band": "1",
+                "zscale": "1",
+            },
+        )
         data_def_props = ET.SubElement(elevation, "data-defined-properties")
         option = ET.SubElement(data_def_props, "Option", {"type": "Map"})
-        ET.SubElement(option, "Option", {"type": "QString", "name": "name", "value": ""})
-        name_props = ET.SubElement(option, "name", {"type": "QString", "name": "name", "value": ""})
-        type_props = ET.SubElement(option, "type", {"type": "QString", "name": "type", "value": "collection"})
+        ET.SubElement(
+            option, "Option", {"type": "QString", "name": "name", "value": ""}
+        )
+        name_props = ET.SubElement(
+            option, "name", {"type": "QString", "name": "name", "value": ""}
+        )
+        type_props = ET.SubElement(
+            option, "type", {"type": "QString", "name": "type", "value": "collection"}
+        )
 
         # customproperties
         customproperties = ET.SubElement(root, "customproperties")
         option_cp = ET.SubElement(customproperties, "Option", {"type": "Map"})
-        ET.SubElement(option_cp, "Option", {"type": "bool", "name": "WMSBackgroundLayer", "value": "false"})
-        ET.SubElement(option_cp, "Option", {"type": "bool", "name": "WMSPublishDataSourceUrl", "value": "false"})
-        ET.SubElement(option_cp, "Option", {"type": "int", "name": "embeddedWidgets/count", "value": "0"})
-        ET.SubElement(option_cp, "Option", {"type": "QString", "name": "identify/format", "value": "Value"})
+        ET.SubElement(
+            option_cp,
+            "Option",
+            {"type": "bool", "name": "WMSBackgroundLayer", "value": "false"},
+        )
+        ET.SubElement(
+            option_cp,
+            "Option",
+            {"type": "bool", "name": "WMSPublishDataSourceUrl", "value": "false"},
+        )
+        ET.SubElement(
+            option_cp,
+            "Option",
+            {"type": "int", "name": "embeddedWidgets/count", "value": "0"},
+        )
+        ET.SubElement(
+            option_cp,
+            "Option",
+            {"type": "QString", "name": "identify/format", "value": "Value"},
+        )
 
         # mapTip
         ET.SubElement(root, "mapTip", {"enabled": "1"})
@@ -174,21 +215,31 @@ class XmlUtil:
         # pipe-data-defined-properties
         pipe_ddp = ET.SubElement(root, "pipe-data-defined-properties")
         option_pipe = ET.SubElement(pipe_ddp, "Option", {"type": "Map"})
-        ET.SubElement(option_pipe, "Option", {"type": "QString", "name": "name", "value": ""})
+        ET.SubElement(
+            option_pipe, "Option", {"type": "QString", "name": "name", "value": ""}
+        )
         props_pipe = ET.SubElement(option_pipe, "properties")
-        type_pipe = ET.SubElement(option_pipe, "type", {"type": "QString", "name": "type", "value": "collection"})
+        type_pipe = ET.SubElement(
+            option_pipe,
+            "type",
+            {"type": "QString", "name": "type", "value": "collection"},
+        )
 
         # pipe
         pipe = ET.SubElement(root, "pipe")
 
         # provider
         provider = ET.SubElement(pipe, "provider")
-        resampling = ET.SubElement(provider, "resampling", {
-            "zoomedOutResamplingMethod": "nearestNeighbour",
-            "enabled": "false",
-            "maxOversampling": "2",
-            "zoomedInResamplingMethod": "nearestNeighbour",
-        })
+        resampling = ET.SubElement(
+            provider,
+            "resampling",
+            {
+                "zoomedOutResamplingMethod": "nearestNeighbour",
+                "enabled": "false",
+                "maxOversampling": "2",
+                "zoomedInResamplingMethod": "nearestNeighbour",
+            },
+        )
 
         # rasterrenderer
         renderer_attrib = {
@@ -234,23 +285,31 @@ class XmlUtil:
         ET.SubElement(blue_ce, "algorithm").text = algorithm
 
         # brightnesscontrast
-        brightness_contrast = ET.SubElement(pipe, "brightnesscontrast", {
-            "brightness": "0",
-            "gamma": "1",
-            "contrast": "0",
-        })
+        brightness_contrast = ET.SubElement(
+            pipe,
+            "brightnesscontrast",
+            {
+                "brightness": "0",
+                "gamma": "1",
+                "contrast": "0",
+            },
+        )
 
         # huesaturation
-        huesaturation = ET.SubElement(pipe, "huesaturation", {
-            "colorizeGreen": "128",
-            "grayscaleMode": "0",
-            "invertColors": "0",
-            "colorizeStrength": "100",
-            "colorizeBlue": "128",
-            "colorizeRed": "255",
-            "saturation": "0",
-            "colorizeOn": "0",
-        })
+        huesaturation = ET.SubElement(
+            pipe,
+            "huesaturation",
+            {
+                "colorizeGreen": "128",
+                "grayscaleMode": "0",
+                "invertColors": "0",
+                "colorizeStrength": "100",
+                "colorizeBlue": "128",
+                "colorizeRed": "255",
+                "saturation": "0",
+                "colorizeOn": "0",
+            },
+        )
 
         # rasterresampler
         ET.SubElement(pipe, "rasterresampler", {"maxOversampling": "2"})

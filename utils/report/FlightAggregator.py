@@ -31,19 +31,26 @@ class FlightAggregator:
 
     # Campos level5 a serem ignorados nas medias por voo
     IGNORE_LEVEL5_LABELS = {
-        'Abrupt Change Flag',
-        'Avg Velocity Between Photos',
-        'Distance 3 D Previous',
-        'Flight Number',
-        'Geodesic Distance Previous',
-        'Is Ideal Overlap',
-        'Shutter Life Pct',
-        'Strip ID',
+        "Abrupt Change Flag",
+        "Avg Velocity Between Photos",
+        "Distance 3 D Previous",
+        "Flight Number",
+        "Geodesic Distance Previous",
+        "Is Ideal Overlap",
+        "Shutter Life Pct",
+        "Strip ID",
     }
 
     # Palavras-chave para excluir campos de data/hora/GPS
     EXCLUDE_KEYWORDS = {
-        'date', 'time', 'dt', 'lat', 'lon', 'latitude', 'longitude', 'gps',
+        "date",
+        "time",
+        "dt",
+        "lat",
+        "lon",
+        "latitude",
+        "longitude",
+        "gps",
     }
 
     # ===================================================================
@@ -59,14 +66,14 @@ class FlightAggregator:
             if raw is None:
                 raw = r.get_indicator(key)
             num = MathUtils.to_float_or_none(raw)
-            if num is not None and num not in (float('inf'), float('-inf')):
+            if num is not None and num not in (float("inf"), float("-inf")):
                 return num
         return None
 
     @staticmethod
     def _is_excluded_field(field_key: str, field_label: str) -> bool:
         """Define se um campo deve ser ignorado no agrupamento por voo."""
-        text = f'{field_key} {field_label}'.lower()
+        text = f"{field_key} {field_label}".lower()
         return any(keyword in text for keyword in FlightAggregator.EXCLUDE_KEYWORDS)
 
     @staticmethod
@@ -74,9 +81,12 @@ class FlightAggregator:
         """Retorna chaves level 5 ignoradas no quadro de medias por voo."""
         ignored = set()
         for key, field in MetadataFields.all_fields().items():
-            if getattr(field, 'level', None) != 5:
+            if getattr(field, "level", None) != 5:
                 continue
-            if str(getattr(field, 'label', '')).strip() in FlightAggregator.IGNORE_LEVEL5_LABELS:
+            if (
+                str(getattr(field, "label", "")).strip()
+                in FlightAggregator.IGNORE_LEVEL5_LABELS
+            ):
                 ignored.add(key)
         return ignored
 
@@ -105,16 +115,16 @@ class FlightAggregator:
         """
         if not results:
             return {
-                'per_flight': [],
-                'flight_level5_columns': [],
-                'temp_chart_series': [],
-                'lrf_chart_series': [],
-                'iso_chart_series': [],
-                'chart_bucket_size': 1,
-                'temp_hourly_avg': [],
-                'lrf_hourly_avg': [],
-                'iso_hourly_avg': [],
-                'hourly_interval_minutes': 60,
+                "per_flight": [],
+                "flight_level5_columns": [],
+                "temp_chart_series": [],
+                "lrf_chart_series": [],
+                "iso_chart_series": [],
+                "chart_bucket_size": 1,
+                "temp_hourly_avg": [],
+                "lrf_hourly_avg": [],
+                "iso_hourly_avg": [],
+                "hourly_interval_minutes": 60,
             }
 
         # ===================================================================
@@ -122,7 +132,7 @@ class FlightAggregator:
         # ===================================================================
         flights = defaultdict(list)
         for r in results:
-            flights[r.flight_id or 'unknown'].append(r)
+            flights[r.flight_id or "unknown"].append(r)
 
         # ===================================================================
         # COLUNAS LEVEL5
@@ -131,7 +141,7 @@ class FlightAggregator:
         level5_fields = [
             (key, field)
             for key, field in MetadataFields.all_fields().items()
-            if getattr(field, 'level', None) == 5
+            if getattr(field, "level", None) == 5
             and key not in ignored_keys
             and not FlightAggregator._is_excluded_field(key, field.label)
         ]
@@ -142,14 +152,13 @@ class FlightAggregator:
             for it in results:
                 raw = it.level5_values.get(key)
                 num = MathUtils.to_float_or_none(raw)
-                if num is not None and num not in (float('inf'), float('-inf')):
+                if num is not None and num not in (float("inf"), float("-inf")):
                     numeric_level5.append((key, field))
                     break
 
         level5_fields = sorted(numeric_level5, key=lambda x: str(x[1].label).lower())
         flight_level5_columns = [
-            {'key': key, 'label': field.label}
-            for key, field in level5_fields
+            {"key": key, "label": field.label} for key, field in level5_fields
         ]
 
         # ===================================================================
@@ -160,18 +169,19 @@ class FlightAggregator:
             row = FlightAggregator._build_flight_row(flight_id, items, level5_fields)
             flight_rows.append(row)
 
-        flight_rows.sort(key=lambda x: x['flight_id'].lower())
+        flight_rows.sort(key=lambda x: x["flight_id"].lower())
 
         # ===================================================================
         # SERIES TEMPORAIS POR VOO (para graficos) - com bucketizacao dinamica
         # ===================================================================
         temp_chart_series, temp_bucket_size = FlightAggregator._build_chart_series(
-            flights, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c']
+            flights, [MFK.SENSOR_TEMPERATURE.value, "sensor_temp_c"]
         )
 
         lrf_chart_series, lrf_bucket_size = FlightAggregator._build_chart_series(
-            flights, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'],
-            filter_zero=True
+            flights,
+            [MFK.LRF_TARGET_DISTANCE.value, "lrf_target_distance"],
+            filter_zero=True,
         )
 
         # Bucket size exclusivo para temp e lrf (NAO inclui ISO)
@@ -182,7 +192,8 @@ class FlightAggregator:
         # ISO usa o mesmo chart_bucket_size de temp/lrf para consistencia
         # ===================================================================
         iso_chart_series, _iso_bucket_size = FlightAggregator._build_chart_series(
-            flights, [MFK.ISO_SPEED_RATINGS.value, 'iso', MFK.RECOMMENDED_EXPOSURE_INDEX.value]
+            flights,
+            [MFK.ISO_SPEED_RATINGS.value, "iso", MFK.RECOMMENDED_EXPOSURE_INDEX.value],
         )
 
         # ===================================================================
@@ -190,21 +201,23 @@ class FlightAggregator:
         # temp e lrf usam o metodo ORIGINAL (sem ISO)
         # ISO usa metodo proprio separado
         # ===================================================================
-        temp_hourly_avg, lrf_hourly_avg, hourly_interval_minutes = FlightAggregator._build_hourly_averages(results)
+        temp_hourly_avg, lrf_hourly_avg, hourly_interval_minutes = (
+            FlightAggregator._build_hourly_averages(results)
+        )
 
         iso_hourly_avg = FlightAggregator._build_iso_hourly_averages(results)
 
         return {
-            'per_flight': flight_rows,
-            'flight_level5_columns': flight_level5_columns,
-            'temp_chart_series': temp_chart_series,
-            'lrf_chart_series': lrf_chart_series,
-            'iso_chart_series': iso_chart_series,
-            'chart_bucket_size': chart_bucket_size,
-            'temp_hourly_avg': temp_hourly_avg,
-            'lrf_hourly_avg': lrf_hourly_avg,
-            'iso_hourly_avg': iso_hourly_avg,
-            'hourly_interval_minutes': hourly_interval_minutes,
+            "per_flight": flight_rows,
+            "flight_level5_columns": flight_level5_columns,
+            "temp_chart_series": temp_chart_series,
+            "lrf_chart_series": lrf_chart_series,
+            "iso_chart_series": iso_chart_series,
+            "chart_bucket_size": chart_bucket_size,
+            "temp_hourly_avg": temp_hourly_avg,
+            "lrf_hourly_avg": lrf_hourly_avg,
+            "iso_hourly_avg": iso_hourly_avg,
+            "hourly_interval_minutes": hourly_interval_minutes,
         }
 
     # ===================================================================
@@ -218,16 +231,26 @@ class FlightAggregator:
     ) -> Dict[str, Any]:
         """Constroi uma linha de resumo para um unico voo."""
         # Datas
-        dates = sorted([
-            FormatUtils.parse_capture_datetime(it.capture_datetime)
-            for it in items
-            if FormatUtils.parse_capture_datetime(it.capture_datetime) is not None
-        ])
+        dates = sorted(
+            [
+                FormatUtils.parse_capture_datetime(it.capture_datetime)
+                for it in items
+                if FormatUtils.parse_capture_datetime(it.capture_datetime) is not None
+            ]
+        )
         from ...core.config.LogUtils import LogUtils
-        _flight_logger = LogUtils(tool=ToolKey.REPORT_METADATA, class_name="FlightAggregator._build_flight_row")
-        _flight_logger.debug(f"Voo {flight_id}: {len(items)} items, {len(dates)} datas validas, dates[:3]={[str(d) for d in dates[:3]]}")
+
+        _flight_logger = LogUtils(
+            tool=ToolKey.REPORT_METADATA,
+            class_name="FlightAggregator._build_flight_row",
+        )
+        _flight_logger.debug(
+            f"Voo {flight_id}: {len(items)} items, {len(dates)} datas validas, dates[:3]={[str(d) for d in dates[:3]]}"
+        )
         if not dates:
-            _flight_logger.warning(f"Voo {flight_id}: NENHUMA data valida capturada para {len(items)} imagens. flight_id={flight_id!r}, capture_datetime samples: {[it.capture_datetime for it in items[:5]]}")
+            _flight_logger.warning(
+                f"Voo {flight_id}: NENHUMA data valida capturada para {len(items)} imagens. flight_id={flight_id!r}, capture_datetime samples: {[it.capture_datetime for it in items[:5]]}"
+            )
         start_dt = dates[0] if dates else None
         end_dt = dates[-1] if dates else None
         duration = (end_dt - start_dt) if start_dt and end_dt else None
@@ -240,70 +263,151 @@ class FlightAggregator:
             for it in items:
                 raw = it.level5_values.get(field_key)
                 num = MathUtils.to_float_or_none(raw)
-                if num is not None and num not in (float('inf'), float('-inf')):
+                if num is not None and num not in (float("inf"), float("-inf")):
                     vals.append(num)
             level5_means[field_key] = (
-                round(statistics.mean(vals), FlightAggregator.ROUND_DECIMALS) if vals else None
+                round(statistics.mean(vals), FlightAggregator.ROUND_DECIMALS)
+                if vals
+                else None
             )
 
         # Velocidade (km/h e m/s)
         speed_kmh = [
-            v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.SPEED_3D_KMH.value, 'speed_3d_kmh'])) is not None
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.SPEED_3D_KMH.value, "speed_3d_kmh"]
+                )
+            )
+            is not None
         ]
 
         # Temperatura do sensor
         sensor_temps = [
-            v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])) is not None
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.SENSOR_TEMPERATURE.value, "sensor_temp_c"]
+                )
+            )
+            is not None
         ]
 
         # LRF Target Distance (exclui valores zerados - sem alvo adquirido)
         lrf_dists = [
-            v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])) is not None and v > 0
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.LRF_TARGET_DISTANCE.value, "lrf_target_distance"]
+                )
+            )
+            is not None
+            and v > 0
         ]
 
         # Altitudes
         rel_alts = [
-            v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.RELATIVE_ALTITUDE.value, 'relative_altitude'])) is not None
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.RELATIVE_ALTITUDE.value, "relative_altitude"]
+                )
+            )
+            is not None
         ]
         abs_alts = [
-            v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.ABSOLUTE_ALTITUDE.value, 'absolute_altitude'])) is not None
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.ABSOLUTE_ALTITUDE.value, "absolute_altitude"]
+                )
+            )
+            is not None
         ]
 
         # ISO, White Balance CCT, Exposure
         isos = [
-            v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.ISO_SPEED_RATINGS.value, 'iso', MFK.RECOMMENDED_EXPOSURE_INDEX.value])) is not None
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it,
+                    [
+                        MFK.ISO_SPEED_RATINGS.value,
+                        "iso",
+                        MFK.RECOMMENDED_EXPOSURE_INDEX.value,
+                    ],
+                )
+            )
+            is not None
         ]
         wb_ccts = [
-            v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.WHITE_BALANCE_CCT.value, 'white_balance_cct'])) is not None
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.WHITE_BALANCE_CCT.value, "white_balance_cct"]
+                )
+            )
+            is not None
         ]
         exposures = [
-            v for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.EXPOSURE_TIME.value, 'exposure_time'])) is not None and v > 0
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.EXPOSURE_TIME.value, "exposure_time"]
+                )
+            )
+            is not None
+            and v > 0
         ]
 
         # Atitude do drone (roll, yaw, pitch)
         dist3d_prev = [
-            abs(v) for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.DISTANCE_3D_PREVIOUS.value, 'distance_3d_previous'])) is not None
+            abs(v)
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.DISTANCE_3D_PREVIOUS.value, "distance_3d_previous"]
+                )
+            )
+            is not None
         ]
         rolls = [
-            abs(v) for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.FLIGHT_ROLL_DEGREE.value, 'flight_roll_degree'])) is not None
+            abs(v)
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.FLIGHT_ROLL_DEGREE.value, "flight_roll_degree"]
+                )
+            )
+            is not None
         ]
         yaws = [
-            abs(v) for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.FLIGHT_YAW_DEGREE.value, 'flight_yaw_degree'])) is not None
+            abs(v)
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.FLIGHT_YAW_DEGREE.value, "flight_yaw_degree"]
+                )
+            )
+            is not None
         ]
         pitches = [
-            abs(v) for it in items
-            if (v := FlightAggregator._get_numeric(it, [MFK.FLIGHT_PITCH_DEGREE.value, 'flight_pitch_degree'])) is not None
+            abs(v)
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.FLIGHT_PITCH_DEGREE.value, "flight_pitch_degree"]
+                )
+            )
+            is not None
         ]
 
         # Altitude do solo (absoluta - relativa)
@@ -320,67 +424,99 @@ class FlightAggregator:
         exposure_max = max(exposures) if exposures else None
 
         return {
-            'flight_id': flight_id,
-            'images': len(items),
-            'mean_score': round(statistics.mean([it.overall_score for it in items]), 2),
-            'start': start_dt.strftime('%Y-%m-%d %H:%M:%S') if start_dt else 'N/A',
-            'end': end_dt.strftime('%Y-%m-%d %H:%M:%S') if end_dt else 'N/A',
-            'flight_seconds': total_seconds,
-            'flight_time': FormatUtils.format_duration(total_seconds),
-            'avg_speed3d_kmh': (
-                round(statistics.mean(speed_kmh), FlightAggregator.ROUND_DECIMALS) if speed_kmh else None
+            "flight_id": flight_id,
+            "images": len(items),
+            "mean_score": round(statistics.mean([it.overall_score for it in items]), 2),
+            "start": start_dt.strftime("%Y-%m-%d %H:%M:%S") if start_dt else "N/A",
+            "end": end_dt.strftime("%Y-%m-%d %H:%M:%S") if end_dt else "N/A",
+            "flight_seconds": total_seconds,
+            "flight_time": FormatUtils.format_duration(total_seconds),
+            "avg_speed3d_kmh": (
+                round(statistics.mean(speed_kmh), FlightAggregator.ROUND_DECIMALS)
+                if speed_kmh
+                else None
             ),
-            'avg_speed3d_ms': (
-                round(statistics.mean(speed_kmh) / 3.6, FlightAggregator.ROUND_DECIMALS) if speed_kmh else None
+            "avg_speed3d_ms": (
+                round(statistics.mean(speed_kmh) / 3.6, FlightAggregator.ROUND_DECIMALS)
+                if speed_kmh
+                else None
             ),
-            'avg_sensor_temperature': (
-                round(statistics.mean(sensor_temps), FlightAggregator.ROUND_DECIMALS) if sensor_temps else None
+            "avg_sensor_temperature": (
+                round(statistics.mean(sensor_temps), FlightAggregator.ROUND_DECIMALS)
+                if sensor_temps
+                else None
             ),
-            'avg_lrf_target_distance': (
-                round(statistics.mean(lrf_dists), FlightAggregator.ROUND_DECIMALS) if lrf_dists else None
+            "avg_lrf_target_distance": (
+                round(statistics.mean(lrf_dists), FlightAggregator.ROUND_DECIMALS)
+                if lrf_dists
+                else None
             ),
-            'avg_relative_altitude': (
-                round(statistics.mean(rel_alts), FlightAggregator.ROUND_DECIMALS) if rel_alts else None
+            "avg_relative_altitude": (
+                round(statistics.mean(rel_alts), FlightAggregator.ROUND_DECIMALS)
+                if rel_alts
+                else None
             ),
-            'avg_absolute_altitude': (
-                round(statistics.mean(abs_alts), FlightAggregator.ROUND_DECIMALS) if abs_alts else None
+            "avg_absolute_altitude": (
+                round(statistics.mean(abs_alts), FlightAggregator.ROUND_DECIMALS)
+                if abs_alts
+                else None
             ),
-            'altitude_solo': round(solo_altitude, FlightAggregator.ROUND_DECIMALS) if solo_altitude is not None else None,
-            'avg_iso': (
-                round(statistics.mean(isos), FlightAggregator.ROUND_DECIMALS) if isos else None
+            "altitude_solo": (
+                round(solo_altitude, FlightAggregator.ROUND_DECIMALS)
+                if solo_altitude is not None
+                else None
             ),
-            'avg_white_balance_cct': (
-                round(statistics.mean(wb_ccts), FlightAggregator.ROUND_DECIMALS) if wb_ccts else None
+            "avg_iso": (
+                round(statistics.mean(isos), FlightAggregator.ROUND_DECIMALS)
+                if isos
+                else None
             ),
-            'avg_shutter_speed_text': FormatUtils.format_shutter_speed(exposure_mean),
-            'shutter_speed_range_text': (
-                f'entre {FormatUtils.format_shutter_speed(exposure_max)} e {FormatUtils.format_shutter_speed(exposure_min)}'
+            "avg_white_balance_cct": (
+                round(statistics.mean(wb_ccts), FlightAggregator.ROUND_DECIMALS)
+                if wb_ccts
+                else None
+            ),
+            "avg_shutter_speed_text": FormatUtils.format_shutter_speed(exposure_mean),
+            "shutter_speed_range_text": (
+                f"entre {FormatUtils.format_shutter_speed(exposure_max)} e {FormatUtils.format_shutter_speed(exposure_min)}"
                 if exposure_min is not None and exposure_max is not None
-                else 'N/A'
+                else "N/A"
             ),
-            'avg_dist3d_previous': (
-                round(statistics.mean(dist3d_prev), FlightAggregator.ROUND_DECIMALS) if dist3d_prev else None
+            "avg_dist3d_previous": (
+                round(statistics.mean(dist3d_prev), FlightAggregator.ROUND_DECIMALS)
+                if dist3d_prev
+                else None
             ),
-            'avg_flight_roll': (
-                round(statistics.mean(rolls), FlightAggregator.ROUND_DECIMALS) if rolls else None
+            "avg_flight_roll": (
+                round(statistics.mean(rolls), FlightAggregator.ROUND_DECIMALS)
+                if rolls
+                else None
             ),
-            'avg_flight_yaw': (
-                round(statistics.mean(yaws), FlightAggregator.ROUND_DECIMALS) if yaws else None
+            "avg_flight_yaw": (
+                round(statistics.mean(yaws), FlightAggregator.ROUND_DECIMALS)
+                if yaws
+                else None
             ),
-            'avg_flight_pitch': (
-                round(statistics.mean(pitches), FlightAggregator.ROUND_DECIMALS) if pitches else None
+            "avg_flight_pitch": (
+                round(statistics.mean(pitches), FlightAggregator.ROUND_DECIMALS)
+                if pitches
+                else None
             ),
-            'estimated_area_ha': (
-                round(estimated_area_ha, FlightAggregator.ROUND_DECIMALS) if estimated_area_ha is not None else None
+            "estimated_area_ha": (
+                round(estimated_area_ha, FlightAggregator.ROUND_DECIMALS)
+                if estimated_area_ha is not None
+                else None
             ),
-            'level5_means': level5_means,
+            "level5_means": level5_means,
         }
 
     # ===================================================================
     # CALCULO DE AREA
     # ===================================================================
     @staticmethod
-    def _estimate_area(items: List[IMGMetadata], level5_means: Dict[str, Any]) -> Optional[float]:
+    def _estimate_area(
+        items: List[IMGMetadata], level5_means: Dict[str, Any]
+    ) -> Optional[float]:
         """Calcula area estimada coberta pelo voo em hectares.
 
         Formula: area_foto = (largura_px * gsd_m) * (altura_px * gsd_m)
@@ -397,7 +533,9 @@ class FlightAggregator:
         img_heights = []
         for it in items:
             w = MathUtils.to_float_or_none(it.get_indicator(MFK.EXIF_IMAGE_WIDTH.value))
-            h = MathUtils.to_float_or_none(it.get_indicator(MFK.EXIF_IMAGE_HEIGHT.value))
+            h = MathUtils.to_float_or_none(
+                it.get_indicator(MFK.EXIF_IMAGE_HEIGHT.value)
+            )
             if w is not None and h is not None and w > 0 and h > 0:
                 img_widths.append(w)
                 img_heights.append(h)
@@ -470,10 +608,10 @@ class FlightAggregator:
                     mean_val = statistics.mean(bvals)
                     if filter_zero and mean_val <= 0:
                         continue
-                    data.append({'x': bidx + 1, 'y': round(mean_val, 2)})
+                    data.append({"x": bidx + 1, "y": round(mean_val, 2)})
 
             if data:
-                series.append({'label': flight_id, 'data': data})
+                series.append({"label": flight_id, "data": data})
 
         return series, bucket_size
 
@@ -529,20 +667,28 @@ class FlightAggregator:
             if dt is None:
                 continue
             hour_float = dt.hour + dt.minute / 60.0 + dt.second / 3600.0
-            v_temp = FlightAggregator._get_numeric(r, [MFK.SENSOR_TEMPERATURE.value, 'sensor_temp_c'])
-            v_lrf = FlightAggregator._get_numeric(r, [MFK.LRF_TARGET_DISTANCE.value, 'lrf_target_distance'])
-            v_relz = FlightAggregator._get_numeric(r, [MFK.RELATIVE_ALTITUDE.value, 'relative_altitude'])
+            v_temp = FlightAggregator._get_numeric(
+                r, [MFK.SENSOR_TEMPERATURE.value, "sensor_temp_c"]
+            )
+            v_lrf = FlightAggregator._get_numeric(
+                r, [MFK.LRF_TARGET_DISTANCE.value, "lrf_target_distance"]
+            )
+            v_relz = FlightAggregator._get_numeric(
+                r, [MFK.RELATIVE_ALTITUDE.value, "relative_altitude"]
+            )
             # LRF zero = sem alvo adquirido, nao deve entrar na media
             if v_lrf is not None and v_lrf <= 0:
                 v_lrf = None
             if v_temp is not None or v_lrf is not None or v_relz is not None:
-                entries.append({
-                    'dt': dt,
-                    'hour_float': hour_float,
-                    'temp': v_temp,
-                    'lrf': v_lrf,
-                    'relz': v_relz,
-                })
+                entries.append(
+                    {
+                        "dt": dt,
+                        "hour_float": hour_float,
+                        "temp": v_temp,
+                        "lrf": v_lrf,
+                        "relz": v_relz,
+                    }
+                )
 
         if not entries:
             return [], [], 0
@@ -550,7 +696,7 @@ class FlightAggregator:
         # ------------------------------------------------------------------
         # 2. Calcular amplitude do horario (em horas)
         # ------------------------------------------------------------------
-        hours = [e['hour_float'] for e in entries]
+        hours = [e["hour_float"] for e in entries]
         min_hour = min(hours)
         max_hour = max(hours)
         range_hours = max_hour - min_hour
@@ -573,47 +719,55 @@ class FlightAggregator:
 
         for e in entries:
             # Arredonda para o bucket mais proximo (ex: 08:17 com 15min -> bucket 08:15)
-            bucket_key = round(e['hour_float'] / interval_hours) * interval_hours
+            bucket_key = round(e["hour_float"] / interval_hours) * interval_hours
             # Evita 24.0 que seria invalido como hora
             if bucket_key >= 24.0:
                 bucket_key = 24.0 - interval_hours
-            if e['temp'] is not None:
-                temp_buckets[bucket_key].append(e['temp'])
-            if e['lrf'] is not None:
-                lrf_buckets[bucket_key].append(e['lrf'])
-            if e['relz'] is not None:
-                relz_buckets[bucket_key].append(e['relz'])
+            if e["temp"] is not None:
+                temp_buckets[bucket_key].append(e["temp"])
+            if e["lrf"] is not None:
+                lrf_buckets[bucket_key].append(e["lrf"])
+            if e["relz"] is not None:
+                relz_buckets[bucket_key].append(e["relz"])
 
         # ------------------------------------------------------------------
         # 4. Montar resultado ordenado
         # ------------------------------------------------------------------
-        all_keys = sorted(set(temp_buckets.keys()) | set(lrf_buckets.keys()) | set(relz_buckets.keys()))
+        all_keys = sorted(
+            set(temp_buckets.keys())
+            | set(lrf_buckets.keys())
+            | set(relz_buckets.keys())
+        )
 
         temp_result = []
         lrf_result = []
         for key in all_keys:
             hours_int = int(key)
             minutes_int = int(round((key - hours_int) * 60))
-            label = f'{hours_int:02d}:{minutes_int:02d}'
+            label = f"{hours_int:02d}:{minutes_int:02d}"
 
             t_vals = temp_buckets.get(key, [])
             l_vals = lrf_buckets.get(key, [])
             z_vals = relz_buckets.get(key, [])
 
-            temp_result.append({
-                'hour': key,
-                'label': label,
-                'mean': round(statistics.mean(t_vals), 2) if t_vals else None,
-                'count': len(t_vals),
-            })
-            lrf_result.append({
-                'hour': key,
-                'label': label,
-                'lrf_mean': round(statistics.mean(l_vals), 2) if l_vals else None,
-                'lrf_count': len(l_vals),
-                'relz_mean': round(statistics.mean(z_vals), 2) if z_vals else None,
-                'relz_count': len(z_vals),
-            })
+            temp_result.append(
+                {
+                    "hour": key,
+                    "label": label,
+                    "mean": round(statistics.mean(t_vals), 2) if t_vals else None,
+                    "count": len(t_vals),
+                }
+            )
+            lrf_result.append(
+                {
+                    "hour": key,
+                    "label": label,
+                    "lrf_mean": round(statistics.mean(l_vals), 2) if l_vals else None,
+                    "lrf_count": len(l_vals),
+                    "relz_mean": round(statistics.mean(z_vals), 2) if z_vals else None,
+                    "relz_count": len(z_vals),
+                }
+            )
 
         return temp_result, lrf_result, interval_minutes
 
@@ -640,12 +794,21 @@ class FlightAggregator:
             if dt is None:
                 continue
             hour_float = dt.hour + dt.minute / 60.0 + dt.second / 3600.0
-            v_iso = FlightAggregator._get_numeric(r, [MFK.ISO_SPEED_RATINGS.value, 'iso', MFK.RECOMMENDED_EXPOSURE_INDEX.value])
+            v_iso = FlightAggregator._get_numeric(
+                r,
+                [
+                    MFK.ISO_SPEED_RATINGS.value,
+                    "iso",
+                    MFK.RECOMMENDED_EXPOSURE_INDEX.value,
+                ],
+            )
             if v_iso is not None:
-                iso_entries.append({
-                    'hour_float': hour_float,
-                    'iso': v_iso,
-                })
+                iso_entries.append(
+                    {
+                        "hour_float": hour_float,
+                        "iso": v_iso,
+                    }
+                )
 
         if not iso_entries:
             return []
@@ -653,7 +816,7 @@ class FlightAggregator:
         # ------------------------------------------------------------------
         # 2. Calcular range e intervalo DINAMICO (proprio do ISO)
         # ------------------------------------------------------------------
-        hours = [e['hour_float'] for e in iso_entries]
+        hours = [e["hour_float"] for e in iso_entries]
         min_hour = min(hours)
         max_hour = max(hours)
         range_hours = max_hour - min_hour
@@ -670,10 +833,10 @@ class FlightAggregator:
         iso_buckets = defaultdict(list)
 
         for e in iso_entries:
-            bucket_key = round(e['hour_float'] / interval_hours) * interval_hours
+            bucket_key = round(e["hour_float"] / interval_hours) * interval_hours
             if bucket_key >= 24.0:
                 bucket_key = 24.0 - interval_hours
-            iso_buckets[bucket_key].append(e['iso'])
+            iso_buckets[bucket_key].append(e["iso"])
 
         # ------------------------------------------------------------------
         # 4. Montar resultado ordenado
@@ -682,13 +845,15 @@ class FlightAggregator:
         for key in sorted(iso_buckets.keys()):
             hours_int = int(key)
             minutes_int = int(round((key - hours_int) * 60))
-            label = f'{hours_int:02d}:{minutes_int:02d}'
+            label = f"{hours_int:02d}:{minutes_int:02d}"
             i_vals = iso_buckets.get(key, [])
-            iso_result.append({
-                'hour': key,
-                'label': label,
-                'mean': round(statistics.mean(i_vals), 2) if i_vals else None,
-                'count': len(i_vals),
-            })
+            iso_result.append(
+                {
+                    "hour": key,
+                    "label": label,
+                    "mean": round(statistics.mean(i_vals), 2) if i_vals else None,
+                    "count": len(i_vals),
+                }
+            )
 
         return iso_result

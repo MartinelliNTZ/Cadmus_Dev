@@ -436,17 +436,19 @@ class ScoreSPBJudge:
         return resolved
 
     @staticmethod
-    def _build_sort_key(value):
+    def _build_sort_key(self,value):
         try:
             return (0, int(value))
-        except Exception:
+        except Exception as e:
+            self.logger.debug(f"_build_sort_key: failed with error: {e}")
             try:
                 return (0, float(value))
-            except Exception:
+            except Exception as e:
+                self.logger.debug(f"_build_sort_key: failed with error: {e}")
                 return (1, str(value or "").strip().lower())
 
     @staticmethod
-    def _parse_timestamp(value):
+    def _parse_timestamp(self, value):
         from datetime import datetime
 
         if value is None:
@@ -454,7 +456,8 @@ class ScoreSPBJudge:
         if hasattr(value, "toSecsSinceEpoch"):
             try:
                 return float(value.toSecsSinceEpoch())
-            except Exception:
+            except Exception as e:
+                self.logger.debug(f"_parse_timestamp: failed with error: {e}")
                 pass
         if isinstance(value, datetime):
             return float(value.timestamp())
@@ -473,17 +476,20 @@ class ScoreSPBJudge:
         ):
             try:
                 return float(parser(text))
-            except Exception:
+            except Exception as e:
+                self.logger.debug(f"_parse_timestamp: failed with error: {e}")
                 continue
         digits = "".join(ch for ch in text if ch.isdigit())
         if len(digits) == 14:
             try:
                 return float(datetime.strptime(digits, "%Y%m%d%H%M%S").timestamp())
-            except Exception:
+            except Exception as e:
+                self.logger.debug(f"_parse_timestamp: failed with error: {e}")
                 pass
         try:
             return float(text)
-        except Exception:
+        except Exception as e:
+            self.logger.debug(f"_parse_timestamp: failed with error: {e}")
             return None
 
     @staticmethod

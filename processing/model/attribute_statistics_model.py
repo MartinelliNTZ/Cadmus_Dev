@@ -102,7 +102,8 @@ class StatsCalculator:
         if stats_enabled.get("MODE", False):
             try:
                 res["MODE"] = statistics.mode(vals)
-            except Exception:
+            except Exception as e:
+                print(f"Warning: could not compute mode for values {vals}: {e}")
                 res["MODE"] = float("nan")
         if stats_enabled.get("VARIANCE", False):
             res["VARIANCE"] = pvariance
@@ -191,8 +192,9 @@ class AttributeStatisticsModel:
                     val = float(v)
                     if math.isfinite(val):
                         values_by_field[fn].append(val)
-                except Exception:
+                except Exception as e:
                     # valores não numéricos são ignorados
+                    print(f"Warning: could not compute statistics for values  {e}")
                     return {}
         return values_by_field
 

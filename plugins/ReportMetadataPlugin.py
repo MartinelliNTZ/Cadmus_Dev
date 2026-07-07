@@ -135,7 +135,8 @@ class ReportMetadataPlugin(BasePluginMTL):
             size_kb = round(os.path.getsize(file_path) / 1024.0, 1)
             self.logger.debug(f"JSON: {file_name}, mtime: {mtime}, size: {size_kb} KB")
             return f"{file_name}"
-        except Exception:
+        except Exception as e:
+            self.logger.warning(f"Erro ao formatar label do JSON: {e}")
             return file_name
 
     def _list_json_files(self):
@@ -273,7 +274,8 @@ class ReportMetadataPlugin(BasePluginMTL):
             titulo = data.get("titulo", "")
             if titulo:
                 return f"Flight_{titulo}"
-        except Exception:
+        except Exception as e:
+            self.logger.warning(f"Erro ao resolver nome da layer: {e}")
             pass
         # Fallback: usar nome do arquivo sem extensao
         stem = os.path.splitext(os.path.basename(json_path))[0]
@@ -285,7 +287,8 @@ class ReportMetadataPlugin(BasePluginMTL):
             with open(json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             return data.get("source", "mrk+photo")
-        except Exception:
+        except Exception as e:
+            self.logger.warning(f"Erro ao resolver fonte do JSON: {e}")
             return "mrk+photo"
 
     def _create_track_from_layer(self, layer: QgsVectorLayer):

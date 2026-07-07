@@ -260,7 +260,8 @@ class PhotoEnrichmentTask(BaseTask):
                     continue
                 try:
                     foto_int = int(foto)
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"Erro ao converter foto para inteiro: {e}")
                     continue
                 ponto = {"foto": foto_int}
                 for field in feat.fields():
@@ -293,7 +294,8 @@ class PhotoEnrichmentTask(BaseTask):
                     if mrk_folder:
                         ponto["mrk_folder"] = mrk_folder
                     pontos.append(ponto)
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"Erro ao converter foto para inteiro: {e}")
                     continue
 
         # Preenche atributos faltantes dos source_points
@@ -303,7 +305,8 @@ class PhotoEnrichmentTask(BaseTask):
                 source_by_key[
                     (str(p.get("mrk_folder", "")).strip(), int(p.get("foto")))
                 ] = p
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Erro ao converter foto para inteiro: {e}")
                 continue
         for p in pontos:
             key = (str(p.get("mrk_folder", "")).strip(), p.get("foto"))

@@ -328,8 +328,8 @@ class MainLayout(QVBoxLayout):
                 w.setMouseTracking(True)
                 w.raise_()
                 self._borders[e] = w
-            except Exception:
-                logger.debug(f"_create_border_widgets: failed for {e}")
+            except Exception as e2:
+                logger.debug(f"_create_border_widgets: failed for {e} with error: {e2}")
 
     def _update_border_geometries(self):
         try:
@@ -358,16 +358,16 @@ class MainLayout(QVBoxLayout):
                 )
             for w in self._borders.values():
                 w.raise_()
-        except Exception:
-            logger.debug("_update_border_geometries: failed")
+        except Exception as e:
+            logger.debug(f"_update_border_geometries: failed with error: {e}")
 
     def _start_resize_from_edge(self, event, edge):
         try:
             self._resize_active = True
             self._resize_edge = edge
             self._last_pos = event.globalPos()
-        except Exception:
-            logger.debug("_start_resize_from_edge: failed")
+        except Exception as e:
+            logger.debug(f"_start_resize_from_edge: failed with error: {e}")
 
     def _perform_resize_move(self, event):
         try:
@@ -390,8 +390,8 @@ class MainLayout(QVBoxLayout):
             ):
                 self._parent_dialog.setGeometry(new_rect)
                 self._last_pos = event.globalPos()
-        except Exception:
-            logger.debug("_perform_resize_move: failed")
+        except Exception as e:
+            logger.debug(f"_perform_resize_move: failed with error: {e}")
 
     def _end_resize(self):
         try:
@@ -400,8 +400,8 @@ class MainLayout(QVBoxLayout):
             self._last_pos = None
             self._update_cursor(None)
             QApplication.restoreOverrideCursor()
-        except Exception:
-            logger.debug("_end_resize: failed")
+        except Exception as e:
+            logger.debug(f"_end_resize: failed with error: {e}")
 
     def _update_cursor(self, edge: Optional[str]):
         """Atualiza cursor baseado na borda detectada."""
@@ -430,7 +430,7 @@ class MainLayout(QVBoxLayout):
                 try:
                     mapped = self._parent_dialog.mapFromGlobal(event.globalPos())
                     mapped_pos = QPoint(mapped.x(), mapped.y())
-                except Exception:
+                except Exception as e:
                     mapped_pos = event.pos()
             else:
                 mapped_pos = event.pos()
@@ -452,7 +452,8 @@ class MainLayout(QVBoxLayout):
             try:
                 mapped = self._parent_dialog.mapFromGlobal(event.globalPos())
                 mapped_pos = QPoint(mapped.x(), mapped.y())
-            except Exception:
+            except Exception as e:
+                logger.debug(f"handle_mouse_move: failed with error: {e}")
                 mapped_pos = event.pos()
         else:
             mapped_pos = event.pos()

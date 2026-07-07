@@ -505,7 +505,8 @@ class GliCalculator(BaseProcessingAlgorithm):
             self.logger.info("Processamento GLI concluido com sucesso.")
             return {self.OUTPUT: output_path}
 
-        except QgsProcessingException:
+        except QgsProcessingException as e:
+            self.logger.error(f"Erro de processamento: {e}")
             raise
         except Exception as e:
             msg = f"Erro nao tratado em processAlgorithm: {e}"

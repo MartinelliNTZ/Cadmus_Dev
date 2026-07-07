@@ -65,12 +65,11 @@ class ToolKeyColorProvider:
         Returns:
             Dict com cores ou None se falhar
         """
-        try:
-            from .....utils.ToolKeys import ToolKey
 
-            return ToolKey.TOOL_KEY_COLORS.copy()
-        except Exception:
-            return None
+        from .....utils.ToolKeys import ToolKey
+
+        return ToolKey.TOOL_KEY_COLORS.copy()
+
 
     def get_color(self, tool_key: str) -> str:
         """

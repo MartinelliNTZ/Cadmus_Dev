@@ -63,8 +63,8 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
 
         try:
             self.start_stats(layer)
-        except Exception:
-            self.logger.debug("Falha ao iniciar estatísticas")
+        except Exception as e:
+            self.logger.debug(f"Falha ao iniciar estatísticas: {e}")
 
         source = layer.source().lower()
         if source.endswith(".kml") or (
@@ -142,8 +142,8 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
                     # Salvar prefs e incrementar uso APÓS execução bem-sucedida
                     Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
                     self.on_finish_plugin()
-                except Exception:
-                    self.logger.debug("Falha ao finalizar estatísticas")
+                except Exception as e:
+                    self.logger.debug(f"Falha ao finalizar estatísticas: {e}")
         except Exception as e:
             self.logger.error(f"Erro: {str(e)}")
             QgisMessageUtil.bar_critical(self.iface, f"{STR.ERROR}: {str(e)}")

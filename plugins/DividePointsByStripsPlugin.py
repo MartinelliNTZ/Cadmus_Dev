@@ -671,7 +671,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         if group_records:
             try:
                 valid_val = int(group_records[0].attribute(valid_key) or 0)
-            except Exception:
+            except Exception as e:
+                self.logger.warning(f"Erro ao converter valid_key para inteiro: {e}")
                 valid_val = 0
 
         az_values = []
@@ -1012,7 +1013,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                                     else:
                                         field_type = QVariant.String
                                         field_name_to_use = field_group
-                                except Exception:
+                                except Exception as e:
+                                    self.logger.warning(f"Erro ao obter campo original: {e}")
                                     field_type = QVariant.String
                                     field_name_to_use = field_group
                                 lines_data.addAttributes(

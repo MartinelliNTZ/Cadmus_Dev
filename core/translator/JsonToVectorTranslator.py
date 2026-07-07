@@ -306,7 +306,7 @@ class JsonToVectorTranslator:
             return None
 
     @staticmethod
-    def _dms_tuple_to_float(value) -> Optional[float]:
+    def _dms_tuple_to_float(value, logger = None) -> Optional[float]:
         """
         Converte tupla DMS do EXIF (ex: ((13,1), (5,1), (1583,100))) para
         graus decimais.
@@ -343,7 +343,9 @@ class JsonToVectorTranslator:
             minute = _part(parts[1])
             sec = _part(parts[2])
             return deg + (minute / 60.0) + (sec / 3600.0)
-        except Exception:
+        except Exception as e:
+            if logger:
+                logger.warning(f"Erro ao converter DMS para float: {e}")
             return None
 
     def _resolve_attribute_name(self, key: str) -> str:

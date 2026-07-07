@@ -147,7 +147,8 @@ class RasterMassSampler(BaseProcessingAlgorithm):
         try:
             for f in pts.fields():
                 out_fields.append(f)
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Erro ao construir campos de saída: {e}")
             if isinstance(pts, QgsFields):
                 for f in pts:
                     out_fields.append(f)
@@ -188,7 +189,8 @@ class RasterMassSampler(BaseProcessingAlgorithm):
         effective_pts_crs = None
         try:
             effective_pts_crs = pts.sourceCrs()
-        except Exception:
+        except  Exception as e:
+            self.logger.error(f"Erro ao obter CRS da camada de pontos: {e}")
             effective_pts_crs = None
 
         transforms = []
@@ -215,7 +217,8 @@ class RasterMassSampler(BaseProcessingAlgorithm):
                 try:
                     pt = transforms[i].transform(geom.asPoint())
                     val = ras.dataProvider().sample(pt, 1)[0]
-                except Exception:
+                except Exception as e:
+                    self.logger.error(f"Erro ao amostrar raster {ras.name()}: {e}")
                     val = None
 
                 feedback.pushInfo(

@@ -5,6 +5,8 @@ MathUtils — Utilitários matemáticos genéricos reutilizáveis
 
 import math
 from typing import Any, Optional
+from ..core.config.LogUtils import LogUtils
+logger = LogUtils(tool="Untraceable", class_name="None")
 
 
 class MathUtils:
@@ -171,7 +173,8 @@ class MathUtils:
         """
         try:
             return MathUtils.parse_num(value)
-        except Exception:
+        except Exception as e:
+            logger.debug(f"to_float_or_none: failed with error: {e}")
             return None
 
     @staticmethod
@@ -195,7 +198,8 @@ class MathUtils:
             return False
         try:
             return float(text) == 0.0
-        except Exception:
+        except Exception as e:
+            logger.debug(f"is_zero_value: failed with error: {e}")
             return text == "0"
 
     @staticmethod

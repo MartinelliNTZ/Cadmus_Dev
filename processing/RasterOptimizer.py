@@ -23,7 +23,7 @@ from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 OVERVIEW_LEVELS_DEFAULT = ["2", "4", "8", "16", "32", "64", "128", "256"]
 OVERVIEW_LEVEL_ALL = OVERVIEW_LEVELS_DEFAULT
-
+logger = LogUtils(tool="Untraceable", class_name="None")
 RESAMPLING_METHODS = [
     "average",
     "nearest",
@@ -89,7 +89,8 @@ def _has_internal_overviews(raster_path):
         lines = result.stdout.splitlines()
         levels = [line.strip() for line in lines if "Overview" in line and "x" in line]
         return len(levels) > 0, levels
-    except Exception:
+    except Exception as e:
+        logger.debug(f"_has_internal_overviews: failed with error: {e}")
         return False, []
 
 

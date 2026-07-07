@@ -238,7 +238,8 @@ class BasePluginMTL(BaseDialog):
                 if input_obj is not None and hasattr(input_obj, "featureCount"):
                     try:
                         self.preferences["current_features"] = input_obj.featureCount()
-                    except Exception:
+                    except Exception as e:
+                        self.logger.warning(f"Erro ao obter contagem de features: {e}")
                         self.preferences["current_features"] = 0
                     avg_feat = self.preferences.get("avg_speed_features", 0)
                     if avg_feat > 0 and self.preferences["current_features"] > 0:
@@ -294,7 +295,8 @@ class BasePluginMTL(BaseDialog):
             if input_obj is not None and hasattr(input_obj, "featureCount"):
                 try:
                     current_features = input_obj.featureCount()
-                except Exception:
+                except Exception as e:
+                    self.logger.warning(f"Erro ao obter contagem de features: {e}")
                     current_features = self.preferences.get("current_features", 0)
             self.preferences["total_features"] = (
                 self.preferences.get("total_features", 0) + current_features

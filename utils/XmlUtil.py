@@ -6,8 +6,8 @@ from typing import Optional, Dict
 
 from utils.BaseUtil import BaseUtil
 from utils.ToolKeys import ToolKey
-
-
+from ..core.config.LogUtils import LogUtils
+logger = LogUtils(tool="Untraceable", class_name="None")
 class XmlUtil(BaseUtil):
     """
     Utilitário para manipulação de XML e QML (QGIS Style Layer).
@@ -69,7 +69,8 @@ class XmlUtil(BaseUtil):
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(xml_str)
             return True
-        except Exception:
+        except Exception as e:
+            logger.debug(f"save_xml: failed with error: {e}")
             return False
 
     @staticmethod
@@ -78,7 +79,8 @@ class XmlUtil(BaseUtil):
         try:
             tree = ET.parse(file_path)
             return tree.getroot()
-        except Exception:
+        except Exception as e:
+            logger.debug(f"load_xml: failed with error: {e}")
             return None
 
     @staticmethod
@@ -107,7 +109,8 @@ class XmlUtil(BaseUtil):
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(result)
             return True
-        except Exception:
+        except Exception as e:
+            logger.debug(f"save_qml_style: failed with error: {e}")
             return False
 
     @staticmethod

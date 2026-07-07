@@ -108,16 +108,19 @@ class GeometryLineFromPoints(BaseProcessingAlgorithm):
                 if point is None:
                     return None
                 return point
-            except Exception:
+            except Exception as e:
                 LogUtils(
                     tool=GeometryLineFromPoints.TOOL_KEY, class_name="GeometryLine"
-                ).warning(f"Erro ao extrair ponto da geometria do recurso {feat.id()}")
+                ).warning(f"Erro ao extrair ponto da geometria do recurso {feat.id()}: {str(e)}")
         try:
             centroid = geom.centroid()
             if centroid is None or centroid.isEmpty():
                 return None
             return centroid.asPoint()
-        except Exception:
+        except Exception as e:
+            LogUtils(
+                tool=GeometryLineFromPoints.TOOL_KEY, class_name="GeometryLine"
+            ).warning(f"Erro ao extrair centroid da geometria do recurso {feat.id()}: {str(e)}")
             return None
 
     @staticmethod

@@ -12,6 +12,8 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
 )
 from ..resources.IconManager import IconManager as IM
+from ..core.config.LogUtils import LogUtils
+logger = LogUtils(tool="Untraceable", class_name="None")
 
 
 class QgisMessageUtil:
@@ -45,7 +47,8 @@ class QgisMessageUtil:
         # iface.messageBar pode não existir em alguns contextos; tente capturar
         try:
             iface.messageBar().pushMessage(title, message, level, duration)
-        except Exception:
+        except Exception as e:
+            logger.debug(f"_push_message_bar: failed with error: {e}")
             # fallback para QMessageBox modal se messageBar não estiver disponível
             QMessageBox.information(iface.mainWindow(), title, message)
 

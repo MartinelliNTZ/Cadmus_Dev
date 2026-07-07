@@ -255,7 +255,8 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
             feedback.pushInfo("Processamento concluido com sucesso.")
             return {self.OUTPUT: output_path}
 
-        except QgsProcessingException:
+        except QgsProcessingException as e:
+            self.logger.error(f"Erro de processamento: {e}")
             raise
         except ImportError as e:
             msg = f"Biblioteca necessaria nao disponivel: {e}"

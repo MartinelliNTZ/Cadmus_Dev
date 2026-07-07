@@ -303,7 +303,8 @@ class RasterDifferenceStatiscs(BaseProcessingAlgorithm):
                 try:
                     if min_value is not None and max_value is not None:
                         interval_value = float(max_value) - float(min_value)
-                except Exception:
+                except Exception as e:
+                    self.logger.error(f"Erro ao calcular intervalo para {row.get('raster_path')}: {e}")
                     interval_value = ""
 
                 fh.write("<tr>")

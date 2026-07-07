@@ -472,7 +472,7 @@ class ScoreSPBJudge:
             lambda x: datetime.strptime(x, "%d/%m/%Y %H:%M:%S").timestamp(),
             lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%S").timestamp(),
             lambda x: datetime.strptime(x, "%Y%m%d%H%M%S").timestamp(),
-            lambda x: datetime.strptime(x, "%Y%m%d_%H%M%S").timestamp(),
+            lambda x: datetime.strptime(x, "%Y%m%d_%H%M%S").timestamp(),#
         ):
             try:
                 return float(parser(text))

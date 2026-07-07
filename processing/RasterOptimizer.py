@@ -12,7 +12,6 @@ from qgis.core import (
     QgsProcessingParameterFile,
     QgsProcessingParameterMultipleLayers,
     QgsProcessingParameterNumber,
-    QgsProcessingParameterString,
     QgsProcessingAlgorithm,
 )
 
@@ -88,11 +87,7 @@ def _has_internal_overviews(raster_path):
             timeout=30,
         )
         lines = result.stdout.splitlines()
-        levels = [
-            line.strip()
-            for line in lines
-            if "Overview" in line and "x" in line
-        ]
+        levels = [line.strip() for line in lines if "Overview" in line and "x" in line]
         return len(levels) > 0, levels
     except Exception:
         return False, []
@@ -114,7 +109,7 @@ def _run_gdaladdo(cmd, raster_path, feedback_queue):
         )
 
         # Ler stdout em tempo real
-        for line in iter(process.stdout.readline, ''):
+        for line in iter(process.stdout.readline, ""):
             line = line.strip()
             if line:
                 feedback_queue.append(f"  [{name}] {line}")
@@ -129,7 +124,11 @@ def _run_gdaladdo(cmd, raster_path, feedback_queue):
                     feedback_queue.append(f"  [{name}] {stripped}")
 
         if process.returncode != 0:
-            error_msg = stderr.strip() if stderr and stderr.strip() else f"Código de retorno {process.returncode}"
+            error_msg = (
+                stderr.strip()
+                if stderr and stderr.strip()
+                else f"Código de retorno {process.returncode}"
+            )
             return (raster_path, False, error_msg)
 
         return (raster_path, True, None)
@@ -199,7 +198,9 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                 STR.OVERVIEW_LEVELS,
                 options=OVERVIEW_LEVEL_ALL,
                 allowMultiple=True,
-                defaultValue=self.prefs.get("overview_levels", [0, 1, 2, 3, 4, 5, 6, 7]),
+                defaultValue=self.prefs.get(
+                    "overview_levels", [0, 1, 2, 3, 4, 5, 6, 7]
+                ),
             )
         )
 
@@ -260,8 +261,11 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.SKIP_IF_HAS_OVERVIEWS,
-                STR.SKIP_IF_HAS_OVERVIEWS if hasattr(STR, "SKIP_IF_HAS_OVERVIEWS")
-                else "Pular rasters que já possuem overviews internos",
+                (
+                    STR.SKIP_IF_HAS_OVERVIEWS
+                    if hasattr(STR, "SKIP_IF_HAS_OVERVIEWS")
+                    else "Pular rasters que já possuem overviews internos"
+                ),
                 defaultValue=self.prefs.get("skip_if_has_overviews", True),
             )
         )
@@ -287,7 +291,9 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         zlevel = self.parameterAsInt(params, self.ZLEVEL, context)
         delete_existing = self.parameterAsBool(params, self.DELETE_EXISTING, context)
         bigtiff = self.parameterAsBool(params, self.BIGTIFF, context)
-        skip_if_has_overviews = self.parameterAsBool(params, self.SKIP_IF_HAS_OVERVIEWS, context)
+        skip_if_has_overviews = self.parameterAsBool(
+            params, self.SKIP_IF_HAS_OVERVIEWS, context
+        )
 
         self.logger.debug(
             f"Parametros: folder={input_folder}, recursive={recursive}, "
@@ -310,7 +316,9 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                     self.logger.debug(f"Raster de camada adicionado: {path}")
 
         if input_folder and os.path.isdir(input_folder):
-            self.logger.debug(f"Buscando rasters em: {input_folder} (recursive={recursive})")
+            self.logger.debug(
+                f"Buscando rasters em: {input_folder} (recursive={recursive})"
+            )
             for root, dirs, files in os.walk(input_folder):
                 for f in files:
                     if f.lower().endswith((".tif", ".tiff")):
@@ -402,8 +410,8 @@ class RasterOptimizer(BaseProcessingAlgorithm):
             free = _free_disk_space(raster_path)
             skip_disk = False
             if free is not None:
-                needed_mb = needed / (1024 ** 2)
-                free_mb = free / (1024 ** 2)
+                needed_mb = needed / (1024**2)
+                free_mb = free / (1024**2)
                 feedback.pushInfo(
                     f"  {os.path.basename(raster_path)} → "
                     f"estimado: {needed_mb:.1f} MB, livre: {free_mb:.1f} MB"
@@ -430,12 +438,23 @@ class RasterOptimizer(BaseProcessingAlgorithm):
 
             cmd = [
                 "gdaladdo",
-                "-r", resampling,
-                "--config", "COMPRESS_OVERVIEW", compression,
-                "--config", "PREDICTOR_OVERVIEW", predictor_value,
-                "--config", "ZLEVEL_OVERVIEW", str(zlevel),
-                "--config", "USE_RRD", "NO",
-                "--config", "GDAL_TIFF_OVR_BLOCKSIZE", "512",
+                "-r",
+                resampling,
+                "--config",
+                "COMPRESS_OVERVIEW",
+                compression,
+                "--config",
+                "PREDICTOR_OVERVIEW",
+                predictor_value,
+                "--config",
+                "ZLEVEL_OVERVIEW",
+                str(zlevel),
+                "--config",
+                "USE_RRD",
+                "NO",
+                "--config",
+                "GDAL_TIFF_OVR_BLOCKSIZE",
+                "512",
             ]
 
             if bigtiff:
@@ -449,7 +468,9 @@ class RasterOptimizer(BaseProcessingAlgorithm):
             feedback.pushInfo("Nenhum raster para processar após verificações.")
             return {}
 
-        feedback.pushInfo(f"Enviando {total_tasks} tarefas para pool (max {MAX_WORKERS} paralelos)...")
+        feedback.pushInfo(
+            f"Enviando {total_tasks} tarefas para pool (max {MAX_WORKERS} paralelos)..."
+        )
         feedback.pushInfo("-" * 60)
 
         # ── Execução paralela com ThreadPoolExecutor ──────────────────────
@@ -462,7 +483,6 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         count_failed = 0
         t_start = time.time()
         feedback_queue = []
-        last_progress_update = time.time()
 
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             # Submeter todas as tarefas
@@ -471,7 +491,9 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                 if feedback.isCanceled():
                     break
                 self.logger.debug(f"Submetendo: {' '.join(cmd)}")
-                future = executor.submit(_run_gdaladdo, cmd, raster_path, feedback_queue)
+                future = executor.submit(
+                    _run_gdaladdo, cmd, raster_path, feedback_queue
+                )
                 future_to_raster[future] = raster_path
 
             # Processar resultados à medida que ficam prontos
@@ -486,7 +508,9 @@ class RasterOptimizer(BaseProcessingAlgorithm):
 
                 # Verificar cancelamento
                 if feedback.isCanceled():
-                    feedback.pushInfo("CANCELADO pelo usuário — terminando processos...")
+                    feedback.pushInfo(
+                        "CANCELADO pelo usuário — terminando processos..."
+                    )
                     # Cancelar futures pendentes
                     for f in future_to_raster:
                         f.cancel()
@@ -500,11 +524,15 @@ class RasterOptimizer(BaseProcessingAlgorithm):
                     if success:
                         count_ok += 1
                         feedback.pushInfo(f"  ✅ OK — {name}")
-                        self.logger.debug(f"Overviews criadas com sucesso: {raster_path}")
+                        self.logger.debug(
+                            f"Overviews criadas com sucesso: {raster_path}"
+                        )
                     else:
                         count_failed += 1
                         feedback.pushInfo(f"  ❌ FALHA — {name}: {error_msg[:200]}")
-                        self.logger.error(f"Falha ao processar {raster_path}: {error_msg}")
+                        self.logger.error(
+                            f"Falha ao processar {raster_path}: {error_msg}"
+                        )
 
                 except Exception as e:
                     count_failed += 1
@@ -565,10 +593,14 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         try:
             cmd = ["gdaladdo", "-clean", raster_path]
             subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=120)
-            feedback.pushInfo(f"  Overviews internos removidos: {os.path.basename(raster_path)}")
+            feedback.pushInfo(
+                f"  Overviews internos removidos: {os.path.basename(raster_path)}"
+            )
             self.logger.debug(f"Overviews limpas: {raster_path}")
         except subprocess.CalledProcessError as e:
-            self.logger.warning(f"Falha ao limpar overviews (pode ser ignorado): {e.stderr.strip()}")
+            self.logger.warning(
+                f"Falha ao limpar overviews (pode ser ignorado): {e.stderr.strip()}"
+            )
         except Exception as e:
             self.logger.warning(f"Erro ao limpar overviews: {e}")
 
@@ -577,7 +609,9 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         if os.path.exists(ovr_path):
             try:
                 os.remove(ovr_path)
-                feedback.pushInfo(f"  Arquivo externo .ovr residual removido: {os.path.basename(ovr_path)}")
+                feedback.pushInfo(
+                    f"  Arquivo externo .ovr residual removido: {os.path.basename(ovr_path)}"
+                )
                 self.logger.debug(f".ovr externo removido: {ovr_path}")
             except OSError as e:
                 self.logger.warning(f"Não foi possível remover .ovr externo: {e}")

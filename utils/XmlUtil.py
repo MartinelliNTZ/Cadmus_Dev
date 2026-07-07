@@ -2,10 +2,13 @@
 import os
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-from typing import Optional, Dict, List
+from typing import Optional, Dict
+
+from utils.BaseUtil import BaseUtil
+from utils.ToolKeys import ToolKey
 
 
-class XmlUtil:
+class XmlUtil(BaseUtil):
     """
     Utilitário para manipulação de XML e QML (QGIS Style Layer).
 
@@ -92,7 +95,7 @@ class XmlUtil:
             xml_str = XmlUtil.pretty_xml(root, with_declaration=False)
             # Remove qualquer DOCTYPE existente (se o minidom gerou um)
             lines = xml_str.splitlines()
-            cleaned_lines = [l for l in lines if "<!DOCTYPE" not in l]
+            cleaned_lines = [las for las in lines if "<!DOCTYPE" not in las]
             # Reconstroi com o DOCTYPE na primeira linha
             doctype = "<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>"
             # Remove linhas vazias do inicio
@@ -117,6 +120,7 @@ class XmlUtil:
         alpha_band: int = -1,
         opacity: float = 1.0,
         algorithm: str = "StretchToMinimumMaximum",
+        tool_key: str = ToolKey.UNTRACEABLE.value,
     ) -> ET.Element:
         """
         Constrói um documento QML para renderizador multiband colorido.
@@ -130,10 +134,13 @@ class XmlUtil:
             alpha_band: Número da banda alpha (-1 = none)
             opacity: Opacidade do raster (0.0 a 1.0)
             algorithm: Algoritmo de contraste (ex: StretchToMinimumMaximum)
+            tool_key: Chave da ferramenta para logging
 
         Returns:
             ElementTree.Element com o documento QML completo
         """
+        logger = BaseUtil._get_logger(tool_key, "XmlUtil")
+
         # Elemento raiz qgis
         qgis_attrib = {
             "autoRefreshTime": "0",
@@ -320,4 +327,15 @@ class XmlUtil:
         # blendMode
         ET.SubElement(root, "blendMode").text = "0"
 
+        # ── Logging de todas as variáveis do método ──
+        logger.debug(
+            f"build_raster_multiband_qml executado | "
+            f"name_props={name_props} | "
+            f"type_props={type_props} | "
+            f"props_pipe={props_pipe} | "
+            f"type_pipe={type_pipe} | "
+            f"resampling={resampling} | "
+            f"brightness_contrast={brightness_contrast} | "
+            f"huesaturation={huesaturation}"
+        )
         return root

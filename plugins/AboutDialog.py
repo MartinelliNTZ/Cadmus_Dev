@@ -6,8 +6,6 @@ from .BaseDialog import BaseDialog
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..utils.ToolKeys import ToolKey
 from ..i18n.TranslationManager import STR
-from ..utils.QgisMessageUtil import QgisMessageUtil
-from ..resources.IconManager import IconManager as IM
 
 
 class AboutDialog(BaseDialog):
@@ -31,8 +29,7 @@ class AboutDialog(BaseDialog):
             self.logger.debug("AboutDialog _build_ui concluído")
 
             logo_path = os.path.join(
-                os.path.dirname(
-                    __file__), "..", "resources", "icons", "mtl_agro.png"
+                os.path.dirname(__file__), "..", "resources", "icons", "mtl_agro.png"
             )
 
             if os.path.exists(logo_path):

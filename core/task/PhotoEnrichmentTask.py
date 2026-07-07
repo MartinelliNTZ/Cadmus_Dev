@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import List, Dict, Any, Optional
-import os
-
+from typing import List, Optional
 from .BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
 from ..enum import MetadataFieldKey

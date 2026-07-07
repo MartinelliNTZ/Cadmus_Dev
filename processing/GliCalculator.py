@@ -9,7 +9,6 @@ from qgis.core import (
     QgsProcessingParameterRasterLayer,
     QgsProcessingParameterBand,
     QgsProcessingMultiStepFeedback,
-    QgsProcessing,
 )
 import processing
 

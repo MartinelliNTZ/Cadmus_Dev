@@ -643,7 +643,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 stats["skipped_invalid_geom"] += 1
                 continue
 
-            pt = geom.asPoint()
             sid_str = str(sid)
             if sid_str not in seen_shots:
                 seen_shots.add(sid_str)

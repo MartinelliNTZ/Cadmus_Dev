@@ -516,4 +516,3 @@ class ProjectUtils:
         except Exception as e:
             logger.error(f"Erro ao centralizar canvas na extensao do arquivo: {e}")
             return False
-

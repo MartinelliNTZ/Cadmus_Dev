@@ -2,6 +2,7 @@
 """
 MathUtils — Utilitários matemáticos genéricos reutilizáveis
 """
+
 import math
 from typing import Any, Optional
 
@@ -144,9 +145,16 @@ class MathUtils:
         if isinstance(value, (int, float)):
             return float(value)
         text = str(value).strip().lower()
-        if text in {'inf', '+inf', 'infinity', '+infinity', "float('inf')", 'float("inf")'}:
+        if text in {
+            "inf",
+            "+inf",
+            "infinity",
+            "+infinity",
+            "float('inf')",
+            'float("inf")',
+        }:
             return math.inf
-        if text in {'-inf', '-infinity', "float('-inf')", 'float("-inf")'}:
+        if text in {"-inf", "-infinity", "float('-inf')", 'float("-inf")'}:
             return -math.inf
         return float(text)
 
@@ -183,12 +191,12 @@ class MathUtils:
         if value is None:
             return False
         text = str(value).strip()
-        if text == '':
+        if text == "":
             return False
         try:
             return float(text) == 0.0
         except Exception:
-            return text == '0'
+            return text == "0"
 
     @staticmethod
     def is_missing_value(value: Any) -> bool:
@@ -209,4 +217,4 @@ class MathUtils:
         if value is None:
             return True
         text = str(value).strip().lower()
-        return text in {'', 'none', 'null', 'nan'}
+        return text in {"", "none", "null", "nan"}

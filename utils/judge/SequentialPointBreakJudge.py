@@ -144,7 +144,7 @@ def _future_stability_score(
     """
     future_azs = [
         a
-        for a in pre_az[current_index + 1 : current_index + 1 + window]
+        for a in pre_az[current_index + 1: current_index + 1 + window]
         if a is not None
     ]
     if not future_azs:
@@ -521,8 +521,8 @@ class SequentialPointBreakJudge:
             # a direção real da strip sem a diluição da janela de suavização.
             # A janela `azimuth_window` limita o histórico aos N últimos pontos,
             # impedindo que faixas longas acumulem bias da direção antiga.
-            recent_az = az_history[-config.azimuth_window :]
-            recent_vel = vel_history[-config.azimuth_window :]
+            recent_az = az_history[-config.azimuth_window:]
+            recent_vel = vel_history[-config.azimuth_window:]
             # Fallback: prior_mean_az (da strip anterior) > raw_now (que zera delta)
             mean_az = (
                 MathUtils.axial_mean(recent_az)

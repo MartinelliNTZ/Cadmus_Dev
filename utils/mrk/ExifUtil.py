@@ -153,16 +153,16 @@ class ExifUtil:
     ) -> dict:
         """
         Extrai e sanitiza campos EXIF disponiveis.
-        
+
         Converte automaticamente coordenadas DMS (GPSLatitude/GPSLongitude) para
         decimal com sinal, armazenando o resultado em GpsLatitudeRef/GpsLongitudeRef.
-        
+
         Campos retornados:
         - GpsLatitude: tupla DMS original (RAW) - pode ser sobrescrito pelo XMP
         - GpsLatitudeRef: decimal com sinal (ex: -13.11816) - EXCLUSIVO do EXIF
         - GpsLongitude: tupla DMS original (RAW) - pode ser sobrescrito pelo XMP
         - GpsLongitudeRef: decimal com sinal (ex: -54.79313) - EXCLUSIVO do EXIF
-        
+
         Apenas campos autorizados em MetadataFields sao retornados.
         Campos nao autorizados sao descartados (log em DEBUG).
         """
@@ -195,7 +195,7 @@ class ExifUtil:
                 # GpsLong (tupla DMS) + GpsLongRef ("E"/"W") → GpsLongRef (decimal)
                 lat_raw = data.get("GpsLat")  # tupla DMS
                 lat_ref = data.get("GpsLatRef", "")  # "S" ou "N"
-                lon_raw = data.get("GPSLong")  # tupla DMS  
+                lon_raw = data.get("GPSLong")  # tupla DMS
                 lon_ref = data.get("GpsLongRef", "")  # "W" ou "E"
 
                 if isinstance(lat_raw, (list, tuple)):

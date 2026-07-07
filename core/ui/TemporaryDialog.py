@@ -2,9 +2,7 @@ import time
 from qgis.PyQt.QtWidgets import QDialog, QLabel, QHBoxLayout, QGraphicsBlurEffect
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtGui import QIcon, QPixmap
-from qgis.PyQt.QtCore import Qt, QCoreApplication
-
-import time
+from qgis.PyQt.QtCore import QCoreApplication
 
 
 class TemporaryDialog(QDialog):

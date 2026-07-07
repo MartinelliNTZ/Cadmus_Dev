@@ -105,6 +105,7 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
                 feedback=feedback,
                 tool_key=self.TOOL_KEY,
             )
+            self.logger.debug(f"Resultado do processamento: {result}")
 
             # --- Salvar preferencias ---
             self.prefs.update({

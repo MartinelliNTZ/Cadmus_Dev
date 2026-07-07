@@ -26,7 +26,7 @@ class ToolKey:
     ABOUT_DIALOG = "about_dialog"
     VECTOR_TO_SVG = "vector_to_svg"
     CREATE_PROJECT = "create_project"
-    DIFFERENCE_BETWEEN_LINES= "difference_between_lines"
+    DIFFERENCE_BETWEEN_LINES = "difference_between_lines"
     SAVE_TEMPORARY_LAYER = "save_temporary_layer"
     PATH_EXTENSION_TOOL = "path_extension_tool"
 
@@ -49,7 +49,6 @@ class ToolKey:
     RGB_STYLE_STANDARDIZER = "rgb_style_standardizer"
     GLI_CALCULATOR = "gli_calculator"
     NDRE_CALCULATOR = "ndre_calculator"
-
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {

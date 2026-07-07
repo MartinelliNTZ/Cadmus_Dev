@@ -207,7 +207,7 @@ class MrkParser:
             for k in p.keys():
                 if k.startswith("folder_level"):
                     try:
-                        n = int(k[len("folder_level") :])
+                        n = int(k[len("folder_level"):])
                         if n > max_n:
                             max_n = n
                     except ValueError as e:

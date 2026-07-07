@@ -301,8 +301,7 @@ class QgisMessageUtil:
         )
 
         iface.messageBar().pushWidget(widget, level=0, duration=duration)
-        
-        
+
     @staticmethod
     def show_icon_message_bar(
         iface,
@@ -314,7 +313,7 @@ class QgisMessageUtil:
         border_radius=8,
         padding="8px 12px",
         font_size=12,
-        bold=True
+        bold=True,
     ):
         """
         Exibe uma message bar visualmente mais rica.
@@ -342,9 +341,7 @@ class QgisMessageUtil:
             icon_label = QLabel()
 
             pix = QPixmap(icon_path).scaled(
-                18, 18,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation
+                18, 18, Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
 
             icon_label.setPixmap(pix)

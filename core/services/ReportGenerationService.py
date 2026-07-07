@@ -33,9 +33,13 @@ class ReportGenerationService:
 
         range_metadata_manager.load(tool_key=self.tool_key)
         self.logger.debug("Carregando records do JSON...")
-        records = JsonMetadataManager.load_records(json_path=json_path, tool_key=self.tool_key)
-        self.logger.debug(f"Records carregados: {len(records)} registros. Amostra 1o registro keys: {list(records[0].keys())[:10] if records else 'VAZIO'}")
-        
+        records = JsonMetadataManager.load_records(
+            json_path=json_path, tool_key=self.tool_key
+        )
+        self.logger.debug(
+            f"Records carregados: {len(records)} registros. Amostra 1o registro keys: {list(records[0].keys())[:10] if records else 'VAZIO'}"
+        )
+
         self.logger.debug("Criando objetos IMGMetadata a partir dos records...")
         results: List[IMGMetadata] = []
         for i, record in enumerate(records):
@@ -43,17 +47,25 @@ class ReportGenerationService:
                 img = IMGMetadata(record).score()
                 results.append(img)
             except Exception as e:
-                self.logger.error(f"Erro ao processar record [{i}]: {e}, record keys={list(record.keys())[:10] if record else 'VAZIO'}")
+                self.logger.error(
+                    f"Erro ao processar record [{i}]: {e}, record keys={list(record.keys())[:10] if record else 'VAZIO'}"
+                )
                 raise
-        self.logger.debug(f"IMGMetadata criados e scored: {len(results)} objetos. flight_ids amostra: {[r.flight_id for r in results[:5]]}")
+        self.logger.debug(
+            f"IMGMetadata criados e scored: {len(results)} objetos. flight_ids amostra: {[r.flight_id for r in results[:5]]}"
+        )
 
         # Carrega timestamps existentes do JSON e mescla com report_start atual
-        timestamps = JsonMetadataManager.load_timestamps(json_path=json_path, tool_key=self.tool_key)
+        timestamps = JsonMetadataManager.load_timestamps(
+            json_path=json_path, tool_key=self.tool_key
+        )
         timestamps["report_start"] = report_start
         processing_summary = JsonMetadataManager.compute_processing_summary(timestamps)
 
         # Carrega metadados do JSON raiz (titulo, logotipo, generated_at)
-        json_meta = JsonMetadataManager.load_json_metadata(json_path=json_path, tool_key=self.tool_key)
+        json_meta = JsonMetadataManager.load_json_metadata(
+            json_path=json_path, tool_key=self.tool_key
+        )
 
         engine = RenderEngine(tool_key=self.tool_key)
 
@@ -61,12 +73,14 @@ class ReportGenerationService:
             """Renderiza o HTML com agg atual."""
             self.logger.debug("INICIANDO ReportPapelineManager.analyze...")
             agg = ReportPapelineManager.analyze(results)
-            self.logger.debug("ReportPapelineManager.analyze CONCLUIDO. agg keys principais presentes: total_images={}, mean_overall={}".format(
-                agg.get('total_images', 'N/A'), agg.get('mean_overall', 'N/A')
-            ))
-            agg['processing'] = processing_summary
-            agg['timestamps'] = timestamps
-            agg['json_meta'] = json_meta
+            self.logger.debug(
+                "ReportPapelineManager.analyze CONCLUIDO. agg keys principais presentes: total_images={}, mean_overall={}".format(
+                    agg.get("total_images", "N/A"), agg.get("mean_overall", "N/A")
+                )
+            )
+            agg["processing"] = processing_summary
+            agg["timestamps"] = timestamps
+            agg["json_meta"] = json_meta
             if agg_extra:
                 agg.update(agg_extra)
             charts = engine.generate_charts(agg)
@@ -95,32 +109,44 @@ class ReportGenerationService:
             engine.save_report(html, target_path)
             self.logger.debug(f"HTML salvo em: {target_path}")
         except Exception as e:
-            self.logger.error(f"CRASH na primeira renderizacao/salvamento: {e}", code="CRASH_RENDER_1")
+            self.logger.error(
+                f"CRASH na primeira renderizacao/salvamento: {e}", code="CRASH_RENDER_1"
+            )
             import traceback
+
             self.logger.error(f"Traceback completo: {traceback.format_exc()}")
             raise
 
         # Registra fim e persiste timestamps no JSON
         report_end = datetime.now().isoformat()
         try:
-            JsonUtil.update_timestamps(json_path, {
-                "report_start": report_start,
-                "report_end": report_end,
-            })
+            JsonUtil.update_timestamps(
+                json_path,
+                {
+                    "report_start": report_start,
+                    "report_end": report_end,
+                },
+            )
             self.logger.debug(f"Timestamps de report salvos no JSON: {json_path}")
         except Exception as e:
-            self.logger.warning(f"Nao foi possivel salvar timestamps de report no JSON: {e}")
+            self.logger.warning(
+                f"Nao foi possivel salvar timestamps de report no JSON: {e}"
+            )
 
         # Recarrega timestamps agora com report_end e re-renderiza
         self.logger.debug("SEGUNDA RENDERIZACAO (com report_end)...")
         try:
-            timestamps = JsonMetadataManager.load_timestamps(json_path=json_path, tool_key=self.tool_key)
-            processing_summary = JsonMetadataManager.compute_processing_summary(timestamps)
+            timestamps = JsonMetadataManager.load_timestamps(
+                json_path=json_path, tool_key=self.tool_key
+            )
+            processing_summary = JsonMetadataManager.compute_processing_summary(
+                timestamps
+            )
             self.logger.debug("Segunda analyze...")
             agg = ReportPapelineManager.analyze(results)
-            agg['processing'] = processing_summary
-            agg['timestamps'] = timestamps
-            agg['json_meta'] = json_meta
+            agg["processing"] = processing_summary
+            agg["timestamps"] = timestamps
+            agg["json_meta"] = json_meta
             self.logger.debug("Segunda renderizacao charts...")
             charts = engine.generate_charts(agg)
             self.logger.debug("Segunda renderizacao map_data...")
@@ -135,8 +161,11 @@ class ReportGenerationService:
             self.logger.debug("Segunda renderizacao save...")
             engine.save_report(html, target_path)
         except Exception as e:
-            self.logger.error(f"CRASH na segunda renderizacao: {e}", code="CRASH_RENDER_2")
+            self.logger.error(
+                f"CRASH na segunda renderizacao: {e}", code="CRASH_RENDER_2"
+            )
             import traceback
+
             self.logger.error(f"Traceback completo: {traceback.format_exc()}")
             raise
 

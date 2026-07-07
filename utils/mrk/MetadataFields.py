@@ -1828,7 +1828,7 @@ class MetadataFields:
         )
         for prefix in namespace_prefixes:
             if normalized.startswith(prefix):
-                normalized = normalized[len(prefix) :]
+                normalized = normalized[len(prefix):]
                 break
 
         # Mapeamento especial para campos de sistema e variantes

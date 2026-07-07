@@ -398,7 +398,6 @@ class ScoreSPBJudge:
             )
 
     def _load_ordered_points(self, layer, field_id, field_time):
-        from datetime import datetime
 
         t0 = time.time()
         ordered = []

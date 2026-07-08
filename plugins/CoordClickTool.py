@@ -2,7 +2,7 @@ from qgis.gui import QgsMapTool
 from qgis.core import QgsApplication
 import sip
 
-from ..core.task.reverse_geocoding_task import ReverseGeocodeTask
+from ..core.task.ReverseGeocodeTask import ReverseGeocodeTask
 from ..core.task.altimetry_task import AltimetriaTask
 from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..core.engine_tasks.ExecutionContext import ExecutionContext

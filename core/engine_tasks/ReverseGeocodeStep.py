@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext
-from ..task.reverse_geocoding_task import ReverseGeocodeTask
+from ..task.ReverseGeocodeTask import ReverseGeocodeTask
 from ..config.LogUtils import LogUtils
 
 

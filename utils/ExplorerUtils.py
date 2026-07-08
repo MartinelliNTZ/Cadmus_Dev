@@ -282,7 +282,7 @@ class ExplorerUtils(BaseUtil):
 
     @staticmethod
     def build_temp_file_path(
-        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+        tool_key = BaseUtil.TOOL_KEY_UNTRACEABLE,
         *subfolders: str,
         prefix: str = "cadmus",
         extension: str = ".tmp",

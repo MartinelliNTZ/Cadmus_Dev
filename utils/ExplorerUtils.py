@@ -14,16 +14,22 @@ from ..core.config.LogUtils import LogUtils
 from .vector.VectorLayerSource import VectorLayerSource
 from .raster.RasterLayerSource import RasterLayerSource
 from .StringManager import StringManager
+from .BaseUtil import BaseUtil
 
 
-class ExplorerUtils:
+class ExplorerUtils(BaseUtil):
     """Utilitário para varredura de diretórios e carregamento de layers.
 
-    Métodos estáticos, log com LogUtils.
+    Métodos estáticos, log com LogUtils, tool_key em todos os métodos que logam.
     """
 
+    CADMUS_TEMP_FOLDER = "cadmus"
+    REPORTS_TEMP_FOLDER = "reports"
+    REPORTS_JSON_FOLDER = "json"
+    REPORTS_HTML_FOLDER = "html"
+
     @staticmethod
-    def _get_logger(tool_key: str):
+    def _get_logger(tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE) -> LogUtils:
         return LogUtils(tool=tool_key, class_name="ExplorerUtils")
 
     @staticmethod
@@ -72,7 +78,9 @@ class ExplorerUtils:
         return f"{prefix}{highest + 1}"
 
     @staticmethod
-    def ensure_folder_exists(folder_path: str, tool_key: str) -> bool:
+    def ensure_folder_exists(
+        folder_path: str, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
+    ) -> bool:
         """Garante que a pasta existe; retorna False em erro."""
         logger = ExplorerUtils._get_logger(tool_key)
         try:
@@ -91,7 +99,7 @@ class ExplorerUtils:
         return bool(path) and Path(path).is_file()
 
     @staticmethod
-    def open_folder(folder: str, tool_key: str) -> bool:
+    def open_folder(folder: str, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE) -> bool:
         """Abre uma pasta no explorador do sistema."""
         logger = ExplorerUtils._get_logger(tool_key)
 
@@ -104,7 +112,9 @@ class ExplorerUtils:
         return True
 
     @staticmethod
-    def open_file(file_path: str, tool_key: str) -> bool:
+    def open_file(
+        file_path: str, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
+    ) -> bool:
         """Abre um arquivo com o aplicativo padrao do sistema (ex.: HTML no navegador)."""
         logger = ExplorerUtils._get_logger(tool_key)
         if not file_path or not os.path.isfile(file_path):
@@ -123,14 +133,16 @@ class ExplorerUtils:
     def copy_file_to_folder(
         source_file: str,
         destination_folder: str,
-        tool_key: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
         overwrite: bool = True,
     ) -> str:
         """Copia arquivo para uma pasta destino e retorna o caminho final."""
         logger = ExplorerUtils._get_logger(tool_key)
         try:
             if not source_file or not os.path.isfile(source_file):
-                logger.error(f"copy_file_to_folder: arquivo origem invalido: {source_file}")
+                logger.error(
+                    f"copy_file_to_folder: arquivo origem invalido: {source_file}"
+                )
                 return ""
 
             if not destination_folder:
@@ -160,7 +172,7 @@ class ExplorerUtils:
     @staticmethod
     def create_temp_json(
         payload,
-        tool_key: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
         prefix: str = "cadmus_drone_metadata",
         subfolder: str = None,
         file_stem_hint: str = None,
@@ -190,7 +202,7 @@ class ExplorerUtils:
             return ""
 
     @staticmethod
-    def get_cadmus_temp_root(tool_key: str) -> str:
+    def get_cadmus_temp_root(tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE) -> str:
         """Retorna pasta base temporaria do Cadmus em %TEMP%."""
         logger = ExplorerUtils._get_logger(tool_key)
         temp_root = os.path.join(
@@ -205,7 +217,9 @@ class ExplorerUtils:
             return tempfile.gettempdir()
 
     @staticmethod
-    def ensure_temp_subfolder(subfolder: str, tool_key: str) -> str:
+    def ensure_temp_subfolder(
+        subfolder: str, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
+    ) -> str:
         """Cria e retorna subpasta dentro da raiz temporaria do Cadmus."""
         logger = ExplorerUtils._get_logger(tool_key)
         root = ExplorerUtils.get_cadmus_temp_root(tool_key)
@@ -237,7 +251,9 @@ class ExplorerUtils:
             return root
 
     @staticmethod
-    def get_temp_folder(tool_key: str, *subfolders: str) -> str:
+    def get_temp_folder(
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE, *subfolders: str
+    ) -> str:
         """Retorna pasta temporaria do Cadmus opcionalmente navegando por subpastas."""
         if not subfolders:
             return ExplorerUtils.get_cadmus_temp_root(tool_key)
@@ -266,8 +282,8 @@ class ExplorerUtils:
 
     @staticmethod
     def build_temp_file_path(
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
         *subfolders: str,
-        tool_key: str,
         prefix: str = "cadmus",
         extension: str = ".tmp",
         file_stem_hint: str = "",
@@ -287,20 +303,10 @@ class ExplorerUtils:
     def rename_file(
         src: str,
         dst: str,
-        tool_key: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
         overwrite: bool = False,
     ) -> bool:
-        """Renomeia/move um arquivo no disco.
-
-        Args:
-            src: caminho original do arquivo
-            dst: novo caminho do arquivo
-            tool_key: para logging
-            overwrite: se True, sobrescreve arquivo de destino se existir
-
-        Returns:
-            True se renomeado com sucesso, False caso contrário
-        """
+        """Renomeia/move um arquivo no disco."""
         logger = ExplorerUtils._get_logger(tool_key)
         try:
             if not src or not os.path.isfile(src):
@@ -317,19 +323,17 @@ class ExplorerUtils:
                 )
                 return False
 
-            # Garantir que diretório pai existe
             parent = os.path.dirname(dst)
             if parent:
                 os.makedirs(parent, exist_ok=True)
 
             os.rename(src, dst)
             logger.info(
-                f"rename_file: '{os.path.basename(src)}' → "
-                f"'{os.path.basename(dst)}'"
+                f"rename_file: '{os.path.basename(src)}' → '{os.path.basename(dst)}'"
             )
             return True
-        except PermissionError:
-            logger.error(f"rename_file: permissão negada ao renomear '{src}'")
+        except PermissionError as e:
+            logger.error(f"rename_file: permissão negada ao renomear '{src}': {e}")
             return False
         except Exception as e:
             logger.error(f"rename_file: erro ao renomear '{src}': {e}")
@@ -338,20 +342,14 @@ class ExplorerUtils:
     @staticmethod
     def remove_extension_dot(
         file_path: str,
-        tool_key: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
     ) -> Optional[str]:
-        """Remove o ponto da extensão do arquivo: foto.jpg → fotojpg.
-
-        Args:
-            file_path: caminho completo do arquivo (ex: C:/fotos/foto.jpg)
-            tool_key: para logging
-
-        Returns:
-            Novo caminho se sucesso, None se falha
-        """
+        """Remove o ponto da extensão do arquivo: foto.jpg → fotojpg."""
         logger = ExplorerUtils._get_logger(tool_key)
         if not file_path or not os.path.isfile(file_path):
-            logger.warning(f"remove_extension_dot: arquivo não encontrado: '{file_path}'")
+            logger.warning(
+                f"remove_extension_dot: arquivo não encontrado: '{file_path}'"
+            )
             return None
 
         dirname = os.path.dirname(file_path)
@@ -369,27 +367,14 @@ class ExplorerUtils:
     @staticmethod
     def restore_extension_dot(
         file_path: str,
-        tool_key: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
     ) -> Optional[str]:
-        """Restaura o ponto na extensão: fotojpg → foto.jpg.
-
-        Procura no diretório o arquivo sem o ponto na extensão
-        e renomeia para o formato original com ponto.
-
-        Args:
-            file_path: caminho completo desejado (ex: C:/fotos/foto.jpg)
-            tool_key: para logging
-
-        Returns:
-            Caminho restaurado se sucesso, None se falha
-        """
+        """Restaura o ponto na extensão: fotojpg → foto.jpg."""
         logger = ExplorerUtils._get_logger(tool_key)
 
-        # Se o arquivo com ponto já existe, está ok
         if os.path.isfile(file_path):
             logger.info(
-                f"restore_extension_dot: '{os.path.basename(file_path)}' "
-                f"já existe no disco, mantendo"
+                f"restore_extension_dot: '{os.path.basename(file_path)}' já existe no disco, mantendo"
             )
             return file_path
 
@@ -397,38 +382,39 @@ class ExplorerUtils:
         basename = os.path.basename(file_path)
         stem, ext = os.path.splitext(basename)
         ext_sem_ponto = ext.replace(".", "")
-        flat_name = stem + ext_sem_ponto  # nome sem ponto: "fotojpg"
+        flat_name = stem + ext_sem_ponto
 
         target_dir = dirname if dirname else os.getcwd()
         if not os.path.isdir(target_dir):
-            logger.warning(
-                f"restore_extension_dot: diretório inválido: '{target_dir}'"
-            )
+            logger.warning(f"restore_extension_dot: diretório inválido: '{target_dir}'")
             return None
 
-        # Procurar arquivo sem ponto no diretório
-        for f_name in os.listdir(target_dir):
-            f_path = os.path.join(target_dir, f_name)
-            if not os.path.isfile(f_path):
-                continue
-            if f_name == flat_name:
-                ok = ExplorerUtils.rename_file(f_path, file_path, tool_key)
-                if ok:
-                    return file_path
-                return None
+        try:
+            for f_name in os.listdir(target_dir):
+                f_path = os.path.join(target_dir, f_name)
+                if not os.path.isfile(f_path):
+                    continue
+                if f_name == flat_name:
+                    ok = ExplorerUtils.rename_file(f_path, file_path, tool_key)
+                    if ok:
+                        return file_path
+                    return None
+        except Exception as e:
+            logger.error(f"restore_extension_dot: erro ao listar diretório: {e}")
+            return None
 
         logger.warning(
-            f"restore_extension_dot: nenhum arquivo '{flat_name}' "
-            f"encontrado em '{target_dir}'"
+            f"restore_extension_dot: nenhum arquivo '{flat_name}' encontrado em '{target_dir}'"
         )
         return None
 
     @staticmethod
-    def scan_folder(folder: str, extensions: List[str], tool_key: str) -> List[Dict]:
-        """Varre `folder` e retorna lista de registros de arquivos que batem nas `extensions`.
-
-        Cada registro: {"path": str, "ext": str, "type": "vector"|"raster"}
-        """
+    def scan_folder(
+        folder: str,
+        extensions: List[str],
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+    ) -> List[Dict]:
+        """Varre `folder` e retorna lista de registros de arquivos que batem nas `extensions`."""
         logger = ExplorerUtils._get_logger(tool_key)
         results = []
         if not folder or not os.path.isdir(folder):
@@ -453,11 +439,8 @@ class ExplorerUtils:
         return results
 
     @staticmethod
-    def create_layer(record: Dict, tool_key: str):
-        """Carrega e retorna uma camada QGIS baseada no registro (usa Vector/RasterSource).
-
-        Retorna: QgsMapLayer ou None
-        """
+    def create_layer(record: Dict, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE):
+        """Carrega e retorna uma camada QGIS baseada no registro (usa Vector/RasterSource)."""
         logger = ExplorerUtils._get_logger(tool_key)
         path = record.get("path")
         rtype = record.get("type")
@@ -476,7 +459,3 @@ class ExplorerUtils:
             if layer:
                 logger.info(f"Vector criado: {path}")
             return layer
-    CADMUS_TEMP_FOLDER = "cadmus"
-    REPORTS_TEMP_FOLDER = "reports"
-    REPORTS_JSON_FOLDER = "json"
-    REPORTS_HTML_FOLDER = "html"

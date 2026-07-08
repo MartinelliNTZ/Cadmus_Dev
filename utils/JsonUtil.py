@@ -1,13 +1,18 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import json
 import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
+from ..core.config.LogUtils import LogUtils
+from .BaseUtil import BaseUtil
 
-class JsonUtil:
+
+class JsonUtil(BaseUtil):
     """
     Constroi o JSON e tambem e responsavel por manipulacao do mesmo.
+
+    Métodos estáticos, tool_key em todos os métodos que logam.
     """
 
     @staticmethod
@@ -21,26 +26,7 @@ class JsonUtil:
         project_title: str = "",
         logo_path: str = "",
     ) -> Dict[str, Any]:
-        """
-        Constroi JSON v2.0 com records, metadados de qualidade e timestamps opcionais.
-
-        Args:
-            records: Lista de registros (pontos enriquecidos)
-            source: Fonte dos dados (mrk, mrk+photo, photo_only)
-            base_folder: Pasta base das fotos/MRK
-            tool_key: Chave da ferramenta
-            recursive: Se a busca foi recursiva
-            timestamps: Dict opcional com timestamps de cada extrator
-            project_title: Título do projeto (ex: "Fazenda Esperança")
-            logo_path: Caminho da imagem/logo do projeto
-                       Ex: {"pipeline_start": "...", "mrk_start": "...", "mrk_end": "...",
-                            "exif_start": "...", "exif_end": "...",
-                            "xmp_start": "...", "xmp_end": "...",
-                            "custom_start": "...", "custom_end": "...",
-                            "pipeline_end": "..."}
-        """
-        from ..core.config.LogUtils import LogUtils
-        logger = LogUtils(tool=tool_key, class_name="JsonUtil")
+        logger = BaseUtil._get_logger(tool_key)
 
         normalized_records = records or []
 
@@ -80,7 +66,9 @@ class JsonUtil:
 
         groups = {}
         for record in normalized_records:
-            folder_key = record.get("MrkFolder") or os.path.dirname(record.get("Path", ""))
+            folder_key = record.get("MrkFolder") or os.path.dirname(
+                record.get("Path", "")
+            )
             if folder_key not in groups:
                 groups[folder_key] = {
                     "MrkFile": record.get("MrkFile", ""),
@@ -114,26 +102,25 @@ class JsonUtil:
             "generated_at": now_iso,
         }
 
-        # Adiciona titulo do projeto e logotipo se fornecidos
         if project_title:
             json_data["titulo"] = project_title
         if logo_path:
             json_data["logotipo"] = logo_path
 
-        # Adiciona timestamps se fornecidos (logo apos generated_at, antes de quality/groups)
         if timestamps:
             json_data["timestamps"] = timestamps
 
         json_data["quality"] = quality
         json_data["groups"] = groups
 
-        logger.debug(f"Built JSON v2.0 with {len(groups)} groups and {len(normalized_records)} records")
+        logger.debug(
+            f"Built JSON v2.0 with {len(groups)} groups and {len(normalized_records)} records"
+        )
         return json_data
 
     @staticmethod
     def save(json_data: Dict[str, Any], output_path: str) -> str:
-        from ..core.config.LogUtils import LogUtils
-        logger = LogUtils(tool=json_data.get("tool_key", "json_util"), class_name="JsonUtil")
+        logger = BaseUtil._get_logger(json_data.get("tool_key", "json_util"))
         try:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(json_data, f, indent=2, ensure_ascii=False)
@@ -144,19 +131,10 @@ class JsonUtil:
             raise
 
     @staticmethod
-    def update_timestamps(json_path: str, new_timestamps: Dict[str, str]) -> Dict[str, Any]:
-        """
-        Carrega um JSON existente, mescla novos timestamps e salva de volta.
-
-        Args:
-            json_path: Caminho do arquivo JSON a ser atualizado
-            new_timestamps: Dict com os novos pares chave:timestamp a adicionar
-
-        Returns:
-            O dict completo do JSON (com timestamps atualizados)
-        """
-        from ..core.config.LogUtils import LogUtils
-        logger = LogUtils(tool="json_util", class_name="JsonUtil")
+    def update_timestamps(
+        json_path: str, new_timestamps: Dict[str, str]
+    ) -> Dict[str, Any]:
+        logger = BaseUtil._get_logger("json_util")
         try:
             with open(json_path, "r", encoding="utf-8") as f:
                 json_data = json.load(f)
@@ -168,7 +146,9 @@ class JsonUtil:
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(json_data, f, indent=2, ensure_ascii=False)
 
-            logger.debug(f"Timestamps atualizados no JSON: {list(new_timestamps.keys())}")
+            logger.debug(
+                f"Timestamps atualizados no JSON: {list(new_timestamps.keys())}"
+            )
             return json_data
         except Exception as e:
             logger.error(f"Erro ao atualizar timestamps em {json_path}: {e}")
@@ -176,8 +156,7 @@ class JsonUtil:
 
     @staticmethod
     def load_records(json_path: str) -> List[Dict[str, Any]]:
-        from ..core.config.LogUtils import LogUtils
-        logger = LogUtils(tool="json_util", class_name="JsonUtil")
+        logger = BaseUtil._get_logger("json_util")
         try:
             with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)

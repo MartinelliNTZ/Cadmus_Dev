@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
 import colorsys
 from typing import List
 
+from .BaseUtil import BaseUtil
 
-class ColorUtil:
+
+class ColorUtil(BaseUtil):
     """Gera cores distintas e harmoniosas para grafos com multiplas series."""
 
     # Paleta base de cores de alto contraste (fallback se houver poucas series)

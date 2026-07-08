@@ -93,9 +93,9 @@ class ReportGenerationService:
             )
 
         target_path = html_output_path or ExplorerUtils.build_temp_file_path(
+            self.tool_key,
             ExplorerUtils.REPORTS_TEMP_FOLDER,
             ExplorerUtils.REPORTS_HTML_FOLDER,
-            tool_key=self.tool_key,
             prefix="report_metadata",
             extension=".html",
             file_stem_hint=ExplorerUtils.build_report_html_stem(json_path),

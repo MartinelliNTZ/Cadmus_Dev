@@ -235,6 +235,36 @@
             th, td { font-size: 12px; }
             .summary-grid, .half-grid, .third-grid { grid-template-columns: 1fr; }
         }
+        .footer {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #d8d8d8;
+        }
+
+        .brand-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .footer-info {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #555;
+        }
+
+        .footer-info a {
+            color: #0b66c3;
+            text-decoration: none;
+        }
+
+        .footer-info a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body data-theme="dark">
@@ -1064,7 +1094,39 @@
             <summary>MAPA</summary>
             {{ map_snippet | safe }}
         </details>
-         <img src="{{ mtl_agro_icon_url }}" alt="MTL Agro" class="brand-logo" onerror="this.onerror=null;this.src='{{ mtl_agro_icon_path }}';" />
+    </div>
+    <div class="footer">
+
+        <img src="{{ cadmus_icon_url }}"
+            alt="Cadmus"
+            class="brand-logo"
+            onerror="this.onerror=null;this.src='{{ cadmus_icon_path }}';" />
+
+        <div class="footer-info">
+            <strong>Cadmus GIS</strong><br>
+
+            Desenvolvido por <strong>Matheus Martinelli</strong><br>
+
+            Palmas • Tocantins • Brasil<br><br>
+
+            <strong>LinkedIn:</strong>
+            <a href="https://www.linkedin.com/in/matheus-martinelli-a82149108" target="_blank">
+                linkedin.com/in/matheus-martinelli-a82149108
+            </a><br>
+
+            <strong>Instagram:</strong>
+            <a href="https://www.instagram.com/matheusmartinelli00" target="_blank">
+                @matheusmartinelli00
+            </a><br>
+
+            <strong>E-mail:</strong>
+            <a href="mailto:martinelli.matheus11@gmail.com">
+                martinelli.matheus11@gmail.com
+            </a><br><br>
+
+            © {{ current_year }} Cadmus. Todos os direitos reservados.
+        </div>
+
     </div>
 
     <script>

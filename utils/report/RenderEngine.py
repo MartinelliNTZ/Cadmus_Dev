@@ -502,6 +502,17 @@ class RenderEngine:
         mtl_agro_icon_path = Path(IM.icon_path(IM.MTL_AGRO_PNG)).resolve()
         cadmus_icon_url = cadmus_icon_path.as_uri()
         mtl_agro_icon_url = mtl_agro_icon_path.as_uri()
+        # Social icons paths
+        github_icon_path = Path(IM.icon_path(IM.GITHUB)).resolve()
+        instagram_icon_path = Path(IM.icon_path(IM.INSTAGRAM)).resolve()
+        email_icon_path = Path(IM.icon_path(IM.EMAIL)).resolve()
+        linkedin_icon_path = Path(IM.icon_path(IM.LINKEDIN)).resolve()
+        buy_me_a_coffee_icon_path = Path(IM.icon_path(IM.BUY_ME_A_COFFEE)).resolve()
+        github_icon_url = github_icon_path.as_uri()
+        instagram_icon_url = instagram_icon_path.as_uri()
+        email_icon_url = email_icon_path.as_uri()
+        linkedin_icon_url = linkedin_icon_path.as_uri()
+        buy_me_a_coffee_icon_url = buy_me_a_coffee_icon_path.as_uri()
         light_metrics = (
             (agg or {}).get("advanced_analysis", {}).get("metrics", {})
             if isinstance(agg, dict)
@@ -538,6 +549,16 @@ class RenderEngine:
             mtl_agro_icon_url=mtl_agro_icon_url,
             cadmus_icon_path=str(cadmus_icon_path),
             mtl_agro_icon_path=str(mtl_agro_icon_path),
+            github_icon_url=github_icon_url,
+            github_icon_path=str(github_icon_path),
+            instagram_icon_url=instagram_icon_url,
+            instagram_icon_path=str(instagram_icon_path),
+            email_icon_url=email_icon_url,
+            email_icon_path=str(email_icon_path),
+            linkedin_icon_url=linkedin_icon_url,
+            linkedin_icon_path=str(linkedin_icon_path),
+            buy_me_a_coffee_icon_url=buy_me_a_coffee_icon_url,
+            buy_me_a_coffee_icon_path=str(buy_me_a_coffee_icon_path),
         )
 
     def save_report(self, html: str, output_path: str = "relatorio.html") -> None:

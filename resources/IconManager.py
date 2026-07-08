@@ -48,6 +48,13 @@ class IconManager:
     SAVE_TEMPORARY_LAYER = "save_temporary_layer.ico"
     PATH_EXTENSION = "path_extension.ico"
 
+    # Social icons
+    GITHUB = "GithubIcon.ico"
+    INSTAGRAM = "InstagramIcon.ico"
+    EMAIL = "Email.ico"
+    LINKEDIN = "LinkedinIcon.ico"
+    BUY_ME_A_COFFEE = "BuyMeaCoffe.ico"
+
     # processing
     ATTRIBUTE_STATS = "attribute_stats.ico"
     FIELD_DIFFERENCE = "field_diference.ico"

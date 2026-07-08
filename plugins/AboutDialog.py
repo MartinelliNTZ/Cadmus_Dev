@@ -61,9 +61,7 @@ class AboutDialog(BaseDialog):
                 f"<b>{STR.CREATED_ON}:</b> 9 / 12 / 2024<br>"
                 f"<b>{STR.CREATOR}:</b> MTL Agricultura e Tecnologia<br>"
                 f"<b>{STR.LOCATION}:</b> Palmas - Tocantins - Brasil<br>"
-                '<b>Email:</b> <a href="mailto:martinelli.matheus11@gmail.com">martinelli.matheus11@gmail.com</a><br>'
-                '<b>Site:</b> <a href="https://github.com/MartinelliNTZ/Cadmus">https://github.com/MartinelliNTZ/Cadmus</a><br>'
-                '<b>GitHub:</b> <a href="https://github.com/MartinelliNTZ/Cadmus">https://github.com/MartinelliNTZ/Cadmus</a>'
+                '<b>Site:</b> <a href="https://github.com/MartinelliNTZ/Cadmus">github.com/MartinelliNTZ/Cadmus</a>'
             )
 
             lbl_info = WidgetFactory.create_label(
@@ -78,6 +76,44 @@ class AboutDialog(BaseDialog):
             )
             self.layout.addWidget(lbl_info)
             self.logger.debug("Informações adicionadas")
+
+            # Social icons row
+            from ..resources.IconManager import IconManager as IM
+            from qgis.PyQt.QtWidgets import QHBoxLayout, QPushButton
+            from qgis.PyQt.QtGui import QIcon
+            from qgis.PyQt.QtCore import QSize
+            import webbrowser
+
+            social_links = [
+                ("GitHub", IM.GITHUB, "https://github.com/MartinelliNTZ"),
+                ("LinkedIn", IM.LINKEDIN, "https://www.linkedin.com/in/matheus-martinelli-a82149108"),
+                ("Instagram", IM.INSTAGRAM, "https://www.instagram.com/matheusmartinelli00"),
+                ("E-mail", IM.EMAIL, "mailto:martinelli.matheus11@gmail.com"),
+                ("Buy Me a Coffee", IM.BUY_ME_A_COFFEE, "https://buymeacoffee.com/martinelliNTZ"),
+            ]
+
+            social_layout = QHBoxLayout()
+            social_layout.setSpacing(10)
+            social_layout.setContentsMargins(0, 8, 0, 4)
+            social_layout.setAlignment(Qt.AlignCenter)
+
+            for name, icon_file, url in social_links:
+                icon_path = os.path.join(
+                    os.path.dirname(__file__), "..", "resources", "icons", icon_file
+                )
+                if os.path.exists(icon_path):
+                    btn = QPushButton(parent=self)
+                    btn.setIcon(QIcon(icon_path))
+                    btn.setIconSize(QSize(32, 32))
+                    btn.setToolTip(name)
+                    btn.setFixedSize(40, 40)
+                    btn.setCursor(Qt.PointingHandCursor)
+                    btn.setFlat(True)
+                    btn.clicked.connect(lambda checked, u=url: webbrowser.open(u))
+                    social_layout.addWidget(btn)
+
+            self.layout.addLayout(social_layout)
+            self.logger.debug("Ícones sociais adicionados")
 
             close_layout, close_button = WidgetFactory.create_simple_button(
                 text=STR.CLOSE,

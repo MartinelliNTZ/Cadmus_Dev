@@ -108,7 +108,12 @@ class CoordClickTool(QgsMapTool):
                 )
             ]
 
-            self.pipeline_engine = AsyncPipelineEngine(steps, context)
+            self.pipeline_engine = AsyncPipelineEngine(
+                steps,
+                context,
+                on_finished=self._on_pipeline_finished,
+                on_error=self._on_pipeline_error,
+            )
             self.pipeline_engine.start()
         except Exception as e:
             # Fallback to previous behavior: schedule tasks individually
@@ -149,6 +154,36 @@ class CoordClickTool(QgsMapTool):
     # --------------------------------------------------
     # Utils
     # --------------------------------------------------
+    # --------------------------------------------------
+    # Pipeline callbacks (desacoplados — lêem dados do contexto)
+    # --------------------------------------------------
+    def _on_pipeline_finished(self, context):
+        """Callback chamado pela engine ao finalizar pipeline com sucesso."""
+        try:
+            address_data = context.get("address_data")
+            if address_data and self.dialog:
+                self.dialog.set_address(address_data)
+                self.logger.debug(f"Address set from pipeline: {address_data}")
+
+            altitude = context.get("altitude")
+            if altitude is not None and self.dialog:
+                self.dialog.set_altitude(altitude)
+                self.logger.debug(f"Altitude set from pipeline: {altitude}")
+        except Exception as e:
+            self.logger.error(f"Pipeline finished callback error: {e}")
+
+    def _on_pipeline_error(self, errors):
+        """Callback chamado pela engine ao finalizar pipeline com erro."""
+        try:
+            for err in errors:
+                self.logger.warning(f"Pipeline error: {err}")
+                if self.dialog:
+                    self.dialog.set_address(None)
+                    self.dialog.set_altitude(None)
+                self.iface.messageBar().pushWarning("Pipeline", str(err))
+        except Exception as e:
+            self.logger.error(f"Pipeline error callback error: {e}")
+
     def _cancel_task(self, task):
         if task and not sip.isdeleted(task):
             if not task.isCanceled():

@@ -11,8 +11,15 @@ class ReverseGeocodeStep(BaseStep):
     """
     Step que executa reverse geocode para obter endereço a partir de coordenadas.
 
-    Pula execução se lat/lon não estiverem disponíveis no contexto.
-    Armazena resultado no ExecutionContext como "address_data".
+    Totalmente desacoplado de UI — apenas persiste o resultado no ExecutionContext
+    como "address_data". O consumidor da pipeline (qualquer plugin) lê o contexto
+    via callback on_finished da engine para atualizar sua própria UI.
+
+    Uso em qualquer pipeline:
+        context = ExecutionContext({"lat": -23.5, "lon": -46.6, "tool_key": "meu_plugin"})
+        engine = AsyncPipelineEngine([ReverseGeocodeStep()], context)
+        engine.on_finished = lambda ctx: meu_dialog.set_address(ctx.get("address_data"))
+        engine.start()
     """
 
     def name(self) -> str:
@@ -39,20 +46,19 @@ class ReverseGeocodeStep(BaseStep):
     # Sucesso
     # --------------------------------------------------
     def on_success(self, context: ExecutionContext, result) -> None:
-        """Salva resultado no contexto e atualiza dialog."""
+        """
+        Persiste resultado do reverse geocode no ExecutionContext.
+
+        O resultado fica disponível como "address_data" para qualquer
+        consumidor da pipeline ler via context.get("address_data").
+        """
         logger = LogUtils(
             tool=context.get("tool_key", "untraceable"),
             class_name=self.__class__.__name__,
         )
         try:
             context.set("address_data", result)
-
-            dialog = context.get("dialog")
-            if dialog:
-                dialog.set_address(result)
-
             logger.debug(f"Address data stored: {result}")
-
         except Exception as e:
             logger.error(f"ReverseGeocodeStep.on_success error: {e}")
 
@@ -60,17 +66,9 @@ class ReverseGeocodeStep(BaseStep):
     # Erro
     # --------------------------------------------------
     def on_error(self, context: ExecutionContext, exception: Exception) -> None:
-        """Limpa endereço no dialog em caso de falha."""
+        """Registra falha no log — sem acoplamento de UI."""
         logger = LogUtils(
             tool=context.get("tool_key", "untraceable"),
             class_name=self.__class__.__name__,
         )
-        try:
-            dialog = context.get("dialog")
-            if dialog:
-                dialog.set_address(None)
-
-            logger.warning(f"Reverse geocode failed: {exception}")
-
-        except Exception as e:
-            logger.error(f"ReverseGeocodeStep.on_error handler failed: {e}")
+        logger.warning(f"Reverse geocode failed: {exception}")

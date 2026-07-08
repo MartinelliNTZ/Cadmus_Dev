@@ -43,8 +43,19 @@ class RasterMassSampler(BaseProcessingAlgorithm):
     DISPLAY_HELP = "DISPLAY_HELP"
     OPEN_OUTPUT_FOLDER = "OPEN_OUTPUT_FOLDER"
 
+    def __init__(self):
+        super().__init__()
+        self.logger = None
+
     def initAlgorithm(self, config=None):
         self.load_preferences()
+
+        # Inicializa logger apos carregar prefs (para ter tool_key disponivel)
+        from ..core.config.LogUtils import LogUtils
+        self.logger = LogUtils(
+            tool=self.TOOL_KEY,
+            class_name=self.__class__.__name__,
+        )
 
         self.addParameter(
             QgsProcessingParameterFeatureSource(
@@ -91,10 +102,19 @@ class RasterMassSampler(BaseProcessingAlgorithm):
         )
 
     def processAlgorithm(self, params, context, feedback):
+        self.logger.info("Iniciando amostragem massiva de rasters")
+
         pts = self.parameterAsSource(params, self.INPUT_POINTS, context)
         rasters = self.parameterAsLayerList(params, self.INPUT_RASTERS, context)
         open_output_folder = self.parameterAsBool(params, self.OPEN_OUTPUT_FOLDER, context)
         display_help = self.parameterAsBool(params, self.DISPLAY_HELP, context)
+
+        if not pts:
+            self.logger.error("Camada de pontos nao informada", code="NO_INPUT_POINTS")
+            raise ValueError("Camada de pontos de entrada nao encontrada.")
+        if not rasters:
+            self.logger.error("Nenhum raster informado", code="NO_INPUT_RASTERS")
+            raise ValueError("Nenhum raster de entrada informado.")
 
         output_crs = self.parameterAsCrs(params, self.OUTPUT_CRS, context)
         if not output_crs.isValid():
@@ -104,29 +124,149 @@ class RasterMassSampler(BaseProcessingAlgorithm):
             f"{STR.OUTPUT_CRS_LABEL} {output_crs.authid() if output_crs else STR.NONE}"
         )
 
+        # Prepara estruturas
         out_fields, raster_fields = self.build_output_fields(pts, rasters)
         transforms = self.build_transforms(pts, rasters, context)
-        features = self.sample_features(pts, rasters, transforms, out_fields, feedback)
 
-        if output_crs:
-            source_crs = pts.sourceCrs()
-            features = VectorLayerProjection.reproject_features(
-                features, source_crs, output_crs, context
-            )
+        # CRS final
+        source_crs = pts.sourceCrs()
+        final_crs = output_crs if output_crs else source_crs
 
-        final_crs = output_crs if output_crs else pts.sourceCrs()
-
-        sink, dest = self.parameterAsSink(
-            params, self.OUTPUT, context, out_fields, pts.wkbType(), final_crs
+        # Determina se precisa reprojetar saida via VectorLayerProjection
+        needs_reproject = (
+            output_crs is not None
+            and source_crs.isValid()
+            and output_crs.isValid()
+            and source_crs != output_crs
         )
 
-        for f in features:
-            sink.addFeature(f, QgsFeatureSink.FastInsert)
+        # Cria sink no CRS de origem (se for reprojetar, fazemos depois)
+        sink_crs = source_crs if needs_reproject else final_crs
+        sink, dest = self.parameterAsSink(
+            params, self.OUTPUT, context, out_fields, pts.wkbType(), sink_crs
+        )
+        if not sink:
+            self.logger.error("Falha ao criar sink de saida", code="SINK_CREATE_FAILED")
+            raise RuntimeError("Nao foi possivel criar o sink de saida.")
 
+        # Amostragem incremental com progresso e cancelamento
+        total = pts.featureCount() if hasattr(pts, "featureCount") else 0
+        processed = 0
+        sampled_count = 0
+        error_count = 0
+        features_buffer = [] if needs_reproject else None
+
+        for feat in pts.getFeatures():
+            # Verifica cancelamento
+            if feedback.isCanceled():
+                self.logger.warning(f"Processamento cancelado pelo usuario apos {processed} pontos")
+                break
+
+            geom = feat.geometry()
+            if geom is None or geom.isEmpty():
+                self.logger.debug(f"Ponto {feat.id()} ignorado: geometria vazia")
+                continue
+
+            out_feat = QgsFeature(out_fields)
+            out_feat.setGeometry(geom)
+            attrs = feat.attributes()
+
+            for i, ras in enumerate(rasters):
+                try:
+                    # Valida CRS do raster antes de transformar
+                    ras_crs = ras.crs()
+                    if not ras_crs.isValid():
+                        self.logger.warning(
+                            f"Raster {ras.name()} sem CRS valido, pulando amostragem"
+                        )
+                        attrs.append(None)
+                        continue
+
+                    # Transforma ponto para o CRS do raster
+                    ct = transforms[i]
+                    if ct is not None:
+                        pt = ct.transform(geom.asPoint())
+                    else:
+                        pt = geom.asPoint()
+
+                    # Amostra o raster
+                    dp = ras.dataProvider()
+                    if dp is None:
+                        self.logger.warning(
+                            f"Raster {ras.name()} sem dataProvider, pulando amostragem"
+                        )
+                        attrs.append(None)
+                        continue
+
+                    val, result_ok = dp.sample(pt, 1)
+                    if not result_ok:
+                        attrs.append(None)
+                        self.logger.debug(
+                            f"Ponto {feat.id()}, Raster {ras.name()} = sem dados (fora da extensao)"
+                        )
+                    else:
+                        attrs.append(float(val))
+                        sampled_count += 1
+
+                except Exception as e:
+                    error_count += 1
+                    self.logger.error(
+                        f"Erro ao amostrar ponto {feat.id()} no raster {ras.name()}: {e}",
+                        code="SAMPLE_ERROR",
+                    )
+                    attrs.append(None)
+
+            out_feat.setAttributes(attrs)
+
+            if needs_reproject:
+                features_buffer.append(out_feat)
+            else:
+                sink.addFeature(out_feat, QgsFeatureSink.FastInsert)
+
+            processed += 1
+
+            # Atualiza progresso
+            if total > 0:
+                progress = int(100.0 * processed / total)
+                feedback.setProgress(progress)
+                if processed % 100 == 0:
+                    feedback.pushInfo(
+                        f"Progresso: {processed}/{total} pontos processados "
+                        f"({sampled_count} amostras, {error_count} erros)"
+                    )
+
+        # Reprojeta saida se necessario (via VectorLayerProjection)
+        if needs_reproject and features_buffer:
+            feedback.pushInfo(
+                f"Reprojetando {len(features_buffer)} pontos de "
+                f"{source_crs.authid()} para {output_crs.authid()}..."
+            )
+            self.logger.info(
+                f"Reprojetando {len(features_buffer)} features via VectorLayerProjection"
+            )
+            reprojected = VectorLayerProjection.reproject_features(
+                features_buffer, source_crs, output_crs, context
+            )
+            for f in reprojected:
+                sink.addFeature(f, QgsFeatureSink.FastInsert)
+
+        feedback.pushInfo(
+            f"Resumo: {processed} pontos processados, "
+            f"{sampled_count} amostras coletadas, "
+            f"{error_count} erros de amostragem"
+        )
+        self.logger.info(
+            f"Amostragem concluida: {processed} pontos, "
+            f"{sampled_count} amostras, {error_count} erros"
+        )
+
+        # Preferencias
         self.prefs.update(
             {
                 "display_help": bool(display_help),
                 "open_output_folder": bool(open_output_folder),
+                "last_rasters_count": len(rasters),
+                "last_points_count": total,
             }
         )
 
@@ -148,7 +288,7 @@ class RasterMassSampler(BaseProcessingAlgorithm):
             for f in pts.fields():
                 out_fields.append(f)
         except Exception as e:
-            self.logger.error(f"Erro ao construir campos de saída: {e}")
+            self.logger.error(f"Erro ao construir campos de saida a partir dos pontos: {e}")
             if isinstance(pts, QgsFields):
                 for f in pts:
                     out_fields.append(f)
@@ -162,6 +302,10 @@ class RasterMassSampler(BaseProcessingAlgorithm):
             raster_fields.append(candidate)
             out_fields.append(QgsField(candidate, QVariant.Double))
 
+        self.logger.debug(
+            f"Campos de saida: {len(out_fields)} totais "
+            f"({len(raster_fields)} rasters, {len(out_fields) - len(raster_fields)} originais)"
+        )
         return out_fields, raster_fields
 
     def _sanitize_field_name(
@@ -189,47 +333,43 @@ class RasterMassSampler(BaseProcessingAlgorithm):
         effective_pts_crs = None
         try:
             effective_pts_crs = pts.sourceCrs()
-        except  Exception as e:
+            if not effective_pts_crs.isValid():
+                self.logger.warning("CRS da camada de pontos nao e valido, transformacoes serao identity")
+                effective_pts_crs = None
+        except Exception as e:
             self.logger.error(f"Erro ao obter CRS da camada de pontos: {e}")
             effective_pts_crs = None
 
         transforms = []
         for ras in rasters:
-            transforms.append(
-                QgsCoordinateTransform(
-                    effective_pts_crs, ras.crs(), context.transformContext()
+            ras_crs = ras.crs()
+            if not ras_crs.isValid():
+                self.logger.warning(
+                    f"Raster {ras.name()} sem CRS valido, transformacao sera identity"
                 )
-            )
-        return transforms
-
-    def sample_features(self, pts, rasters, transforms, out_fields, feedback):
-        result = []
-        for feat in pts.getFeatures():
-            geom = feat.geometry()
-            if geom is None:
+                transforms.append(None)
                 continue
 
-            out_feat = QgsFeature(out_fields)
-            out_feat.setGeometry(geom)
-            attrs = feat.attributes()
-
-            for i, ras in enumerate(rasters):
+            if effective_pts_crs and effective_pts_crs.isValid():
                 try:
-                    pt = transforms[i].transform(geom.asPoint())
-                    val = ras.dataProvider().sample(pt, 1)[0]
+                    ct = QgsCoordinateTransform(
+                        effective_pts_crs, ras_crs, context.transformContext()
+                    )
+                    transforms.append(ct)
                 except Exception as e:
-                    self.logger.error(f"Erro ao amostrar raster {ras.name()}: {e}")
-                    val = None
+                    self.logger.error(
+                        f"Erro ao criar transformacao para raster {ras.name()}: {e}",
+                        code="TRANSFORM_CREATE_ERROR",
+                    )
+                    transforms.append(None)
+            else:
+                transforms.append(None)
 
-                feedback.pushInfo(
-                    f"[DEBUG] Ponto {feat.id()}, Raster {ras.name()} = {val}"
-                )
-                attrs.append(float(val) if val is not None else None)
-
-            out_feat.setAttributes(attrs)
-            result.append(out_feat)
-
-        return result
+        self.logger.debug(
+            f"Transformacoes criadas: {len(transforms)} "
+            f"({sum(1 for t in transforms if t is not None)} validas)"
+        )
+        return transforms
 
     def write_sink(self, params, context, out_fields, features, pts, feedback):
         sink, dest = self.parameterAsSink(

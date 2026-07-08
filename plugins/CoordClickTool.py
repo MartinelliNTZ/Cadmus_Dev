@@ -126,7 +126,9 @@ class CoordClickTool(QgsMapTool):
                 except Exception as e2:
                     self.logger.error(f"on_address handler error: {e2}")
 
-            self.address_task = ReverseGeocodeTask(lat, lon, on_address)
+            self.address_task = ReverseGeocodeTask(lat, lon, tool_key="coord_click")
+            self.address_task.on_success = lambda result: on_address(result, None)
+            self.address_task.on_error = lambda exc: on_address(None, str(exc) if exc else "Unknown error")
             QgsApplication.taskManager().addTask(self.address_task)
 
             def on_altitude(value, error):

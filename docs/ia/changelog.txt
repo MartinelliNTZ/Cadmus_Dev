@@ -20,3 +20,17 @@
 [2.3.32.1][09/06/2026] Ajuste da skill de comunicação: `tool_key` declarado exclusivo para ferramentas; classes não-ferramentas devem receber `tool_key` como parâmetro ou receber `logger` injetado. Exemplos padronizados atualizados.
 2.3.33 08/07/2026
 [2.3.33.1][08/07/2026] SKILL_AGENT.md aprimorado com seção MAPEAMENTO SITUAÇÃO → SKILL, referenciando todas as 12 skills complementares; atualizado workflow PASSO 1, DIRETIVAS CENTRAIS, REGRAS OPERACIONAIS, ERROS COMUNS e seção QUANDO USAR/NÃO USAR com referências cruzadas às skills corretas.
+2.3.34 08/07/2026
+[2.3.34.1][08/07/2026] ReverseGeocodeTask padronizado para contrato pipeline:
+  - Herda de BaseTask (não mais QgsTask direto)
+  - tool_key obrigatório como keyword-only argument
+  - Método _run() em vez de run() (BaseTask gerencia wrapper)
+  - Remove callback pattern legado (on_success/on_error agora são callbacks reservados da engine)
+  - Cancelamento cooperativo via isCanceled()
+  - LogUtils usa tool_key da task (não string hardcoded)
+[2.3.34.2][08/07/2026] ReverseGeocodeStep padronizado para contrato pipeline:
+  - should_run() retorna condicional baseado em lat/lon no contexto (não retorna None)
+  - create_task() sempre retorna ReverseGeocodeTask (nunca None)
+  - on_success() persiste resultado no contexto via context.set("address_data")
+  - Import corrigido de ..task.reverse_geocoding_task para ..task.ReverseGeocodeTask
+[2.3.34.3][08/07/2026] CoordClickTool fallback atualizado para nova assinatura ReverseGeocodeTask(lat, lon, tool_key=...)

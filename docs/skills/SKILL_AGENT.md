@@ -15,6 +15,30 @@ Sua missão é:
 - assegurar rastreabilidade via `ExecutionContext`
 - minimizar regressões em pipelines existentes
 - preservar compatibilidade com QGIS 3.16+ até 4.99 e Python 3.10+
+- **rotear entre skills** — identificar qual skill consultar com base no contexto da tarefa
+
+---
+
+# MAPEAMENTO RÁPIDO — SKILL RELEVANTE PARA CADA SITUAÇÃO
+
+Use esta tabela para decidir qual skill ler **além** dos contratos obrigatórios.
+
+| Se a tarefa envolver... | Leia também... | Por quê |
+|-------------------------|----------------|---------|
+| Pipeline de drone/metadados (MrkParseStep, PhotoEnrichmentStep, JsonVectorizationStep, ReportGenerationStep) | `docs/skills/SKILL_METADATA_PIPELINE.md` | Descreve pipelines reais que usam estes steps, contratos do ExecutionContext e fluxo completo |
+| Cálculo de PQI, classificação de qualidade de imagem (1-5), thresholds do config.yaml | `docs/skills/SKILL_PQI.md` | Detalha indicadores, pesos, lógica lower_better/higher_better, DewarpFlag, AlertManager |
+| Geração de relatório HTML (Chart.js, Leaflet) | `docs/skills/SKILL_REPORT_SYSTEM.md` | Arquitetura do report pipeline, AlertManager config-driven, RenderEngine |
+| Logging, sinais entre componentes, mensagens ao usuário | `docs/skills/SKILL_COMUNICATION_SYSTEM.md` | Quando usar LogUtils vs SignalHub vs QgisMessageUtil, payloads, tool_key |
+| Strings, tradução, STR, InstructionsManager, HtmlInstructions | `docs/skills/SKILL_I18N.md` | STR, locale, InstructionsManager, HtmlInstructionsProvider — sempre ler ao adicionar nova string |
+| Preferências do usuário, configurações persistentes | `docs/skills/SKILL_PREFERENCES.md` | Preferences.load_tool_prefs, save_tool_prefs, operações em lote com filtro |
+| UI, Widgets, WidgetFactory, Styles | `docs/skills/SKILL_WIDGET_ENGINE.md` | Contrato WidgetFactory, categorias de componentes, widget exclusivo vs simples |
+| Algoritmo de processing (initAlgorithm, processAlgorithm) | `docs/skills/SKILL_PROCESSING.md` | BaseProcessingAlgorithm, load/save preferences, OPEN_OUTPUT_FOLDER, DISPLAY_HELP |
+| Registro de plugin no ToolRegistry (menu/toolbar) | `docs/skills/SKILL_TOOLREGISTRY_PLUGINS.md` | Tool → ToolRegistry → MenuManager, main_action, executor, ToolTypeEnum |
+| Manipulação de camadas vetoriais ou raster | `docs/skills/SKILL_VECTOR_RASTER_LAYER_UTILS.md` | VectorLayerAttributes, VectorLayerGeometry, RasterLayerRendering, RasterLayerProcessing |
+| Utilitários gerais (arquivos, zip, compressão, ProjectUtils, QgisMessageUtil) | `docs/skills/SKILL_UTILS.md` | Todas as classes do utils/ — ExplorerUtils, FileCompressUtils, FormatUtils, etc. |
+| Documentar novo sistema, criar skill nova | `docs/skills/SKILL_FACTORY.md` | Protocolo de documentação: ler código → rastrear dependências → gravar skill |
+| Contratos do plugin (12 regras críticas) | `docs/skills/PLUGIN_CONTRACT.md` | **OBRIGATÓRIO** — ler sempre antes de qualquer alteração |
+| Contratos da pipeline assíncrona | `docs/skills/SKILL_ASYNC_PAPELINE.md` | **OBRIGATÓRIO** — ler sempre antes de qualquer alteração |
 
 ---
 
@@ -64,11 +88,24 @@ Regras críticas de pipeline que **nunca** podem ser violadas:
 17. **Pipeline** — Um step produz uma task OU run_inline (nunca lista de tasks)
 18. **Pipeline** — Steps nunca acessam serviços externos diretamente (tudo via ExecutionContext)
 
+## 📚 Skills Complementares (leia conforme contexto)
+
+Consulte a seção **MAPEAMENTO SITUAÇÃO → SKILL** acima para identificar quais skills ler de acordo com o contexto da tarefa. Exemplos comuns:
+
+| Contexto | Skills complementares |
+|----------|---------------------|
+| Pipeline de fotos/drone | SKILL_METADATA_PIPELINE.md, SKILL_PQI.md, SKILL_REPORT_SYSTEM.md |
+| Step que precisa logar | SKILL_COMUNICATION_SYSTEM.md |
+| Step que usa STR | SKILL_I18N.md |
+| Step que salva configurações | SKILL_PREFERENCES.md |
+| Step que manipula camadas | SKILL_VECTOR_RASTER_LAYER_UTILS.md |
+
 ---
 
 # DIRETIVAS CENTRAIS
 
 - ✅ Você **SEMPRE** lê e aplica as skills mais recentes em `docs/skills/*.md` e os contratos `PLUGIN_CONTRACT.md` + `SKILL_ASYNC_PAPELINE.md` antes de fazer qualquer alteração.
+- ✅ Você **SEMPRE** usa o **MAPEAMENTO SITUAÇÃO → SKILL** para identificar qual skill complementar ler com base no contexto da tarefa.
 - ✅ Você **NUNCA** quebra o contrato do plugin ou da pipeline. Se uma mudança violaria, você **PARA E REPORTA**.
 - ✅ Você **NUNCA** inventa APIs, métodos ou comportamentos que não existem no projeto ou nas skills.
 - ✅ Você **SEMPRE** usa clean code, SOLID e melhores práticas (PEP8, bandit, flake8, docstrings para todos os métodos).
@@ -181,9 +218,10 @@ Antes de propor qualquer modificação, você DEVE seguir este workflow.
 ## PASSO 1 — ANÁLISE DE CONTEXTO
 
 1. Leia `docs/skills/PLUGIN_CONTRACT.md` e `docs/skills/SKILL_ASYNC_PAPELINE.md`
-2. Leia as skills relevantes em `docs/skills/*.md`
-3. Entenda a arquitetura da pipeline envolvida
-4. Identifique os steps, tasks e ExecutionContext em uso
+2. Consulte o **MAPEAMENTO SITUAÇÃO → SKILL** deste documento para identificar skills complementares com base no contexto da tarefa
+3. Leia as skills relevantes identificadas em `docs/skills/*.md`
+4. Entenda a arquitetura da pipeline envolvida
+5. Identifique os steps, tasks e ExecutionContext em uso
 
 ## PASSO 2 — ANÁLISE DE CÓDIGO
 
@@ -228,6 +266,8 @@ Se a mudança alterar um padrão, ferramenta ou comportamento da pipeline:
 1. Leia a skill relevante em `docs/skills/`
 2. Incremente a versão
 3. Descreva a mudança
+
+> Dica: Se precisar criar uma skill do zero ou documentar um sistema novo, use `SKILL_FACTORY.md` — ela descreve o protocolo completo de documentação com leitura de código, rastreamento de dependências e template obrigatório.
 
 ## PASSO 7 — CHANGELOG
 
@@ -286,7 +326,8 @@ Se informação estiver faltando, responda com:
 5. **Preferir** modificações mínimas e seguras em vez de grandes reescritas.
 6. **Sempre** pesquisar o repositório antes de concluir que uma classe ou utilitário não existe.
 7. **Sempre** ler os contratos `PLUGIN_CONTRACT.md` e `SKILL_ASYNC_PAPELINE.md` antes de qualquer alteração.
-8. **Nunca** quebrar os contratos — se uma mudança violar, parar e reportar.
+8. **Sempre** consultar o **MAPEAMENTO SITUAÇÃO → SKILL** para identificar skills complementares.
+9. **Nunca** quebrar os contratos — se uma mudança violar, parar e reportar.
 
 ---
 
@@ -304,6 +345,8 @@ Se informação estiver faltando, responda com:
 | Step acessando QgsProject direto | Viola isolamento, quebra testabilidade |
 | PipelineTask instanciado fora da engine | Comportamento indefinido |
 | Erro silenciado com `except: pass` | Pipeline continua em estado inconsistente |
+| Não consultar skills complementares | Perde contexto, viola contratos |
+| Ignorar SKILL_FACTORY ao documentar sistema | Skill gerada sem profundidade ou sem ler código |
 
 ---
 
@@ -322,7 +365,12 @@ Use este agente quando:
 
 **NÃO** use este agente para:
 
-- Gerar plugins completos do zero (use o agente cadmus principal)
-- Modificar UI/widgets (use o agente de UI)
-- Modificar algoritmos de processing (use o agente de processing)
+- Gerar plugins completos do zero (use `SKILL_TOOLREGISTRY_PLUGINS.md` + `SKILL_WIDGET_ENGINE.md`)
+- Modificar UI/widgets (use `SKILL_WIDGET_ENGINE.md`)
+- Modificar algoritmos de processing (use `SKILL_PROCESSING.md`)
+- Modificar sistema de relatório fotogramétrico (use `SKILL_REPORT_SYSTEM.md` + `SKILL_PQI.md`)
+- Gerenciar preferências ou configurações (use `SKILL_PREFERENCES.md`)
+- Documentar sistema novo (use `SKILL_FACTORY.md`)
 - Tarefas que não envolvam pipeline assíncrona
+
+> ⚠️ Se a tarefa envolver contexto complementar (ex: pipeline que usa STR, logs, preferências ou manipula camadas), consulte o **MAPEAMENTO SITUAÇÃO → SKILL** no início deste documento e leia as skills relevantes antes de começar.

@@ -18,3 +18,5 @@
 [2.3.31.1][09/06/2026] Reestruturada skill de comunicação: clarificados cenários de uso para LogUtils, PluginSignalHub/PyQtSignalManager e QgisMessageUtil; adicionadas políticas sobre `tool_key`, payloads, responsabilidades e testes.
 2.3.32 09/06/2026
 [2.3.32.1][09/06/2026] Ajuste da skill de comunicação: `tool_key` declarado exclusivo para ferramentas; classes não-ferramentas devem receber `tool_key` como parâmetro ou receber `logger` injetado. Exemplos padronizados atualizados.
+2.3.33 08/07/2026
+[2.3.33.1][08/07/2026] SKILL_AGENT.md aprimorado com seção MAPEAMENTO SITUAÇÃO → SKILL, referenciando todas as 12 skills complementares; atualizado workflow PASSO 1, DIRETIVAS CENTRAIS, REGRAS OPERACIONAIS, ERROS COMUNS e seção QUANDO USAR/NÃO USAR com referências cruzadas às skills corretas.

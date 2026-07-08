@@ -5,8 +5,8 @@ from typing import List, Tuple
 
 from .BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
-from ..utils.ExplorerUtils import ExplorerUtils
-from ..utils.FileCompressUtils import FileCompressUtils
+from ...utils.ExplorerUtils import ExplorerUtils
+from ...utils.FileCompressUtils import FileCompressUtils
 
 
 class PathExtensionTask(BaseTask):

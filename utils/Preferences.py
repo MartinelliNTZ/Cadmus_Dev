@@ -3,9 +3,10 @@ import os
 import json
 from qgis.PyQt.QtCore import QStandardPaths
 from ..core.config.LogUtils import LogUtils
+from .BaseUtil import BaseUtil
 
 # module logger for preferences utils
-logger = LogUtils(tool="preferences", class_name="Preferences")
+logger = LogUtils(tool=BaseUtil.TOOL_KEY_UNTRACEABLE, class_name="Preferences")
 
 
 def _resolve_app_data_path():
@@ -24,7 +25,7 @@ def _resolve_app_data_path():
     return os.path.expanduser("~")
 
 
-class Preferences:
+class Preferences(BaseUtil):
     """Gerencia as preferências do plugin, armazenando em um JSON local."""
 
     PREF_FOLDER = os.path.join(_resolve_app_data_path(), "MTLTools")

@@ -13,10 +13,12 @@ from qgis.PyQt.QtWidgets import (
 )
 from ..resources.IconManager import IconManager as IM
 from ..core.config.LogUtils import LogUtils
-logger = LogUtils(tool="Untraceable", class_name="None")
+from .BaseUtil import BaseUtil
+
+logger = LogUtils(tool=BaseUtil.TOOL_KEY_UNTRACEABLE, class_name="QgisMessageUtil")
 
 
-class QgisMessageUtil:
+class QgisMessageUtil(BaseUtil):
     """Utilitário estático para exibir mensagens no QGIS.
 
     Todos os métodos aceitam `iface` (QgisInterface) como primeiro argumento.

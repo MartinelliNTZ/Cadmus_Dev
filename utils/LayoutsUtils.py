@@ -5,13 +5,16 @@ from datetime import datetime
 from qgis.core import QgsLayoutItemLabel, QgsProject
 
 from ..core.config.LogUtils import LogUtils
+from .BaseUtil import BaseUtil
 
 
-class LayoutsUtils:
+class LayoutsUtils(BaseUtil):
     """
     Processamento de layouts do QGIS.
     Não depende de UI.
     """
+
+    TOOL_KEY_UNTRACEABLE: str = BaseUtil.TOOL_KEY_UNTRACEABLE
 
     @staticmethod
     def _build_matcher(

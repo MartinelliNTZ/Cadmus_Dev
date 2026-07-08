@@ -12,10 +12,14 @@ from qgis.core import (
 )
 
 from ..core.config.LogUtils import LogUtils
+from .BaseUtil import BaseUtil
 from typing import Union, Optional
 
 
-class ProjectUtils:
+class ProjectUtils(BaseUtil):
+
+    TOOL_KEY_UNTRACEABLE: str = BaseUtil.TOOL_KEY_UNTRACEABLE
+
     @staticmethod
     def get_active_vector_layer(layer, logger=None, require_editable=False):
         """Valida camada vetorial ativa.
@@ -66,7 +70,9 @@ class ProjectUtils:
         if resposta:
             layer.startEditing()
             if logger:
-                logger.debug(f"Camada '{layer.name()}' colocada em modo edição pelo usuário")
+                logger.debug(
+                    f"Camada '{layer.name()}' colocada em modo edição pelo usuário"
+                )
             QgisMessageUtil.bar_info(iface, STR.LAYER_NOW_EDITABLE)
             return True
 
@@ -121,9 +127,7 @@ class ProjectUtils:
         if crs.isValid():
             return crs
 
-        logger.warning(
-            f"SRC invalido: '{authid}'. Usando fallback {fallback_authid}"
-        )
+        logger.warning(f"SRC invalido: '{authid}'. Usando fallback {fallback_authid}")
         return QgsCoordinateReferenceSystem(fallback_authid)
 
     @staticmethod

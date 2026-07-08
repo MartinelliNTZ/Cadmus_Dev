@@ -6,13 +6,15 @@ MathUtils — Utilitários matemáticos genéricos reutilizáveis
 import math
 from typing import Any, Optional
 from ..core.config.LogUtils import LogUtils
-logger = LogUtils(tool="Untraceable", class_name="None")
+from .BaseUtil import BaseUtil
 
 
-class MathUtils:
+class MathUtils(BaseUtil):
     # -------------------------------------------------------------------
     # Circular (sentido) — mantido para compatibilidade
     # -------------------------------------------------------------------
+
+    TOOL_KEY_UNTRACEABLE: str = BaseUtil.TOOL_KEY_UNTRACEABLE
 
     @staticmethod
     def angular_diff(a: float, b: float) -> float:
@@ -174,6 +176,9 @@ class MathUtils:
         try:
             return MathUtils.parse_num(value)
         except Exception as e:
+            logger = LogUtils(
+                tool=MathUtils.TOOL_KEY_UNTRACEABLE, class_name="MathUtils"
+            )
             logger.debug(f"to_float_or_none: failed with error: {e}")
             return None
 
@@ -199,6 +204,9 @@ class MathUtils:
         try:
             return float(text) == 0.0
         except Exception as e:
+            logger = LogUtils(
+                tool=MathUtils.TOOL_KEY_UNTRACEABLE, class_name="MathUtils"
+            )
             logger.debug(f"is_zero_value: failed with error: {e}")
             return text == "0"
 

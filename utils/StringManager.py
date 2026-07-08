@@ -6,9 +6,10 @@ from qgis.PyQt.QtCore import QVariant
 
 import re
 from ..i18n.TranslationManager import STR
+from .BaseUtil import BaseUtil
 
 
-class StringManager:
+class StringManager(BaseUtil):
 
     DIVIDE_STRIP_FIELDS = {
         StripOutputFieldKey.SHOT_ID: Field(

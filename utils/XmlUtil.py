@@ -4,8 +4,8 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from typing import Optional, Dict
 
-from utils.BaseUtil import BaseUtil
-from utils.ToolKeys import ToolKey
+from ..utils.BaseUtil import BaseUtil
+from ..utils.ToolKeys import ToolKey
 from ..core.config.LogUtils import LogUtils
 logger = LogUtils(tool="Untraceable", class_name="None")
 class XmlUtil(BaseUtil):
@@ -123,7 +123,7 @@ class XmlUtil(BaseUtil):
         alpha_band: int = -1,
         opacity: float = 1.0,
         algorithm: str = "StretchToMinimumMaximum",
-        tool_key: str = ToolKey.UNTRACEABLE.value,
+        tool_key: str = ToolKey.UNTRACEABLE,
     ) -> ET.Element:
         """
         Constrói um documento QML para renderizador multiband colorido.

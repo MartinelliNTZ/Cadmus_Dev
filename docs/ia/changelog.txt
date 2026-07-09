@@ -64,3 +64,9 @@
   - DroneCoordinatesRunner: respeita preferência use_mrk das prefs
   - i18n: nova string USE_MRK_DATA em pt_BR, en, es, de
   - SKILL_METADATA_PIPELINE.md: v3.1.0 — MRK como agregado
+[2.3.36.2][09/07/2026] Correção DroneCoordinatesRunner — defaults e campos alinhados com DroneCoordinates (UI):
+  - apply_photos default alterado de False para True (mesmo do UI)
+  - adicionado is_recursive lido das prefs (default True), antes era False hardcoded
+  - recursive no PhotoEnrichmentStep agora usa is_recursive das prefs
+  - selected_required_fields agora carrega das chaves exif_fields_selected + xmp_fields_selected
+    (antes usava required_fields_selected que nunca era salva pelo UI)

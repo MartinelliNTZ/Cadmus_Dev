@@ -73,11 +73,17 @@ class DroneCoordinatesRunner:
             return True
 
         # Carregar preferências para configurar o pipeline automaticamente
+        # Usa os mesmos defaults e mesmas chaves do DroneCoordinates._load_prefs()
         prefs = load_tool_prefs(self.tool_key)
-        apply_photos = prefs.get("photos", False)
+        apply_photos = prefs.get("photos", True)  # Default True (mesmo do UI)
         use_mrk = prefs.get("use_mrk", True)
+        is_recursive = prefs.get("recursive", True)  # Default True (mesmo do UI)
+
+        # Carrega campos das mesmas chaves que DroneCoordinates salva
+        exif_selected = prefs.get("exif_fields_selected", [])
+        xmp_selected = prefs.get("xmp_fields_selected", [])
         selected_required_fields = MetadataFields.normalize_selected_keys(
-            prefs.get("required_fields_selected", []),
+            exif_selected + xmp_selected,
             allowed_keys=MetadataFields.required_keys(),
         )
         selected_custom_fields = MetadataFields.normalize_selected_keys(
@@ -126,7 +132,7 @@ class DroneCoordinatesRunner:
                 selected_required_fields=selected_required_fields,
                 selected_custom_fields=selected_custom_fields,
                 selected_mrk_fields=selected_mrk_fields,
-                recursive=False,
+                recursive=is_recursive,
                 paths=[file_path] if enable_mrk else [],
             ),
             JsonVectorizationStep(

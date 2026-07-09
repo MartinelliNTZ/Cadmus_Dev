@@ -89,6 +89,7 @@ Cada `IMGMetadata` deve ter:
   'pqi_level_distribution': { 1: N, ... },
   'pqi_classification': { 'score_display', 'label', 'level' },
   'indicator_catalog': List[Dict],
+  'json_meta': { 'titulo', 'logotipo', 'generated_at', 'zona_num', 'zona_letra', 'hemisferio', 'epsg', 'municipio', 'state_district', 'state', 'region', 'country', 'altitude' },
   'general_info': { 'equipment_models', 'camera_models', 'firmware_versions', 'gps_datum', 'capture_start', 'capture_end', 'total_flights', 'total_flight_time', 'dewarp_zero_count', 'dewarp_status_type', 'dewarp_status_message', 'missing_altitude_count', 'altitude_status_type', 'altitude_status_message', 'last_shutter_per_camera': [...] },
   'top_models': { model_name: { 'count', 'mean_score' } },
   'per_flight': [{ 'flight_id', 'images', 'start', 'end', 'flight_time', 'flight_seconds', 'avg_speed3d_kmh', 'avg_speed3d_ms', 'estimated_area_ha', 'avg_relative_altitude', 'avg_absolute_altitude', 'altitude_solo', 'avg_sensor_temperature', 'avg_iso', 'avg_shutter_speed_text', 'avg_white_balance_cct', 'avg_lrf_target_distance', 'avg_dist3d_previous', 'avg_flight_roll', 'avg_flight_yaw', 'avg_flight_pitch', 'level5_means': { ... } }],

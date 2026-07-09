@@ -83,11 +83,13 @@ class JsonMetadataManager:
     def load_json_metadata(
         json_path: str, tool_key: str = ToolKey.UNTRACEABLE
     ) -> Dict[str, Any]:
-        """Carrega metadados do JSON raiz: titulo, logotipo, generated_at.
+        """Carrega metadados do JSON raiz: titulo, logotipo, generated_at,
+        first_photo_coord (zona, epsg, hemisferio), geocode (municipio, estado, pais),
+        e altitude.
         Args:
             json_path: Caminho do arquivo JSON
         Returns:
-            Dict com 'titulo', 'logotipo', 'generated_at' (se existirem no JSON)
+            Dict com metadados do JSON raiz (se existirem no JSON)
         """
         logger = JsonMetadataManager._get_logger(tool_key)
         meta: Dict[str, Any] = {}
@@ -106,6 +108,34 @@ class JsonMetadataManager:
                         meta["generated_at"] = dt.strftime("%d/%m/%Y %H:%M:%S")
                     except (ValueError, TypeError):
                         meta["generated_at"] = raw
+                # Geospatial info do cabecalho do JSON raiz
+                first_photo = data.get("first_photo_coord", {})
+                if isinstance(first_photo, dict):
+                    if first_photo.get("zona_num") is not None:
+                        meta["zona_num"] = first_photo["zona_num"]
+                    if first_photo.get("zona_letra") is not None:
+                        meta["zona_letra"] = first_photo["zona_letra"]
+                    if first_photo.get("hemisferio") is not None:
+                        meta["hemisferio"] = first_photo["hemisferio"]
+                    if first_photo.get("epsg") is not None:
+                        meta["epsg"] = first_photo["epsg"]
+
+                geocode = data.get("geocode", {})
+                if isinstance(geocode, dict):
+                    if geocode.get("municipio"):
+                        meta["municipio"] = geocode["municipio"]
+                    if geocode.get("state_district"):
+                        meta["state_district"] = geocode["state_district"]
+                    if geocode.get("state"):
+                        meta["state"] = geocode["state"]
+                    if geocode.get("region"):
+                        meta["region"] = geocode["region"]
+                    if geocode.get("country"):
+                        meta["country"] = geocode["country"]
+
+                if data.get("altitude") is not None:
+                    meta["altitude"] = data["altitude"]
+
             logger.debug(f"Metadados carregados: {meta}")
         except Exception as e:
             logger.warning(f"Erro ao carregar metadados do JSON: {e}")

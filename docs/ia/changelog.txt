@@ -187,6 +187,13 @@
     histórico com entrada 4.0.0, referências a FirstPhotoCoordStep removidas
 2.3.43 09/07/2026
 [2.3.43.1][09/07/2026] Corrigido bug 'dict' object is not callable em PhotoMetadata.enrich_first_photo_coord():
-  - Linha `raw_coord = PhotoMetadata._first_photo_raw_coord()` alterada para
-    `raw_coord = PhotoMetadata._first_photo_raw_coord` (acesso a atributo, não chamada de método)
-  - O erro ocorria porque _first_photo_raw_coord é um dict (ou None), não um método/função
+   - Linha `raw_coord = PhotoMetadata._first_photo_raw_coord()` alterada para
+     `raw_coord = PhotoMetadata._first_photo_raw_coord` (acesso a atributo, não chamada de método)
+   - O erro ocorria porque _first_photo_raw_coord é um dict (ou None), não um método/função
+2.3.44 09/07/2026
+[2.3.44.1][09/07/2026] Adicionadas informações geoespaciais no cabeçalho do relatório HTML:
+   - JsonMetadataManager.load_json_metadata() agora extrai first_photo_coord (zona_num, zona_letra, hemisferio, epsg),
+     geocode (municipio, state_district, state, region, country) e altitude do JSON raiz
+   - Template HTML atualizado: nova seção no cabeçalho exibindo EPSG, MUNICIPIO, DISTRITO, ESTADO,
+     REGIAO, PAIS e ALTITUDE SRTM quando disponíveis no json_meta
+   - SKILL_REPORT_SYSTEM.md atualizado com novos campos do json_meta

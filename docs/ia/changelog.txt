@@ -81,6 +81,12 @@
   - Removidos métodos duplicados _resolve_track_order_field e _resolve_track_group_fields
     do DroneCoordinates (agora no Service)
   - Criado docs/plano_refatoracao_unificar_drone_pipeline.md com análise e proposta
+2.3.39 09/07/2026
+[2.3.39.1][09/07/2026] Refatorado DronePipelineService para usar Preferences corretamente:
+  - Substituído import `from ...utils.Preferences import load_tool_prefs` (depreciado) por `from ...utils.Preferences import Preferences`
+  - Substituídas todas as chamadas de `load_tool_prefs()` por `Preferences.load_tool_prefs()`
+  - Substituído acesso a dict com bracket (`prefs["key"]`) por `.get("key", default)` — prevenção de KeyError
+  - Afetados: `execute()`, `_on_pipeline_finished()`, `_load_safe_prefs()`
 2.3.38 09/07/2026
 [2.3.38.1][09/07/2026] Removida ferramenta PhotoVectorizationPlugin (plugins/PhotoVectorizationPlugin.py):
   - Deletado arquivo do plugin PhotoVectorizationPlugin.py

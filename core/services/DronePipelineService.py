@@ -24,7 +24,7 @@ from ..engine_tasks.JsonVectorizationStep import JsonVectorizationStep
 from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
 from ...i18n.TranslationManager import STR
 from ...utils.ExplorerUtils import ExplorerUtils
-from ...utils.Preferences import load_tool_prefs
+from ...utils.Preferences import Preferences
 from ...utils.ProjectUtils import ProjectUtils
 from ...utils.QgisMessageUtil import QgisMessageUtil
 from ...utils.ToolKeys import ToolKey
@@ -102,10 +102,10 @@ class DronePipelineService:
             allowed_keys=MetadataFields.mrk_keys(),
         )
 
-        use_mrk = prefs["use_mrk"]
+        use_mrk = prefs.get("use_mrk", True)
         source = "mrk+photo" if use_mrk else "photo"
         enable_mrk = use_mrk
-        apply_photos = prefs["photos"]
+        apply_photos = prefs.get("photos", True)
 
         # ── Montar ExecutionContext ───────────────────────────────
         context = ExecutionContext(
@@ -131,12 +131,12 @@ class DronePipelineService:
                 selected_required_fields=selected_required,
                 selected_custom_fields=selected_custom,
                 selected_mrk_fields=selected_mrk,
-                recursive=prefs["recursive"],
+                recursive=prefs.get("recursive", True),
                 paths=resolve_paths,
             ),
             JsonVectorizationStep(source=source),
         ]
-        if prefs["generate_report"]:
+        if prefs.get("generate_report", True):
             steps.append(ReportGenerationStep())
 
         # ── Dados extras para callback (modo MRK) ─────────────────
@@ -183,7 +183,7 @@ class DronePipelineService:
                 "enable_exif": enable_exif,
                 "enable_xmp": enable_xmp,
                 "enable_custom": enable_custom,
-                "recursive": prefs["recursive"],
+                "recursive": prefs.get("recursive", True),
             },
         )
         return True
@@ -257,7 +257,7 @@ class DronePipelineService:
         # ── Relatório ─────────────────────────────────────────────
         json_path = context.json_path or context.get_result("json_path")
         report_payload = None
-        if json_path and load_tool_prefs(ToolKey.DRONE_COORDINATES).get("generate_report", False):
+        if json_path and Preferences.load_tool_prefs(ToolKey.DRONE_COORDINATES).get("generate_report", False):
             try:
                 from .ReportGenerationService import ReportGenerationService
                 report_payload = ReportGenerationService(
@@ -286,7 +286,7 @@ class DronePipelineService:
     @staticmethod
     def _load_safe_prefs() -> dict:
         """Carrega preferências garantindo defaults. (STATELESS)"""
-        raw = load_tool_prefs(ToolKey.DRONE_COORDINATES)
+        raw = Preferences.load_tool_prefs(ToolKey.DRONE_COORDINATES)
         result = dict(DronePipelineService.DEFAULTS)
         result.update(raw)
         return result

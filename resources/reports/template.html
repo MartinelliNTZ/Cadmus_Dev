@@ -278,8 +278,8 @@
                 <h2 style="margin: 0 0 4px 0; color: var(--l5); font-size: 1.4em;">{{ jm.titulo }}</h2>
                 {% endif %}
                 {% if jm and jm.get('municipio') %}
-                {% set project_title = jm.municipio.upper() + '-' + jm.get('state', '').upper() + '-' + jm.get('country', '').upper() %}
-                <p style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: var(--l5); letter-spacing: 1px;">{{ project_title }}</p>
+                {% set project_title = jm.municipio + '-' + jm.get('state', '') + '-' + jm.get('country', '') %}
+                <p style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700;">{{ project_title }}</p>
                 {% endif %}
                 {% if jm and (jm.get('region') or jm.get('state_district')) %}
                 <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; margin-bottom: 2px;">

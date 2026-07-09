@@ -275,7 +275,31 @@
                 <h1>Relatorio Fotogrametrico</h1>
                 {% set jm = agg.json_meta %}
                 {% if jm and jm.get('titulo') %}
-                <h2 style="margin: 0 0 8px 0; color: var(--l5); font-size: 1.4em;">{{ jm.titulo }}</h2>
+                <h2 style="margin: 0 0 4px 0; color: var(--l5); font-size: 1.4em;">{{ jm.titulo }}</h2>
+                {% endif %}
+                {% if jm and jm.get('municipio') %}
+                {% set project_title = jm.municipio.upper() + '-' + jm.get('state', '').upper() + '-' + jm.get('country', '').upper() %}
+                <p style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: var(--l5); letter-spacing: 1px;">{{ project_title }}</p>
+                {% endif %}
+                {% if jm and (jm.get('region') or jm.get('state_district')) %}
+                <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; margin-bottom: 2px;">
+                    {% if jm.get('region') %}
+                    <span><strong>REGIAO:</strong> {{ jm.region }}</span>
+                    {% endif %}
+                    {% if jm.get('state_district') %}
+                    <span><strong>DISTRITO:</strong> {{ jm.state_district }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% if jm and (jm.get('epsg') or jm.get('altitude') is not none) %}
+                <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; margin-bottom: 6px;">
+                    {% if jm.get('epsg') %}
+                    <span><strong>EPSG:</strong> {{ jm.epsg }} SIRGAS 2000 UTM ZONE {{ jm.get('zona_num', '') }}{{ jm.get('zona_letra', '') }}</span>
+                    {% endif %}
+                    {% if jm.get('altitude') is not none %}
+                    <span><strong>ALTITUDE SRTM:</strong> {{ jm.altitude }} m</span>
+                    {% endif %}
+                </div>
                 {% endif %}
                 {% if jm and jm.get('generated_at') %}
                 <p class="muted" style="font-size: 13px; margin-bottom: 6px;">
@@ -307,34 +331,6 @@
                 </p>
                 {% else %}
                 <p class="muted">Classificacao PQI indisponivel</p>
-                {% endif %}
-                {% set jm = agg.json_meta %}
-                {% if jm and (jm.get('epsg') or jm.get('municipio') or jm.get('altitude') is not none) %}
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px;">
-                        {% if jm.get('epsg') %}
-                        <span><strong>EPSG:</strong> {{ jm.epsg }} SIRGAS 2000 UTM ZONE {{ jm.get('zona_num', '') }}{{ jm.get('zona_letra', '') }}</span>
-                        {% endif %}
-                        {% if jm.get('municipio') %}
-                        <span><strong>MUNICIPIO:</strong> {{ jm.municipio }}</span>
-                        {% endif %}
-                        {% if jm.get('state_district') %}
-                        <span><strong>DISTRITO:</strong> {{ jm.state_district }}</span>
-                        {% endif %}
-                        {% if jm.get('state') %}
-                        <span><strong>ESTADO:</strong> {{ jm.state }}</span>
-                        {% endif %}
-                        {% if jm.get('region') %}
-                        <span><strong>REGIAO:</strong> {{ jm.region }}</span>
-                        {% endif %}
-                        {% if jm.get('country') %}
-                        <span><strong>PAIS:</strong> {{ jm.country }}</span>
-                        {% endif %}
-                        {% if jm.get('altitude') is not none %}
-                        <span><strong>ALTITUDE SRTM:</strong> {{ jm.altitude }} m</span>
-                        {% endif %}
-                    </div>
-                </div>
                 {% endif %}
             </div>
             <div class="brand-logos">

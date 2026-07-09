@@ -120,6 +120,8 @@ class DronePipelineService:
         enable_exif = apply_photos
         enable_xmp = apply_photos
         enable_custom = apply_photos and bool(selected_custom)
+        project_title = prefs.get("project_title", "")
+        logo_path = prefs.get("logo_path", "") if prefs.get("logo_enabled", False) else ""
 
         resolve_paths = [file_path] if (enable_mrk and file_path) else (paths or [])
 
@@ -133,6 +135,8 @@ class DronePipelineService:
                 selected_required_fields=selected_required,
                 selected_custom_fields=selected_custom,
                 selected_mrk_fields=selected_mrk,
+                project_title=project_title,
+                logo_path=logo_path,
                 recursive=prefs.get("recursive", True),
                 paths=resolve_paths,
             ),

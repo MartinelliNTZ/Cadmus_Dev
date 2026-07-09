@@ -390,18 +390,10 @@ class Strings_pt_BR:
         "Lista JSONs temporarios de metadata e permite regerar o relatorio HTML.\n"
         "Tambem oferece atalho para abrir a pasta de relatorios gerados."
     )
-    PHOTO_VECTORIZATION_TITLE = "Vetorizacao de Fotos"
-    PHOTO_VECTORIZATION_TOOLTIP = (
-        "Gera uma camada vetorial a partir de imagens e opcionalmente um relatorio "
-        "com os dados extraidos."
-    )
     REFRESH_JSON_LIST = "Atualizar lista de JSON"
     OPEN_REPORTS_FOLDER = "Abrir pasta de relatorios"
     OPEN_JSONS_FOLDER = "Abrir pasta de JSON"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Gerar Vetor Sem MRK"
-    PHOTO_FOLDER = "Pasta de fotos:"
-    VECTORIZE_PHOTOS = "Gerar vetor de fotos"
-    PHOTOS_WITHOUT_MRK_LAYER_NAME = "Image_Points"
     VETORIZE_FLIGHT = "Vetorizar voo"
     VETORIZE_FLIGHT_TOOLTIP = (
         "Gera camada vetorial de pontos e rastro a partir do JSON de metadata selecionado.\n"

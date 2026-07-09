@@ -429,21 +429,6 @@ class ToolRegistry:
             show_in_toolbar=True,
         )
         tools.append(gerar_rastro)
-
-        photo_vectorization = Tool(
-            tool_key=ToolKey.PHOTO_VECTORIZATION,
-            name=STR.PHOTO_VECTORIZATION_TITLE,
-            icon=im.icon(im.PHOTO_VECTORIZATION),
-            category=self.AGRICULTURE,
-            tool_type=ToolTypeEnum.DIALOG,
-            main_action=self._main_action_prefs.get(ToolKey.PHOTO_VECTORIZATION, False),
-            executor=self._make_plugin_executor("...plugins.PhotoVectorizationPlugin"),
-            tooltip=STR.PHOTO_VECTORIZATION_TOOLTIP,
-            order=25,
-            show_in_toolbar=True,
-        )
-        tools.append(photo_vectorization)
-
         report_metadata = Tool(
             tool_key=ToolKey.REPORT_METADATA,
             name=STR.REPORT_METADATA_TITLE,

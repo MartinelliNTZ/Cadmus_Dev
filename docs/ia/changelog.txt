@@ -81,3 +81,14 @@
   - Removidos métodos duplicados _resolve_track_order_field e _resolve_track_group_fields
     do DroneCoordinates (agora no Service)
   - Criado docs/plano_refatoracao_unificar_drone_pipeline.md com análise e proposta
+2.3.38 09/07/2026
+[2.3.38.1][09/07/2026] Removida ferramenta PhotoVectorizationPlugin (plugins/PhotoVectorizationPlugin.py):
+  - Deletado arquivo do plugin PhotoVectorizationPlugin.py
+  - Removido ToolKey.PHOTO_VECTORIZATION de utils/ToolKeys.py
+  - Removida cor TOOL_KEY_COLORS[PHOTO_VECTORIZATION] em utils/ToolKeys.py
+  - Removidas strings PHOTO_VECTORIZATION_TITLE e PHOTO_VECTORIZATION_TOOLTIP de i18n/Strings_pt_BR.py, Strings_en.py, Strings_es.py, Strings_de.py
+  - Removidas strings PHOTO_FOLDER, VECTORIZE_PHOTOS, PHOTOS_WITHOUT_MRK_LAYER_NAME de pt_BR, en, es, de
+  - Removido registro photo_vectorization Tool de core/config/ToolRegistry.py
+  - Removida constante PHOTO_VECTORIZATION de resources/IconManager.py
+  - Deletado ícone resources/icons/photo_vectorization.ico
+  - Nenhum outro plugin foi alterado

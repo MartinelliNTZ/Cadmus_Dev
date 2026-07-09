@@ -136,8 +136,8 @@ class DronePipelineService:
                 recursive=prefs.get("recursive", True),
                 paths=resolve_paths,
             ),
-            # ReverseGeocodeStep lê json_path do context (setado pelo PhotoEnrichmentStep)
-            # e extrai coordenadas da primeira foto do JSON
+            # ReverseGeocodeStep e AltimetryStep consomem first_photo_lat/lon
+            # do context (setados pelo PhotoEnrichmentStep.on_success())
             ReverseGeocodeStep(report_metadata_mode=True),
             AltimetryStep(report_metadata_mode=True),
             JsonVectorizationStep(source=source),

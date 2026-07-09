@@ -24,19 +24,21 @@ Os 3 pipelines principais (DroneCoordinates, DroneCoordinatesRunner, PhotoVector
 
 ```
 DroneCoordinates / Runner:
-  PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)
-
-PhotoVectorizationPlugin:
-  PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)
+  PhotoEnrichmentStep → ReverseGeocodeStep + AltimetryStep (Parallel) → JsonVectorizationStep → (ReportGenerationStep?)
 ```
 
-**ReverseGeocodeStep** é inserido entre o enriquecimento e a vetorização:
-- Lê o `json_path` do contexto (setado pelo PhotoEnrichmentStep)
-- Extrai coordenadas (Lat/Lon) da **primeira foto** do JSON
-- Executa reverse geocode via BigDataCloud API
-- Persiste dados de localização no cabeçalho do JSON (`geocode.municipio`, `geocode.state`, etc.)
-- Adiciona timestamps `geocode_start`/`geocode_end` ao JSON
-- Steps são independentes: se geocode falhar, pipeline continua normalmente
+**PhotoEnrichmentStep.on_success()** é responsável por enriquecer as coordenadas da primeira foto:
+- A **Etapa 6** do `PhotoMetadata.run_pipeline()` extrai as coordenadas raw (lat, lon) da primeira foto com GPS
+- `PhotoEnrichmentStep.on_success()` (main thread) chama `VectorLayerProjection.get_coordinate_info()` para calcular EPSG, zona UTM, hemisfério, DMS e UTM xy
+- Salva `first_photo_lat`, `first_photo_lon` e `first_photo_coord_info` no context via `set_result()`
+- Salva `first_photo_coord` no cabeçalho do JSON via `JsonUtil.update_first_photo_coord()`
+
+**ReverseGeocodeStep** e **AltimetryStep** consomem coordenadas do context (setadas pelo PhotoEnrichmentStep.on_success()):
+- Não buscam mais a primeira foto diretamente — elimina lógica duplicada
+- Lêem `first_photo_lat`/`first_photo_lon` do context via `get_result()`
+- ReverseGeocodeStep persiste dados de localização no JSON (`geocode.municipio`, `geocode.state`, etc.)
+- AltimetryStep persiste altitude no JSON (`altitude`)
+- Steps são independentes: se um falhar, pipeline continua normalmente
 
 **PhotoEnrichmentStep** detecta automaticamente se há dados MRK (paths no `__init__`) ou não:
 - Com MRK → modo `"mrk+photo"` → cruza pontos MRK com EXIF+XMP+CustomFields
@@ -431,3 +433,4 @@ engine.start()
 | **2026-07-09** | **3.0.0** | **ExecutionContext canônico + Steps parametrizados**: Steps agora recebem configuração via `__init__` (não via context). Context tem atributos canônicos (`input_path`, `tool_key`, `files`, `json_path`) e `set_result/get_result` para comunicação entre steps. DroneCoordinates, Runner e PhotoVectorizationPlugin 100% convertidos. |
 | **2026-07-09** | **3.1.0** | **MRK como agregado opcional**: Coordenadas SEMPRE das fotos (EXIF/XMP). MRK agora é apenas atributos de contexto (MrkFile, MrkPath, MrkFolder, FlightNumber). `_enrich_with_mrk()` não seta mais `CoordSource=MRK` nem `QUALITY_FLAG=OK`. `JsonToVectorTranslator._resolve_geometry()` usa apenas `GpsLatitude/GpsLongitude`. DroneCoordinates tem checkbox "Obter dados MRK". `_resolve_track_group_fields()` tem fallback sem MRK por FolderLevel1. |
 | **2026-07-09** | **3.2.0** | **ReverseGeocodeStep integrado ao pipeline**: Pipeline agora executa `PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)`. ReverseGeocodeStep lê json_path do context, extrai coordenadas da primeira foto do JSON, persiste dados de localização no cabeçalho do JSON (`geocode.municipio`, `geocode.state`, etc.) e timestamps `geocode_start`/`geocode_end`. Adicionado `JsonUtil.update_geocode_data()`. |
+| **2026-07-09** | **3.3.0** | **FirstPhotoCoordStep extraído**: Lógica de busca da primeira foto movida de ReverseGeocodeStep/AltimetryStep para novo `FirstPhotoCoordStep` (síncrono, `run_inline()`). ReverseGeocodeStep e AltimetryStep agora consomem `first_photo_lat`/`first_photo_lon` do context. Pipeline: `PhotoEnrichmentStep → FirstPhotoCoordStep → ReverseGeocodeStep + AltimetryStep (Parallel) → JsonVectorizationStep → (ReportGenerationStep?)`. Adicionado `JsonUtil.update_first_photo_coord()`. |

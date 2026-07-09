@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import os
 from typing import List, Optional
 
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext
 from ..task.PhotoEnrichmentTask import PhotoEnrichmentTask
 from ..config.LogUtils import LogUtils
+from ...utils.mrk.PhotoMetadata import PhotoMetadata
 
 
 class PhotoEnrichmentStep(BaseStep):
@@ -121,7 +123,7 @@ class PhotoEnrichmentStep(BaseStep):
             logger.error("json_path nao encontrado no resultado")
             return
 
-        # Propaga resultado via set_result (canônico para comunicação entre steps)
+        # Propaga json_path via set_result (canônico para comunicação entre steps)
         context.set_result("json_path", json_path)
 
         logger.info(
@@ -132,3 +134,37 @@ class PhotoEnrichmentStep(BaseStep):
                 "total_points": result.get("total_points", 0),
             },
         )
+
+        # ── Enriquecer coordenadas da primeira foto com EPSG/zona/hemisfério ──
+        # A Etapa 6 do PhotoMetadata.run_pipeline() já extraiu as coordenadas raw
+        # (lat, lon) da primeira foto. Aqui (main thread) delegamos para
+        # PhotoMetadata.enrich_first_photo_coord() que chama
+        # VectorLayerProjection.get_coordinate_info() e salva no context + JSON.
+        try:
+            enrich_result = PhotoMetadata.enrich_first_photo_coord(
+                json_path=json_path,
+            )
+            if enrich_result:
+                context.set_result("first_photo_lat", enrich_result["lat"])
+                context.set_result("first_photo_lon", enrich_result["lon"])
+                context.set_result("first_photo_coord_info", enrich_result)
+                logger.info(
+                    "Coordenadas da primeira foto enriquecidas no context",
+                    data={
+                        "lat": enrich_result["lat"],
+                        "lon": enrich_result["lon"],
+                        "epsg": enrich_result.get("epsg"),
+                        "zona": enrich_result.get("zona_num"),
+                        "hemisferio": enrich_result.get("hemisferio"),
+                    },
+                )
+            else:
+                logger.info(
+                    "Nenhuma coordenada raw disponível da primeira foto "
+                    "(pipeline pode não ter fotos com GPS)"
+                )
+        except Exception as e:
+            logger.warning(
+                "Erro ao enriquecer coordenadas da primeira foto",
+                data={"error": str(e)},
+            )

@@ -219,6 +219,41 @@ class JsonUtil(BaseUtil):
             raise
 
     @staticmethod
+    def update_first_photo_coord(
+        json_path: str,
+        coord_info: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Adiciona informações de coordenada da primeira foto ao cabeçalho do JSON.
+
+        Inclui lat, lon, lat_dms, lon_dms, utm_x, utm_y, zona_num, zona_letra,
+        hemisferio e epsg.
+
+        Args:
+            json_path: Caminho do arquivo JSON
+            coord_info: Dict retornado por VectorLayerProjection.get_coordinate_info()
+
+        Returns:
+            JSON data atualizado
+        """
+        logger = BaseUtil._get_logger("json_util")
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+
+            # Adiciona first_photo_coord no cabeçalho
+            json_data["first_photo_coord"] = coord_info
+
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+            logger.debug(f"first_photo_coord adicionado ao JSON: {json_path}")
+            return json_data
+        except Exception as e:
+            logger.error(f"Erro ao adicionar first_photo_coord em {json_path}: {e}")
+            raise
+
+    @staticmethod
     def load_records(json_path: str) -> List[Dict[str, Any]]:
         logger = BaseUtil._get_logger("json_util")
         try:

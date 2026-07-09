@@ -110,6 +110,21 @@
   - on_success: exceções logadas com `self.logger.exception(e, code="...")`
   - on_error: exceções de salvamento de timestamp logadas com `self.logger.warning()`
   - Nova utils/JsonUtil.py: `update_altitude_data()` — escreve altitude no nível raiz do JSON (fora de geocode)
+2.3.41 09/07/2026
+[2.3.41.1][09/07/2026] Extraída lógica de busca da primeira foto para Etapa 6 do PhotoMetadata:
+  - Adicionada Etapa 6 em PhotoMetadata.run_pipeline(): percorre records enriquecidos e salva
+    lat/lon da primeira foto com GPS em _first_photo_raw_coord (cache estático)
+  - Adicionado PhotoMetadata.get_first_photo_raw_coord() — getter público para o cache
+  - PhotoEnrichmentStep.on_success() (main thread): lê raw_coord do cache, chama
+    VectorLayerProjection.get_coordinate_info() para enriquecer com EPSG, zona UTM e hemisfério,
+    salva no context (first_photo_lat, first_photo_lon, first_photo_coord_info) e no JSON
+    via JsonUtil.update_first_photo_coord()
+  - Adicionado JsonUtil.update_first_photo_coord() — escreve dict coord_info no cabeçalho do JSON
+  - ReverseGeocodeStep refatorado: remove _get_first_photo_coords(), lê first_photo_lat/lon do context
+  - AltimetryStep refatorado: remove _get_first_photo_coords(), lê first_photo_lat/lon do context
+  - Ambos os steps não buscam mais a primeira foto diretamente — eliminada lógica duplicada
+  - SKILL_METADATA_PIPELINE.md atualizado para v3.3.0 com novo fluxo
+
 2.3.39 09/07/2026
 [2.3.39.1][09/07/2026] Refatorado DronePipelineService para usar Preferences corretamente:
   - Substituído import `from ...utils.Preferences import load_tool_prefs` (depreciado) por `from ...utils.Preferences import Preferences`

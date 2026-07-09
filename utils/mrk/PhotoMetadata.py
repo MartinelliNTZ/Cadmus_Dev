@@ -4,16 +4,22 @@ import re
 from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
 
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsPointXY,
+)
+
 from ...core.config.LogUtils import LogUtils
 from ...core.enum import MetadataFieldKey
 from ...utils.ExplorerUtils import ExplorerUtils
+from ...utils.JsonUtil import JsonUtil
+from ...utils.vector.VectorLayerProjection import VectorLayerProjection
 from .CustomPhotosFieldsUtil import CustomPhotosFieldsUtil
 from .ExifUtil import ExifUtil
 from .InitialParamsUtil import InitialParamsUtil
 from .MetadataFields import MetadataFields
 from .MrkUtil import MrkUtil
 from .XmpUtil import XmpUtil
-from ...utils.JsonUtil import JsonUtil
 
 
 class PhotoMetadata:
@@ -45,6 +51,9 @@ class PhotoMetadata:
     # Cache de timestamps de extracao
     _timestamps: Dict[str, str] = {}
 
+    # Cache da primeira foto com coordenadas (lat, lon raw)
+    _first_photo_raw_coord: Optional[Dict[str, float]] = None
+
     @staticmethod
     def get_timestamps() -> Dict[str, str]:
         return dict(PhotoMetadata._timestamps)
@@ -52,6 +61,12 @@ class PhotoMetadata:
     @staticmethod
     def clear_timestamps():
         PhotoMetadata._timestamps = {}
+        PhotoMetadata._first_photo_raw_coord = None
+
+    @staticmethod
+    def get_first_photo_raw_coord() -> Optional[Dict[str, float]]:
+        """Retorna as coordenadas raw (lat, lon) da primeira foto encontrada."""
+        return PhotoMetadata._first_photo_raw_coord
 
     @staticmethod
     def _get_logger(tool_key: str) -> LogUtils:
@@ -227,6 +242,26 @@ class PhotoMetadata:
                 quality["with_exif_gps"] += 1
 
             all_records.append(merged)
+
+        # ── Etapa 6: Extrair coordenadas raw da primeira foto (sempre) ──
+        # Percorre os records enriquecidos e salva lat/lon da primeira
+        # foto que possui coordenadas válidas. Usado posteriormente por
+        # ReverseGeocodeStep e AltimetryStep (via context).
+        PhotoMetadata._first_photo_raw_coord = None
+        for record in all_records:
+            lat = PhotoMetadata._to_float(
+                record.get(MetadataFieldKey.GPS_LATITUDE.value)
+            )
+            lon = PhotoMetadata._to_float(
+                record.get(MetadataFieldKey.GPS_LONGITUDE.value)
+            )
+            if lat is not None and lon is not None:
+                PhotoMetadata._first_photo_raw_coord = {"lat": lat, "lon": lon}
+                logger.info(
+                    "Etapa 6: primeira foto com coordenadas encontrada",
+                    data={"lat": lat, "lon": lon},
+                )
+                break
 
         # Timestamps: inicio calculo campos custom
         custom_start = datetime.now().isoformat()
@@ -632,6 +667,45 @@ class PhotoMetadata:
     # ─────────────────────────────────────────────
     # UTILITÁRIOS
     # ─────────────────────────────────────────────
+
+    @staticmethod
+    def enrich_first_photo_coord(json_path: str) -> Optional[Dict[str, Any]]:
+        """
+        Enriquece as coordenadas da primeira foto com EPSG, zona UTM e hemisfério.
+
+        Lê as coordenadas raw do cache (setadas pela Etapa 6 do run_pipeline()),
+        chama VectorLayerProjection.get_coordinate_info() e salva no JSON via
+        JsonUtil.update_first_photo_coord().
+
+        Deve ser chamado no main thread (usa QgsPointXY / QgsCoordinateReferenceSystem).
+
+        Args:
+            json_path: Caminho do JSON de metadados
+
+        Returns:
+            Dict com lat, lon, epsg, zona_num, zona_letra, hemisferio, etc.,
+            ou None se não houver coordenadas disponíveis.
+        """
+        raw_coord = PhotoMetadata.get_first_photo_raw_coord()
+        if not raw_coord:
+            return None
+
+        lat = raw_coord["lat"]
+        lon = raw_coord["lon"]
+
+        point = QgsPointXY(lon, lat)
+        crs_wgs = QgsCoordinateReferenceSystem("EPSG:4326")
+
+        coord_info = VectorLayerProjection.get_coordinate_info(point, crs_wgs)
+
+        # Salva no JSON
+        if json_path and os.path.exists(json_path):
+            try:
+                JsonUtil.update_first_photo_coord(json_path, coord_info)
+            except Exception:
+                pass
+
+        return coord_info
 
     @staticmethod
     def _extract_flight_context(point: dict) -> dict:

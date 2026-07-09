@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import json
 import os
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext
@@ -18,7 +17,8 @@ class ReverseGeocodeStep(BaseStep):
 
     Modos de operação:
       1. report_metadata_mode=True  (pipeline de drone):
-         Lê context.json_path, extrai Lat/Lon da primeira foto do JSON.
+         Lê coordenadas do context (setadas pelo FirstPhotoCoordStep).
+         Nunca busca a primeira foto diretamente.
       2. report_metadata_mode=False (CoordClickTool):
          Usa lat/lon passados via __init__.
     """
@@ -39,42 +39,19 @@ class ReverseGeocodeStep(BaseStep):
         return "reverse_geocode"
 
     # --------------------------------------------------
-    # Utilitários
-    # --------------------------------------------------
-    def _get_first_photo_coords(self, json_path: str) -> Optional[Dict[str, float]]:
-        """
-        Lê o JSON e retorna as coordenadas da primeira foto que possui Lat/Lon.
-        """
-        try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            for group in data.get("groups", {}).values():
-                for record in group.get("records", {}).values():
-                    lat = record.get("Lat") or record.get("GpsLatitude") or record.get("GpsLat")
-                    lon = record.get("Lon") or record.get("GpsLongitude") or record.get("GPSLong")
-                    if lat is not None and lon is not None:
-                        return {"lat": float(lat), "lon": float(lon)}
-            return None
-        except (json.JSONDecodeError, IOError, OSError, ValueError, KeyError) as e:
-            if self.logger:
-                self.logger.warning(
-                    "ReverseGeocodeStep: erro ao ler coordenadas do JSON",
-                    data={"json_path": json_path, "error": str(e)},
-                )
-            return None
-
-    # --------------------------------------------------
     # Condicional
     # --------------------------------------------------
     def should_run(self, context: ExecutionContext) -> bool:
         self._init_logger(context)
         if self._report_metadata_mode:
-            json_path = context.json_path
-            if json_path and os.path.exists(json_path):
-                coords = self._get_first_photo_coords(json_path)
-                if coords:
-                    return True
+            # Coordenadas vêm do FirstPhotoCoordStep via context
+            lat = context.get_result("first_photo_lat")
+            lon = context.get_result("first_photo_lon")
+            if lat is not None and lon is not None:
+                return True
+            self.logger.info(
+                "ReverseGeocodeStep pulado: first_photo_lat/lon não disponíveis no context"
+            )
             return False
         return self._lat is not None and self._lon is not None
 
@@ -86,16 +63,15 @@ class ReverseGeocodeStep(BaseStep):
         tool_key = context.tool_key
 
         if self._report_metadata_mode:
-            json_path = context.json_path
-            if json_path and os.path.exists(json_path):
-                coords = self._get_first_photo_coords(json_path)
-                if coords:
-                    self.logger.info(
-                        "ReverseGeocodeStep: coordenadas extraídas do JSON",
-                        data={"lat": coords["lat"], "lon": coords["lon"], "json_path": json_path},
-                    )
-                    return ReverseGeocodeTask(coords["lat"], coords["lon"], tool_key=tool_key)
-            self.logger.info("ReverseGeocodeStep pulado: JSON sem coordenadas")
+            lat = context.get_result("first_photo_lat")
+            lon = context.get_result("first_photo_lon")
+            if lat is not None and lon is not None:
+                self.logger.info(
+                    "ReverseGeocodeStep: coordenadas do context (via FirstPhotoCoordStep)",
+                    data={"lat": lat, "lon": lon},
+                )
+                return ReverseGeocodeTask(lat, lon, tool_key=tool_key)
+            self.logger.info("ReverseGeocodeStep pulado: sem coordenadas no context")
             return None
 
         if self._lat is not None and self._lon is not None:

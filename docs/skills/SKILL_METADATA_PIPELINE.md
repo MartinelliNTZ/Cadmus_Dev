@@ -24,11 +24,19 @@ Os 3 pipelines principais (DroneCoordinates, DroneCoordinatesRunner, PhotoVector
 
 ```
 DroneCoordinates / Runner:
-  PhotoEnrichmentStep → JsonVectorizationStep → (ReportGenerationStep?)
+  PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)
 
 PhotoVectorizationPlugin:
-  PhotoEnrichmentStep → JsonVectorizationStep → (ReportGenerationStep?)
+  PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)
 ```
+
+**ReverseGeocodeStep** é inserido entre o enriquecimento e a vetorização:
+- Lê o `json_path` do contexto (setado pelo PhotoEnrichmentStep)
+- Extrai coordenadas (Lat/Lon) da **primeira foto** do JSON
+- Executa reverse geocode via BigDataCloud API
+- Persiste dados de localização no cabeçalho do JSON (`geocode.municipio`, `geocode.state`, etc.)
+- Adiciona timestamps `geocode_start`/`geocode_end` ao JSON
+- Steps são independentes: se geocode falhar, pipeline continua normalmente
 
 **PhotoEnrichmentStep** detecta automaticamente se há dados MRK (paths no `__init__`) ou não:
 - Com MRK → modo `"mrk+photo"` → cruza pontos MRK com EXIF+XMP+CustomFields
@@ -170,7 +178,43 @@ if generate_report:
     steps.append(ReportGenerationStep())
 ```
 
-### Fase 2 — PhotoEnrichmentStep (Enriquecimento de Metadata)
+### Fase 2 — ReverseGeocodeStep (Geolocalização do Endereço)
+
+Step que executa reverse geocode para obter endereço a partir das coordenadas da primeira foto.
+
+**Modos de operação** (por ordem de prioridade):
+1. Coordenadas explícitas passadas via `__init__(lat=..., lon=...)`
+2. Coordenadas do contexto legado (`context.get("lat")` / `context.get("lon")`)
+3. **JSON path**: lê a primeira foto do JSON e extrai `Lat`/`Lon`
+
+**Fluxo**:
+1. `should_run(context)`: verifica se há coordenadas disponíveis (explícitas ou via JSON)
+2. `create_task(context)`: resolve coordenadas, cria `ReverseGeocodeTask`
+3. `ReverseGeocodeTask._run()`: chama BigDataCloud API com lat/lon
+4. `on_success(context, result)`:
+   - `context.set_result("address_data", result)` — propaga para steps posteriores
+   - `JsonUtil.update_geocode_data(json_path, geocode_payload)` — persiste no JSON
+   - `JsonUtil.update_timestamps(json_path, {"geocode_start": ..., "geocode_end": ...})`
+
+**Estrutura adicionada ao JSON**:
+```json
+{
+  "schema_version": "2.0",
+  "geocode": {
+    "municipio": "São Paulo",
+    "state_district": "São Paulo",
+    "state": "São Paulo",
+    "region": "Southeast",
+    "country": "Brazil"
+  },
+  "timestamps": {
+    "geocode_start": "2026-07-09T14:36:43.221270",
+    "geocode_end": "2026-07-09T14:36:45.123456"
+  }
+}
+```
+
+### Fase 3 — PhotoEnrichmentStep (Enriquecimento de Metadata)
 
 Step **unificado** que substitui os antigos `MrkParseStep` e `PhotoMetadataStep`.
 
@@ -212,7 +256,7 @@ CustomPhotosFieldsUtil.calculate_all_custom_fields() → GSD, GimbalOffset, YawA
 Retorna lista de records enriquecidos
 ```
 
-### Fase 3 — JsonVectorizationStep (Vetorização do JSON)
+### Fase 4 — JsonVectorizationStep (Vetorização do JSON)
 
 Step que executa inline (`run_inline()`, sem QgsTask).
 
@@ -224,7 +268,7 @@ Step que executa inline (`run_inline()`, sem QgsTask).
    - Cria `QgsVectorLayer` e adiciona ao projeto
 3. `context.set_result("layer", layer)` — propaga layer para callback `on_finished`
 
-### Fase 4 — ReportGenerationStep (Geração de Relatório HTML)
+### Fase 5 — ReportGenerationStep (Geração de Relatório HTML)
 
 Executado se JSON está disponível e step foi adicionado à pipeline:
 
@@ -263,7 +307,8 @@ Após o pipeline (callback `_on_pipeline_finished`):
 
 | Resultado (`set_result`) | Setado Por | Consumido Por |
 |--------------------------|-----------|---------------|
-| `json_path` | PhotoEnrichmentStep | JsonVectorizationStep, ReportGenerationStep |
+| `json_path` | PhotoEnrichmentStep | ReverseGeocodeStep, JsonVectorizationStep, ReportGenerationStep |
+| `address_data` | ReverseGeocodeStep | `_on_pipeline_finished` (custom callback) |
 | `layer` | JsonVectorizationStep | `_on_pipeline_finished` |
 | `total_points` | JsonVectorizationStep | `_on_pipeline_finished` |
 | `report_payload` | ReportGenerationStep | `_on_pipeline_finished` |
@@ -276,7 +321,7 @@ Após o pipeline (callback `_on_pipeline_finished`):
 
 ```python
 from core.engine_tasks import (
-    PhotoEnrichmentStep, JsonVectorizationStep,
+    PhotoEnrichmentStep, ReverseGeocodeStep, JsonVectorizationStep,
     ReportGenerationStep, AsyncPipelineEngine, ExecutionContext
 )
 
@@ -299,6 +344,8 @@ steps = [
         recursive=False,
         paths=["/flight.mrk"],
     ),
+    # ReverseGeocodeStep lê json_path do context e extrai coordenadas da primeira foto
+    ReverseGeocodeStep(),
     JsonVectorizationStep(source="mrk+photo"),
 ]
 if generate_report:
@@ -318,7 +365,7 @@ runner.run_mrk_file(
     on_error=lambda exc: print("✗", exc)
 )
 # Internamente monta:
-# [PhotoEnrichmentStep, JsonVectorizationStep, ReportGenerationStep?]
+# [PhotoEnrichmentStep, ReverseGeocodeStep, JsonVectorizationStep, ReportGenerationStep?]
 ```
 
 ### Exemplo 3 — PhotoVectorizationPlugin (sem MRK)
@@ -338,6 +385,7 @@ steps = [
         enable_custom_fields=True,
         recursive=True,
     ),
+    ReverseGeocodeStep(),
     JsonVectorizationStep(source="photo"),
 ]
 if generate_report:
@@ -354,6 +402,7 @@ engine.start()
 | Módulo | Caminho | Responsabilidade |
 |--------|---------|-----------------|
 | **PhotoEnrichmentStep** | core/engine_tasks/PhotoEnrichmentStep.py | Enriquecimento unificado (mrk+photo / photo) |
+| **ReverseGeocodeStep** | core/engine_tasks/ReverseGeocodeStep.py | Reverse geocode da primeira foto do JSON |
 | **JsonVectorizationStep** | core/engine_tasks/JsonVectorizationStep.py | JSON → QgsVectorLayer (usa CoordSource) |
 | **ReportGenerationStep** | core/engine_tasks/ReportGenerationStep.py | JSON → HTML Report |
 | **PhotoMetadata** | utils/mrk/PhotoMetadata.py | Orquestrador puro: extrai fotos + mescla com MRK |
@@ -381,3 +430,4 @@ engine.start()
 | 2026-06-03 | 2.1.0 | AlertManager refatorado para motor genérico |
 | **2026-07-09** | **3.0.0** | **ExecutionContext canônico + Steps parametrizados**: Steps agora recebem configuração via `__init__` (não via context). Context tem atributos canônicos (`input_path`, `tool_key`, `files`, `json_path`) e `set_result/get_result` para comunicação entre steps. DroneCoordinates, Runner e PhotoVectorizationPlugin 100% convertidos. |
 | **2026-07-09** | **3.1.0** | **MRK como agregado opcional**: Coordenadas SEMPRE das fotos (EXIF/XMP). MRK agora é apenas atributos de contexto (MrkFile, MrkPath, MrkFolder, FlightNumber). `_enrich_with_mrk()` não seta mais `CoordSource=MRK` nem `QUALITY_FLAG=OK`. `JsonToVectorTranslator._resolve_geometry()` usa apenas `GpsLatitude/GpsLongitude`. DroneCoordinates tem checkbox "Obter dados MRK". `_resolve_track_group_fields()` tem fallback sem MRK por FolderLevel1. |
+| **2026-07-09** | **3.2.0** | **ReverseGeocodeStep integrado ao pipeline**: Pipeline agora executa `PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)`. ReverseGeocodeStep lê json_path do context, extrai coordenadas da primeira foto do JSON, persiste dados de localização no cabeçalho do JSON (`geocode.municipio`, `geocode.state`, etc.) e timestamps `geocode_start`/`geocode_end`. Adicionado `JsonUtil.update_geocode_data()`. |

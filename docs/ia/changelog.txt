@@ -81,6 +81,22 @@
   - Removidos métodos duplicados _resolve_track_order_field e _resolve_track_group_fields
     do DroneCoordinates (agora no Service)
   - Criado docs/plano_refatoracao_unificar_drone_pipeline.md com análise e proposta
+2.3.40 09/07/2026
+[2.3.40.1][09/07/2026] ReverseGeocodeStep integrado ao pipeline de drone + novo modo JSON:
+  - ReverseGeocodeStep refatorado: agora aceita json_path no __init__ e extrai coordenadas
+    da primeira foto do JSON (Lat/Lon), mantendo compatibilidade com modo legado (lat/lon direto)
+  - Adicionado `_get_first_photo_coords()` que percorre groups/records do JSON v2.0
+  - Adicionado `_resolve_coords()` com prioridade: __init__ > context > JSON
+  - on_success agora persiste dados no JSON via `JsonUtil.update_geocode_data()`
+    e timestamps `geocode_start`/`geocode_end` via `JsonUtil.update_timestamps()`
+  - should_run() retorna False se coordenadas não disponíveis (step pulável)
+[2.3.40.2][09/07/2026] JsonUtil.update_geocode_data() adicionado:
+  - Abre JSON existente e adiciona `geocode.municipio`, `geocode.state`, etc. no cabeçalho
+  - Usado pelo ReverseGeocodeStep.on_success() para persistir localização
+[2.3.40.3][09/07/2026] DronePipelineService pipeline atualizado:
+  - Pipeline agora: PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)
+  - ReverseGeocodeStep() sem parâmetros: lê json_path do context automaticamente
+  - SKILL_METADATA_PIPELINE.md atualizado para v3.2.0 com novo fluxo
 2.3.39 09/07/2026
 [2.3.39.1][09/07/2026] Refatorado DronePipelineService para usar Preferences corretamente:
   - Substituído import `from ...utils.Preferences import load_tool_prefs` (depreciado) por `from ...utils.Preferences import Preferences`

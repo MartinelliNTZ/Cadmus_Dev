@@ -91,14 +91,11 @@ class CoordClickTool(QgsMapTool):
             ):
                 self.pipeline_engine.cancel()
             context = ExecutionContext(
-                {
-                    "lat": lat,
-                    "lon": lon,
-                    "iface": self.iface,
-                    "dialog": self.dialog,
-                    "tool_key": "coord_click",
-                }
+                tool_key="coord_click",
             )
+            # Armazena lat/lon no contexto para os steps consumirem
+            context.set_result("lat", lat)
+            context.set_result("lon", lon)
 
             # Reverse geocode and altimetry are independent — run in parallel
             steps = [
@@ -160,12 +157,12 @@ class CoordClickTool(QgsMapTool):
     def _on_pipeline_finished(self, context):
         """Callback chamado pela engine ao finalizar pipeline com sucesso."""
         try:
-            address_data = context.get("address_data")
+            address_data = context.get_result("address_data")
             if address_data and self.dialog:
                 self.dialog.set_address(address_data)
                 self.logger.debug(f"Address set from pipeline: {address_data}")
 
-            altitude = context.get("altitude")
+            altitude = context.get_result("altitude")
             if altitude is not None and self.dialog:
                 self.dialog.set_altitude(altitude)
                 self.logger.debug(f"Altitude set from pipeline: {altitude}")

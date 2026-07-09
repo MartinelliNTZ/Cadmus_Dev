@@ -22,6 +22,7 @@ from ..engine_tasks.ExecutionContext import ExecutionContext
 from ..engine_tasks.PhotoEnrichmentStep import PhotoEnrichmentStep
 from ..engine_tasks.JsonVectorizationStep import JsonVectorizationStep
 from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
+from ..engine_tasks.ReverseGeocodeStep import ReverseGeocodeStep
 from ...i18n.TranslationManager import STR
 from ...utils.ExplorerUtils import ExplorerUtils
 from ...utils.Preferences import Preferences
@@ -134,6 +135,9 @@ class DronePipelineService:
                 recursive=prefs.get("recursive", True),
                 paths=resolve_paths,
             ),
+            # ReverseGeocodeStep lê json_path do context (setado pelo PhotoEnrichmentStep)
+            # e extrai coordenadas da primeira foto do JSON
+            ReverseGeocodeStep(report_metadata_mode=True),
             JsonVectorizationStep(source=source),
         ]
         if prefs.get("generate_report", True):

@@ -155,6 +155,38 @@ class JsonUtil(BaseUtil):
             raise
 
     @staticmethod
+    def update_geocode_data(
+        json_path: str,
+        geocode_data: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Adiciona dados de geocode ao cabeçalho do JSON.
+
+        Args:
+            json_path: Caminho do arquivo JSON
+            geocode_data: Dict com dados de geocode (municipio, state, country, etc.)
+
+        Returns:
+            JSON data atualizado
+        """
+        logger = BaseUtil._get_logger("json_util")
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+
+            # Adiciona dados de geocode no cabeçalho
+            json_data["geocode"] = geocode_data
+
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+            logger.debug(f"Dados de geocode adicionados ao JSON: {json_path}")
+            return json_data
+        except Exception as e:
+            logger.error(f"Erro ao adicionar geocode em {json_path}: {e}")
+            raise
+
+    @staticmethod
     def load_records(json_path: str) -> List[Dict[str, Any]]:
         logger = BaseUtil._get_logger("json_util")
         try:

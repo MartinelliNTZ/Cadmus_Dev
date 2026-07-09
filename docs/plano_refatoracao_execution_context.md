@@ -318,8 +318,8 @@ Os 3 plugins **não usam mais contexto legado**. Steps recebem tudo como parâme
 
 | Arquivo | Status | Observação |
 |---------|--------|------------|
-| `core/engine_tasks/ReverseGeocodeStep.py` | ⏳ | Mesmo padrão a aplicar |
-| `plugins/CoordClickTool.py` | ⏳ | Usa `ExecutionContext({...})` com dict legado |
+| `core/engine_tasks/ReverseGeocodeStep.py` | ✅ | Refatorado com `__init__` parametrizado (`lat`, `lon`, `json_path`), `_resolve_tool_key` com fallback canônico → set_result → legado |
+| `plugins/CoordClickTool.py` | ✅ | Context canônico: `ExecutionContext(tool_key="coord_click")` + `set_result("lat"/"lon")`. Callback usa `get_result()`. |
 | `plugins/GenerateTrailPlugin.py` | ⏳ | Usa `ExecutionContext()` + `context.set()` legado |
 | `plugins/LoadFolderLayers.py` | ⏳ | Usa `ExecutionContext({...})` com dict legado |
 | `plugins/VectorFieldsCalculationPlugin.py` | ⏳ | Usa `ExecutionContext()` + `context.set()` legado |
@@ -333,7 +333,7 @@ Os 3 plugins **não usam mais contexto legado**. Steps recebem tudo como parâme
 | PhotoEnrichmentStep | ✅ | `core/engine_tasks/PhotoEnrichmentStep.py` | `source`, `enable_mrk`, `enable_exif`, `enable_xmp`, `enable_custom_fields`, `selected_required_fields`, `selected_custom_fields`, `selected_mrk_fields`, `project_title`, `logo_path`, `recursive`, `paths` |
 | ReportGenerationStep | ✅ | `core/engine_tasks/ReportGenerationStep.py` | `html_output_path` |
 | JsonVectorizationStep | ✅ | `core/engine_tasks/JsonVectorizationStep.py` | `source`, `layer_name` |
-| ReverseGeocodeStep | ⏳ | `core/engine_tasks/ReverseGeocodeStep.py` | Pendente |
+| ReverseGeocodeStep | ✅ | `core/engine_tasks/ReverseGeocodeStep.py` | `lat`, `lon`, `json_path` — com fallback para context legado |
 
 ### Plugins Convertidos
 

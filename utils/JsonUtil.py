@@ -187,6 +187,38 @@ class JsonUtil(BaseUtil):
             raise
 
     @staticmethod
+    def update_altitude_data(
+        json_path: str,
+        altitude: float,
+    ) -> Dict[str, Any]:
+        """
+        Adiciona altitude ao cabeçalho do JSON (fora do geocode, steps independentes).
+
+        Args:
+            json_path: Caminho do arquivo JSON
+            altitude: Valor da altitude em metros
+
+        Returns:
+            JSON data atualizado
+        """
+        logger = BaseUtil._get_logger("json_util")
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+
+            # Adiciona altitude no cabeçalho (nível raiz, não dentro de geocode)
+            json_data["altitude"] = altitude
+
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, indent=2, ensure_ascii=False)
+
+            logger.debug(f"Altitude adicionada ao JSON: {json_path} = {altitude}m")
+            return json_data
+        except Exception as e:
+            logger.error(f"Erro ao adicionar altitude em {json_path}: {e}")
+            raise
+
+    @staticmethod
     def load_records(json_path: str) -> List[Dict[str, Any]]:
         logger = BaseUtil._get_logger("json_util")
         try:

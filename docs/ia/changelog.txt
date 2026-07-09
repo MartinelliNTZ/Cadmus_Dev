@@ -97,6 +97,19 @@
   - Pipeline agora: PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)
   - ReverseGeocodeStep() sem parâmetros: lê json_path do context automaticamente
   - SKILL_METADATA_PIPELINE.md atualizado para v3.2.0 com novo fluxo
+[2.3.40.4][09/07/2026] AltimetryStep padronizado + altimetry_task migrado para BaseTask:
+  - altimetry_task.py: migrado de QgsTask direto para BaseTask, assinatura `AltimetriaTask(lat, lon, tool_key=...)`
+  - AltimetryStep.py: refatorado com `__init__` parametrizado (`lat`, `lon`, `report_metadata_mode`), usa `context.tool_key` canônico
+  - AltimetryStep.on_success: persiste altitude no JSON via `JsonUtil.update_geocode_data({"altitude": ...})` + timestamps altimetry_start/altimetry_end
+  - CoordClickTool fallback atualizado para nova assinatura AltimetriaTask(..., tool_key=...)
+  - ReverseGeocodeStep: removido json_path do __init__, adicionado report_metadata_mode, simplificado sem fallback legado
+[2.3.40.5][09/07/2026] Correções de contrato (PLUGIN_CONTRACT.md):
+  - BaseStep: adicionado `__init__` com `self.logger` + `_init_logger(context)` que cria LogUtils a partir de context.tool_key
+  - ReverseGeocodeStep e AltimetryStep: removidos `logger = LogUtils(...)` locais → usam `self.logger` via `_init_logger(context)`
+  - _get_first_photo_coords: removido `except Exception:` silencioso → `except (json.JSONDecodeError, IOError, OSError, ValueError, KeyError)` com log via `self.logger.warning()`
+  - on_success: exceções logadas com `self.logger.exception(e, code="...")`
+  - on_error: exceções de salvamento de timestamp logadas com `self.logger.warning()`
+  - Nova utils/JsonUtil.py: `update_altitude_data()` — escreve altitude no nível raiz do JSON (fora de geocode)
 2.3.39 09/07/2026
 [2.3.39.1][09/07/2026] Refatorado DronePipelineService para usar Preferences corretamente:
   - Substituído import `from ...utils.Preferences import load_tool_prefs` (depreciado) por `from ...utils.Preferences import Preferences`

@@ -93,14 +93,11 @@ class CoordClickTool(QgsMapTool):
             context = ExecutionContext(
                 tool_key="coord_click",
             )
-            # Armazena lat/lon no contexto para os steps consumirem
-            context.set_result("lat", lat)
-            context.set_result("lon", lon)
 
             # Reverse geocode and altimetry are independent — run in parallel
             steps = [
                 ParallelStep(
-                    [ReverseGeocodeStep(), AltimetryStep()],
+                    [ReverseGeocodeStep(lat=lat, lon=lon), AltimetryStep(lat=lat, lon=lon)],
                     description="coord_click_geo_alt",
                 )
             ]
@@ -145,7 +142,9 @@ class CoordClickTool(QgsMapTool):
                 except Exception as e2:
                     self.logger.error(f"on_altitude handler error: {e2}")
 
-            self.alt_task = AltimetriaTask(lat, lon, on_altitude)
+            self.alt_task = AltimetriaTask(lat, lon, tool_key="coord_click")
+            self.alt_task.on_success = lambda result: on_altitude(result, None)
+            self.alt_task.on_error = lambda exc: on_altitude(None, str(exc) if exc else "Unknown error")
             QgsApplication.taskManager().addTask(self.alt_task)
 
     # --------------------------------------------------

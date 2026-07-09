@@ -123,7 +123,6 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         self.preferences[self.PREF_PHOTO_GENERATE_REPORT] = bool(
             self.photo_opts_map["photo_generate_report"].isChecked()
         )
-        # Logo e titulo do projeto
         project_title_values = self.title_input.get_values()
         self.preferences["project_title"] = project_title_values.get(
             "project_title", ""
@@ -142,7 +141,6 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         self.photo_opts_map["photo_generate_report"].setChecked(
             self.preferences.get(self.PREF_PHOTO_GENERATE_REPORT, True)
         )
-        # Logo e titulo do projeto
         if self.preferences.get("logo_path", ""):
             self.logo_selector.set_file_path(self.preferences.get("logo_path", ""))
             self.logo_selector.set_enabled(self.preferences.get("logo_enabled", False))
@@ -166,7 +164,6 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         try:
             self._save_prefs()
 
-            # Projeto e logotipo
             project_title_values = self.title_input.get_values()
             project_title = project_title_values.get("project_title", "")
             logo_path = (
@@ -175,19 +172,30 @@ class PhotoVectorizationPlugin(BasePluginMTL):
                 else ""
             )
 
-            context = ExecutionContext()
-            context.set("base_folder", photo_folder)
-            context.set("recursive", recursive)
-            context.set("generate_report", generate_report)
-            context.set("layer_name", STR.PHOTOS_WITHOUT_MRK_LAYER_NAME)
-            context.set("tool_key", self.TOOL_KEY)
-            context.set("iface", self.iface)
-            context.set("project_title", project_title)
-            context.set("logo_path", logo_path)
+            # ── ExecutionContext com atributos canônicos ────────
+            context = ExecutionContext(
+                input_path=photo_folder,
+                tool_key=self.TOOL_KEY,
+            )
+            context.set_result("layer_name", STR.PHOTOS_WITHOUT_MRK_LAYER_NAME)
 
-            steps = [PhotoEnrichmentStep(), JsonVectorizationStep()]
+            # ── Steps com parâmetros explícitos ─────────────────
+            steps = [
+                PhotoEnrichmentStep(
+                    source="photo",
+                    enable_mrk=False,
+                    enable_exif=True,
+                    enable_xmp=True,
+                    enable_custom_fields=True,
+                    project_title=project_title,
+                    logo_path=logo_path,
+                    recursive=recursive,
+                ),
+                JsonVectorizationStep(
+                    source="photo",
+                ),
+            ]
 
-            # Adicionar step de geração de relatório se solicitado
             if generate_report:
                 steps.append(ReportGenerationStep())
 
@@ -214,26 +222,22 @@ class PhotoVectorizationPlugin(BasePluginMTL):
 
     def _on_pipeline_finished(self, context):
         """Callback chamado quando o pipeline de TASK é concluído com sucesso."""
-        layer = context.get("layer")
+        layer = context.get_result("layer") or context.get("layer")
 
-        # Reordenar campos alfabeticamente e substituir a layer no projeto
         if layer and layer.isValid():
             sorted_layer = VectorLayerAttributes.reorder_fields_alphabetically(layer)
             if sorted_layer is not None:
                 QgsProject.instance().removeMapLayer(layer.id())
                 QgsProject.instance().addMapLayer(sorted_layer)
                 layer = sorted_layer
-                context.set("layer", layer)
 
-        total_points = context.get("total_points", 0)
-        json_path = context.get("json_path")
-        report_payload = context.get("report_payload")
+        total_points = context.get_result("total_points") or context.get("total_points", 0)
+        json_path = context.json_path or context.get_result("json_path")
+        report_payload = context.get_result("report_payload")
 
-        summary = f"{STR.SUCCESS_MESSAGE} " f"{STR.POINTS}: {total_points}"
-
+        summary = f"{STR.SUCCESS_MESSAGE} {STR.POINTS}: {total_points}"
         if json_path:
             summary += f" | JSON: {json_path}"
-
         if report_payload and isinstance(report_payload, dict):
             html_path = report_payload.get("html_path")
             if html_path:
@@ -252,19 +256,13 @@ class PhotoVectorizationPlugin(BasePluginMTL):
         QgisMessageUtil.bar_success(self.iface, summary, duration=8)
 
     def _on_pipeline_error(self, errors):
-        """Callback chamado quando ocorre erro no pipeline de TASK."""
         exception = None
         if isinstance(errors, list) and errors:
             exception = errors[-1]
         elif errors is not None:
             exception = errors
-
         self.logger.error(f"Erro no pipeline de vetorizacao: {exception}")
         QgisMessageUtil.modal_error(self.iface, f"{STR.ERROR}: {exception}")
-
-    def _run_photo_vectorization(self):
-        """Método legado mantido para compatibilidade, mas não usado."""
-        pass
 
 
 def run(iface):

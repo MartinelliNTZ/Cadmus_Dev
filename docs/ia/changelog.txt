@@ -34,3 +34,23 @@
   - on_success() persiste resultado no contexto via context.set("address_data")
   - Import corrigido de ..task.reverse_geocoding_task para ..task.ReverseGeocodeTask
 [2.3.34.3][08/07/2026] CoordClickTool fallback atualizado para nova assinatura ReverseGeocodeTask(lat, lon, tool_key=...)
+2.3.35 09/07/2026
+[2.3.35.1][09/07/2026] Refatoração ExecutionContext + Steps:
+  - ExecutionContext agora com atributos canônicos (input_path, output_path, files, tool_key, json_path)
+  - Mantida compatibilidade total com set()/get() legado (DEPRECATED) para plugins não refatorados
+  - Adicionado set_result()/get_result() para comunicação entre steps
+  - json_path promovido a atributo canônico (usado por múltiplos steps)
+[2.3.35.2][09/07/2026] Steps refatorados com __init__ parametrizado (sem dependência do context):
+  - PhotoEnrichmentStep: source, enable_mrk, enable_exif, enable_xmp, enable_custom_fields, selected_*_fields, project_title, logo_path, recursive, paths
+  - JsonVectorizationStep: source, layer_name
+  - ReportGenerationStep: html_output_path
+  - Todos os steps resolvem tool_key, input_path do context canônico (nunca via context.get())
+[2.3.35.3][09/07/2026] Plugins 100% convertidos para novo padrão (sem contexto legado):
+  - DroneCoordinates.py: executa pipeline com steps parametrizados, context só com atributos canônicos
+  - DroneCoordinatesRunner.py: executa pipeline com steps parametrizados, context só com atributos canônicos
+  - PhotoVectorizationPlugin.py: executa pipeline com steps parametrizados, context só com atributos canônicos
+  - Nenhum context.set() ou context.get() para configuração de steps — tudo via parâmetros nomeados
+[2.3.35.4][09/07/2026] Skills atualizadas com novo padrão:
+  - SKILL_ASYNC_PAPELINE.md: seção 3 (Step parametrizado), seção 4 (ExecutionContext canônico), seção 18-19 (exemplos + resumo)
+  - SKILL_METADATA_PIPELINE.md: versão 3.0.0 — exemplos migrados para novo padrão, tabelas de parâmetros dos steps
+  - changelog.txt registrado como 2.3.35.4

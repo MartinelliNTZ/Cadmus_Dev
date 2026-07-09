@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
+from typing import List, Optional
 
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext
@@ -10,76 +13,102 @@ class PhotoEnrichmentStep(BaseStep):
     """
     Step unificado para enriquecer JSON com metadados de fotos.
 
-    Funciona em 2 modos, controlados pelo context.get("source"):
-    - "mrk+photo": Quando há dados MRK no contexto
-      → Chama pipeline com enable_mrk=True e usa context.get("paths")
-    - "photo": Quando NÃO há MRK (apenas pasta de fotos)
-      → Chama pipeline com enable_mrk=False
-
-    O source é definido pelo plugin:
-    - DroneCoordinates: source="mrk+photo", paths contem caminhos MRK
-    - PhotoVectorization: source="photo" (padrao)
-
-    As flags de pipeline (enable_mrk, enable_exif, etc.) podem ser
-    sobrescritas via ExecutionContext.
-
-    O PhotoMetadata é responsável por:
-    - Fazer parsing MRK internamente se source="mrk+photo"
-    - Executar pipeline completo de enriquecimento
-    - Construir e salvar o JSON via build_and_save_json()
-
-    A saída é um JSON v2.0 salvo em disco cujo caminho fica no
-    contexto como "json_path", que será vetorizado pelo
-    JsonVectorizationStep posteriormente.
+    Todos os parâmetros de configuração são passados no __init__
+    (nada via context). O context carrega apenas:
+      - input_path: Diretório base para busca de arquivos
+      - files: Lista de caminhos MRK (se houver)
+      - tool_key: ToolKey para logging
+      - json_path: Caminho do JSON (resultado de execução anterior)
     """
+
+    def __init__(
+        self,
+        *,
+        source: str = "photo",
+        enable_mrk: bool = False,
+        enable_exif: bool = True,
+        enable_xmp: bool = True,
+        enable_custom_fields: bool = True,
+        selected_required_fields: Optional[List[str]] = None,
+        selected_custom_fields: Optional[List[str]] = None,
+        selected_mrk_fields: Optional[List[str]] = None,
+        project_title: str = "",
+        logo_path: str = "",
+        recursive: bool = True,
+        paths: Optional[List[str]] = None,
+    ):
+        self.source = source
+        self.enable_mrk = enable_mrk
+        self.enable_exif = enable_exif
+        self.enable_xmp = enable_xmp
+        self.enable_custom_fields = enable_custom_fields
+        self.selected_required_fields = selected_required_fields or []
+        self.selected_custom_fields = selected_custom_fields or []
+        self.selected_mrk_fields = selected_mrk_fields or []
+        self.project_title = project_title
+        self.logo_path = logo_path
+        self.recursive = recursive
+        self.paths = paths or []
 
     def name(self) -> str:
         return "PhotoEnrichmentStep"
 
+    def _resolve_base_folder(self, context: ExecutionContext) -> str:
+        """Resolve o diretório base do context canônico."""
+        base = context.input_path
+        if base:
+            return base
+        raise KeyError(
+            "ExecutionContext.input_path não definido. "
+            "Defina input_path ao criar o ExecutionContext."
+        )
+
+    def _resolve_tool_key(self, context: ExecutionContext) -> str:
+        """Resolve tool_key do context canônico."""
+        tk = context.tool_key
+        if tk:
+            return tk
+        raise KeyError(
+            "ExecutionContext.tool_key não definido. "
+            "Defina tool_key ao criar o ExecutionContext."
+        )
+
+    def _resolve_mrk_paths(self, context: ExecutionContext) -> list:
+        """Resolve paths MRK: prioriza self.paths, depois context.files."""
+        if self.paths:
+            return self.paths
+        if context.files:
+            return context.files
+        return []
+
     def create_task(self, context: ExecutionContext):
-        context.require(["base_folder", "recursive", "tool_key"])
-
-        # O source determina o modo de operacao:
-        #   "mrk+photo" → parsing MRK + enriquecimento completo
-        #   "mrk"      → apenas parsing MRK + esqueleto (sem EXIF/XMP/custom)
-        #   "photo"    → apenas fotos (sem MRK)
-        source = context.get("source", "photo")
-
-        # Se source tem "mrk", precisa de paths MRK do contexto
-        has_mrk = "mrk" in source if source else False
-
-        # Paths MRK (DroneCoordinates ja define "paths" no contexto)
-        mrk_paths = context.get("paths", []) if has_mrk else []
-
-        # Flags de pipeline baseadas no source
-        enable_mrk = has_mrk
-        enable_exif = context.get("enable_exif", source != "mrk")
-        enable_xmp = context.get("enable_xmp", source != "mrk")
-        enable_custom_fields = context.get("enable_custom_fields", source != "mrk")
+        tool_key = self._resolve_tool_key(context)
+        base_folder = self._resolve_base_folder(context)
+        mrk_paths = self._resolve_mrk_paths(context)
 
         return PhotoEnrichmentTask(
-            base_folder=context.get("base_folder"),
-            recursive=context.get("recursive", True),
-            source=source,
+            base_folder=base_folder,
+            recursive=self.recursive,
+            source=self.source,
             paths=mrk_paths,
-            json_path=context.get("json_path"),
-            source_points=context.get("points", []),
-            layer_id=context.get("layer_id", ""),
-            selected_required_fields=context.get("selected_required_fields", []),
-            selected_custom_fields=context.get("selected_custom_fields", []),
-            selected_mrk_fields=context.get("selected_mrk_fields", []),
-            tool_key=context.get("tool_key"),
-            enable_mrk=enable_mrk,
-            enable_exif=enable_exif,
-            enable_xmp=enable_xmp,
-            enable_custom_fields=enable_custom_fields,
-            project_title=context.get("project_title", ""),
-            logo_path=context.get("logo_path", ""),
+            json_path=context.json_path,
+            source_points=context.get_result("points", []),
+            layer_id=context.get_result("layer_id", ""),
+            selected_required_fields=self.selected_required_fields,
+            selected_custom_fields=self.selected_custom_fields,
+            selected_mrk_fields=self.selected_mrk_fields,
+            tool_key=tool_key,
+            enable_mrk=self.enable_mrk,
+            enable_exif=self.enable_exif,
+            enable_xmp=self.enable_xmp,
+            enable_custom_fields=self.enable_custom_fields,
+            project_title=self.project_title,
+            logo_path=self.logo_path,
         )
 
     def on_success(self, context: ExecutionContext, result):
         logger = LogUtils(
-            tool=context.get("tool_key"),
+            tool=self._resolve_tool_key(context),
             class_name=self.__class__.__name__,
         )
 
@@ -92,16 +121,14 @@ class PhotoEnrichmentStep(BaseStep):
             logger.error("json_path nao encontrado no resultado")
             return
 
-        # Propaga resultados no contexto
-        source = result.get("source", "photo")
-        context.set("json_path", json_path)
-        context.set("source", source)
+        # Propaga resultado via set_result (canônico para comunicação entre steps)
+        context.set_result("json_path", json_path)
 
         logger.info(
             "JSON enriquecido com metadados de foto",
             data={
                 "json_path": json_path,
-                "source": context.get("source"),
+                "source": result.get("source", "photo"),
                 "total_points": result.get("total_points", 0),
             },
         )

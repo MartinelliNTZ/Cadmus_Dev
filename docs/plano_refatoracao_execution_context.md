@@ -297,11 +297,48 @@ O primeiro arquivo a ser refatorado é **`plugins/DroneCoordinates.py`** + **`co
 
 ---
 
-## 9. Próximos Passos
+## 9. Status da Implementação (09/07/2026)
 
-1. ✅ Revisar e aprovar este plano
-2. Implementar Fase 1 (novo ExecutionContext)
-3. Implementar Fase 2 (steps)
-4. Implementar Fase 3 (DroneCoordinates + Runner)
-5. Testar pipeline completa
-6. Atualizar documentação
+### ✅ Já Implementado
+
+| Arquivo | Status | Observação |
+|---------|--------|------------|
+| `core/engine_tasks/ExecutionContext.py` | ✅ | Atributos canônicos: `input_path`, `output_path`, `files`, `tool_key`, `json_path`. Compatibilidade com `set()/get()` legado mantida. `require()` adaptado para suportar atributos canônicos. |
+| `core/engine_tasks/PhotoEnrichmentStep.py` | ✅ | `__init__` parametrizado com `source`, `enable_mrk`, `enable_exif`, `enable_xmp`, `enable_custom_fields`, `selected_*_fields`, `project_title`, `logo_path`, `recursive`. |
+| `core/engine_tasks/ReportGenerationStep.py` | ✅ | `__init__` parametrizado com `html_output_path`. Uso de `context.json_path` canônico. |
+| `plugins/DroneCoordinates.py` | ✅ | Steps montados com parâmetros explícitos. Context usa `input_path=base_folder`, `tool_key=self.TOOL_KEY`, `files=paths`. Context legado mantido para compatibilidade. |
+| `core/services/DroneCoordinatesRunner.py` | ✅ | Steps montados com parâmetros explícitos. Context usa `input_path`, `tool_key`, `files`. Context legado mantido. |
+| `plugins/PhotoVectorizationPlugin.py` | ✅ | Steps montados com parâmetros explícitos. Context usa `input_path`, `tool_key`. |
+
+### ✅ Atualizado (09/07/2026) — 100% Convertidos
+
+Os 3 plugins **não usam mais contexto legado**. Steps recebem tudo como parâmetros explícitos. Context usa apenas atributos canônicos.
+
+### ⏳ Próximas Refatorações Sugeridas
+
+| Arquivo | Status | Observação |
+|---------|--------|------------|
+| `core/engine_tasks/ReverseGeocodeStep.py` | ⏳ | Mesmo padrão a aplicar |
+| `plugins/CoordClickTool.py` | ⏳ | Usa `ExecutionContext({...})` com dict legado |
+| `plugins/GenerateTrailPlugin.py` | ⏳ | Usa `ExecutionContext()` + `context.set()` legado |
+| `plugins/LoadFolderLayers.py` | ⏳ | Usa `ExecutionContext({...})` com dict legado |
+| `plugins/VectorFieldsCalculationPlugin.py` | ⏳ | Usa `ExecutionContext()` + `context.set()` legado |
+| `plugins/PathExtensionPlugin.py` | ⏳ | Só docstring, não crítico |
+| `plugins/ReportMetadataPlugin.py` | ⏳ | Verificar se usa pipeline |
+
+### 📦 Resumo de Steps Refatorados
+
+| Step | Classe | Arquivo | Parâmetros no `__init__` |
+|------|--------|---------|--------------------------|
+| PhotoEnrichmentStep | ✅ | `core/engine_tasks/PhotoEnrichmentStep.py` | `source`, `enable_mrk`, `enable_exif`, `enable_xmp`, `enable_custom_fields`, `selected_required_fields`, `selected_custom_fields`, `selected_mrk_fields`, `project_title`, `logo_path`, `recursive`, `paths` |
+| ReportGenerationStep | ✅ | `core/engine_tasks/ReportGenerationStep.py` | `html_output_path` |
+| JsonVectorizationStep | ✅ | `core/engine_tasks/JsonVectorizationStep.py` | `source`, `layer_name` |
+| ReverseGeocodeStep | ⏳ | `core/engine_tasks/ReverseGeocodeStep.py` | Pendente |
+
+### Plugins Convertidos
+
+| Plugin | Status | Context `set()` legado removido? |
+|--------|--------|----------------------------------|
+| `plugins/DroneCoordinates.py` | ✅ 100% | Sim — zero `context.set()` para config |
+| `core/services/DroneCoordinatesRunner.py` | ✅ 100% | Sim — zero `context.set()` para config |
+| `plugins/PhotoVectorizationPlugin.py` | ✅ 100% | Sim — zero `context.set()` para config |

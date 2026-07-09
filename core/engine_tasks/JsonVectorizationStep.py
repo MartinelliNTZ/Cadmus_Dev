@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 from datetime import datetime
 
 from .BaseStep import BaseStep
@@ -8,7 +10,26 @@ from ...utils.JsonUtil import JsonUtil
 
 
 class JsonVectorizationStep(BaseStep):
-    """Step que cria camada vetorial exclusivamente a partir do JSON canônico."""
+    """
+    Step que cria camada vetorial exclusivamente a partir do JSON canônico.
+
+    Usa do ExecutionContext:
+      - json_path: Caminho do JSON (set_result do step anterior)
+      - tool_key: ToolKey para logging
+
+    Parâmetros opcionais:
+      - source: Identificador da fonte ("mrk+photo", "photo", etc.)
+      - layer_name: Nome da camada (se não for passado, usa context.get_result)
+    """
+
+    def __init__(
+        self,
+        *,
+        source: str = "",
+        layer_name: str = "",
+    ):
+        self._source = source
+        self._layer_name = layer_name
 
     def name(self) -> str:
         return "JsonVectorizationStep"
@@ -18,15 +39,17 @@ class JsonVectorizationStep(BaseStep):
         return None
 
     def should_run(self, context: ExecutionContext) -> bool:
-        return bool(context.get("json_path"))
+        return bool(context.json_path or context.get_result("json_path"))
 
     def on_success(self, context: ExecutionContext, result):
         # Nao utilizado; a execucao real acontece em run_inline().
         pass
 
     def run_inline(self, context: ExecutionContext):
-        logger = LogUtils(tool=context.get("tool_key"), class_name=self.__class__.__name__)
-        json_path = context.get("json_path")
+        tool_key = context.tool_key or context.get_result("tool_key")
+        logger = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
+
+        json_path = context.json_path or context.get_result("json_path")
         if not json_path:
             raise ValueError("JsonVectorizationStep: json_path ausente no contexto")
 
@@ -37,12 +60,13 @@ class JsonVectorizationStep(BaseStep):
         from qgis.core import QgsProject
 
         layer_name = (
-            context.get("points_layer_name")
-            or context.get("layer_name")
+            self._layer_name
+            or context.get_result("points_layer_name")
+            or context.get_result("layer_name")
             or "Cadmus_Vector"
         )
-        source = context.get("source")
-        translator = JsonToVectorTranslator(tool_key=context.get("tool_key"))
+        source = self._source or context.get_result("source")
+        translator = JsonToVectorTranslator(tool_key=tool_key)
         try:
             layer = translator.translate(
                 json_path=json_path,
@@ -74,8 +98,8 @@ class JsonVectorizationStep(BaseStep):
             raise RuntimeError("Falha ao criar camada via JsonToVectorTranslator: layer invalido")
 
         QgsProject.instance().addMapLayer(layer)
-        context.set("layer", layer)
-        context.set("total_points", int(layer.featureCount()))
+        context.set_result("layer", layer)
+        context.set_result("total_points", int(layer.featureCount()))
 
         # Registra fim da vetorizacao e persiste timestamps no JSON
         vectorization_end = datetime.now().isoformat()
@@ -88,8 +112,8 @@ class JsonVectorizationStep(BaseStep):
         except Exception as e:
             logger.warning(f"Nao foi possivel salvar timestamps de vetorizacao no JSON: {e}")
 
-        context.set("vectorization_start", vectorization_start)
-        context.set("vectorization_end", vectorization_end)
+        context.set_result("vectorization_start", vectorization_start)
+        context.set_result("vectorization_end", vectorization_end)
 
         logger.info(
             "Camada vetorial criada a partir do JSON",

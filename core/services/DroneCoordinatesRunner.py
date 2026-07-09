@@ -52,7 +52,6 @@ class DroneCoordinatesRunner:
         existing_points = VectorLayerSource.load_existing_vector_layer(
             points_path, tool_key=self.tool_key
         )
-
         existing_track = VectorLayerSource.load_existing_vector_layer(
             track_path, tool_key=self.tool_key
         )
@@ -88,31 +87,14 @@ class DroneCoordinatesRunner:
             prefs.get("mrk_fields_selected", []),
             allowed_keys=MetadataFields.mrk_keys(),
         )
-        extra_fields = None
         base_name = os.path.splitext(os.path.basename(file_path))[0]
-        context = ExecutionContext()
-        context.set("paths", [file_path])
-        context.set("recursive", False)
-        context.set("extra_fields", extra_fields)
-        context.set("selected_required_fields", selected_required_fields)
-        context.set("selected_custom_fields", selected_custom_fields)
-        context.set("selected_mrk_fields", selected_mrk_fields)
-        context.set("tool_key", self.tool_key)
-        context.set("points_layer_name", f"{base_name}_{STR.POINTS}")
-        context.set("track_layer_name", f"{base_name}_{STR.TRACK}")
-        context.set("auto_points_output_path", points_path)
-        context.set("auto_track_output_path", track_path)
-        context.set("source_mrk_file", file_path)
 
-        # ─────────────────────────────────────────────────────────
-        # Pipeline flags - mesmo padrão do DroneCoordinates plugin
-        # ─────────────────────────────────────────────────────────
-        # apply_photos=True (com Pillow):
-        #   → Etapas 1 (esqueleto), 2 (MRK), 3 (EXIF), 4 (XMP), 5 (custom)
-        # apply_photos=False:
-        #   → Etapas 1 (esqueleto), 2 (MRK) apenas
-        #     = Sem EXIF, XMP ou custom fields
-        # ─────────────────────────────────────────────────────────
+        # ── ExecutionContext com atributos canônicos ─────────────
+        context = ExecutionContext(
+            input_path=os.path.dirname(file_path),
+            tool_key=self.tool_key,
+            files=[file_path],
+        )
 
         enable_exif = apply_photos
         enable_xmp = apply_photos
@@ -123,14 +105,31 @@ class DroneCoordinatesRunner:
             )) > 0
         )
 
-        context.set("source", "mrk+photo")
-        context.set("enable_mrk", True)
-        context.set("enable_exif", enable_exif)
-        context.set("enable_xmp", enable_xmp)
-        context.set("enable_custom_fields", enable_custom_fields)
+        # ── Steps com parâmetros explícitos ──────────────────────
+        steps = [
+            PhotoEnrichmentStep(
+                source="mrk+photo",
+                enable_mrk=True,
+                enable_exif=enable_exif,
+                enable_xmp=enable_xmp,
+                enable_custom_fields=enable_custom_fields,
+                selected_required_fields=selected_required_fields,
+                selected_custom_fields=selected_custom_fields,
+                selected_mrk_fields=selected_mrk_fields,
+                recursive=False,
+                paths=[file_path],
+            ),
+            JsonVectorizationStep(
+                source="mrk+photo",
+            ),
+        ]
 
-        # Montar steps - PhotoEnrichmentStep faz parsing MRK internamente via PhotoMetadata
-        steps = [PhotoEnrichmentStep(), JsonVectorizationStep()]
+        # Dados extras que o callback on_finished precisa
+        context.set_result("points_layer_name", f"{base_name}_{STR.POINTS}")
+        context.set_result("track_layer_name", f"{base_name}_{STR.TRACK}")
+        context.set_result("auto_points_output_path", points_path)
+        context.set_result("auto_track_output_path", track_path)
+        context.set_result("source_mrk_file", file_path)
 
         # Gerar relatório se configurado
         generate_report = prefs.get("generate_report", False)
@@ -147,21 +146,18 @@ class DroneCoordinatesRunner:
         return True
 
     def _on_pipeline_finished(self, context: ExecutionContext):
-        layer = context.get("layer")
+        layer = context.get_result("layer") or context.get("layer")
         if not layer or not layer.isValid():
             self._notify_error(STR.ERROR_LAYER_NOT_FOUND)
             return
 
-        points_output_path = context.get("auto_points_output_path")
-        track_output_path = context.get("auto_track_output_path")
-
-        points_layer_name = context.get("points_layer_name", STR.POINTS)
-        track_layer_name = context.get("track_layer_name", STR.TRACK)
+        points_output_path = context.get_result("auto_points_output_path")
+        track_output_path = context.get_result("auto_track_output_path")
+        points_layer_name = context.get_result("points_layer_name", STR.POINTS)
+        track_layer_name = context.get_result("track_layer_name", STR.TRACK)
 
         points_layer = self._save_or_load_existing(
-            layer,
-            points_output_path,
-            fallback_name=points_layer_name,
+            layer, points_output_path, fallback_name=points_layer_name,
         )
         if points_layer and points_layer.id() != layer.id():
             ProjectUtils.remove_layer_from_project(layer)
@@ -190,12 +186,8 @@ class DroneCoordinatesRunner:
         track_layer = None
         if line_layer and line_layer.isValid():
             track_layer = self._save_or_load_existing(
-                line_layer,
-                track_output_path,
-                fallback_name=track_layer_name,
+                line_layer, track_output_path, fallback_name=track_layer_name,
             )
-
-            # Aplicar estilo QML na trilha conforme preferência
             if (prefs.get("apply_style_track", False) and track_layer and track_layer.isValid()):
                 qml_path = prefs.get("qml_path_track", "").strip()
                 if qml_path and os.path.exists(qml_path):
@@ -205,7 +197,7 @@ class DroneCoordinatesRunner:
                     if ok:
                         track_layer.triggerRepaint()
 
-        json_path = context.get("json_path")
+        json_path = context.json_path or context.get_result("json_path")
         generate_report = prefs.get("generate_report", False)
         report_payload = None
         if generate_report:
@@ -215,13 +207,10 @@ class DroneCoordinatesRunner:
                         tool_key=self.tool_key
                     ).generate_from_json(json_path)
                     self.logger.info(
-                        "Report metadata gerado pelo runner",
-                        data=report_payload,
+                        "Report metadata gerado pelo runner", data=report_payload,
                     )
                 except Exception as e:
-                    self.logger.error(
-                        f"Falha ao gerar report metadata no runner: {e}"
-                    )
+                    self.logger.error(f"Falha ao gerar report metadata no runner: {e}")
             else:
                 self.logger.warning(
                     "Runner com generate_report=True sem json_path no contexto"
@@ -231,7 +220,7 @@ class DroneCoordinatesRunner:
         if callable(self._on_finished):
             self._on_finished(
                 {
-                    "file_path": context.get("source_mrk_file"),
+                    "file_path": context.get_result("source_mrk_file"),
                     "points_layer": points_layer,
                     "track_layer": track_layer,
                     "used_existing": False,
@@ -248,13 +237,7 @@ class DroneCoordinatesRunner:
         if callable(self._on_error):
             self._on_error(message)
 
-    def _save_or_load_existing(
-        self,
-        layer,
-        output_path: str,
-        *,
-        fallback_name: str,
-    ):
+    def _save_or_load_existing(self, layer, output_path, *, fallback_name: str):
         existing = VectorLayerSource.load_existing_vector_layer(
             output_path, tool_key=self.tool_key
         )
@@ -262,20 +245,13 @@ class DroneCoordinatesRunner:
             existing.setName(fallback_name)
             self._load_layer(existing)
             return existing
-
         saved_layer = VectorLayerSource.save_and_load_layer(
-            layer,
-            output_path,
-            tool_key=self.tool_key,
-            decision="overwrite",
+            layer, output_path, tool_key=self.tool_key, decision="overwrite",
         )
-
         if saved_layer and saved_layer.isValid():
             saved_layer.setName(fallback_name)
             self._load_layer(saved_layer)
             return saved_layer
-
-        # Fallback: se falhar ao salvar, ainda disponibiliza a camada em memoria.
         layer.setName(fallback_name)
         self._load_layer(layer)
         return layer
@@ -288,12 +264,9 @@ class DroneCoordinatesRunner:
     @staticmethod
     def _resolve_track_order_field(layer):
         candidates = [
-            "Foto",
-            "foto",
-            "PhotoNum",
+            "Foto", "foto", "PhotoNum",
             MetadataFields.resolve_output_name("Foto"),
-            "mrk_index",
-            "id",
+            "mrk_index", "id",
         ]
         for name in candidates:
             if name and layer.fields().lookupField(name) != -1:

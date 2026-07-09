@@ -364,6 +364,7 @@ class Strings_de(Strings_pt_BR):
         "auf die erzeugten Punkte und den Pfad anwenden."
     )
     RECURSIVE_SEARCH = "Unterordner durchsuchen"
+    USE_MRK_DATA = "MRK-Daten abrufen"
     PHOTOS_METADATA = "Mit Fotometadaten verknüpfen"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Zum Verknüpfen mit Fotometadaten muss das Paket Pillow installiert werden.\n\nJetzt installieren?"
     MRK_FOLDER = "MRK-Ordner:"

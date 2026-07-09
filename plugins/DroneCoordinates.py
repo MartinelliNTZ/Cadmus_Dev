@@ -27,6 +27,7 @@ class DroneCordinates(BasePluginMTL):
 
     CHECKBOX_OPTIONS = {
         "recursive": STR.RECURSIVE_SEARCH,
+        "use_mrk": STR.USE_MRK_DATA,
         "photos": STR.PHOTOS_METADATA,
         "generate_report": STR.GENERATE_REPORT,
     }
@@ -118,6 +119,11 @@ class DroneCordinates(BasePluginMTL):
         self.chk_photos = self.checkbox_map.get("photos")
         if self.chk_photos:
             self.chk_photos.toggled.connect(self.on_photos_changed)
+
+        # Connect use_mrk toggle to enable/disable MRK sections
+        self.chk_use_mrk = self.checkbox_map.get("use_mrk")
+        if self.chk_use_mrk:
+            self.chk_use_mrk.toggled.connect(self._on_use_mrk_changed)
 
         # ====== METADATA EXIF FIELDS ======
         exif_layout, self.exif_fields_collapsible = (
@@ -313,6 +319,15 @@ class DroneCordinates(BasePluginMTL):
             ]
         )
 
+    def _on_use_mrk_changed(self, checked: bool):
+        """Habilita/desabilita seção MRK conforme checkbox 'Obter dados MRK'."""
+        # Se MRK estiver desabilitado, esconde/cinza a seção de campos MRK
+        self.mrk_fields_collapsible.setVisible(checked)
+        self.mrk_fields_collapsible.setEnabled(checked)
+        if not checked:
+            # Se não usa MRK, também limpa a seleção de campos MRK
+            self.mrk_fields_grid.set_checked_keys([])
+
     def _ensure_photos_dependency(self, checked: bool):
         if not checked:
             return
@@ -378,6 +393,9 @@ class DroneCordinates(BasePluginMTL):
             )
         self.checkbox_map["recursive"].setChecked(
             self.preferences.get("recursive", True)
+        )
+        self.checkbox_map["use_mrk"].setChecked(
+            self.preferences.get("use_mrk", True)
         )
         self.checkbox_map["photos"].setChecked(self.preferences.get("photos", True))
         self.checkbox_map["generate_report"].setChecked(
@@ -469,6 +487,12 @@ class DroneCordinates(BasePluginMTL):
         self.styles_collapsible.set_expanded(
             self.preferences.get("styles_expanded", False)
         )
+
+        # Aplica visibilidade do MRK conforme preferência
+        use_mrk = self.preferences.get("use_mrk", True)
+        self.mrk_fields_collapsible.setVisible(use_mrk)
+        self.mrk_fields_collapsible.setEnabled(use_mrk)
+
         self.logger.debug("Preferências carregadas", code="PREFS_LOAD_COMPLETE")
 
     def _save_prefs(self):
@@ -477,6 +501,7 @@ class DroneCordinates(BasePluginMTL):
         folder_path = paths[0] if paths else ""
         self.preferences["folder"] = folder_path
         self.preferences["recursive"] = self.checkbox_map["recursive"].isChecked()
+        self.preferences["use_mrk"] = self.checkbox_map["use_mrk"].isChecked()
         self.preferences["photos"] = self.checkbox_map["photos"].isChecked()
         self.preferences["generate_report"] = self.checkbox_map[
             "generate_report"
@@ -527,6 +552,7 @@ class DroneCordinates(BasePluginMTL):
 
         recursive = self.checkbox_map["recursive"].isChecked()
         apply_photos = self.checkbox_map["photos"].isChecked()
+        use_mrk = self.checkbox_map["use_mrk"].isChecked()
         first_path = paths[0] if paths else None
         base_folder = (
             os.path.dirname(first_path)
@@ -550,12 +576,23 @@ class DroneCordinates(BasePluginMTL):
             files=paths,
         )
 
+        # Determina source e flags conforme checkbox use_mrk
+        if use_mrk:
+            source = "mrk+photo"
+            enable_mrk = True
+            mrk_paths = paths
+            selected_mrk_fields = self._get_selected_mrk_fields()
+        else:
+            source = "photo"
+            enable_mrk = False
+            mrk_paths = []
+            selected_mrk_fields = []
+
         # Seleções de UI
         selected_required_fields = (
             self._get_selected_exif_fields() + self._get_selected_xmp_fields()
         )
         selected_custom_fields = self._get_selected_custom_fields()
-        selected_mrk_fields = self._get_selected_mrk_fields()
         generate_report = self.checkbox_map["generate_report"].isChecked()
 
         project_title_values = self.title_input.get_values()
@@ -573,8 +610,8 @@ class DroneCordinates(BasePluginMTL):
         # ── Montagem limpa dos steps (tudo como parâmetros explícitos) ───
         steps = [
             PhotoEnrichmentStep(
-                source="mrk+photo",
-                enable_mrk=True,
+                source=source,
+                enable_mrk=enable_mrk,
                 enable_exif=enable_exif,
                 enable_xmp=enable_xmp,
                 enable_custom_fields=enable_custom_fields,
@@ -584,10 +621,10 @@ class DroneCordinates(BasePluginMTL):
                 project_title=project_title,
                 logo_path=logo_path,
                 recursive=recursive,
-                paths=paths,
+                paths=mrk_paths,
             ),
             JsonVectorizationStep(
-                source="mrk+photo",
+                source=source,
             ),
         ]
 
@@ -600,7 +637,7 @@ class DroneCordinates(BasePluginMTL):
             steps=[s.name() for s in steps],
             base_folder=base_folder,
             pipeline_flags={
-                "enable_mrk": True,
+                "enable_mrk": enable_mrk,
                 "enable_exif": enable_exif,
                 "enable_xmp": enable_xmp,
                 "enable_custom_fields": enable_custom_fields,
@@ -616,6 +653,7 @@ class DroneCordinates(BasePluginMTL):
         engine.start()
 
     def _on_pipeline_finished(self, context):
+        use_mrk = self.checkbox_map["use_mrk"].isChecked()
         layer = context.get_result("layer") or context.get("layer")
         if not layer or not layer.isValid():
             QgisMessageUtil.modal_error(self.iface, STR.ERROR_LAYER_NOT_FOUND)
@@ -651,7 +689,7 @@ class DroneCordinates(BasePluginMTL):
         # ===== TRAÇO =====
         try:
             order_field = self._resolve_track_order_field(layer)
-            group_fields = self._resolve_track_group_fields(layer)
+            group_fields = self._resolve_track_group_fields(layer, use_mrk=use_mrk)
             vl_line = VectorLayerGeometry.create_line_layer_from_points(
                 list(layer.getFeatures()),
                 order_by_field=order_field,
@@ -701,21 +739,34 @@ class DroneCordinates(BasePluginMTL):
         return layer.fields().field(0).name()
 
     @staticmethod
-    def _resolve_track_group_fields(layer):
-        pairs = [
-            ("MrkPath", "MrkFile"),
-            ("mrk_path", "mrk_file"),
-            (
-                MetadataFields.resolve_output_name("MrkPath"),
-                MetadataFields.resolve_output_name("MrkFile"),
-            ),
+    def _resolve_track_group_fields(layer, use_mrk=True):
+        """Resolve campos de agrupamento para criar trilhas."""
+        if use_mrk:
+            # Tenta pares MRK existentes (MrkPath + MrkFile)
+            pairs = [
+                ("MrkPath", "MrkFile"),
+                ("mrk_path", "mrk_file"),
+                (
+                    MetadataFields.resolve_output_name("MrkPath"),
+                    MetadataFields.resolve_output_name("MrkFile"),
+                ),
+            ]
+            for a, b in pairs:
+                if (
+                    layer.fields().lookupField(a) != -1
+                    and layer.fields().lookupField(b) != -1
+                ):
+                    return [a, b]
+
+        # Fallback sem MRK: agrupa por pasta de fotos (FolderLevel1)
+        fallback_candidates = [
+            "FolderLevel1", "FolderL1",
+            MetadataFields.resolve_output_name("FolderLevel1"),
+            "File", "Path",
         ]
-        for a, b in pairs:
-            if (
-                layer.fields().lookupField(a) != -1
-                and layer.fields().lookupField(b) != -1
-            ):
-                return [a, b]
+        for name in fallback_candidates:
+            if name and layer.fields().lookupField(name) != -1:
+                return [name]
         return None
 
 

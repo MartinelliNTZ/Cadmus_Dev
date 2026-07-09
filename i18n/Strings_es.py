@@ -366,6 +366,7 @@ class Strings_es(Strings_pt_BR):
         "a los puntos y a la trayectoria generada."
     )
     RECURSIVE_SEARCH = "Buscar en subcarpetas"
+    USE_MRK_DATA = "Obtener datos MRK"
     PHOTOS_METADATA = "Cruzar con metadatos de fotos"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Para cruzar con metadatos de fotos es necesario instalar el paquete Pillow.\n\n¿Desea instalarlo ahora?"
     MRK_FOLDER = "Carpeta MRK:"

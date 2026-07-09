@@ -365,6 +365,7 @@ class Strings_pt_BR:
         "aos pontos e ao trajeto gerados."
     )
     RECURSIVE_SEARCH = "Vasculhar subpastas"
+    USE_MRK_DATA = "Obter dados MRK"
     PHOTOS_METADATA = "Cruzar com metadados das fotos"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Para cruzar com metadados das fotos é necessário instalar o pacote Pillow.\n\nDeseja instalar agora?"
     GENERATE_REPORT = "Gerar relatório"

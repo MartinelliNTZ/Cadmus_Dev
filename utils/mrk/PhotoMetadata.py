@@ -433,16 +433,17 @@ class PhotoMetadata:
                     if record.get(MetadataFieldKey.COORD_SOURCE.value) == "MRK":
                         continue
 
-                    # Enriquece o registro com dados MRK
+                    # Enriquece o registro com dados MRK (apenas atributos de contexto)
                     flight_context = PhotoMetadata._extract_flight_context(point)
                     # NÃO sobrescreve FlightNumber/FlightName se já vieram da Etapa 1
                     for k, v in flight_context.items():
                         if v is not None:
                             record[k] = v
 
-                    # Garante que o CoordSource seja MRK
-                    record[MetadataFieldKey.COORD_SOURCE.value] = "MRK"
-                    record[MetadataFieldKey.QUALITY_FLAG.value] = "OK"
+                    # ATENÇÃO: MRK NÃO define mais CoordSource nem QUALITY_FLAG.
+                    # As coordenadas vêm exclusivamente das fotos (EXIF/XMP).
+                    # O MRK agora é apenas um agregado de atributos de contexto
+                    # (MrkFile, MrkPath, MrkFolder, FlightNumber, FlightName, etc.)
                     matched_count += 1
                     break
 

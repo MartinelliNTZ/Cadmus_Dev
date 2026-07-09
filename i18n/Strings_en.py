@@ -369,6 +369,7 @@ class Strings_en(Strings_pt_BR):
         "to both points and generated track."
     )
     RECURSIVE_SEARCH = "Search subfolders"
+    USE_MRK_DATA = "Get MRK data"
     PHOTOS_METADATA = "Match with photo metadata"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "To match with photo metadata, the Pillow package is required.\n\nWould you like to install it now?"
     MRK_FOLDER = "MRK folder:"

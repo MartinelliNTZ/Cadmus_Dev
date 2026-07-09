@@ -75,6 +75,7 @@ class DroneCoordinatesRunner:
         # Carregar preferências para configurar o pipeline automaticamente
         prefs = load_tool_prefs(self.tool_key)
         apply_photos = prefs.get("photos", False)
+        use_mrk = prefs.get("use_mrk", True)
         selected_required_fields = MetadataFields.normalize_selected_keys(
             prefs.get("required_fields_selected", []),
             allowed_keys=MetadataFields.required_keys(),
@@ -89,11 +90,20 @@ class DroneCoordinatesRunner:
         )
         base_name = os.path.splitext(os.path.basename(file_path))[0]
 
+        # Determina source e flags conforme preferência use_mrk
+        if use_mrk:
+            source = "mrk+photo"
+            enable_mrk = True
+        else:
+            source = "photo"
+            enable_mrk = False
+            selected_mrk_fields = []
+
         # ── ExecutionContext com atributos canônicos ─────────────
         context = ExecutionContext(
             input_path=os.path.dirname(file_path),
             tool_key=self.tool_key,
-            files=[file_path],
+            files=[file_path] if enable_mrk else [],
         )
 
         enable_exif = apply_photos
@@ -108,8 +118,8 @@ class DroneCoordinatesRunner:
         # ── Steps com parâmetros explícitos ──────────────────────
         steps = [
             PhotoEnrichmentStep(
-                source="mrk+photo",
-                enable_mrk=True,
+                source=source,
+                enable_mrk=enable_mrk,
                 enable_exif=enable_exif,
                 enable_xmp=enable_xmp,
                 enable_custom_fields=enable_custom_fields,
@@ -117,10 +127,10 @@ class DroneCoordinatesRunner:
                 selected_custom_fields=selected_custom_fields,
                 selected_mrk_fields=selected_mrk_fields,
                 recursive=False,
-                paths=[file_path],
+                paths=[file_path] if enable_mrk else [],
             ),
             JsonVectorizationStep(
-                source="mrk+photo",
+                source=source,
             ),
         ]
 

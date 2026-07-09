@@ -246,16 +246,15 @@ class JsonToVectorTranslator:
 
     def _resolve_geometry(self, record: Dict, source: str) -> Optional[QgsPointXY]:
         """
-        Resolve coordenadas por tentativas (fallback chain).
+        Resolve coordenadas exclusivamente das FOTOS (EXIF/XMP).
 
-        Tenta fontes de coordenada em ordem decrescente de precisão,
-        usando exclusivamente as chaves do MetadataFieldKey.
+        O MRK não fornece mais coordenadas geométricas — apenas atributos
+        de contexto (MrkFile, MrkPath, FolderLevel*, etc.).
 
-        Ordem de tentativas:
-        1. GpsLatitude/GpsLongitude (XMP do drone, ou mapeado de MRK via pipeline)
-        2. Lat/Lon (coordenada original do MRK, não enriquecida)
-        3. DMS tuple em GpsLatitude/GpsLongitude (EXIF bruto, safety net)
-        4. Nenhuma válida → retorna None
+        Ordem de tentativas (apenas fotos):
+        1. GpsLatitude/GpsLongitude (XMP do drone → sobrescreve EXIF quando disponível)
+        2. DMS tuple em GpsLatitude/GpsLongitude (EXIF bruto, safety net)
+        3. Nenhuma válida → retorna None (registro ignorado)
         """
         lat, lon = None, None
 
@@ -263,12 +262,7 @@ class JsonToVectorTranslator:
         lat = self._try_get_float(record, MetadataFieldKey.GPS_LATITUDE.value)
         lon = self._try_get_float(record, MetadataFieldKey.GPS_LONGITUDE.value)
 
-        # ── Tentativa 2: Lat/Lon (MRK original, fallback sem pipeline) ──
-        if lat is None or lon is None:
-            lat = self._try_get_float(record, MetadataFieldKey.LAT.value)
-            lon = self._try_get_float(record, MetadataFieldKey.LON.value)
-
-        # ── Tentativa 3: DMS tuple em GpsLatitude/GpsLongitude (safety net) ──
+        # ── Tentativa 2: DMS tuple em GpsLatitude/GpsLongitude (safety net) ──
         if lat is None or lon is None:
             raw_lat = record.get(MetadataFieldKey.GPS_LATITUDE.value)
             raw_lon = record.get(MetadataFieldKey.GPS_LONGITUDE.value)

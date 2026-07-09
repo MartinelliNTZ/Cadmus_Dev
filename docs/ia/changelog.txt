@@ -54,3 +54,13 @@
   - SKILL_ASYNC_PAPELINE.md: seção 3 (Step parametrizado), seção 4 (ExecutionContext canônico), seção 18-19 (exemplos + resumo)
   - SKILL_METADATA_PIPELINE.md: versão 3.0.0 — exemplos migrados para novo padrão, tabelas de parâmetros dos steps
   - changelog.txt registrado como 2.3.35.4
+2.3.36 09/07/2026
+[2.3.36.1][09/07/2026] MRK como agregado opcional, coordenadas SEMPRE das fotos:
+  - DroneCoordinates: adicionado checkbox "Obter dados MRK" (default: True para compatibilidade retroativa)
+  - DroneCoordinates._on_use_mrk_changed(): habilita/desabilita seção MRK Fields
+  - DroneCoordinates._resolve_track_group_fields(): fallback sem MRK (agrupa por FolderLevel1)
+  - PhotoMetadata._enrich_with_mrk(): NÃO seta mais CoordSource=MRK nem QUALITY_FLAG=OK
+  - JsonToVectorTranslator._resolve_geometry(): remove fallback Lat/Lon (MRK)
+  - DroneCoordinatesRunner: respeita preferência use_mrk das prefs
+  - i18n: nova string USE_MRK_DATA em pt_BR, en, es, de
+  - SKILL_METADATA_PIPELINE.md: v3.1.0 — MRK como agregado

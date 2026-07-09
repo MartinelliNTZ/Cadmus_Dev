@@ -70,3 +70,14 @@
   - recursive no PhotoEnrichmentStep agora usa is_recursive das prefs
   - selected_required_fields agora carrega das chaves exif_fields_selected + xmp_fields_selected
     (antes usava required_fields_selected que nunca era salva pelo UI)
+2.3.37 09/07/2026
+[2.3.37.1][09/07/2026] Unificação do pipeline drone em DronePipelineService:
+  - Criado core/services/DronePipelineService.py — serviço único com DEFAULTS centralizado,
+    método execute() e callback _on_pipeline_finished() unificado
+  - MrkDropHandler simplificado: delega diretamente para DronePipelineService.execute()
+  - DroneCoordinatesRunner removido — não era mais necessário (MrkDropHandler e DroneCoordinates
+    chamam o Service diretamente)
+  - DroneCoordinates.execute_tool() simplificado: salva prefs e chama DronePipelineService.execute()
+  - Removidos métodos duplicados _resolve_track_order_field e _resolve_track_group_fields
+    do DroneCoordinates (agora no Service)
+  - Criado docs/plano_refatoracao_unificar_drone_pipeline.md com análise e proposta

@@ -2,11 +2,7 @@
 import os
 from qgis.core import QgsProject
 from ..plugins.BasePlugin import BasePluginMTL
-from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
-from ..core.engine_tasks.ExecutionContext import ExecutionContext
-from ..core.engine_tasks.PhotoEnrichmentStep import PhotoEnrichmentStep
-from ..core.engine_tasks.JsonVectorizationStep import JsonVectorizationStep
-from ..core.engine_tasks.ReportGenerationStep import ReportGenerationStep
+from ..core.services.DronePipelineService import DronePipelineService
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
@@ -550,15 +546,7 @@ class DroneCordinates(BasePluginMTL):
             self.logger.error("Nenhum diretório selecionado", code="NO_SELECTION")
             return
 
-        recursive = self.checkbox_map["recursive"].isChecked()
         apply_photos = self.checkbox_map["photos"].isChecked()
-        use_mrk = self.checkbox_map["use_mrk"].isChecked()
-        first_path = paths[0] if paths else None
-        base_folder = (
-            os.path.dirname(first_path)
-            if first_path and os.path.isfile(first_path)
-            else first_path
-        )
 
         if apply_photos and not DependenciesManager.check_dependency(
             "Pillow", self.TOOL_KEY
@@ -569,206 +557,22 @@ class DroneCordinates(BasePluginMTL):
             apply_photos = False
             self.checkbox_map["photos"].setChecked(False)
 
-        # ── Novo ExecutionContext com atributos canônicos ────────
-        context = ExecutionContext(
+        first_path = paths[0] if paths else None
+        base_folder = (
+            os.path.dirname(first_path)
+            if first_path and os.path.isfile(first_path)
+            else first_path
+        )
+
+        # Salva preferências atuais antes de executar
+        self._save_prefs()
+
+        # Delega montagem e execução do pipeline para o DronePipelineService
+        DronePipelineService.execute(
+            iface=self.iface,
             input_path=base_folder,
-            tool_key=self.TOOL_KEY,
-            files=paths,
+            paths=paths,
         )
-
-        # Determina source e flags conforme checkbox use_mrk
-        if use_mrk:
-            source = "mrk+photo"
-            enable_mrk = True
-            mrk_paths = paths
-            selected_mrk_fields = self._get_selected_mrk_fields()
-        else:
-            source = "photo"
-            enable_mrk = False
-            mrk_paths = []
-            selected_mrk_fields = []
-
-        # Seleções de UI
-        selected_required_fields = (
-            self._get_selected_exif_fields() + self._get_selected_xmp_fields()
-        )
-        selected_custom_fields = self._get_selected_custom_fields()
-        generate_report = self.checkbox_map["generate_report"].isChecked()
-
-        project_title_values = self.title_input.get_values()
-        project_title = project_title_values.get("project_title", "")
-        logo_path = (
-            self.logo_selector.get_file_path().strip()
-            if self.logo_selector.is_enabled()
-            else ""
-        )
-
-        enable_exif = apply_photos
-        enable_xmp = apply_photos
-        enable_custom_fields = apply_photos and (len(selected_custom_fields) > 0)
-
-        # ── Montagem limpa dos steps (tudo como parâmetros explícitos) ───
-        steps = [
-            PhotoEnrichmentStep(
-                source=source,
-                enable_mrk=enable_mrk,
-                enable_exif=enable_exif,
-                enable_xmp=enable_xmp,
-                enable_custom_fields=enable_custom_fields,
-                selected_required_fields=selected_required_fields,
-                selected_custom_fields=selected_custom_fields,
-                selected_mrk_fields=selected_mrk_fields,
-                project_title=project_title,
-                logo_path=logo_path,
-                recursive=recursive,
-                paths=mrk_paths,
-            ),
-            JsonVectorizationStep(
-                source=source,
-            ),
-        ]
-
-        if generate_report:
-            steps.append(ReportGenerationStep())
-
-        self.logger.debug(
-            "Iniciando pipeline de processamento",
-            code="PIPELINE_START",
-            steps=[s.name() for s in steps],
-            base_folder=base_folder,
-            pipeline_flags={
-                "enable_mrk": enable_mrk,
-                "enable_exif": enable_exif,
-                "enable_xmp": enable_xmp,
-                "enable_custom_fields": enable_custom_fields,
-            },
-        )
-
-        engine = AsyncPipelineEngine(
-            steps=steps,
-            context=context,
-            on_finished=self._on_pipeline_finished,
-            on_error=self._on_pipeline_error,
-        )
-        engine.start()
-
-    def _on_pipeline_finished(self, context):
-        use_mrk = self.checkbox_map["use_mrk"].isChecked()
-        layer = context.get_result("layer") or context.get("layer")
-        if not layer or not layer.isValid():
-            QgisMessageUtil.modal_error(self.iface, STR.ERROR_LAYER_NOT_FOUND)
-            return
-
-        sorted_layer = VectorLayerAttributes.reorder_fields_alphabetically(layer)
-        if sorted_layer is not None:
-            layer = sorted_layer
-
-        if not QgsProject.instance().mapLayer(layer.id()):
-            QgsProject.instance().addMapLayer(layer)
-
-        # ===== PONTOS =====
-        if self.save_points_selector.is_enabled():
-            out_path = self.save_points_selector.get_file_path().strip()
-            if out_path:
-                saved_layer = VectorLayerSource.save_and_load_layer(
-                    layer, out_path, tool_key=self.TOOL_KEY, decision="rename",
-                )
-                if saved_layer and saved_layer.isValid():
-                    QgsProject.instance().addMapLayer(saved_layer)
-                    layer = saved_layer
-
-        if self.qml_points_selector.is_enabled():
-            qml = self.qml_points_selector.get_file_path().strip()
-            if qml and os.path.exists(qml):
-                ok = layer.loadNamedStyle(qml)
-                if isinstance(ok, tuple):
-                    ok = ok[0]
-                if ok:
-                    layer.triggerRepaint()
-
-        # ===== TRAÇO =====
-        try:
-            order_field = self._resolve_track_order_field(layer)
-            group_fields = self._resolve_track_group_fields(layer, use_mrk=use_mrk)
-            vl_line = VectorLayerGeometry.create_line_layer_from_points(
-                list(layer.getFeatures()),
-                order_by_field=order_field,
-                group_by_fields=group_fields,
-                attribute_fields=MetadataFields.default_track_attribute_keys(),
-            )
-            if vl_line:
-                out_layer = None
-                save_to_file = self.save_track_selector.is_enabled()
-                out_path = (
-                    self.save_track_selector.get_file_path().strip()
-                    if save_to_file else None
-                )
-                if save_to_file and out_path:
-                    saved_layer = VectorLayerSource.save_and_load_layer(
-                        vl_line, out_path, tool_key=self.TOOL_KEY, decision="rename",
-                    )
-                    if saved_layer and saved_layer.isValid():
-                        out_layer = saved_layer
-                        QgsProject.instance().addMapLayer(out_layer)
-                else:
-                    out_layer = vl_line
-                    QgsProject.instance().addMapLayer(out_layer)
-                if self.qml_track_selector.is_enabled() and out_layer:
-                    qml = self.qml_track_selector.get_file_path().strip()
-                    if qml and os.path.exists(qml):
-                        ok = out_layer.loadNamedStyle(qml)
-                        if isinstance(ok, tuple):
-                            ok = ok[0]
-                        if ok:
-                            out_layer.triggerRepaint()
-        except Exception as e:
-            self.logger.error(f"Falha ao gerar camada de traco: {e}")
-
-        QgisMessageUtil.bar_success(self.iface, STR.SUCCESS_MESSAGE)
-
-    @staticmethod
-    def _resolve_track_order_field(layer):
-        candidates = [
-            "Foto", "foto", "PhotoNum",
-            MetadataFields.resolve_output_name("Foto"),
-            "mrk_index", "id",
-        ]
-        for name in candidates:
-            if name and layer.fields().lookupField(name) != -1:
-                return name
-        return layer.fields().field(0).name()
-
-    @staticmethod
-    def _resolve_track_group_fields(layer, use_mrk=True):
-        """Resolve campos de agrupamento para criar trilhas."""
-        if use_mrk:
-            # Tenta pares MRK existentes (MrkPath + MrkFile)
-            pairs = [
-                ("MrkPath", "MrkFile"),
-                ("mrk_path", "mrk_file"),
-                (
-                    MetadataFields.resolve_output_name("MrkPath"),
-                    MetadataFields.resolve_output_name("MrkFile"),
-                ),
-            ]
-            for a, b in pairs:
-                if (
-                    layer.fields().lookupField(a) != -1
-                    and layer.fields().lookupField(b) != -1
-                ):
-                    return [a, b]
-
-        # Fallback sem MRK: agrupa por pasta de fotos (FolderLevel1)
-        fallback_candidates = [
-            "FolderLevel1", "FolderL1",
-            MetadataFields.resolve_output_name("FolderLevel1"),
-            "File", "Path",
-        ]
-        for name in fallback_candidates:
-            if name and layer.fields().lookupField(name) != -1:
-                return [name]
-        return None
-
 
 def run(iface):
     dlg = DroneCordinates(iface)

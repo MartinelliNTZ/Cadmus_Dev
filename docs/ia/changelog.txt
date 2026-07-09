@@ -142,3 +142,51 @@
   - Removida constante PHOTO_VECTORIZATION de resources/IconManager.py
   - Deletado ícone resources/icons/photo_vectorization.ico
   - Nenhum outro plugin foi alterado
+2.3.42 09/07/2026
+[2.3.42.1][09/07/2026] lat/lon promovidos a atributos canônicos do ExecutionContext:
+  - Adicionados `lat`/`lon` como atributos canônicos (type float | None) em ExecutionContext.py
+  - Adicionados parâmetros `lat`/`lon` no __init__() do ExecutionContext
+  - set_result()/get_result()/set()/get()/require() sincronizam com lat/lon
+  - clear() reseta lat/lon para None
+  - __repr__ agora exibe lat/lon
+[2.3.42.2][09/07/2026] PhotoEnrichmentStep.on_success() usa context.lat/context.lon:
+  - Substituído `context.set_result("first_photo_lat", ...)` e `context.set_result("first_photo_lon", ...)`
+    por `context.lat = ...` e `context.lon = ...` (atributos canônicos)
+  - Mantido `context.set_result("first_photo_coord_info", enrich_result)` para dados completos
+[2.3.42.3][09/07/2026] AltimetryStep simplificado (sem __init__ params, sem report_metadata_mode):
+  - Removeu __init__(lat, lon, report_metadata_mode) → agora __init__() vazio
+  - should_run() lê context.lat/context.lon (sempre)
+  - create_task() lê context.lat/context.lon (sempre)
+  - on_success() persiste no JSON se context.json_path existir (independente de cenário)
+  - on_error() persiste erro no JSON se context.json_path existir (independente de cenário)
+[2.3.42.4][09/07/2026] ReverseGeocodeStep simplificado (sem __init__ params, sem report_metadata_mode):
+  - Removeu __init__(lat, lon, report_metadata_mode) → agora __init__() vazio
+  - should_run() lê context.lat/context.lon (sempre)
+  - create_task() lê context.lat/context.lon (sempre)
+  - on_success() persiste no JSON se context.json_path existir (independente de cenário)
+  - on_error() persiste erro no JSON se context.json_path existir (independente de cenário)
+[2.3.42.5][09/07/2026] CoordClickTool atualizado para novo padrão:
+  - ExecutionContext criado com lat=lat, lon=lon
+  - ReverseGeocodeStep() e AltimetryStep() sem parâmetros (lêem do context)
+[2.3.42.6][09/07/2026] DronePipelineService atualizado:
+  - ReverseGeocodeStep() e AltimetryStep() sem parâmetros (lêem do context via atributos canônicos)
+  - Comentários atualizados refletindo novo fluxo
+[2.3.42.7][09/07/2026] Adicionado JsonUtil.update_json() genérico:
+  - Novo método estático que recebe json_path e updates dict
+  - Abre JSON, aplica dict.update() no nível raiz, salva
+  - Útil para steps que precisam adicionar dados simples sem criar método específico
+[2.3.42.8][09/07/2026] Removidos métodos específicos de JsonUtil (unificados em update_json()):
+  - Removido update_geocode_data() → substituído por update_json(json_path, {"geocode": payload})
+  - Removido update_altitude_data() → substituído por update_json(json_path, {"altitude": value})
+  - Removido update_first_photo_coord() → substituído por update_json(json_path, {"first_photo_coord": coord_info})
+  - Callers atualizados: PhotoMetadata.enrich_first_photo_coord(), AltimetryStep.on_success(), ReverseGeocodeStep.on_success()
+[2.3.42.9][09/07/2026] Skills atualizadas para v4.0.0 (lat/lon canônicos):
+  - SKILL_ASYNC_PAPELINE.md: seção 4 inclui context.lat/context.lon como atributos canônicos
+  - SKILL_AGENT.md: regra 3 atualizada (atributos canônicos + set_result/get_result), nova regra 4 (lat/lon)
+  - SKILL_METADATA_PIPELINE.md: v4.0.0 — tabela ExecutionContext inclui lat/lon, ReverseGeocodeStep simplificado,
+    histórico com entrada 4.0.0, referências a FirstPhotoCoordStep removidas
+2.3.43 09/07/2026
+[2.3.43.1][09/07/2026] Corrigido bug 'dict' object is not callable em PhotoMetadata.enrich_first_photo_coord():
+  - Linha `raw_coord = PhotoMetadata._first_photo_raw_coord()` alterada para
+    `raw_coord = PhotoMetadata._first_photo_raw_coord` (acesso a atributo, não chamada de método)
+  - O erro ocorria porque _first_photo_raw_coord é um dict (ou None), não um método/função

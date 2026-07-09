@@ -14,6 +14,8 @@ class ExecutionContext:
         files: list[str] | None   — Specific file list (None = all in input_path)
         tool_key: str             — ToolKey for logging
         json_path: str            — Path to JSON metadata file (heavily used across steps)
+        lat: float | None         — Latitude (set by PhotoEnrichmentStep or CoordClickTool)
+        lon: float | None         — Longitude (set by PhotoEnrichmentStep or CoordClickTool)
         errors: list[Exception]   — Error accumulator
         is_cancelled: bool        — Cancellation flag
         results: dict             — Step results storage (key: step name)
@@ -39,6 +41,12 @@ class ExecutionContext:
     json_path: str = ""
     """Path to JSON metadata file. Used by multiple steps (PhotoEnrichment → JsonVectorization → Report)."""
 
+    lat: float | None = None
+    """Latitude (decimal). Set by PhotoEnrichmentStep or CoordClickTool. Consumed by AltimetryStep and ReverseGeocodeStep."""
+
+    lon: float | None = None
+    """Longitude (decimal). Set by PhotoEnrichmentStep or CoordClickTool. Consumed by AltimetryStep and ReverseGeocodeStep."""
+
     def __init__(
         self,
         initial_data: Optional[Dict[str, Any]] = None,
@@ -48,6 +56,8 @@ class ExecutionContext:
         files: Optional[list[str]] = None,
         tool_key: str = "",
         json_path: str = "",
+        lat: Optional[float] = None,
+        lon: Optional[float] = None,
     ):
         # Internal data dict — used by legacy set()/get() and for step results
         self._data: Dict[str, Any] = initial_data.copy() if initial_data else {}
@@ -68,10 +78,14 @@ class ExecutionContext:
             self.tool_key = tool_key
         if json_path:
             self.json_path = json_path
+        if lat is not None:
+            self.lat = lat
+        if lon is not None:
+            self.lon = lon
 
         # Import canonical attributes from legacy initial_data if present
         if initial_data:
-            for key in ("input_path", "output_path", "files", "tool_key", "json_path"):
+            for key in ("input_path", "output_path", "files", "tool_key", "json_path", "lat", "lon"):
                 if key in initial_data:
                     setattr(self, key, initial_data[key])
 
@@ -81,7 +95,7 @@ class ExecutionContext:
         """Stores a step result (e.g. 'json_path', 'layer', 'report_payload')."""
         self._results[key] = value
         # Convenience: if key matches a canonical attribute, also update it
-        if key in ("json_path", "tool_key", "input_path", "output_path"):
+        if key in ("json_path", "tool_key", "input_path", "output_path", "lat", "lon"):
             setattr(self, key, value)
         return self
 
@@ -97,16 +111,16 @@ class ExecutionContext:
         """DEPRECATED: Prefer canonical attributes or set_result()."""
         self._data[key] = value
         # Sync canonical attributes for convenience
-        if key in ("input_path", "output_path", "files", "tool_key", "json_path"):
+        if key in ("input_path", "output_path", "files", "tool_key", "json_path", "lat", "lon"):
             setattr(self, key, value)
         return self
 
     def get(self, key: str, default: Any = None) -> Any:
         """DEPRECATED: Prefer canonical attributes or get_result()."""
         # Check canonical attributes first
-        if key in ("input_path", "output_path", "files", "tool_key", "json_path"):
+        if key in ("input_path", "output_path", "files", "tool_key", "json_path", "lat", "lon"):
             val = getattr(self, key, None)
-            if val:
+            if val is not None:
                 return val
         # Check results
         if key in self._results:
@@ -127,11 +141,10 @@ class ExecutionContext:
         missing = []
         for key in keys:
             # Check canonical attributes
-            if key in ("input_path", "output_path", "files", "tool_key", "json_path"):
-                if not getattr(self, key, None):
-                    # Check legacy _data as fallback
-                    if key not in self._data:
-                        missing.append(key)
+            if key in ("input_path", "output_path", "files", "tool_key", "json_path", "lat", "lon"):
+                val = getattr(self, key, None)
+                if val is None and key not in self._data:
+                    missing.append(key)
             elif key not in self._data and key not in self._results:
                 missing.append(key)
         if missing:
@@ -170,6 +183,8 @@ class ExecutionContext:
         self.files = None
         self.tool_key = ""
         self.json_path = ""
+        self.lat = None
+        self.lon = None
         self._data.clear()
         self._results.clear()
         self._errors.clear()
@@ -184,6 +199,8 @@ class ExecutionContext:
             f"files={n_files}, "
             f"tool_key='{self.tool_key}', "
             f"json_path='{self.json_path}', "
+            f"lat={self.lat}, "
+            f"lon={self.lon}, "
             f"results={len(self._results)} keys, "
             f"errors={len(self._errors)}, "
             f"cancelled={self._is_cancelled}>"

@@ -92,12 +92,15 @@ class CoordClickTool(QgsMapTool):
                 self.pipeline_engine.cancel()
             context = ExecutionContext(
                 tool_key="coord_click",
+                lat=lat,
+                lon=lon,
             )
 
             # Reverse geocode and altimetry are independent — run in parallel
+            # Both steps read lat/lon directly from context (atributos canônicos)
             steps = [
                 ParallelStep(
-                    [ReverseGeocodeStep(lat=lat, lon=lon), AltimetryStep(lat=lat, lon=lon)],
+                    [ReverseGeocodeStep(), AltimetryStep()],
                     description="coord_click_geo_alt",
                 )
             ]

@@ -15,25 +15,15 @@ class ReverseGeocodeStep(BaseStep):
     """
     Step que executa reverse geocode para obter endereço a partir de coordenadas.
 
-    Modos de operação:
-      1. report_metadata_mode=True  (pipeline de drone):
-         Lê coordenadas do context (setadas pelo FirstPhotoCoordStep).
-         Nunca busca a primeira foto diretamente.
-      2. report_metadata_mode=False (CoordClickTool):
-         Usa lat/lon passados via __init__.
+    Lê lat/lon do context (atributos canônicos), independente de cenário:
+      - Pipeline de drone: PhotoEnrichmentStep.on_success() seta context.lat/context.lon
+      - CoordClickTool: seta context.lat/context.lon diretamente
+
+    Se context.json_path existir, persiste dados de geolocalização e timestamps no JSON.
     """
 
-    def __init__(
-        self,
-        *,
-        lat: Optional[float] = None,
-        lon: Optional[float] = None,
-        report_metadata_mode: bool = False,
-    ):
+    def __init__(self):
         super().__init__()
-        self._lat = lat
-        self._lon = lon
-        self._report_metadata_mode = report_metadata_mode
 
     def name(self) -> str:
         return "reverse_geocode"
@@ -43,17 +33,12 @@ class ReverseGeocodeStep(BaseStep):
     # --------------------------------------------------
     def should_run(self, context: ExecutionContext) -> bool:
         self._init_logger(context)
-        if self._report_metadata_mode:
-            # Coordenadas vêm do FirstPhotoCoordStep via context
-            lat = context.get_result("first_photo_lat")
-            lon = context.get_result("first_photo_lon")
-            if lat is not None and lon is not None:
-                return True
-            self.logger.info(
-                "ReverseGeocodeStep pulado: first_photo_lat/lon não disponíveis no context"
-            )
-            return False
-        return self._lat is not None and self._lon is not None
+        if context.lat is not None and context.lon is not None:
+            return True
+        self.logger.info(
+            "ReverseGeocodeStep pulado: lat/lon não disponíveis no context"
+        )
+        return False
 
     # --------------------------------------------------
     # Task factory
@@ -62,24 +47,12 @@ class ReverseGeocodeStep(BaseStep):
         self._init_logger(context)
         tool_key = context.tool_key
 
-        if self._report_metadata_mode:
-            lat = context.get_result("first_photo_lat")
-            lon = context.get_result("first_photo_lon")
-            if lat is not None and lon is not None:
-                self.logger.info(
-                    "ReverseGeocodeStep: coordenadas do context (via FirstPhotoCoordStep)",
-                    data={"lat": lat, "lon": lon},
-                )
-                return ReverseGeocodeTask(lat, lon, tool_key=tool_key)
-            self.logger.info("ReverseGeocodeStep pulado: sem coordenadas no context")
-            return None
-
-        if self._lat is not None and self._lon is not None:
+        if context.lat is not None and context.lon is not None:
             self.logger.info(
-                "ReverseGeocodeStep: coordenadas diretas",
-                data={"lat": self._lat, "lon": self._lon},
+                "ReverseGeocodeStep: coordenadas do context",
+                data={"lat": context.lat, "lon": context.lon},
             )
-            return ReverseGeocodeTask(self._lat, self._lon, tool_key=tool_key)
+            return ReverseGeocodeTask(context.lat, context.lon, tool_key=tool_key)
 
         self.logger.info("ReverseGeocodeStep pulado: coordenadas indisponíveis")
         return None
@@ -96,7 +69,8 @@ class ReverseGeocodeStep(BaseStep):
                 data={"address_data": result},
             )
 
-            if self._report_metadata_mode and result:
+            # Persiste no JSON se json_path existir (independente de cenário)
+            if result:
                 json_path = context.json_path
                 if json_path and os.path.exists(json_path):
                     geocode_start = context.get_result("geocode_start")
@@ -118,7 +92,7 @@ class ReverseGeocodeStep(BaseStep):
                         "region": result.get("region", ""),
                         "country": result.get("country", ""),
                     }
-                    JsonUtil.update_geocode_data(json_path, geocode_payload)
+                    JsonUtil.update_json(json_path, {"geocode": geocode_payload})
                     self.logger.info(
                         "Geocode adicionado ao JSON de metadados",
                         data={"json_path": json_path, **geocode_payload},
@@ -133,13 +107,12 @@ class ReverseGeocodeStep(BaseStep):
     def on_error(self, context: ExecutionContext, exception: Exception) -> None:
         self._init_logger(context)
         self.logger.warning(f"Reverse geocode failed: {exception}")
-        if self._report_metadata_mode:
-            json_path = context.json_path
-            if json_path and os.path.exists(json_path):
-                try:
-                    JsonUtil.update_timestamps(json_path, {
-                        "geocode_error": str(exception),
-                        "geocode_end": datetime.now().isoformat(),
-                    })
-                except Exception as e:
-                    self.logger.warning(f"Erro ao salvar timestamp de falha no JSON: {e}")
+        json_path = context.json_path
+        if json_path and os.path.exists(json_path):
+            try:
+                JsonUtil.update_timestamps(json_path, {
+                    "geocode_error": str(exception),
+                    "geocode_end": datetime.now().isoformat(),
+                })
+            except Exception as e:
+                self.logger.warning(f"Erro ao salvar timestamp de falha no JSON: {e}")

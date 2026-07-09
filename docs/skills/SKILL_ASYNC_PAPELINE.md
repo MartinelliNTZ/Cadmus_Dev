@@ -74,6 +74,8 @@ context.output_path   # Diretório de saída
 context.files         # Lista de arquivos
 context.tool_key      # ToolKey para logging
 context.json_path     # Caminho do JSON (usado por múltiplos steps)
+context.lat           # Latitude decimal (setado por PhotoEnrichmentStep ou CoordClickTool)
+context.lon           # Longitude decimal (setado por PhotoEnrichmentStep ou CoordClickTool)
 ```
 
 ### Resultados entre Steps (via métodos)

@@ -71,7 +71,8 @@ Regras críticas de pipeline que **nunca** podem ser violadas:
 
 1. **Step** — Herdar de `BaseStep` (nunca ABC direto)
 2. **Step** — Implementar `name()`, `create_task()`, `on_success()` obrigatoriamente
-3. **ExecutionContext** — Único canal de dados entre steps (set/get, nunca atributos)
+3. **ExecutionContext** — Único canal de dados entre steps (atributos canônicos + set_result/get_result, nunca _data direto)
+4. **lat/lon** — Atributos canônicos do ExecutionContext: `context.lat` / `context.lon`. Setados por PhotoEnrichmentStep.on_success() ou CoordClickTool. Consumidos por AltimetryStep e ReverseGeocodeStep que sempre leem do context e persistem no JSON se context.json_path existir.
 4. **Task** — Herdar de `BaseTask` (nunca QgsTask direto)
 5. **Task** — `tool_key` obrigatório (nunca "untraceable")
 6. **Task** — `on_success`/`on_error` são **reservados da engine** — nunca sobrescrever

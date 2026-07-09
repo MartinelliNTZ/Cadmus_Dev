@@ -136,10 +136,11 @@ class DronePipelineService:
                 recursive=prefs.get("recursive", True),
                 paths=resolve_paths,
             ),
-            # ReverseGeocodeStep e AltimetryStep consomem first_photo_lat/lon
-            # do context (setados pelo PhotoEnrichmentStep.on_success())
-            ReverseGeocodeStep(report_metadata_mode=True),
-            AltimetryStep(report_metadata_mode=True),
+            # ReverseGeocodeStep e AltimetryStep consomem context.lat/context.lon
+            # (setados pelo PhotoEnrichmentStep.on_success() via atributos canônicos)
+            # e persistem dados no JSON se context.json_path existir.
+            ReverseGeocodeStep(),
+            AltimetryStep(),
             JsonVectorizationStep(source=source),
         ]
         if prefs.get("generate_report", True):

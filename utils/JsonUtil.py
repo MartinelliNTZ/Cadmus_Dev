@@ -155,102 +155,44 @@ class JsonUtil(BaseUtil):
             raise
 
     @staticmethod
-    def update_geocode_data(
+    def update_json(
         json_path: str,
-        geocode_data: Dict[str, Any],
+        updates: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
-        Adiciona dados de geocode ao cabeçalho do JSON.
+        Método genérico para atualizar um arquivo JSON com um dicionário de dados.
+
+        Abre o JSON existente, mescla (update) o dict informado no nível raiz
+        e salva de volta. Útil para steps que precisam adicionar dados simples
+        ao cabeçalho do JSON sem criar um método específico em JsonUtil.
 
         Args:
             json_path: Caminho do arquivo JSON
-            geocode_data: Dict com dados de geocode (municipio, state, country, etc.)
+            updates: Dict com os dados a serem inseridos/atualizados no nível raiz
 
         Returns:
             JSON data atualizado
+
+        Example:
+            >>> JsonUtil.update_json(json_path, {"minha_chave": {"sub": 123}})
         """
         logger = BaseUtil._get_logger("json_util")
         try:
             with open(json_path, "r", encoding="utf-8") as f:
                 json_data = json.load(f)
 
-            # Adiciona dados de geocode no cabeçalho
-            json_data["geocode"] = geocode_data
+            json_data.update(updates)
 
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(json_data, f, indent=2, ensure_ascii=False)
 
-            logger.debug(f"Dados de geocode adicionados ao JSON: {json_path}")
+            logger.debug(
+                f"Dados atualizados no JSON: {json_path}",
+                data={"keys": list(updates.keys())},
+            )
             return json_data
         except Exception as e:
-            logger.error(f"Erro ao adicionar geocode em {json_path}: {e}")
-            raise
-
-    @staticmethod
-    def update_altitude_data(
-        json_path: str,
-        altitude: float,
-    ) -> Dict[str, Any]:
-        """
-        Adiciona altitude ao cabeçalho do JSON (fora do geocode, steps independentes).
-
-        Args:
-            json_path: Caminho do arquivo JSON
-            altitude: Valor da altitude em metros
-
-        Returns:
-            JSON data atualizado
-        """
-        logger = BaseUtil._get_logger("json_util")
-        try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                json_data = json.load(f)
-
-            # Adiciona altitude no cabeçalho (nível raiz, não dentro de geocode)
-            json_data["altitude"] = altitude
-
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(json_data, f, indent=2, ensure_ascii=False)
-
-            logger.debug(f"Altitude adicionada ao JSON: {json_path} = {altitude}m")
-            return json_data
-        except Exception as e:
-            logger.error(f"Erro ao adicionar altitude em {json_path}: {e}")
-            raise
-
-    @staticmethod
-    def update_first_photo_coord(
-        json_path: str,
-        coord_info: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """
-        Adiciona informações de coordenada da primeira foto ao cabeçalho do JSON.
-
-        Inclui lat, lon, lat_dms, lon_dms, utm_x, utm_y, zona_num, zona_letra,
-        hemisferio e epsg.
-
-        Args:
-            json_path: Caminho do arquivo JSON
-            coord_info: Dict retornado por VectorLayerProjection.get_coordinate_info()
-
-        Returns:
-            JSON data atualizado
-        """
-        logger = BaseUtil._get_logger("json_util")
-        try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                json_data = json.load(f)
-
-            # Adiciona first_photo_coord no cabeçalho
-            json_data["first_photo_coord"] = coord_info
-
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(json_data, f, indent=2, ensure_ascii=False)
-
-            logger.debug(f"first_photo_coord adicionado ao JSON: {json_path}")
-            return json_data
-        except Exception as e:
-            logger.error(f"Erro ao adicionar first_photo_coord em {json_path}: {e}")
+            logger.error(f"Erro ao atualizar dados em {json_path}: {e}")
             raise
 
     @staticmethod

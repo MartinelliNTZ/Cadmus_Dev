@@ -63,10 +63,6 @@ class PhotoMetadata:
         PhotoMetadata._timestamps = {}
         PhotoMetadata._first_photo_raw_coord = None
 
-    @staticmethod
-    def get_first_photo_raw_coord() -> Optional[Dict[str, float]]:
-        """Retorna as coordenadas raw (lat, lon) da primeira foto encontrada."""
-        return PhotoMetadata._first_photo_raw_coord
 
     @staticmethod
     def _get_logger(tool_key: str) -> LogUtils:
@@ -675,7 +671,7 @@ class PhotoMetadata:
 
         Lê as coordenadas raw do cache (setadas pela Etapa 6 do run_pipeline()),
         chama VectorLayerProjection.get_coordinate_info() e salva no JSON via
-        JsonUtil.update_first_photo_coord().
+        JsonUtil.update_json().
 
         Deve ser chamado no main thread (usa QgsPointXY / QgsCoordinateReferenceSystem).
 
@@ -686,7 +682,7 @@ class PhotoMetadata:
             Dict com lat, lon, epsg, zona_num, zona_letra, hemisferio, etc.,
             ou None se não houver coordenadas disponíveis.
         """
-        raw_coord = PhotoMetadata.get_first_photo_raw_coord()
+        raw_coord = PhotoMetadata._first_photo_raw_coord
         if not raw_coord:
             return None
 
@@ -698,10 +694,10 @@ class PhotoMetadata:
 
         coord_info = VectorLayerProjection.get_coordinate_info(point, crs_wgs)
 
-        # Salva no JSON
+        # Salva no JSON usando update_json() genérico
         if json_path and os.path.exists(json_path):
             try:
-                JsonUtil.update_first_photo_coord(json_path, coord_info)
+                JsonUtil.update_json(json_path, {"first_photo_coord": coord_info})
             except Exception:
                 pass
 

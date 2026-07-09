@@ -145,8 +145,10 @@ class PhotoEnrichmentStep(BaseStep):
                 json_path=json_path,
             )
             if enrich_result:
-                context.set_result("first_photo_lat", enrich_result["lat"])
-                context.set_result("first_photo_lon", enrich_result["lon"])
+                # Seta lat/lon como atributos canônicos do context
+                # (lido por AltimetryStep, ReverseGeocodeStep, etc.)
+                context.lat = enrich_result["lat"]
+                context.lon = enrich_result["lon"]
                 context.set_result("first_photo_coord_info", enrich_result)
                 logger.info(
                     "Coordenadas da primeira foto enriquecidas no context",

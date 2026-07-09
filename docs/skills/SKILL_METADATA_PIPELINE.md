@@ -110,6 +110,8 @@ engine.start()
 | `files` | list[str] \| None | Lista de caminhos MRK |
 | `tool_key` | ToolKey | ToolKey para rastreamento de logs |
 | `json_path` | str | Caminho do JSON (resultado entre steps) |
+| `lat` | float \| None | Latitude decimal (setado por PhotoEnrichmentStep.on_success() ou CoordClickTool) |
+| `lon` | float \| None | Longitude decimal (setado por PhotoEnrichmentStep.on_success() ou CoordClickTool) |
 
 ### Steps (parâmetros explícitos no `__init__`)
 
@@ -182,20 +184,19 @@ if generate_report:
 
 ### Fase 2 — ReverseGeocodeStep (Geolocalização do Endereço)
 
-Step que executa reverse geocode para obter endereço a partir das coordenadas da primeira foto.
+Step que executa reverse geocode para obter endereço a partir das coordenadas do context.
 
-**Modos de operação** (por ordem de prioridade):
-1. Coordenadas explícitas passadas via `__init__(lat=..., lon=...)`
-2. Coordenadas do contexto legado (`context.get("lat")` / `context.get("lon")`)
-3. **JSON path**: lê a primeira foto do JSON e extrai `Lat`/`Lon`
+**Comportamento** (independente de cenário):
+- Lê `context.lat` / `context.lon` (atributos canônicos — setados por PhotoEnrichmentStep.on_success() ou CoordClickTool)
+- Se `context.json_path` existir, persiste dados de geolocalização e timestamps no JSON
 
 **Fluxo**:
-1. `should_run(context)`: verifica se há coordenadas disponíveis (explícitas ou via JSON)
-2. `create_task(context)`: resolve coordenadas, cria `ReverseGeocodeTask`
+1. `should_run(context)`: retorna True se `context.lat` e `context.lon` não forem None
+2. `create_task(context)`: cria `ReverseGeocodeTask(context.lat, context.lon, tool_key=context.tool_key)`
 3. `ReverseGeocodeTask._run()`: chama BigDataCloud API com lat/lon
 4. `on_success(context, result)`:
    - `context.set_result("address_data", result)` — propaga para steps posteriores
-   - `JsonUtil.update_geocode_data(json_path, geocode_payload)` — persiste no JSON
+   - `JsonUtil.update_geocode_data(json_path, geocode_payload)` — persiste no JSON (se json_path existir)
    - `JsonUtil.update_timestamps(json_path, {"geocode_start": ..., "geocode_end": ...})`
 
 **Estrutura adicionada ao JSON**:
@@ -434,3 +435,4 @@ engine.start()
 | **2026-07-09** | **3.1.0** | **MRK como agregado opcional**: Coordenadas SEMPRE das fotos (EXIF/XMP). MRK agora é apenas atributos de contexto (MrkFile, MrkPath, MrkFolder, FlightNumber). `_enrich_with_mrk()` não seta mais `CoordSource=MRK` nem `QUALITY_FLAG=OK`. `JsonToVectorTranslator._resolve_geometry()` usa apenas `GpsLatitude/GpsLongitude`. DroneCoordinates tem checkbox "Obter dados MRK". `_resolve_track_group_fields()` tem fallback sem MRK por FolderLevel1. |
 | **2026-07-09** | **3.2.0** | **ReverseGeocodeStep integrado ao pipeline**: Pipeline agora executa `PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)`. ReverseGeocodeStep lê json_path do context, extrai coordenadas da primeira foto do JSON, persiste dados de localização no cabeçalho do JSON (`geocode.municipio`, `geocode.state`, etc.) e timestamps `geocode_start`/`geocode_end`. Adicionado `JsonUtil.update_geocode_data()`. |
 | **2026-07-09** | **3.3.0** | **FirstPhotoCoordStep extraído**: Lógica de busca da primeira foto movida de ReverseGeocodeStep/AltimetryStep para novo `FirstPhotoCoordStep` (síncrono, `run_inline()`). ReverseGeocodeStep e AltimetryStep agora consomem `first_photo_lat`/`first_photo_lon` do context. Pipeline: `PhotoEnrichmentStep → FirstPhotoCoordStep → ReverseGeocodeStep + AltimetryStep (Parallel) → JsonVectorizationStep → (ReportGenerationStep?)`. Adicionado `JsonUtil.update_first_photo_coord()`. |
+| **2026-07-09** | **4.0.0** | **lat/lon como atributos canônicos do ExecutionContext**: `context.lat`/`context.lon` substituem `context.get_result("first_photo_lat")`. ReverseGeocodeStep e AltimetryStep simplificados (sem `__init__`, sem `report_metadata_mode`): sempre leem `context.lat`/`context.lon` e sempre persistem no JSON se `context.json_path` existir. FirstPhotoCoordStep removido (lógica incorporada ao PhotoEnrichmentStep.on_success()). `_report_metadata_mode` removido — steps são independentes de cenário. CoordClickTool seta `context.lat`/`context.lon` diretamente. Adicionado `JsonUtil.update_json()` genérico. |

@@ -75,10 +75,13 @@ class ReverseGeocodeTask(BaseTask):
                             f"Redirect {status} -> {location}", code="REDIRECT_FOLLOW"
                         )
                         if not location:
-                            self.exception = Exception(
-                                f"Redirect without Location header (status {status})"
+                            logger.warning(
+                                "Redirect without Location header",
+                                code="REDIRECT_NO_LOCATION",
                             )
-                            return False
+                            # Graceful: não aborta pipeline, retorna dados vazios
+                            self.result = {}
+                            return True
                         # Resolve relative redirects
                         new_parsed = urlparse(location)
                         if not new_parsed.scheme:
@@ -88,21 +91,37 @@ class ReverseGeocodeTask(BaseTask):
                         # validate scheme
                         new_scheme = urlparse(current_url).scheme.lower()
                         if new_scheme not in ("http", "https"):
-                            self.exception = Exception(
-                                f"Invalid redirect scheme: {new_scheme}"
+                            logger.warning(
+                                f"Invalid redirect scheme: {new_scheme}",
+                                code="REDIRECT_INVALID_SCHEME",
                             )
-                            return False
+                            # Graceful: não aborta pipeline, retorna dados vazios
+                            self.result = {}
+                            return True
                         continue
 
                     elif status != 200:
-                        self.exception = Exception(f"HTTP error {status}")
-                        conn.close()
-                        return False
+                        logger.warning(
+                            f"HTTP error {status} from reverse geocode API",
+                            code="HTTP_ERROR",
+                        )
+                        # Graceful: não aborta pipeline, retorna dados vazios
+                        self.result = {}
+                        return True
 
                     else:
                         data = json.loads(resp.read().decode("utf-8"))
                         conn.close()
                         break
+
+                except (TimeoutError, http.client.HTTPException, ConnectionError, OSError) as e:
+                    logger.warning(
+                        f"Reverse geocode API unavailable: {e}",
+                        code="HTTP_REQUEST_ERROR",
+                    )
+                    # Graceful: timeout/falha de rede não aborta pipeline
+                    self.result = {}
+                    return True
 
                 except Exception as e:
                     logger.exception(e, code="HTTP_REQUEST_ERROR")
@@ -110,8 +129,13 @@ class ReverseGeocodeTask(BaseTask):
                     return False
 
             if data is None:
-                self.exception = Exception("No data received from API")
-                return False
+                logger.warning(
+                    "No data received from reverse geocode API",
+                    code="NO_DATA",
+                )
+                # Graceful: não aborta pipeline, retorna dados vazios
+                self.result = {}
+                return True
 
             admin = data.get("localityInfo", {}).get("administrative", [])
 

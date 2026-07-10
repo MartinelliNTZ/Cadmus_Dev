@@ -429,6 +429,101 @@ class ProjectUtils(BaseUtil):
             return None
 
     @staticmethod
+    def get_all_layers(
+        project: Optional[QgsProject] = None,
+        layer_type: Optional[str] = None,
+        logger=None,
+    ) -> list:
+        """
+        Retorna todas as camadas do projeto, opcionalmente filtradas por tipo.
+
+        Args:
+            project: Instância do projeto (default: QgsProject.instance())
+            layer_type: "vector", "raster" ou None para todos
+            logger: Opcional, para logging de debug
+
+        Returns:
+            list de QgsMapLayer
+        """
+        resolved = project or QgsProject.instance()
+        layers = list(resolved.mapLayers().values())
+
+        if logger:
+            logger.debug(
+                f"get_all_layers: total={len(layers)}, filter_type={layer_type}"
+            )
+            from qgis.core import QgsRasterLayer
+            for l in layers:
+                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                logger.debug(
+                    f"  layer: name='{l.name()}', provider='{l.providerType()}', "
+                    f"type='{layer_type_str}', "
+                    f"valid={l.isValid()}"
+                )
+
+        if layer_type == "vector":
+            return [l for l in layers if isinstance(l, QgsVectorLayer)]
+        elif layer_type == "raster":
+            from qgis.core import QgsRasterLayer
+            return [l for l in layers if isinstance(l, QgsRasterLayer)]
+
+        return layers
+
+    @staticmethod
+    def get_temporary_layers(
+        project: Optional[QgsProject] = None,
+        provider_name: str = "memory",
+        logger=None,
+    ) -> list:
+        """
+        Retorna todas as camadas temporárias (memory) do projeto.
+
+        Args:
+            project: Instância do projeto (default: QgsProject.instance())
+            provider_name: Nome do provider (default: "memory")
+            logger: Opcional, para logging de debug
+
+        Returns:
+            list de QgsMapLayer com provider igual a provider_name
+        """
+        resolved = project or QgsProject.instance()
+        all_layers = list(resolved.mapLayers().values())
+
+        temp_layers = [
+            l for l in all_layers
+            if l and l.isValid() and (l.providerType() or "") == provider_name
+        ]
+
+        if logger:
+            from qgis.core import QgsRasterLayer
+            logger.debug(
+                f"get_temporary_layers: total={len(all_layers)}, "
+                f"provider='{provider_name}', encontradas={len(temp_layers)}"
+            )
+            for l in temp_layers:
+                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                logger.debug(
+                    f"  temp_layer: name='{l.name()}', "
+                    f"type='{layer_type_str}', "
+                    f"source='{l.source()}'"
+                )
+            if not temp_layers:
+                logger.debug(
+                    "Nenhuma camada temporária encontrada. "
+                    "Listando todas as camadas para debug:"
+                )
+                for l in all_layers:
+                    layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                    logger.debug(
+                        f"  layer: name='{l.name()}', "
+                        f"provider='{l.providerType()}', "
+                        f"valid={l.isValid()}, "
+                        f"type='{layer_type_str}'"
+                    )
+
+        return temp_layers
+
+    @staticmethod
     def add_layer_if_missing(layer):
         """Adiciona a layer ao projeto apenas se ainda nao estiver registrada."""
         try:

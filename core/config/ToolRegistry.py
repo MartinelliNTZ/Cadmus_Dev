@@ -388,7 +388,7 @@ class ToolRegistry:
             tool_key=ToolKey.SAVE_TEMPORARY_LAYER,
             name=STR.SAVE_TEMPORARY_LAYER_TITLE,
             icon=im.icon(im.SAVE_TEMPORARY_LAYER),
-            category=self.VECTOR,
+            category=self.FOLDER,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.SAVE_TEMPORARY_LAYER, False),
             executor=self._make_plugin_executor("...plugins.SaveTemporaryLayersPlugin"),

@@ -204,9 +204,12 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
 
     def _on_suggest_path(self, path_edit):
         """🛠️ Sugere pasta do projeto."""
-        project_path = ProjectUtils.get_project_path()
+        project = ProjectUtils.get_project_instance()
+        project_path = ProjectUtils.get_project_dir(project)
         if project_path:
-            suggested = os.path.dirname(project_path)
+            suggested = project_path
+            if os.path.isfile(project_path):
+                suggested = os.path.dirname(project_path)
             path_edit.setText(suggested)
             self.logger.info(f"Pasta do projeto sugerida: {suggested}")
         else:
@@ -264,6 +267,9 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         """
         Retorna as camadas temporárias (memory) do projeto QGIS atual.
 
+        Usa ProjectUtils.get_temporary_layers() que itera por project.mapLayers()
+        e filtra por providerType() == "memory".
+
         Returns:
             tuple: (vector_layers, raster_layers)
                 vector_layers: list de (nome, QgsVectorLayer)
@@ -272,30 +278,41 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         vector_layers = []
         raster_layers = []
 
-        project = ProjectUtils.get_project()
+        from qgis.core import QgsVectorLayer, QgsRasterLayer
+
+        project = ProjectUtils.get_project_instance()
         if not project:
             self.logger.warning("Nenhum projeto QGIS aberto")
             return [], []
 
-        from qgis.core import QgsLayerTreeGroup, QgsVectorLayer, QgsRasterLayer
+        # Usa o novo método do ProjectUtils com logger para debug detalhado
+        temp_layers = ProjectUtils.get_temporary_layers(
+            project=project,
+            provider_name="memory",
+            logger=self.logger,
+        )
 
-        root = project.layerTreeRoot()
+        self.logger.debug(
+            f"get_temporary_layers retornou {len(temp_layers)} camada(s)"
+        )
 
-        def walk(group: QgsLayerTreeGroup):
-            for child in group.children():
-                if child.nodeType() == 2:  # group
-                    walk(child)
-                elif child.nodeType() == 0:  # layer
-                    layer = child.layer()
-                    if layer and layer.isValid():
-                        source = layer.source() or ""
-                        if source.startswith("memory:"):
-                            if isinstance(layer, QgsVectorLayer):
-                                vector_layers.append((layer.name(), layer))
-                            elif isinstance(layer, QgsRasterLayer):
-                                raster_layers.append((layer.name(), layer))
+        for layer in temp_layers:
+            self.logger.debug(
+                f"Processando camada temporária: name='{layer.name()}', "
+                f"type(QgsVectorLayer)={isinstance(layer, QgsVectorLayer)}, "
+                f"type(QgsRasterLayer)={isinstance(layer, QgsRasterLayer)}, "
+                f"providerType()='{layer.providerType()}'"
+            )
 
-        walk(root)
+            if isinstance(layer, QgsVectorLayer):
+                vector_layers.append((layer.name(), layer))
+            elif isinstance(layer, QgsRasterLayer):
+                raster_layers.append((layer.name(), layer))
+            else:
+                self.logger.warning(
+                    f"Camada temporária ignorada por tipo desconhecido: "
+                    f"name='{layer.name()}', type={type(layer).__name__}"
+                )
 
         self.logger.info(
             f"Camadas temporárias encontradas: {len(vector_layers)} vetor(es), "
@@ -312,9 +329,12 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
 
         if not output_root:
             # Tentar usar pasta do projeto
-            project_path = ProjectUtils.get_project_path()
+            project = ProjectUtils.get_project_instance()
+            project_path = ProjectUtils.get_project_dir(project)
             if project_path:
-                output_root = os.path.dirname(project_path)
+                output_root = project_path
+                if os.path.isfile(project_path):
+                    output_root = os.path.dirname(project_path)
                 self.logger.info(f"Usando pasta do projeto: {output_root}")
             else:
                 self.logger.warning("Nenhuma pasta de saída selecionada e nenhum projeto salvo")
@@ -381,9 +401,20 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 write_options.driverName = self._driver_for_ext(vector_ext)
                 write_options.fileEncoding = "UTF-8"
 
-                error, error_msg = QgsVectorFileWriter.writeAsVectorFormatV3(
+                result = QgsVectorFileWriter.writeAsVectorFormatV3(
                     layer, filepath, QgsCoordinateTransformContext(), write_options
                 )
+
+                # Retorno varia conforme versão do QGIS:
+                # - QGIS < 3.28: (error_code, error_message)
+                # - QGIS >= 3.28: (error_code, error_message, new_filename)
+                # Normaliza para (error_code, error_message)
+                if isinstance(result, tuple) and len(result) >= 2:
+                    error = result[0]
+                    error_msg = result[1]
+                else:
+                    error = result
+                    error_msg = ""
 
                 if error == QgsVectorFileWriter.NoError:
                     self.logger.info(f"Vetor salvo: {filepath}")

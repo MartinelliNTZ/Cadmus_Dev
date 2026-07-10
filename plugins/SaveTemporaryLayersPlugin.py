@@ -391,12 +391,34 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         saved_count = 0
         errors = []
 
+        self.logger.info("Iniciando substituição de camadas temporárias por permanentes")
+
         for layer_name, layer in vector_layers:
             filename = f"{prefix}{layer_name}{suffix}{vector_ext}"
             filepath = os.path.join(vectors_dir, filename)
             try:
-                from qgis.core import QgsVectorFileWriter, QgsCoordinateTransformContext
+                from qgis.core import (
+                    QgsVectorFileWriter,
+                    QgsCoordinateTransformContext,
+                    QgsProject,
+                    QgsVectorLayer,
+                )
 
+                # ── Sair do modo edição se necessário ──
+                if layer.isEditable():
+                    if layer.isModified():
+                        msg = f"A camada '{layer_name}' tem alterações não salvas. Salvar antes de continuar?"
+                        if QgisMessageUtil.confirm(self.iface, msg, "Alterações encontradas"):
+                            layer.commitChanges()
+                            self.logger.info(f"Alterações salvas para camada '{layer_name}'")
+                        else:
+                            layer.rollBack()
+                            self.logger.info(f"Alterações descartadas para camada '{layer_name}'")
+                    else:
+                        layer.commitChanges()
+                        self.logger.debug(f"Camada '{layer_name}' saiu do modo edição sem alterações")
+
+                # ── Salvar arquivo no disco ──
                 write_options = QgsVectorFileWriter.SaveVectorOptions()
                 write_options.driverName = self._driver_for_ext(vector_ext)
                 write_options.fileEncoding = "UTF-8"
@@ -405,10 +427,6 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                     layer, filepath, QgsCoordinateTransformContext(), write_options
                 )
 
-                # Retorno varia conforme versão do QGIS:
-                # - QGIS < 3.28: (error_code, error_message)
-                # - QGIS >= 3.28: (error_code, error_message, new_filename)
-                # Normaliza para (error_code, error_message)
                 if isinstance(result, tuple) and len(result) >= 2:
                     error = result[0]
                     error_msg = result[1]
@@ -416,13 +434,17 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                     error = result
                     error_msg = ""
 
-                if error == QgsVectorFileWriter.NoError:
-                    self.logger.info(f"Vetor salvo: {filepath}")
-                    saved_count += 1
-                else:
+                if error != QgsVectorFileWriter.NoError:
                     error_msg_text = f"Erro ao salvar vetor '{layer_name}': {error_msg}"
                     self.logger.error(error_msg_text)
                     errors.append(error_msg_text)
+                    continue
+
+                self.logger.info(f"Vetor salvo: {filepath}")
+
+                # ── Substituir camada temporária pela permanente ──
+                self._replace_memory_layer(layer, filepath, layer_name)
+                saved_count += 1
 
             except Exception as e:
                 err_msg = f"Exceção ao salvar vetor '{layer_name}': {e}"
@@ -435,6 +457,20 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             try:
                 from qgis.core import QgsRasterFileWriter, QgsCoordinateTransformContext
 
+                # ── Sair do modo edição se necessário ──
+                if layer.isEditable():
+                    if layer.isModified():
+                        msg = f"A camada raster '{layer_name}' tem alterações não salvas. Salvar antes de continuar?"
+                        if QgisMessageUtil.confirm(self.iface, msg, "Alterações encontradas"):
+                            layer.commitChanges()
+                            self.logger.info(f"Alterações salvas para camada raster '{layer_name}'")
+                        else:
+                            layer.rollBack()
+                            self.logger.info(f"Alterações descartadas para camada raster '{layer_name}'")
+                    else:
+                        layer.commitChanges()
+
+                # ── Salvar arquivo no disco ──
                 file_writer = QgsRasterFileWriter(filepath)
                 file_writer.writeRasterLayer(
                     layer,
@@ -444,6 +480,9 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 )
 
                 self.logger.info(f"Raster salvo: {filepath}")
+
+                # ── Substituir camada temporária pela permanente ──
+                self._replace_raster_layer(layer, filepath, layer_name)
                 saved_count += 1
 
             except Exception as e:
@@ -466,6 +505,131 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             )
             self.logger.info(msg)
             QgisMessageUtil.bar_info(self.iface, msg)
+
+    def _replace_memory_layer(self, old_layer, filepath, layer_name):
+        """Remove a camada memory e carrega a salva no mesmo lugar, com mesmo estilo."""
+        try:
+            from qgis.core import QgsProject, QgsVectorLayer, QgsMapLayerRenderer
+            from qgis.PyQt.QtGui import QColor
+
+            project = QgsProject.instance()
+            root = project.layerTreeRoot()
+
+            # Capturar grupo pai, índice e estilo antes de remover
+            old_node = root.findLayer(old_layer.id())
+            parent_group = None
+            insert_index = -1
+            renderer = None
+            if old_node:
+                parent_group = old_node.parent()
+                if parent_group:
+                    insert_index = parent_group.children().index(old_node)
+                renderer = old_layer.renderer() if old_layer.renderer() else None
+
+            self.logger.debug(
+                f"_replace_memory_layer: name='{layer_name}', "
+                f"parent='{parent_group.name() if parent_group else 'root'}', "
+                f"index={insert_index}, has_renderer={renderer is not None}"
+            )
+
+            # Criar nova camada a partir do arquivo salvo
+            uri = filepath.replace("\\", "/")
+            new_layer = QgsVectorLayer(uri, layer_name, "ogr")
+
+            if not new_layer or not new_layer.isValid():
+                self.logger.error(
+                    f"Não foi possível carregar a camada salva: {filepath}"
+                )
+                return False
+
+            # Aplicar estilo original (renderer) se existir
+            if renderer:
+                new_layer.setRenderer(renderer.clone())
+
+            # Remover camada memory do projeto
+            project.removeMapLayer(old_layer.id())
+
+            # Adicionar nova camada sem inserir na root
+            project.addMapLayer(new_layer, False)
+
+            # Inserir no mesmo grupo/posição
+            if parent_group:
+                if insert_index >= 0:
+                    parent_group.insertLayer(insert_index, new_layer)
+                else:
+                    parent_group.addLayer(new_layer)
+            else:
+                root.insertLayer(0, new_layer)
+
+            self.logger.info(
+                f"Camada '{layer_name}' substituída com sucesso: {filepath}"
+            )
+            return True
+
+        except Exception as e:
+            self.logger.error(
+                f"Erro ao substituir camada '{layer_name}': {e}"
+            )
+            return False
+
+    def _replace_raster_layer(self, old_layer, filepath, layer_name):
+        """Remove a camada raster memory e carrega a salva no mesmo lugar."""
+        try:
+            from qgis.core import QgsProject, QgsRasterLayer
+
+            project = QgsProject.instance()
+            root = project.layerTreeRoot()
+
+            # Capturar grupo pai e índice
+            old_node = root.findLayer(old_layer.id())
+            parent_group = None
+            insert_index = -1
+            if old_node:
+                parent_group = old_node.parent()
+                if parent_group:
+                    insert_index = parent_group.children().index(old_node)
+
+            self.logger.debug(
+                f"_replace_raster_layer: name='{layer_name}', "
+                f"parent='{parent_group.name() if parent_group else 'root'}', "
+                f"index={insert_index}"
+            )
+
+            # Criar nova camada raster a partir do arquivo salvo
+            uri = filepath.replace("\\", "/")
+            new_layer = QgsRasterLayer(uri, layer_name)
+
+            if not new_layer or not new_layer.isValid():
+                self.logger.error(
+                    f"Não foi possível carregar o raster salvo: {filepath}"
+                )
+                return False
+
+            # Remover camada memory do projeto
+            project.removeMapLayer(old_layer.id())
+
+            # Adicionar nova camada sem inserir na root
+            project.addMapLayer(new_layer, False)
+
+            # Inserir no mesmo grupo/posição
+            if parent_group:
+                if insert_index >= 0:
+                    parent_group.insertLayer(insert_index, new_layer)
+                else:
+                    parent_group.addLayer(new_layer)
+            else:
+                root.insertLayer(0, new_layer)
+
+            self.logger.info(
+                f"Camada raster '{layer_name}' substituída com sucesso: {filepath}"
+            )
+            return True
+
+        except Exception as e:
+            self.logger.error(
+                f"Erro ao substituir raster '{layer_name}': {e}"
+            )
+            return False
 
     @staticmethod
     def _driver_for_ext(ext: str) -> str:

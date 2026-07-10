@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ComplexSelector -— Seletor avançado com suporte a file/folder/files/folders.
+ComplexSelector — Seletor avançado com suporte a QgsMapLayerComboBox e file/folder.
 ============================================================================
 NÃO usa GridRadio. O comportamento é definido pelos parâmetros:
   - allow_file / allow_folder: quais botões aparecem (🔍 / 📁)
@@ -8,12 +8,18 @@ NÃO usa GridRadio. O comportamento é definido pelos parâmetros:
   - selection_mode: modo padrão ("file" ou "folder")
   - mode_type: "input" ou "output"
 
-Lógica central:
-  - O widget sempre guarda: root_path (diretório base) + selected_list (itens)
-  - 🔍 clicado → seleciona arquivo(s) via ExplorerUtils
-  - 📁 clicado → seleciona pasta(s) via ExplorerUtils
-  - 🛠️ (só output) → gera path com ProjectUtil + subfolder + fixed_name
-  - 📄 (só input) → ListFileDialog
+Lógica central (MODO INPUT):
+  - Padrão: QLineEdit exibindo path(s)
+  - 📄 clicado → troca line edit por QgsMapLayerComboBox (sem diálogo)
+  - 🔍 clicado → seleciona arquivo(s) via ExplorerUtils, volta ao line edit
+  - 📁 clicado → seleciona pasta(s) via ExplorerUtils, volta ao line edit
+  - ➡️ → abre o Windows Explorer no diretório do path atual ou da layer escolhida
+
+Lógica central (MODO OUTPUT):
+  - 🔍 clicado → sempre line edit, diálogo de salvar arquivo
+  - 📁 clicado → sempre line edit, diálogo de selecionar pasta
+  - 📥 → gera path usando parent + suffix + extension + subfolder
+  - 🛠️ → gera path usando ProjectUtils + subfolder + fixed_name
   - ➡️ → abre o Windows Explorer no diretório do path atual
 
 Uso:
@@ -31,27 +37,31 @@ import os
 import subprocess
 from typing import Callable, Optional
 
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QLineEdit
+from PySide6.QtWidgets import (
+    QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget,
+)
+from PySide6.QtCore import Signal
+from qgis.gui import QgsMapLayerComboBox
+from qgis.core import QgsMapLayerProxyModel, QgsProject
 
 from core.config.LogUtils import LogUtils
-from resources.widgets.dialogs.ListFileDialog import ListFileDialog #ignorar nao exsite 
-from resources.widgets.simple.SimpleSecondaryButton import SimpleSecondaryButton  #usar simplebuttonwidget
-from utils.ExplorerUtils import ExplorerUtils #usar a explorer utils deste projeto
-from utils.ProjectUtil import ProjectUtil #usar o projectutils desse projeto 
+from resources.widgets.SimpleButtonWidget import SimpleButtonWidget
+from utils.ExplorerUtils import ExplorerUtils
+from utils.ProjectUtils import ProjectUtils
 
 
 class ComplexSelector(QWidget):
     """
-    Seletor avançado com suporte a file/folder/files/folders.
-
-    Diferente do SimpleSelector, NÃO usa GridRadio. O comportamento
-    é definido pelos parâmetros allow_file, allow_folder, multiple,
-    selection_mode e mode_type na criação.
+    Seletor avançado com suporte a file/folder/files/folders e QgsMapLayerComboBox.
 
     O widget sempre armazena:
       - root_path: diretório base da seleção
       - selected_list: lista de itens selecionados (paths completos)
+
+    Em modo input, o 📄 alterna entre QLineEdit e QgsMapLayerComboBox.
     """
+
+    pathChanged = Signal(list)  # paths: list[str]
 
     def __init__(
         self,
@@ -78,6 +88,12 @@ class ComplexSelector(QWidget):
         mode_type: str = "input",  # "input" | "output"
         fixed_name: str = "",
         subfolder: str = "",
+        # ── Origin config (📥) ──
+        suffix: str = "",
+        extension: str = "",
+        parent_selector=None,  # Referência a outro ComplexSelector (parent)
+        # ── Filtro de camada ──
+        layer_filters=QgsMapLayerProxyModel.All,
         parent=None,
     ):
         super().__init__(parent)
@@ -107,11 +123,16 @@ class ComplexSelector(QWidget):
         self._mode_type = mode_type
         self._fixed_name = fixed_name
         self._subfolder = subfolder
+        self._suffix = suffix
+        self._extension = extension
+        self._parent_selector = parent_selector
+        self._layer_filters = layer_filters
 
         # Estado interno
         self._root_path: str = ""
         self._selected_list: list[str] = []
         self._updating_display: bool = False  # guard para loop textChanged
+        self._using_layer_combo: bool = False  # True = QgsMapLayerComboBox ativo
 
         # Logger
         self._logger = LogUtils(tool="ComplexSelector", class_name="ComplexSelector")
@@ -138,7 +159,7 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def _build_ui(self, label_text, placeholder, tooltip, label_width):
-        """Constrói o layout."""
+        """Constrói o layout com QStackedWidget."""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
@@ -150,14 +171,28 @@ class ComplexSelector(QWidget):
             self._label.setToolTip(tooltip)
         layout.addWidget(self._label)
 
-        # QLineEdit (editável — usuário pode digitar manualmente)
+        # ── QStackedWidget: página 0 = QLineEdit, página 1 = QgsMapLayerComboBox ──
+        self._stack = QStackedWidget()
+        layout.addWidget(self._stack, 1)
+
+        # Página 0: QLineEdit
         self._edit = QLineEdit()
         self._edit.setPlaceholderText(placeholder)
         if tooltip:
             self._edit.setToolTip(tooltip)
-        # Sincroniza digitação manual com estado interno
         self._edit.textChanged.connect(self._on_edit_text_changed)
-        layout.addWidget(self._edit, 1)
+        self._stack.addWidget(self._edit)
+
+        # Página 1: QgsMapLayerComboBox (apenas input)
+        self._combo = QgsMapLayerComboBox()
+        self._combo.setAllowEmptyLayer(True)
+        self._combo.setFilters(self._layer_filters)
+        self._combo.setVisible(False)  # começa invisível
+        self._combo.currentIndexChanged.connect(self._on_combo_layer_changed)
+        self._stack.addWidget(self._combo)
+
+        # Se modo input e show_project_button=True, começa com combo visível?
+        # Não, começa sempre com line edit. 📄 alterna.
 
         # Botões
         self._add_buttons(layout)
@@ -169,7 +204,7 @@ class ComplexSelector(QWidget):
         """Adiciona botões conforme configuração."""
         # ── 🔍 (file) ──
         if self._allow_file:
-            self._btn_file = SimpleSecondaryButton("🔍")
+            self._btn_file = SimpleButtonWidget("🔍")
             self._btn_file.setFixedWidth(32)
             self._btn_file.setToolTip(
                 "Selecionar arquivos" if self._multiple else "Selecionar arquivo"
@@ -179,7 +214,7 @@ class ComplexSelector(QWidget):
 
         # ── 📁 (folder) ──
         if self._allow_folder:
-            self._btn_folder = SimpleSecondaryButton("📁")
+            self._btn_folder = SimpleButtonWidget("📁")
             self._btn_folder.setFixedWidth(30)
             self._btn_folder.setToolTip(
                 "Selecionar pastas" if self._multiple else "Selecionar pasta"
@@ -187,39 +222,38 @@ class ComplexSelector(QWidget):
             self._btn_folder.clicked.connect(self._browse_folder)
             layout.addWidget(self._btn_folder)
 
-        # ── 📂 (suggested — só output) ──
-        if self._mode_type == "output" and self._show_suggest_button:
-            self._btn_suggest = SimpleSecondaryButton("🛠️")
-            self._btn_suggest.setFixedWidth(30)
-            self._btn_suggest.setToolTip("Usar pasta do projeto")
-            self._btn_suggest.clicked.connect(self._on_suggest_clicked)
-            layout.addWidget(self._btn_suggest)
-
-        # ── 📄 (project — só input) ──
+        # ── 📄 (project — só input, alterna entre line edit e combo) ──
         if self._mode_type == "input" and self._show_project_button:
-            self._btn_project = SimpleSecondaryButton("📄")
+            self._btn_project = SimpleButtonWidget("📄")
             self._btn_project.setFixedWidth(30)
-            self._btn_project.setToolTip("Selecionar arquivo do projeto")
+            self._btn_project.setToolTip("Alternar para seleção de camada")
             self._btn_project.clicked.connect(self._on_project_clicked)
             layout.addWidget(self._btn_project)
 
         # ── 📥 (origin — só output com parent) ──
         if self._show_origin_button:
-            self._btn_origin = SimpleSecondaryButton("📥")
+            self._btn_origin = SimpleButtonWidget("📥")
             self._btn_origin.setFixedWidth(30)
             self._btn_origin.setToolTip("Usar mesmo diretório da origem")
-            # Conecta ao callback público — o grid configura depois
             self._btn_origin.clicked.connect(self._on_origin_clicked)
             layout.addWidget(self._btn_origin)
 
+        # ── 🛠️ (suggested — só output) ──
+        if self._mode_type == "output" and self._show_suggest_button:
+            self._btn_suggest = SimpleButtonWidget("🛠️")
+            self._btn_suggest.setFixedWidth(30)
+            self._btn_suggest.setToolTip("Usar pasta do projeto")
+            self._btn_suggest.clicked.connect(self._on_suggest_clicked)
+            layout.addWidget(self._btn_suggest)
+
         # ── ➡️ (explorer — sempre visível por padrão) ──
         if self._show_explorer_button:
-            self._btn_explorer = SimpleSecondaryButton("➡️")
+            self._btn_explorer = SimpleButtonWidget("➡️")
             self._btn_explorer.setFixedWidth(30)
             self._btn_explorer.setToolTip("Abrir localização no Explorer")
             self._btn_explorer.clicked.connect(self._open_explorer)
             layout.addWidget(self._btn_explorer)
-            
+
         # ── CRS embutido (ao lado dos botões) ──
         if self._crs_enable:
             from resources.widgets.crs.CrsSelectorWidget import CrsSelectorWidget
@@ -227,56 +261,60 @@ class ComplexSelector(QWidget):
             self._crs_widget.setFixedWidth(150)
             layout.addWidget(self._crs_widget)
 
-
     # ══════════════════════════════════════════════════════════════════
     # Display
     # ══════════════════════════════════════════════════════════════════
 
     def _update_display(self):
-        """Atualiza o QLineEdit conforme o estado atual."""
+        """Atualiza o widget conforme o estado atual e o modo ativo."""
         self._updating_display = True
         try:
-            if not self._selected_list:
-                self._edit.setText("")
-                return
-
-            if not self._multiple:
-                # Mostra o path completo
-                self._edit.setText(self._selected_list[0])
+            if self._using_layer_combo:
+                # Combo está ativo — mostra caminho da layer selecionada no line edit
+                layer = self._combo.currentLayer()
+                if layer:
+                    src = layer.source()
+                    if src:
+                        # Extrai path do source (remove |layername=...)
+                        layer_path = src.split("|")[0] if "|" in src else src
+                        self._edit.setText(layer_path)
+                        if not self._updating_display:
+                            self._sync_from_edit()
+                    else:
+                        self._edit.setText("")
+                else:
+                    self._edit.setText("")
+                self._stack.setCurrentIndex(1)  # mostra combo
             else:
-                # Mostra paths separados por "; "
-                self._edit.setText("; ".join(self._selected_list))
+                # Line edit está ativo
+                if not self._selected_list:
+                    self._edit.setText("")
+                elif not self._multiple:
+                    self._edit.setText(self._selected_list[0])
+                else:
+                    self._edit.setText("; ".join(self._selected_list))
+                self._stack.setCurrentIndex(0)  # mostra line edit
         finally:
             self._updating_display = False
 
     # ══════════════════════════════════════════════════════════════════
-    # Handlers de busca
+    # Handlers
     # ══════════════════════════════════════════════════════════════════
 
     def _on_edit_text_changed(self, text: str):
-        """
-        Sincroniza a digitação manual do usuário com o estado interno.
-        Quando o usuário digita manualmente, atualiza _selected_list e _root_path.
-
-        Em modo multiple, paths separados por ";" são convertidos em lista.
-        """
-        # Ignora se estamos atualizando o display programaticamente
+        """Sincroniza digitação manual com estado interno."""
         if self._updating_display:
             return
-
         if not text:
             self._root_path = ""
             self._selected_list = []
             self._emit_path_change()
             return
-
         if not self._multiple:
-            # Modo single: o texto digitado vira o primeiro item
             self._root_path = os.path.dirname(text) if os.path.isfile(text) else text
             self._selected_list = [text]
             self._emit_path_change()
         else:
-            # Modo multiple: paths separados por "; " ou ";"
             parts = [p.strip() for p in text.replace("; ", ";").split(";")]
             parts = [p for p in parts if p]
             if parts:
@@ -288,12 +326,57 @@ class ComplexSelector(QWidget):
                 self._selected_list = []
             self._emit_path_change()
 
+    def _on_combo_layer_changed(self, index: int):
+        """Quando a layer no combo muda, sincroniza o path."""
+        if self._updating_display:
+            return
+        layer = self._combo.currentLayer()
+        if layer:
+            src = layer.source()
+            if src:
+                layer_path = src.split("|")[0] if "|" in src else src
+                self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
+                self._selected_list = [layer_path]
+                self._emit_path_change()
+
+    def _sync_from_edit(self):
+        """Sincroniza selected_list a partir do texto do line edit."""
+        text = self._edit.text()
+        if not text:
+            self._root_path = ""
+            self._selected_list = []
+            self._emit_path_change()
+            return
+        if not self._multiple:
+            self._root_path = os.path.dirname(text) if os.path.isfile(text) else text
+            self._selected_list = [text]
+        else:
+            parts = [p.strip() for p in text.replace("; ", ";").split(";")]
+            parts = [p for p in parts if p]
+            if parts:
+                first = parts[0]
+                self._root_path = os.path.dirname(first) if os.path.isfile(first) else first
+                self._selected_list = parts
+            else:
+                self._root_path = ""
+                self._selected_list = []
+        self._emit_path_change()
+
+    # ══════════════════════════════════════════════════════════════════
+    # Handlers de busca
+    # ══════════════════════════════════════════════════════════════════
+
+    def _ensure_line_edit_mode(self):
+        """Força o widget para o modo line edit (desativa combo)."""
+        self._using_layer_combo = False
+        self._update_display()
+
     def _browse_file(self):
-        """Busca arquivo(s) — disparado pelo 🔍.
-        Em modo input: usa open_file/open_files.
-        Em modo output: usa save_file.
-        """
+        """Busca arquivo(s) — disparado pelo 🔍."""
         self._logger.info("🔍 clicado", code="COMPLEX_FILE_CLICKED")
+        # Força line edit mode
+        self._ensure_line_edit_mode()
+
         if self.on_browse_click:
             self.on_browse_click()
 
@@ -302,8 +385,7 @@ class ComplexSelector(QWidget):
         )
 
         if self._mode_type == "output":
-            # Output: diálogo de salvar
-            path = ExplorerUtils.save_file(
+            path = ExplorerUtils.save_file_dialog(
                 "Salvar arquivo", initial_dir, self._file_filter, self,
             )
             if path:
@@ -312,7 +394,7 @@ class ComplexSelector(QWidget):
                 self._update_display()
                 self._emit_path_change()
         elif self._multiple:
-            paths = ExplorerUtils.open_files(
+            paths = ExplorerUtils.open_files_dialog(
                 "Selecionar arquivos", initial_dir, self._file_filter, self,
             )
             if paths:
@@ -321,7 +403,7 @@ class ComplexSelector(QWidget):
                 self._update_display()
                 self._emit_path_change()
         else:
-            path = ExplorerUtils.open_file(
+            path = ExplorerUtils.open_file_dialog(
                 "Selecionar arquivo", initial_dir, self._file_filter, self,
             )
             if path:
@@ -333,6 +415,9 @@ class ComplexSelector(QWidget):
     def _browse_folder(self):
         """Busca pasta(s) — disparado pelo 📁."""
         self._logger.info("📁 clicado", code="COMPLEX_FOLDER_CLICKED")
+        # Força line edit mode
+        self._ensure_line_edit_mode()
+
         if self.on_browse_click:
             self.on_browse_click()
 
@@ -341,16 +426,17 @@ class ComplexSelector(QWidget):
         )
 
         if self._multiple:
-            paths = ExplorerUtils.select_directories(
-                "Selecionar pastas", initial_dir, self,
+            # Múltiplas pastas: abrir uma por vez? Simples: só single folder por enquanto
+            path = ExplorerUtils.select_directory_dialog(
+                "Selecionar pasta", initial_dir, self,
             )
-            if paths:
-                self._root_path = paths[0] if paths else ""
-                self._selected_list = list(paths)
+            if path:
+                self._root_path = path
+                self._selected_list = [path]
                 self._update_display()
                 self._emit_path_change()
         else:
-            path = ExplorerUtils.select_directory(
+            path = ExplorerUtils.select_directory_dialog(
                 "Selecionar pasta", initial_dir, self,
             )
             if path:
@@ -364,9 +450,21 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def _open_explorer(self):
-        """Abre o Windows Explorer no diretório do path atual."""
+        """Abre o Windows Explorer no diretório do path atual ou da layer."""
         target = None
-        if self._selected_list:
+
+        # Se está usando layer combo, pega o source da layer
+        if self._using_layer_combo:
+            layer = self._combo.currentLayer()
+            if layer:
+                src = layer.source()
+                if src:
+                    layer_path = src.split("|")[0] if "|" in src else src
+                    if os.path.isdir(layer_path):
+                        target = layer_path
+                    else:
+                        target = os.path.dirname(layer_path)
+        elif self._selected_list:
             first = self._selected_list[0]
             if os.path.isdir(first):
                 target = first
@@ -387,10 +485,8 @@ class ComplexSelector(QWidget):
         )
         try:
             if os.name == "nt":
-                # Windows: usa explorer com separador de subcomando
                 os.startfile(target)  # type: ignore[attr-defined]
             else:
-                # Linux / macOS
                 subprocess.Popen(["xdg-open", target], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
             self._logger.error(
@@ -400,72 +496,115 @@ class ComplexSelector(QWidget):
             )
 
     # ══════════════════════════════════════════════════════════════════
-    # 📄 (project — só input)
+    # 📄 (project — só input, alterna entre line edit e combo)
     # ══════════════════════════════════════════════════════════════════
 
     def _on_project_clicked(self):
-        """Abre ListFileDialog com as extensões do filtro."""
+        """
+        Alterna entre QLineEdit e QgsMapLayerComboBox.
+        Quando clica no 📄:
+          - Se estava em line edit → vai para combo
+          - Se estava em combo → volta para line edit
+        """
         self._logger.info("📄 clicado", code="COMPLEX_PROJECT_CLICKED")
+        if self._mode_type == "output":
+            return  # Não faz sentido em output
 
-        root_folder = ProjectUtil.get_root_folder()
-        if not root_folder:
-            self._logger.warning("Nenhum projeto ativo", code="COMPLEX_NO_PROJECT")
-            return
+        self._using_layer_combo = not self._using_layer_combo
 
-        extensions = self._parse_extensions_from_filter(self._file_filter)
-        if not extensions:
-            self._logger.warning("Nenhuma extensão extraída", code="COMPLEX_NO_EXT")
-            return
+        if self._using_layer_combo:
+            # Ativou combo — popula com layer atual se possível
+            self._combo.setVisible(True)
+            # Tenta selecionar camada baseada no path atual
+            current_path = self.path()
+            if current_path:
+                for layer in QgsProject.instance().mapLayers().values():
+                    src = layer.source()
+                    if src and current_path in src:
+                        self._combo.setLayer(layer)
+                        break
+            self._combo.setFocus()
+        else:
+            # Desativou combo — sincroniza o path da layer para o line edit
+            self._combo.setVisible(False)
+            self._sync_from_combo_back()
 
-        dialog = ListFileDialog(
-            extensions=extensions,
-            multi_select=self._multiple,
-            parent=self,
-        )
-        if dialog.exec():
-            paths = dialog.selected_paths
-            if paths:
-                self._root_path = os.path.dirname(paths[0]) if paths else ""
-                self._selected_list = list(paths)
-                self._update_display()
+        self._update_display()
+
+    def _sync_from_combo_back(self):
+        """Quando sai do modo combo, pega o path da layer e coloca no line edit."""
+        layer = self._combo.currentLayer()
+        if layer:
+            src = layer.source()
+            if src:
+                layer_path = src.split("|")[0] if "|" in src else src
+                self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
+                self._selected_list = [layer_path]
                 self._emit_path_change()
-
-    @staticmethod
-    def _parse_extensions_from_filter(file_filter: str) -> list[str]:
-        """Extrai extensões de um filtro de arquivo."""
-        import re
-        match = re.search(r'\(([^)]+)\)', file_filter)
-        if not match:
-            return []
-        parts = match.group(1).split()
-        exts = [p.strip().lower() for p in parts if p.startswith("*")]
-        return [e.replace("*", "") for e in exts if e.replace("*", "")]
 
     # ══════════════════════════════════════════════════════════════════
     # 📥 (origin — botão de usar origem)
     # ══════════════════════════════════════════════════════════════════
 
     def _on_origin_clicked(self):
-        """Disparado pelo 📥. Delega para callback público."""
-        self._logger.info(
-            "📥 clicado (origin)",
-            code="COMPLEX_ORIGIN_CLICKED",
-            has_callback=str(self.on_origin_click is not None),
-            mode=self._mode_type,
-            has_parent=str(bool(self.on_origin_click)),
-        )
+        """
+        Disparado pelo 📥.
+        Gera path baseado no parent_selector + suffix + extension + subfolder.
+        """
+        self._logger.info("📥 clicado (origin)", code="COMPLEX_ORIGIN_CLICKED")
+        # Força line edit mode
+        self._ensure_line_edit_mode()
+
         if self.on_origin_click:
             self.on_origin_click()
+            return
+
+        # Lógica embutida se não houver callback customizado
+        if self._parent_selector:
+            parent_paths = self._parent_selector.get_paths()
+            if parent_paths:
+                self._generate_from_parent(parent_paths)
+
+    def _generate_from_parent(self, parent_paths: list[str]):
+        """Gera path de output baseado no parent."""
+        if not parent_paths:
+            return
+
+        parent_path = parent_paths[0]
+        parent_dir = os.path.dirname(parent_path) if os.path.isfile(parent_path) else parent_path
+
+        suffix = self._suffix or ""
+        extension = self._extension or ""
+        subfolder = self._subfolder or ""
+
+        if suffix and extension:
+            # parent_dir + parent_stem + suffix.extension
+            parent_stem = os.path.splitext(os.path.basename(parent_path))[0]
+            ext = extension if extension.startswith(".") else f".{extension}"
+            output_name = f"{parent_stem}{suffix}{ext}"
+            output_path = os.path.join(parent_dir, output_name)
+        else:
+            output_path = parent_dir
+
+        if subfolder:
+            output_path = os.path.join(parent_dir, subfolder)
+
+        self._root_path = os.path.dirname(output_path) if os.path.isfile(output_path) else output_path
+        self._selected_list = [output_path]
+        self._update_display()
+        self._emit_path_change()
+
+        self._logger.info(
+            f"Output gerado de parent: {output_path}",
+            code="COMPLEX_ORIGIN_PATH",
+            parent=parent_path,
+            suffix=suffix,
+            extension=extension,
+            subfolder=subfolder,
+        )
 
     def set_origin_callback(self, callback: Callable[[], None], tooltip: str = ""):
-        """
-        Define callback personalizado para o botão 📥.
-        Usado pelo GridComplexSelector para conectar a lógica de geração de output.
-
-        Args:
-            callback: Função sem argumentos a ser chamada quando 📥 for clicado.
-            tooltip: Tooltip opcional para o botão.
-        """
+        """Define callback personalizado para o botão 📥."""
         if hasattr(self, '_btn_origin'):
             try:
                 self._btn_origin.clicked.disconnect()
@@ -477,12 +616,10 @@ class ComplexSelector(QWidget):
 
     @property
     def show_origin_button(self) -> bool:
-        """Se o botão 📥 está visível."""
         return self._show_origin_button
 
     @show_origin_button.setter
     def show_origin_button(self, value: bool) -> None:
-        """Mostra/esconde o botão 📥."""
         self._show_origin_button = value
         btn = getattr(self, '_btn_origin', None)
         if btn:
@@ -490,19 +627,24 @@ class ComplexSelector(QWidget):
             btn.setEnabled(value)
 
     # ══════════════════════════════════════════════════════════════════
-    # 📂 (suggested — só output)
+    # 🛠️ (suggested — só output)
     # ══════════════════════════════════════════════════════════════════
 
     def _on_suggest_clicked(self):
         """
-        Gera path de saída: ProjectUtil.get_root_folder() + subfolder + fixed_name.
-        Ex: C:/projeto/lasvectorconverter/lasvectorconverted.gpkg
+        Gera path de saída: ProjectUtils.get_project_dir() + subfolder + fixed_name.
+        Se file=False (folder mode), carrega parent_dir + subfolder.
         """
-        self._logger.info("📂 clicado (output)", code="COMPLEX_SUGGEST_CLICKED")
+        self._logger.info("🛠️ clicado (output)", code="COMPLEX_SUGGEST_CLICKED")
+        # Força line edit mode
+        self._ensure_line_edit_mode()
+
         if self.on_suggest_click:
             self.on_suggest_click()
 
-        root_folder = ProjectUtil.get_root_folder()
+        project = QgsProject.instance()
+        root_folder = ProjectUtils.get_project_dir(project) if project else ""
+
         if not root_folder:
             self._logger.warning("Nenhum projeto ativo", code="COMPLEX_NO_PROJECT")
             return
@@ -513,12 +655,23 @@ class ComplexSelector(QWidget):
             output_dir = root_folder
 
         if self._fixed_name:
-            output_path = os.path.join(output_dir, self._fixed_name)
+            # Se tem extensão e não está no fixed_name, adiciona
+            output_name = self._fixed_name
+            if self._extension and not os.path.splitext(output_name)[1]:
+                ext = self._extension if self._extension.startswith(".") else f".{self._extension}"
+                output_name = f"{output_name}{ext}"
+            output_path = os.path.join(output_dir, output_name)
         else:
             output_path = output_dir
 
-        self._root_path = output_dir
-        self._selected_list = [output_path]
+        # Se selection_mode == "folder" ou não é file, trata como diretório
+        if self._selection_mode == "folder" and not self._fixed_name:
+            self._root_path = output_path
+            self._selected_list = [output_path]
+        else:
+            self._root_path = output_dir
+            self._selected_list = [output_path]
+
         self._update_display()
         self._emit_path_change()
 
@@ -535,9 +688,10 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def _emit_path_change(self):
-        """Dispara callback de path change + detecção CRS se aplicável."""
+        """Dispara callback de path change."""
         if self.on_path_change:
             self.on_path_change(self._selected_list)
+        self.pathChanged.emit(self._selected_list)
 
         # ── CRS: detecção automática se for input ──
         if self._crs_enable and self._mode_type == "input" and self._crs_widget:
@@ -551,7 +705,7 @@ class ComplexSelector(QWidget):
 
         ext = os.path.splitext(path)[1].lower()
         if ext not in (".las", ".laz"):
-            return  # Só detecta CRS em LAS/LAZ
+            return
 
         from utils.las.LasLayerProjection import LasLayerProjection
 
@@ -561,7 +715,6 @@ class ComplexSelector(QWidget):
             self._crs_widget.setToolTip(f"CRS detectado: {crs}")
             return
 
-        # Não detectou — pergunta se quer forçar
         from utils.MessageBox import MessageBox
         resposta = MessageBox.show_question(
             f"Não foi possível detectar a projeção do arquivo:\n{path}\n\n"
@@ -590,45 +743,31 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def get_root_path(self) -> str:
-        """Retorna o diretório base da seleção."""
         return self._root_path
 
     def get_selected_list(self) -> list[str]:
-        """Retorna a lista de itens selecionados (paths completos)."""
         return self._selected_list.copy()
 
     def get_paths(self) -> list[str]:
-        """Atalho para get_selected_list()."""
         return self.get_selected_list()
 
     def get_path(self, index: int = 0) -> str:
-        """Retorna um path específico pelo índice."""
         if 0 <= index < len(self._selected_list):
             return self._selected_list[index]
         return ""
 
     def path(self) -> str:
-        """Retorna o primeiro path (compatível com SimpleSelector)."""
         return self.get_path(0)
 
     def paths(self) -> list[str]:
-        """Retorna lista de paths (compatível com SimpleSelector)."""
         return self.get_paths()
 
     def path_type(self) -> str:
-        """
-        Retorna o tipo do modo atual baseado em selection_mode e multiple:
-        - single + file  → "file"
-        - single + folder → "folder"
-        - multi + file   → "files"
-        - multi + folder → "folders"
-        """
         if self._multiple:
             return f"{self._selection_mode}s"
         return self._selection_mode
 
     def path_count(self) -> int:
-        """Número de paths selecionados."""
         return len(self._selected_list)
 
     def is_multi(self) -> bool:
@@ -644,7 +783,8 @@ class ComplexSelector(QWidget):
         return self._selection_mode == "file"
 
     def set_path(self, path: str):
-        """Define um path único."""
+        """Define um path único e desativa combo."""
+        self._using_layer_combo = False
         if path:
             self._root_path = os.path.dirname(path) if os.path.isfile(path) else path
             self._selected_list = [path]
@@ -655,7 +795,8 @@ class ComplexSelector(QWidget):
         self._emit_path_change()
 
     def set_paths(self, paths: list[str]):
-        """Define múltiplos paths."""
+        """Define múltiplos paths e desativa combo."""
+        self._using_layer_combo = False
         if paths:
             first = paths[0]
             self._root_path = os.path.dirname(first) if os.path.isfile(first) else first
@@ -668,6 +809,7 @@ class ComplexSelector(QWidget):
 
     def clear(self):
         """Limpa tudo."""
+        self._using_layer_combo = False
         self._root_path = ""
         self._selected_list = []
         self._update_display()
@@ -703,39 +845,26 @@ class ComplexSelector(QWidget):
     # ── CRS embutido ───────────────────────────────────────────────
 
     @property
-    def crs_widget(self):  # -> CrsSelectorWidget | None
-        """Retorna o widget CRS embutido, ou None se crs_enable=False."""
+    def crs_widget(self):
         return self._crs_widget
 
     @property
     def crs(self) -> str:
-        """Retorna o CRS selecionado (ex: 'EPSG:31983') ou vazio."""
         if self._crs_widget:
             return self._crs_widget.get_crs()
         return ""
 
     @crs.setter
     def crs(self, value: str) -> None:
-        """Define o CRS programaticamente."""
         if self._crs_widget:
             self._crs_widget.set_crs(value)
 
     # ── Configuração ────────────────────────────────────────────────
 
     def set_suggested_path(self, suggested_rel_path: str):
-        """Define o path relativo para o botão 📂."""
         self._suggested_rel_path = suggested_rel_path
 
     def set_fixed_name(self, fixed_name: str):
-        """
-        Define o nome fixo do arquivo de saída.
-        Usado pelo 📂 (suggest button) para gerar o path.
-        O plugin pode chamar isso para atualizar dinamicamente
-        quando o formato de saída muda.
-
-        Args:
-            fixed_name: Nome do arquivo (ex: "lasvectorconverted.gpkg").
-        """
         self._fixed_name = fixed_name
         self._logger.info(
             f"fixed_name: '{fixed_name}'",
@@ -743,7 +872,6 @@ class ComplexSelector(QWidget):
         )
 
     def set_suggested_callback(self, callback: Callable[[], None], tooltip: str = ""):
-        """Define callback personalizado para 📂."""
         if hasattr(self, '_btn_suggest'):
             try:
                 self._btn_suggest.clicked.disconnect()
@@ -752,6 +880,15 @@ class ComplexSelector(QWidget):
             self._btn_suggest.clicked.connect(callback)
             if tooltip:
                 self._btn_suggest.setToolTip(tooltip)
+
+    def set_origin_config(self, *, suffix: str = "", extension: str = "", subfolder: str = ""):
+        """Atualiza configuração do botão 📥."""
+        if suffix:
+            self._suffix = suffix
+        if extension:
+            self._extension = extension
+        if subfolder:
+            self._subfolder = subfolder
 
     @property
     def file_filter(self) -> str:
@@ -765,6 +902,10 @@ class ComplexSelector(QWidget):
     @property
     def edit(self) -> QLineEdit:
         return self._edit
+
+    @property
+    def combo(self) -> QgsMapLayerComboBox:
+        return self._combo
 
     @property
     def mode_type(self) -> str:
@@ -787,7 +928,6 @@ class ComplexSelector(QWidget):
 
     @allow_file.setter
     def allow_file(self, value: bool) -> None:
-        """Atualiza _allow_file e mostra/esconde 🔍."""
         self._allow_file = value
         btn = getattr(self, '_btn_file', None)
         if btn:
@@ -800,7 +940,6 @@ class ComplexSelector(QWidget):
 
     @allow_folder.setter
     def allow_folder(self, value: bool) -> None:
-        """Atualiza _allow_folder e mostra/esconde 📁."""
         self._allow_folder = value
         btn = getattr(self, '_btn_folder', None)
         if btn:
@@ -808,22 +947,16 @@ class ComplexSelector(QWidget):
             btn.setEnabled(value)
 
     def set_mode(self, *, allow_file: bool | None = None, allow_folder: bool | None = None, selection_mode: str | None = None):
-        """
-        Atalho para alterar modo dinamicamente.
-        Atualiza allow_file/allow_folder e selection_mode em um único método.
-        """
         if allow_file is not None:
             self.allow_file = allow_file
         if allow_folder is not None:
             self.allow_folder = allow_folder
         if selection_mode is not None:
             self.selection_mode = selection_mode
-        # Sanitiza — se o selection_mode atual não for compatível, corrige
         if self._selection_mode == "file" and not self._allow_file:
             self._selection_mode = "folder"
         if self._selection_mode == "folder" and not self._allow_folder:
             self._selection_mode = "file"
-        # Atualiza tooltips dos botões
         if hasattr(self, '_btn_file'):
             self._btn_file.setToolTip(
                 "Selecionar arquivos" if self._multiple else "Selecionar arquivo"
@@ -836,3 +969,13 @@ class ComplexSelector(QWidget):
             f"Modo alterado: file={self._allow_file}, folder={self._allow_folder}, mode={self._selection_mode}",
             code="COMPLEX_MODE_CHANGED",
         )
+
+    @property
+    def using_layer_combo(self) -> bool:
+        """Retorna se o widget está usando QgsMapLayerComboBox."""
+        return self._using_layer_combo
+
+    @property
+    def current_layer(self):
+        """Retorna a camada selecionada no combo, ou None."""
+        return self._combo.currentLayer()

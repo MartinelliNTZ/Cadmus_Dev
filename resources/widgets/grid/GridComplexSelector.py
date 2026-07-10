@@ -24,6 +24,9 @@ Uso:
             "allow_folder": True,
             "fixed_name": "resultado.gpkg",
             "show_suggest_button": True,
+            "suffix": "_converted",
+            "extension": "gpkg",
+            "subfolder": "output",
         },
     })
 
@@ -43,13 +46,12 @@ from functools import partial
 from typing import Callable, Optional
 
 from PySide6.QtWidgets import (
-    QWidget, QGridLayout, QVBoxLayout, QLineEdit,
+    QWidget, QGridLayout, QVBoxLayout, QLineEdit, QGroupBox,
 )
 from PySide6.QtCore import QTimer
+from qgis.core import QgsProject
 
-from resources.widgets.GroupPainel import GroupPainel
-from resources.widgets.complex.ComplexSelector import ComplexSelector
-from resources.styles.AppStyles import AppStyles
+from resources.widgets.simple.ComplexSelector import ComplexSelector
 
 from core.config.LogUtils import LogUtils
 
@@ -61,6 +63,9 @@ class GridComplexSelector(QWidget):
     Suporta mode_type="input"/"output" com parent linking.
     dynamic_parent: filho adapta selection_mode conforme o pai.
     Cada output com parent exibe seu próprio botão 📥 nativo.
+
+    Suporta parent cross-grid: parent="grid1.selector1" faz busca
+    por um selector de outro GridComplexSelector registrado.
     """
 
     _KEYS_RESERVED = frozenset({
@@ -69,17 +74,22 @@ class GridComplexSelector(QWidget):
         "show_origin_button",
     })
 
+    # Registro global de grids, para suporte a parent cross-grid
+    _grid_registry: dict[str, "GridComplexSelector"] = {}
+
     def __init__(
         self,
         specs: dict[str, dict],
         title: Optional[str] = None,
         columns: int = 1,
+        grid_id: str = "",  # Identificador para cross-grid parent
         parent=None,
     ):
         super().__init__(parent)
 
         self._logger = LogUtils(tool="GridComplexSelector", class_name="GridComplexSelector")
 
+        self._grid_id = grid_id or ""
         self._selectors: dict[str, ComplexSelector] = {}
         self._link_meta: dict[str, dict] = {}
         self._self_generated: dict[str, bool] = {}
@@ -89,6 +99,15 @@ class GridComplexSelector(QWidget):
         self._generating_output: set[str] = set()
 
         self._build(specs, title, columns)
+
+        # Registra no registry global
+        if self._grid_id:
+            GridComplexSelector._grid_registry[self._grid_id] = self
+
+    def __del__(self):
+        """Limpa registro ao destruir."""
+        if self._grid_id and self._grid_id in GridComplexSelector._grid_registry:
+            del GridComplexSelector._grid_registry[self._grid_id]
 
     # ══════════════════════════════════════════════════════════════════
     # API Pública para Callbacks
@@ -140,12 +159,12 @@ class GridComplexSelector(QWidget):
 
     def _build(self, specs: dict[str, dict], title: Optional[str], columns: int):
         if title:
-            container = GroupPainel(title)
+            container = QGroupBox(title)
             outer = QVBoxLayout(self)
             outer.setContentsMargins(0, 0, 0, 0)
             outer.setSpacing(0)
             outer.addWidget(container)
-            inner = container.group_layout
+            inner = QVBoxLayout(container)
         else:
             inner = QVBoxLayout(self)
             inner.setContentsMargins(0, 0, 0, 0)
@@ -171,6 +190,28 @@ class GridComplexSelector(QWidget):
             grid_wrapper.setLayout(grid)
             inner.addWidget(grid_wrapper)
 
+    def _resolve_parent_selector(self, parent_key: str) -> Optional[ComplexSelector]:
+        """
+        Resolve um parent selector que pode ser:
+        - Um label local: "Entrada"
+        - Um label cross-grid: "grid1.selector1"
+        """
+        if parent_key in self._selectors:
+            return self._selectors[parent_key]
+
+        # Cross-grid: "grid_id.selector_label"
+        if "." in parent_key:
+            grid_id, sel_label = parent_key.split(".", 1)
+            grid = GridComplexSelector._grid_registry.get(grid_id)
+            if grid:
+                return grid.get(sel_label)
+
+        self._logger.warning(
+            f"Parent '{parent_key}' não encontrado (local nem cross-grid)",
+            code="GRID_PARENT_NOT_FOUND",
+        )
+        return None
+
     def _build_selector(self, label: str, kwargs: dict) -> ComplexSelector:
         """Constrói um ComplexSelector com show_origin_button se for output com parent."""
         mode_type = kwargs.get("mode_type", "input")
@@ -190,13 +231,19 @@ class GridComplexSelector(QWidget):
         if "label_text" not in clean_kwargs:
             clean_kwargs["label_text"] = label
 
+        # Resolve o parent_selector
+        parent_selector = None
+        if parent_key:
+            parent_selector = self._resolve_parent_selector(parent_key)
+
         # Se for output com parent
         if mode_type == "output" and parent_key:
             clean_kwargs["mode_type"] = "output"
-            if subfolder:
-                clean_kwargs["subfolder"] = subfolder
-            if fixed_name:
-                clean_kwargs["fixed_name"] = fixed_name
+            clean_kwargs["subfolder"] = subfolder
+            clean_kwargs["fixed_name"] = fixed_name
+            clean_kwargs["suffix"] = suffix
+            clean_kwargs["extension"] = extension
+            clean_kwargs["parent_selector"] = parent_selector
             clean_kwargs["show_suggest_button"] = True
             clean_kwargs["show_origin_button"] = True  # ✅ Botão nativo ativado
 
@@ -215,10 +262,9 @@ class GridComplexSelector(QWidget):
             }
             self._self_generated[label] = False
 
-        if mode_type == "output" and parent_key:
-            self._connect_output_listener(label, parent_key, dynamic_parent)
+        if mode_type == "output" and parent_key and parent_selector:
+            self._connect_output_listener(label, parent_selector, dynamic_parent)
             # Conecta o botão 📥 nativo à lógica de origem
-            # Usa partial para evitar problemas de closure em lambdas
             selector.set_origin_callback(
                 partial(self._on_use_origin, label),
                 tooltip="Usar mesmo diretório da origem",
@@ -230,12 +276,8 @@ class GridComplexSelector(QWidget):
     # Listener Unificado
     # ══════════════════════════════════════════════════════════════════
 
-    def _connect_output_listener(self, child_label: str, parent_key: str, dynamic_parent: bool = False):
+    def _connect_output_listener(self, child_label: str, parent_selector: ComplexSelector, dynamic_parent: bool = False):
         """Instala wrapper no parent para reagir a mudanças + dynamic_parent."""
-        parent_selector = self._selectors.get(parent_key)
-        if not parent_selector:
-            return
-
         child_selector = self._selectors.get(child_label)
         if not child_selector:
             return
@@ -268,7 +310,7 @@ class GridComplexSelector(QWidget):
             return
 
         parent_key = meta.get("parent", "")
-        parent_selector = self._selectors.get(parent_key)
+        parent_selector = self._resolve_parent_selector(parent_key)
         child_selector = self._selectors.get(child_label)
 
         if not parent_selector or not child_selector:
@@ -310,7 +352,7 @@ class GridComplexSelector(QWidget):
             return
 
         parent_key = meta["parent"]
-        parent_selector = self._selectors.get(parent_key)
+        parent_selector = self._resolve_parent_selector(parent_key)
         if not parent_selector:
             self._logger.warning(
                 f"Parent '{parent_key}' não encontrado",
@@ -332,18 +374,19 @@ class GridComplexSelector(QWidget):
     def set_output_extension(self, label: str, extension: str):
         """
         Atualiza a extensão do output para um selector.
-        Sincroniza fixed_name no ComplexSelector para que 📂 use extensão atual.
+        Sincroniza fixed_name no ComplexSelector para que 🛠️ use extensão atual.
         """
         meta = self._link_meta.get(label)
         if meta:
             meta["extension"] = extension
-            fixed_base = meta.get("fixed_name", "")
-            if fixed_base and not fixed_base.endswith(f".{extension}"):
-                base_name = os.path.splitext(fixed_base)[0]
-                new_fixed_name = f"{base_name}.{extension}"
-                meta["fixed_name"] = new_fixed_name
-                selector = self._selectors.get(label)
-                if selector:
+            selector = self._selectors.get(label)
+            if selector:
+                selector.set_origin_config(extension=extension)
+                fixed_base = meta.get("fixed_name", "")
+                if fixed_base and not fixed_base.endswith(f".{extension}"):
+                    base_name = os.path.splitext(fixed_base)[0]
+                    new_fixed_name = f"{base_name}.{extension}"
+                    meta["fixed_name"] = new_fixed_name
                     selector.set_fixed_name(new_fixed_name)
 
     def set_output_suffix(self, label: str, suffix: str):
@@ -351,6 +394,9 @@ class GridComplexSelector(QWidget):
         meta = self._link_meta.get(label)
         if meta:
             meta["suffix"] = suffix
+            selector = self._selectors.get(label)
+            if selector:
+                selector.set_origin_config(suffix=suffix)
 
     # ══════════════════════════════════════════════════════════════════
     # API Pública para manipular selectors
@@ -388,8 +434,8 @@ class GridComplexSelector(QWidget):
 
     def _generate_output(self, label: str, parent_paths: list[str]):
         """Gera path de output baseado no parent.
-        
-        O subfolder é usado APENAS pelo 
+
+        O subfolder é usado APENAS pelo 🛠️.
         O 📥 (usar origem) gera o output no MESMO diretório do parent.
         """
         if label in self._generating_output:
@@ -401,7 +447,8 @@ class GridComplexSelector(QWidget):
             if not meta:
                 return
 
-            parent_selector = self._selectors.get(meta["parent"])
+            parent_key = meta["parent"]
+            parent_selector = self._resolve_parent_selector(parent_key)
             if not parent_selector:
                 return
 
@@ -426,10 +473,10 @@ class GridComplexSelector(QWidget):
                     and parent_type in ("file", "files")
                 )
                 if is_single_file:
-                    # 📥: output no MESMO diretório do parent
                     if suffix:
                         parent_stem = os.path.splitext(os.path.basename(parent_path))[0]
-                        output_name = f"{parent_stem}{suffix}.{extension}" if extension else f"{parent_stem}{suffix}"
+                        ext = extension if extension.startswith(".") else f".{extension}" if extension else ""
+                        output_name = f"{parent_stem}{suffix}{ext}" if extension else f"{parent_stem}{suffix}"
                     else:
                         output_name = fixed_name
                     output_path = os.path.join(parent_dir, output_name)
@@ -437,21 +484,22 @@ class GridComplexSelector(QWidget):
                     selector.set_mode(allow_file=True, allow_folder=False, selection_mode="file")
                     selector.edit.setPlaceholderText("Arquivo de saída")
                 else:
-                    # 📥: output no MESMO diretório do parent
                     output_path = os.path.join(parent_path, "converted")
                     selector.set_path(output_path)
                     selector.set_mode(allow_file=False, allow_folder=True, selection_mode="folder")
                     selector.edit.setPlaceholderText("Pasta de saída")
             else:
                 if parent_selector.is_folder_mode():
-                    # 📥: output no MESMO diretório do parent
                     output_path = os.path.join(parent_path, "converted")
                     selector.set_path(output_path)
                     selector.selection_mode = "folder"
                 else:
-                    # 📥: output no MESMO diretório do parent
                     output_name = fixed_name
-                    if extension and not os.path.splitext(fixed_name)[1]:
+                    if suffix and extension:
+                        parent_stem = os.path.splitext(os.path.basename(parent_path))[0]
+                        ext = extension if extension.startswith(".") else f".{extension}" if extension else ""
+                        output_name = f"{parent_stem}{suffix}{ext}"
+                    elif extension and not os.path.splitext(fixed_name)[1]:
                         output_name = f"{fixed_name}.{extension}"
                     output_path = os.path.join(parent_dir, output_name)
                     selector.set_path(output_path)
@@ -489,11 +537,10 @@ class GridComplexSelector(QWidget):
         if not hasattr(edit, '_saved_stylesheet'):
             edit._saved_stylesheet = edit.styleSheet()
 
-        colors = AppStyles.theme_colors()
-        error_color = colors.get("COLOR_DANGER", "#FF4444")
-        radius = colors.get("RADIUS_SM", 4)
-        surface_2 = colors.get("SURFACE_2", "#2D2D2D")
-        text_medium = colors.get("TEXT_MEDIUM", "#CCCCCC")
+        error_color = "#FF4444"
+        radius = 4
+        surface_2 = "#2D2D2D"
+        text_medium = "#CCCCCC"
 
         edit.setStyleSheet(
             f"QLineEdit {{ border: 2px solid {error_color}; "
@@ -557,7 +604,6 @@ class GridComplexSelector(QWidget):
 
     def use_origin(self, label: str):
         """Dispara a lógica de usar origem para um selector com parent."""
-        # Aciona via o callback do botão nativo do ComplexSelector
         selector = self._selectors.get(label)
         if selector and hasattr(selector, 'on_origin_click') and selector.on_origin_click:
             selector.on_origin_click()
@@ -571,7 +617,7 @@ class GridComplexSelector(QWidget):
         """Reaplica output para todos os selectors com parent que têm parent com path."""
         for label, meta in self._link_meta.items():
             parent_key = meta["parent"]
-            parent_selector = self._selectors.get(parent_key)
+            parent_selector = self._resolve_parent_selector(parent_key)
             if parent_selector and parent_selector.get_paths():
                 self._generate_output(label, parent_selector.get_paths())
 

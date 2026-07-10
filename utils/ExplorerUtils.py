@@ -28,6 +28,70 @@ class ExplorerUtils(BaseUtil):
     REPORTS_JSON_FOLDER = "json"
     REPORTS_HTML_FOLDER = "html"
 
+    # ── Diálogos de seleção ─────────────────────────────────────────
+
+    @staticmethod
+    def resolve_initial_dir(path_or_dir: str) -> str:
+        """Resolve diretório inicial para diálogos."""
+        if not path_or_dir:
+            return ""
+        if os.path.isfile(path_or_dir):
+            return os.path.dirname(path_or_dir)
+        if os.path.isdir(path_or_dir):
+            return path_or_dir
+        # Pode ser um path que ainda não existe (output)
+        parent = os.path.dirname(path_or_dir)
+        if parent and os.path.isdir(parent):
+            return parent
+        return path_or_dir
+
+    @staticmethod
+    def open_file_dialog(
+        title: str,
+        initial_dir: str = "",
+        file_filter: str = "Todos (*.*)",
+        parent=None,
+    ) -> str:
+        """Abre diálogo para selecionar UM arquivo existente."""
+        from qgis.PyQt.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(parent, title, initial_dir, file_filter)
+        return path or ""
+
+    @staticmethod
+    def open_files_dialog(
+        title: str,
+        initial_dir: str = "",
+        file_filter: str = "Todos (*.*)",
+        parent=None,
+    ) -> list:
+        """Abre diálogo para selecionar MÚLTIPLOS arquivos existentes."""
+        from qgis.PyQt.QtWidgets import QFileDialog
+        paths, _ = QFileDialog.getOpenFileNames(parent, title, initial_dir, file_filter)
+        return list(paths)
+
+    @staticmethod
+    def save_file_dialog(
+        title: str,
+        initial_dir: str = "",
+        file_filter: str = "Todos (*.*)",
+        parent=None,
+    ) -> str:
+        """Abre diálogo para selecionar UM arquivo de saída (salvar)."""
+        from qgis.PyQt.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getSaveFileName(parent, title, initial_dir, file_filter)
+        return path or ""
+
+    @staticmethod
+    def select_directory_dialog(
+        title: str,
+        initial_dir: str = "",
+        parent=None,
+    ) -> str:
+        """Abre diálogo para selecionar UMA pasta."""
+        from qgis.PyQt.QtWidgets import QFileDialog
+        path = QFileDialog.getExistingDirectory(parent, title, initial_dir)
+        return path or ""
+
     @staticmethod
     def _get_logger(tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE) -> LogUtils:
         return LogUtils(tool=tool_key, class_name="ExplorerUtils")

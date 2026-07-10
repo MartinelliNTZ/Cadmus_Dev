@@ -57,6 +57,7 @@ class JsonVectorizationStep(BaseStep):
         vectorization_start = datetime.now().isoformat()
 
         from ..translator.JsonToVectorTranslator import JsonToVectorTranslator
+        from ...utils.vector.VectorLayerAttributes import VectorLayerAttributes
         from qgis.core import QgsProject
 
         layer_name = (
@@ -96,6 +97,14 @@ class JsonVectorizationStep(BaseStep):
                 },
             )
             raise RuntimeError("Falha ao criar camada via JsonToVectorTranslator: layer invalido")
+
+        # Reordenar atributos em ordem alfabética (case-insensitive)
+        reordered = VectorLayerAttributes.reorder_fields_alphabetically(layer)
+        if reordered and reordered.isValid():
+            layer = reordered
+            logger.debug("Atributos reorganizados em ordem alfabética")
+        else:
+            logger.warning("Não foi possível reordenar atributos alfabeticamente, mantendo ordem original")
 
         QgsProject.instance().addMapLayer(layer)
         context.set_result("layer", layer)

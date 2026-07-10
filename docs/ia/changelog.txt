@@ -224,3 +224,11 @@
   - Registrado em core/config/ToolRegistry.py na categoria VECTOR com order=70,
     usando _make_plugin_executor("...plugins.SaveTemporaryLayersPlugin")
   - Removido ToolKey.FILE_CONVERTER (não utilizado)
+2.3.47 10/07/2026
+[2.3.47.1][10/07/2026] Atributos do vetor reordenados alfabeticamente após vetorização:
+   - Adicionado import de VectorLayerAttributes em JsonVectorizationStep.run_inline()
+   - Inserida chamada a VectorLayerAttributes.reorder_fields_alphabetically(layer) logo após
+     criação da layer e antes de adicioná-la ao QgsProject
+   - Logs: debug quando reordenação bem-sucedida, warning quando falha (ordem original mantida)
+   - Utiliza método estático existente que cria nova layer em memória com campos ordenados
+     case-insensitive (A-Z), preservando dados e geometria

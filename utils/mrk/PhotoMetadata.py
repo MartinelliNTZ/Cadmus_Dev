@@ -439,6 +439,8 @@ class PhotoMetadata:
         """
         logger = PhotoMetadata._get_logger(tool_key)
 
+        # Rastreia quais fotos do skeleton receberam MRK
+        matched_filenames: set = set()
         matched_count = 0
 
         # Para cada ponto MRK, busca a foto correspondente no skeleton
@@ -452,6 +454,10 @@ class PhotoMetadata:
             except (ValueError, TypeError):
                 continue
 
+            # Extrai dados do MRK para log de diagnostico
+            mrk_file = point.get(MetadataFieldKey.MRK_FILE.value) or "?"
+            mrk_folder = point.get(MetadataFieldKey.MRK_FOLDER.value) or "?"
+
             # Procura no skeleton por fotos cujo nome contenha a sequência
             for filename, record in skeleton.items():
                 seq_match = PhotoMetadata.DJI_RE.search(filename)
@@ -464,25 +470,46 @@ class PhotoMetadata:
                     if record.get(MetadataFieldKey.COORD_SOURCE.value) == "MRK":
                         continue
 
-                    # Enriquece o registro com dados MRK (apenas atributos de contexto)
+                    # Enriquece o registro com dados MRK
                     flight_context = PhotoMetadata._extract_flight_context(point)
-                    # NÃO sobrescreve FlightNumber/FlightName se já vieram da Etapa 1
                     for k, v in flight_context.items():
                         if v is not None:
                             record[k] = v
 
-                    # ATENÇÃO: MRK NÃO define mais CoordSource nem QUALITY_FLAG.
-                    # As coordenadas vêm exclusivamente das fotos (EXIF/XMP).
-                    # O MRK agora é apenas um agregado de atributos de contexto
-                    # (MrkFile, MrkPath, MrkFolder, FlightNumber, FlightName, etc.)
+                    # Garante CoordSource e QualityFlag para rastreabilidade
+                    record[MetadataFieldKey.COORD_SOURCE.value] = "MRK"
+                    record[MetadataFieldKey.QUALITY_FLAG.value] = "OK"
+
+                    matched_filenames.add(filename)
                     matched_count += 1
                     break
+
+        # ── LOG DE DIAGNÓSTICO: fotos que NÃO receberam MRK ──
+        unmatched_count = 0
+        for filename, record in skeleton.items():
+            if record.get(MetadataFieldKey.COORD_SOURCE.value) != "MRK":
+                unmatched_count += 1
+                # Só loga as primeiras 20 unmatched para nao poluir
+                if unmatched_count <= 20:
+                    folder = record.get(MetadataFieldKey.FOLDER_LEVEL_1.value, "?")
+                    logger.debug(
+                        "Foto SEM match MRK",
+                        data={
+                            "filename": filename,
+                            "folder": folder,
+                            "seq": PhotoMetadata.DJI_RE.search(filename).group(1)
+                            if PhotoMetadata.DJI_RE.search(filename)
+                            else "N/A",
+                        },
+                    )
 
         logger.info(
             "Enriquecimento MRK concluido",
             data={
                 "total_points": len(points),
                 "matched_photos": matched_count,
+                "unmatched_photos": unmatched_count,
+                "total_photos_in_skeleton": len(skeleton),
             },
         )
 

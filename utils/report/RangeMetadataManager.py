@@ -38,10 +38,6 @@ class RangeMetadataManager:
         try:
             with open(target_path, "r", encoding="utf-8") as f:
                 self._config = yaml.safe_load(f)
-            total = len((self._config or {}).get("thresholds", {}))
-            self._logger.info(
-                f"Config de report carregada: {target_path} ({total} indicadores)"
-            )
         except Exception as e:
             raise ValueError(f"Erro carregando config: {e}")
 

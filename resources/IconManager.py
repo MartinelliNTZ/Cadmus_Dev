@@ -47,6 +47,7 @@ class IconManager:
     DIFFERENCE_BETWEEN_LINES = "difference_between_lines.ico"
     SAVE_TEMPORARY_LAYER = "save_temporary_layer.ico"
     PATH_EXTENSION = "path_extension_tool.ico"
+    FILE_CONVERTER = "file_converter.ico"
 
     # Social icons
     GITHUB = "GithubIcon.ico"

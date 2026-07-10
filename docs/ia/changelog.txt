@@ -204,3 +204,23 @@
    - HTTP não-200, redirect sem Location e dados nulos também retornam result={} (gracefull)
    - Log nivel WARNING para falhas de rede, INFO para redirects, mantendo rastreabilidade
    - Evita que pipeline de drone ou CoordClickTool seja abortada por indisponibilidade da API
+2.3.46 10/07/2026
+[2.3.46.1][10/07/2026] Nova ferramenta: Salvar Temporárias (SaveTemporaryLayersPlugin):
+  - Reutilizado ToolKey.SAVE_TEMPORARY_LAYER existente em utils/ToolKeys.py
+  - Adicionada cor SAVE_TEMPORARY_LAYER: "#3498DB" em ToolKeys.TOOL_KEY_COLORS
+  - Adicionadas strings STR.SAVE_TEMPORARY_LAYER_TITLE/TOOLTIP e demais em i18n/Strings_pt_BR.py
+  - Ícone SAVE_TEMPORARY_LAYER já existente em resources/IconManager.py (save_temporary_layer.ico)
+  - Criado plugins/SaveTemporaryLayersPlugin.py com:
+    - InputFieldsWidget para prefixo e sufixo nos nomes dos arquivos
+    - DropdownSelectorWidget para extensões vetor (shp, gpkg, geojson, kml, dxf, gml, csv)
+    - DropdownSelectorWidget para extensões raster (tif, jp2, png, jpg)
+    - GridComplexSelector modo output sem parent, com 📁, 🛠️, ➡️
+    - Import relativo corrigido: from ..resources.widgets.grid.GridComplexSelector
+    - _get_temporary_layers(): percorre QgsProject.layerTreeRoot() e filtra camadas com source "memory:"
+    - execute_tool(): salva vetores com QgsVectorFileWriter e rasters com QgsRasterFileWriter
+    - Fallback para pasta do projeto se nenhuma saída for selecionada
+    - Subpastas vectors/ e rasters/ criadas automaticamente na pasta de saída
+    - Feedback ao usuário via QgisMessageUtil.bar_info/bar_warning
+  - Registrado em core/config/ToolRegistry.py na categoria VECTOR com order=70,
+    usando _make_plugin_executor("...plugins.SaveTemporaryLayersPlugin")
+  - Removido ToolKey.FILE_CONVERTER (não utilizado)

@@ -384,6 +384,20 @@ class ToolRegistry:
         )
         tools.append(divide_points_by_strips)
 
+        save_temporary_layer = Tool(
+            tool_key=ToolKey.SAVE_TEMPORARY_LAYER,
+            name=STR.SAVE_TEMPORARY_LAYER_TITLE,
+            icon=im.icon(im.SAVE_TEMPORARY_LAYER),
+            category=self.VECTOR,
+            tool_type=ToolTypeEnum.DIALOG,
+            main_action=self._main_action_prefs.get(ToolKey.SAVE_TEMPORARY_LAYER, False),
+            executor=self._make_plugin_executor("...plugins.SaveTemporaryLayersPlugin"),
+            tooltip=STR.SAVE_TEMPORARY_LAYER_TOOLTIP,
+            order=70,
+            show_in_toolbar=True,
+        )
+        tools.append(save_temporary_layer)
+
         path_extension = Tool(
             tool_key=ToolKey.PATH_EXTENSION_TOOL,
             name=STR.PATH_EXTENSION_TITLE,

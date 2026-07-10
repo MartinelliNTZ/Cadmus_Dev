@@ -70,6 +70,7 @@ class ToolKey:
         VECTOR_TO_SVG: "#7FB3D5",  # azul suave -> exportacao vetorial
         CREATE_PROJECT: "#73C6B6",  # verde agua -> criacao de projeto
         PATH_EXTENSION_TOOL: "#E67E22",  # laranja -> path extension
+        SAVE_TEMPORARY_LAYER: "#3498DB",  # azul -> salvar temporárias
         # === Processing / analises ===
         ATTRIBUTE_STATISTICS: "#F7DC6F",  # amarelo -> estatistica
         DIFFERENCE_FIELDS: "#BB8FCE",  # roxo -> comparacao

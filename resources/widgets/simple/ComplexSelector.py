@@ -12,7 +12,7 @@ Lógica central:
   - O widget sempre guarda: root_path (diretório base) + selected_list (itens)
   - 🔍 clicado → seleciona arquivo(s) via ExplorerUtils
   - 📁 clicado → seleciona pasta(s) via ExplorerUtils
-  - 📂 (só output) → gera path com ProjectUtil + subfolder + fixed_name
+  - 🛠️ (só output) → gera path com ProjectUtil + subfolder + fixed_name
   - 📄 (só input) → ListFileDialog
   - ➡️ → abre o Windows Explorer no diretório do path atual
 
@@ -34,10 +34,10 @@ from typing import Callable, Optional
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QLineEdit
 
 from core.config.LogUtils import LogUtils
-from resources.widgets.dialogs.ListFileDialog import ListFileDialog
-from resources.widgets.simple.SimpleSecondaryButton import SimpleSecondaryButton
-from utils.ExplorerUtils import ExplorerUtils
-from utils.ProjectUtil import ProjectUtil
+from resources.widgets.dialogs.ListFileDialog import ListFileDialog #ignorar nao exsite 
+from resources.widgets.simple.SimpleSecondaryButton import SimpleSecondaryButton  #usar simplebuttonwidget
+from utils.ExplorerUtils import ExplorerUtils #usar a explorer utils deste projeto
+from utils.ProjectUtil import ProjectUtil #usar o projectutils desse projeto 
 
 
 class ComplexSelector(QWidget):

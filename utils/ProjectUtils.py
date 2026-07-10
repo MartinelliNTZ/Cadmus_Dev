@@ -524,6 +524,93 @@ class ProjectUtils(BaseUtil):
         return temp_layers
 
     @staticmethod
+    def get_temp_file_layers(
+        project: Optional[QgsProject] = None,
+        allow_temp_dir: bool = True,
+        logger=None,
+    ) -> list:
+        """
+        Retorna camadas cujo arquivo fonte está em diretório temporário do sistema
+        (ex: C:\\Users\\...\\AppData\\Local\\Temp\\processing_...\\OUTPUT.tif).
+
+        Detecta por:
+        - 'Temp' no path (case-insensitive)
+        - Ou caminho começa com tempdir real resolvido
+
+        Útil para encontrar rasters/vectors temporários que não são do tipo 'memory'
+        mas foram gerados por algoritmos de processing e estão em pastas temporárias.
+
+        Args:
+            project: Instância do projeto (default: QgsProject.instance())
+            allow_temp_dir: Se True, considera camadas em qualquer subpasta de temp.
+                            Se False, retorna lista vazia (desabilitado).
+            logger: Opcional, para logging de debug
+
+        Returns:
+            list de QgsMapLayer cujo source está em diretório temporário
+        """
+        if not allow_temp_dir:
+            return []
+
+        import tempfile
+        from pathlib import Path
+
+        resolved = project or QgsProject.instance()
+        all_layers = list(resolved.mapLayers().values())
+
+        # Resolver tempdir real (expande ~, resolve symlinks, caminhos curtos 8.3)
+        temp_root = str(Path(tempfile.gettempdir()).resolve()).lower()
+        temp_marker = os.path.sep + "temp" + os.path.sep
+
+        temp_file_layers = []
+        for l in all_layers:
+            if not l or not l.isValid():
+                continue
+            source = l.source() or ""
+            if not source:
+                continue
+
+            # Extrair caminho do arquivo (remove |layername= etc)
+            file_path = source.split("|")[0]
+            file_path_resolved = str(Path(file_path).resolve()).lower()
+
+            # Log detalhado para debug
+            if logger:
+                logger.debug(
+                    f"  verificando layer: name='{l.name()}', "
+                    f"file_path='{file_path}', "
+                    f"resolved='{file_path_resolved}', "
+                    f"temp_root='{temp_root}'"
+                )
+
+            # Verificar se contém '\\Temp\\' ou '\\temp\\' no path (case-insensitive, compatível com 8.3)
+            is_in_temp = temp_marker in file_path_resolved
+
+            # Fallback: verificar se começa com temp_root real
+            if not is_in_temp:
+                is_in_temp = file_path_resolved.startswith(temp_root)
+
+            if is_in_temp:
+                temp_file_layers.append(l)
+
+        if logger:
+            from qgis.core import QgsRasterLayer
+            logger.debug(
+                f"get_temp_file_layers: total={len(all_layers)}, "
+                f"temp_root='{temp_root}', encontradas={len(temp_file_layers)}"
+            )
+            for l in temp_file_layers:
+                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                logger.debug(
+                    f"  temp_file_layer: name='{l.name()}', "
+                    f"type='{layer_type_str}', "
+                    f"provider='{l.providerType()}', "
+                    f"source='{l.source()}'"
+                )
+
+        return temp_file_layers
+
+    @staticmethod
     def add_layer_if_missing(layer):
         """Adiciona a layer ao projeto apenas se ainda nao estiver registrada."""
         try:

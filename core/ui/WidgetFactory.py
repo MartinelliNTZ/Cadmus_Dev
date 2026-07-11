@@ -17,10 +17,10 @@ from ...resources.widgets.AppBarWidget import AppBarWidget
 from ...resources.widgets.AttributeSelectorWidget import AttributeSelectorWidget
 from ...resources.widgets.RadioButtonGridWidget import RadioButtonGridWidget
 from ...resources.widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
-from ...resources.widgets.SelectorWidget import SelectorWidget
-from ...resources.widgets.InputFieldsWidget import InputFieldsWidget
+from ...resources.widgets.simple.SelectorWidget import SelectorWidget
+from ...resources.widgets.grid.GridInputFieldsWidget import GridInputFieldsWidget
 from ...resources.widgets.SimpleButtonWidget import SimpleButtonWidget
-from ...resources.widgets.CheckboxGridWidget import CheckboxGridWidget
+from ...resources.widgets.grid.GridCheckboxWidget import GridCheckboxWidget
 from ...resources.widgets.ReadOnlyFieldWidget import ReadOnlyFieldWidget
 from ...resources.widgets.DropdownSelectorWidget import DropdownSelectorWidget
 from ...resources.widgets.ColorButtonWidget import ColorButtonWidget
@@ -212,7 +212,7 @@ class WidgetFactory:
         if options_data is None:
             options_data = options_dict
 
-        widget = CheckboxGridWidget(
+        widget = GridCheckboxWidget(
             options_data,
             items_per_row=items_per_row,
             checked_by_default=checked_by_default,
@@ -806,7 +806,7 @@ class WidgetFactory:
         if separator_top:
             layout.addWidget(WidgetFactory.create_separator())
 
-        widget = InputFieldsWidget(fields_dict, parent=parent)
+        widget = GridInputFieldsWidget(fields_dict, parent=parent)
         widget.setStyleSheet(Styles.input_fields_widget())
         layout.addWidget(widget)
 

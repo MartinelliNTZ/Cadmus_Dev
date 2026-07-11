@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QCheckBox, QLabel, QPushButton
 
-from ...resources.styles.Styles import Styles
+from ...styles.Styles import Styles
 
 
 class DependentCheckBox(QCheckBox):
@@ -35,7 +35,7 @@ class DependentCheckBox(QCheckBox):
             dep.setEnabled(enabled)
 
 
-class CheckboxGridWidget(QWidget):
+class GridCheckboxWidget(QWidget):
     """Grid de checkboxes com suporte a formato legado e formato expandido.
 
     Formatos aceitos:

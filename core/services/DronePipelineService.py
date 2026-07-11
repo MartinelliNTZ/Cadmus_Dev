@@ -30,6 +30,7 @@ from ...utils.Preferences import Preferences
 from ...utils.ProjectUtils import ProjectUtils
 from ...utils.QgisMessageUtil import QgisMessageUtil
 from ...utils.ToolKeys import ToolKey
+from ...utils.LicenseManager import LicenseManager
 from ...utils.mrk.MetadataFields import MetadataFields
 from ...utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ...utils.vector.VectorLayerSource import VectorLayerSource
@@ -147,8 +148,15 @@ class DronePipelineService:
             AltimetryStep(),
             JsonVectorizationStep(source=source),
         ]
-        if prefs.get("generate_report", True):
-            steps.append(ReportGenerationStep())
+        should_generate_report = prefs.get("generate_report", True)
+        if should_generate_report:
+            license_mgr = LicenseManager(tool_key=ToolKey.DRONE_COORDINATES)
+            if license_mgr.is_license_valid():
+                steps.append(ReportGenerationStep())
+            else:
+                logger.warning(
+                    "Licença inválida — relatório não será gerado"
+                )
 
         # ── Dados extras para callback (modo MRK) ─────────────────
         if file_path:

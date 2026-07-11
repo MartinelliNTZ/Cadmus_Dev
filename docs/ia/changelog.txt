@@ -262,3 +262,14 @@
     * Sem cache → valida do zero
   - Salva license_status ("active"/"inactive") e license_expiry (YYYY-MM-DD) nas system_preferences
   - Registrado em utils/__init__.py com export LicenseManager
+[2.3.49.3][11/07/2026] DronePipelineService verifica licença antes de gerar relatório:
+  - Adicionado import de LicenseManager em DronePipelineService
+  - Se license_key estiver configurada nas system_preferences, valida via LicenseManager.is_license_valid()
+  - Se license_key NÃO estiver configurada, permite geração do relatório sem validação
+  - Se license_key configurada mas inválida, suprime ReportGenerationStep com log warning
+[2.3.49.4][11/07/2026] DroneCoordinates UI condicionada à licença em _build_ui():
+  - LicenseManager.is_license_valid() consultado uma vez no início de _build_ui()
+  - Se inválida: logo, título do projeto e generate_report NÃO são criados na UI
+  - Se inválida: checkbox_options copia CHECKBOX_OPTIONS e remove "generate_report"
+  - _load_prefs() e _save_prefs() usam hasattr para acesso seguro a atributos opcionais
+  - Nenhum conhecimento de license_key fora do LicenseManager

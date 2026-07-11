@@ -9,6 +9,7 @@ from ..utils.vector.VectorLayerSource import VectorLayerSource
 from ..utils.StringManager import StringManager
 from ..utils.Preferences import save_tool_prefs
 from ..utils.ToolKeys import ToolKey
+from ..utils.LicenseManager import LicenseManager
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..utils.DependenciesManager import DependenciesManager
@@ -54,6 +55,10 @@ class DroneCordinates(BasePluginMTL):
             enable_scroll=True,
         )
 
+        # Verifica licença — controla exibição de itens do relatório
+        license_mgr = LicenseManager(tool_key=self.TOOL_KEY)
+        is_license_valid = license_mgr.is_license_valid()
+
         # ====== PASTA MRK ======
         folder_layout, self.folder_selector = WidgetFactory.create_path_selector(
             parent=self,
@@ -71,40 +76,46 @@ class DroneCordinates(BasePluginMTL):
             )
         )
 
-        # ====== LOGO / IMAGE SELECTOR ======
-        logo_layout, self.logo_selector = WidgetFactory.create_save_file_selector(
-            parent=self,
-            file_filter=StringManager.FILTER_IMAGES,
-            checkbox_text=STR.USE_LOGO,
-            label_text=STR.LOGO_LABEL,
-            separator_top=False,
-            separator_bottom=False,
-            mode="file",
-        )
-        self.opts_collapsible.add_content_layout(logo_layout)
+        # ====== LOGO / IMAGE SELECTOR (só se licença válida) ======
+        if is_license_valid:
+            logo_layout, self.logo_selector = WidgetFactory.create_save_file_selector(
+                parent=self,
+                file_filter=StringManager.FILTER_IMAGES,
+                checkbox_text=STR.USE_LOGO,
+                label_text=STR.LOGO_LABEL,
+                separator_top=False,
+                separator_bottom=False,
+                mode="file",
+            )
+            self.opts_collapsible.add_content_layout(logo_layout)
 
-        # ====== PROJETO TITLE ======
-        title_fields = {
-            "project_title": {
-                "title": STR.PROJECT_TITLE,
-                "description": STR.PROJECT_TITLE_HINT,
-                "type": "text",
-                "default": "",
+        # ====== PROJETO TITLE (só se licença válida) ======
+        if is_license_valid:
+            title_fields = {
+                "project_title": {
+                    "title": STR.PROJECT_TITLE,
+                    "description": STR.PROJECT_TITLE_HINT,
+                    "type": "text",
+                    "default": "",
+                }
             }
-        }
-        title_layout, self.title_input = WidgetFactory.create_input_fields_widget(
-            fields_dict=title_fields,
-            parent=self,
-            separator_top=False,
-            separator_bottom=False,
-        )
-        self.opts_collapsible.add_content_layout(title_layout)
+            title_layout, self.title_input = WidgetFactory.create_input_fields_widget(
+                fields_dict=title_fields,
+                parent=self,
+                separator_top=False,
+                separator_bottom=False,
+            )
+            self.opts_collapsible.add_content_layout(title_layout)
 
         # ====== OPÇÕES (CollapsibleParametersWidget) ======
 
-        # Criar checkboxes
+        # Monta checkboxes — remove generate_report se licença inválida
+        checkbox_options = dict(self.CHECKBOX_OPTIONS)
+        if not is_license_valid:
+            checkbox_options.pop("generate_report", None)
+
         opts_checkbox_layout, self.checkbox_map = WidgetFactory.create_checkbox_grid(
-            options_data=self.CHECKBOX_OPTIONS,
+            options_data=checkbox_options,
             items_per_row=1,
             checked_by_default=False,
             separator_bottom=False,
@@ -394,9 +405,9 @@ class DroneCordinates(BasePluginMTL):
             self.preferences.get("use_mrk", True)
         )
         self.checkbox_map["photos"].setChecked(self.preferences.get("photos", True))
-        self.checkbox_map["generate_report"].setChecked(
-            self.preferences.get("generate_report", True)
-        )
+        chk_report = self.checkbox_map.get("generate_report")
+        if chk_report:
+            chk_report.setChecked(self.preferences.get("generate_report", True))
         initial_selected = self.preferences.get(self.PREF_INITIAL_FIELDS)
         exif_selected = self.preferences.get(self.PREF_EXIF_FIELDS)
         xmp_selected = self.preferences.get(self.PREF_XMP_FIELDS)
@@ -445,12 +456,13 @@ class DroneCordinates(BasePluginMTL):
         )
         self.save_track_selector.set_enabled(self.preferences.get("save_file", False))
         self.save_track_selector.set_file_path(self.preferences.get("output_path", ""))
-        if self.preferences.get("logo_path", ""):
+        if hasattr(self, "logo_selector") and self.preferences.get("logo_path", ""):
             self.logo_selector.set_file_path(self.preferences.get("logo_path", ""))
             self.logo_selector.set_enabled(self.preferences.get("logo_enabled", False))
-        title_val = self.preferences.get("project_title", "")
-        if title_val:
-            self.title_input.set_values({"project_title": title_val})
+        if hasattr(self, "title_input"):
+            title_val = self.preferences.get("project_title", "")
+            if title_val:
+                self.title_input.set_values({"project_title": title_val})
         self.qml_points_selector.set_enabled(
             self.preferences.get("apply_style_points", False)
         )
@@ -499,9 +511,9 @@ class DroneCordinates(BasePluginMTL):
         self.preferences["recursive"] = self.checkbox_map["recursive"].isChecked()
         self.preferences["use_mrk"] = self.checkbox_map["use_mrk"].isChecked()
         self.preferences["photos"] = self.checkbox_map["photos"].isChecked()
-        self.preferences["generate_report"] = self.checkbox_map[
-            "generate_report"
-        ].isChecked()
+        chk_report = self.checkbox_map.get("generate_report")
+        if chk_report:
+            self.preferences["generate_report"] = chk_report.isChecked()
         self.preferences[self.PREF_INITIAL_FIELDS] = self._get_selected_initial_fields()
         self.preferences[self.PREF_EXIF_FIELDS] = self._get_selected_exif_fields()
         self.preferences[self.PREF_XMP_FIELDS] = self._get_selected_xmp_fields()
@@ -511,12 +523,14 @@ class DroneCordinates(BasePluginMTL):
         self.preferences["save_file_pts"] = self.save_points_selector.is_enabled()
         self.preferences["output_path"] = self.save_track_selector.get_file_path()
         self.preferences["output_path_pts"] = self.save_points_selector.get_file_path()
-        project_title_values = self.title_input.get_values()
-        self.preferences["project_title"] = project_title_values.get(
-            "project_title", ""
-        )
-        self.preferences["logo_path"] = self.logo_selector.get_file_path().strip()
-        self.preferences["logo_enabled"] = self.logo_selector.is_enabled()
+        if hasattr(self, "title_input"):
+            project_title_values = self.title_input.get_values()
+            self.preferences["project_title"] = project_title_values.get(
+                "project_title", ""
+            )
+        if hasattr(self, "logo_selector"):
+            self.preferences["logo_path"] = self.logo_selector.get_file_path().strip()
+            self.preferences["logo_enabled"] = self.logo_selector.is_enabled()
         self.preferences["apply_style_track"] = self.qml_track_selector.is_enabled()
         self.preferences["qml_path_track"] = self.qml_track_selector.get_file_path()
         self.preferences["apply_style_points"] = self.qml_points_selector.is_enabled()

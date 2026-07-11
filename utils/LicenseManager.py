@@ -2,17 +2,22 @@
 """
 LicenseManager — Gerenciamento de licença com cache e renovação automática
 ===========================================================================
-Gerencia validação de licença com intervalo de renovação e cache de status.
+Gerencia validação de licença com consulta ao servidor Supabase e cache de status.
 
 Regras de validação:
-- Se a licença está ativa e dentro do prazo (> 7 dias restantes) → retorna True (cache)
-- Se faltam 0-7 dias para expirar → tenta validar, mas retorna True mesmo se falhar
-- Se expirou → valida obrigatoriamente; se inválida, salva como inativa e retorna False
+- Se a licença está ativa e dentro do prazo (> 7 dias restantes) -> retorna True (cache)
+- Se faltam 0-7 dias para expirar -> tenta validar no servidor, mas retorna True
+  mesmo se falhar (offline/erro)
+- Se expirou -> valida obrigatoriamente; se inválida, salva como inativa e retorna False
+- Chave válida é consultada no Supabase via Security.SUPABASE_*
 """
 
 from datetime import datetime, timedelta
 from typing import Optional
 
+import requests
+
+from ..core.config.Security import Security
 from .BaseUtil import BaseUtil
 from .Preferences import Preferences
 from .ToolKeys import ToolKey
@@ -24,22 +29,23 @@ class LicenseManager(BaseUtil):
 
     Constantes:
         RENEWAL_WINDOW_DAYS: int — dias antes do vencimento para tentar renovar (7)
-        VALID_LICENSE_KEY: str — chave válida atual (para validação local)
 
     Preferências utilizadas (system_preferences):
         license_key: str — chave de licença fornecida pelo usuário
         license_status: str — "active" | "inactive" | ""
         license_expiry: str — data de expiração no formato "YYYY-MM-DD"
+        license_tier: str — tier da licença "BASIC" | "PRO" | "ENTERPRISE" | ""
     """
 
     RENEWAL_WINDOW_DAYS: int = 7
-    VALID_LICENSE_KEY: str = "1234"
 
     DATE_FORMAT: str = "%Y-%m-%d"
 
     LICENSE_TIER_BASIC: str = "BASIC"
     LICENSE_TIER_PRO: str = "PRO"
     LICENSE_TIER_ENTERPRISE: str = "ENTERPRISE"
+    LICENSE_TIER_PREMIUM: str = "PREMIUM"
+    LICENSE_TIER_MASTER: str = "MASTER"
 
     def __init__(self, tool_key: str = ToolKey.UNTRACEABLE):
         """
@@ -60,11 +66,12 @@ class LicenseManager(BaseUtil):
 
         Fluxo:
         1. Carrega license_key das preferências do sistema
-        2. Se não há license_key → False
-        3. Se há cache ativo (status="active" + expiry no futuro com margem > 7 dias) → True
-        4. Se está no período de renovação (0-7 dias antes do fim) → tenta validar,
-           mas retorna True mesmo em falha (atualiza expiry se conseguir)
-        5. Se expirou → valida obrigatoriamente; se inválida marca como inativa → False
+        2. Se não há license_key -> False
+        3. Se há cache ativo (status="active" + expiry no futuro com margem > 7 dias) -> True
+        4. Se está no período de renovação (0-7 dias antes do fim) -> tenta validar
+           no servidor, mas retorna True mesmo em falha (atualiza expiry se conseguir)
+        5. Se expirou -> valida obrigatoriamente no servidor; se inválida marca como
+           inativa -> False
 
         Returns:
             bool: True se a licença é válida, False caso contrário
@@ -88,7 +95,7 @@ class LicenseManager(BaseUtil):
                 days_remaining = (expiry - today).days
 
                 if days_remaining > self.RENEWAL_WINDOW_DAYS:
-                    # Cache válido, ainda muito tempo → retorna True sem verificar
+                    # Cache válido, ainda muito tempo -> retorna True sem verificar
                     self.logger.debug(
                         f"Licença em cache ativa, expira em {days_remaining} dias"
                     )
@@ -98,18 +105,19 @@ class LicenseManager(BaseUtil):
                     # Período de renovação (0-7 dias restantes)
                     self.logger.debug(
                         f"Licença em renovação ({days_remaining} dias restantes), "
-                        f"tentando validar..."
+                        f"tentando validar no servidor..."
                     )
                     return self._try_renew(license_key, prefs, today)
 
                 else:
-                    # Expirada → valida obrigatoriamente
+                    # Expirada -> valida obrigatoriamente
                     self.logger.debug(
-                        f"Licença expirada há {-days_remaining} dias, validando..."
+                        f"Licença expirada há {-days_remaining} dias, "
+                        f"validando no servidor..."
                     )
                     return self._validate_and_update(license_key, prefs, today)
 
-        # --- Caso 2: Sem cache → valida do zero ---
+        # --- Caso 2: Sem cache -> valida do zero ---
         self.logger.debug("Nenhum cache de licença encontrado, validando...")
         return self._validate_and_update(license_key, prefs, today)
 
@@ -123,8 +131,8 @@ class LicenseManager(BaseUtil):
                 "key_preview": str (primeiros 4 chars + "****"),
                 "status": str ("active" | "inactive" | ""),
                 "expiry": str (data formatada ou ""),
-                "tier": str ("BASIC" | "PRO" | "ENTERPRISE" | ""),
-                "level": str ("Básico" | "Profissional" | "Enterprise" | ""),
+                "tier": str ("BASIC" | "PRO" | "ENTERPRISE" | "PREMIUM" | "MASTER" | ""),
+                "level": str ("Básico" | "Profissional" | "Enterprise" | "Premium" | "Master" | ""),
                 "is_active": bool,
                 "days_remaining": int,
             }
@@ -158,11 +166,11 @@ class LicenseManager(BaseUtil):
 
     def save_license_key(self, license_key: str) -> dict:
         """
-        Salva e valida uma chave de licença.
+        Salva e valida uma chave de licença junto ao servidor.
 
         Fluxo:
-        1. Valida a chave
-        2. Se válida: salva chave, status "active", expiry, tier
+        1. Valida a chave no Supabase
+        2. Se válida: salva chave, status "active", expiry (+30 dias), tier
         3. Se inválida: NÃO salva, retorna erro
 
         Args:
@@ -193,7 +201,8 @@ class LicenseManager(BaseUtil):
         Preferences.save_tool_prefs(ToolKey.SYSTEM, prefs)
 
         self.logger.debug(
-            f"Licença salva com sucesso: tier={tier}, expira={new_expiry.strftime(self.DATE_FORMAT)}"
+            f"Licença salva com sucesso: tier={tier}, "
+            f"expira={new_expiry.strftime(self.DATE_FORMAT)}"
         )
         return {"success": True, "message": "Licença salva e validada com sucesso."}
 
@@ -217,7 +226,7 @@ class LicenseManager(BaseUtil):
     @staticmethod
     def _validate_and_get_tier(license_key: str) -> tuple:
         """
-        Valida a chave e retorna (is_valid, tier).
+        Valida a chave no servidor Supabase e retorna (is_valid, tier).
 
         Args:
             license_key: Chave de licença.
@@ -225,10 +234,71 @@ class LicenseManager(BaseUtil):
         Returns:
             tuple: (bool, str)
         """
-        if license_key == LicenseManager.VALID_LICENSE_KEY:
-            return True, LicenseManager.LICENSE_TIER_PRO
+        result = LicenseManager._query_server(license_key)
 
+        if result is not None:
+            # Servidor respondeu
+            ativo = result.get("ativo", False)
+            if ativo:
+                nivel = result.get("nivel", 1)
+                tier = LicenseManager._nivel_to_tier(nivel)
+                return True, tier
+            return False, ""
+
+        # Servidor indisponível — falha segura
         return False, ""
+
+    @staticmethod
+    def _query_server(license_key: str) -> Optional[dict]:
+        """
+        Consulta a chave no Supabase.
+
+        Args:
+            license_key: Chave a consultar.
+
+        Returns:
+            Optional[dict]: Registro da chave (com 'nivel', 'ativo') ou None se
+                            não encontrada ou erro de conexão.
+        """
+        try:
+            url = f"{Security.SUPABASE_URL}/rest/v1/{Security.SUPABASE_LICENSE_TABLE}"
+            params = {
+                "api_key": f"eq.{license_key}",
+                "select": "*",
+            }
+            resp = requests.get(
+                url,
+                headers=Security.SUPABASE_HEADERS,
+                params=params,
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            if isinstance(data, list) and len(data) > 0:
+                return data[0]
+
+            return None  # Não encontrou a chave
+
+        except requests.RequestException as e:
+            # Log silencioso — não quebra fluxo em caso de offline
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Falha ao consultar servidor de licença: {e}"
+            )
+            return None
+
+    @staticmethod
+    def _nivel_to_tier(nivel: int) -> str:
+        """Converte nível numérico (1-5) para tier string."""
+        mapping = {
+            1: LicenseManager.LICENSE_TIER_BASIC,
+            2: LicenseManager.LICENSE_TIER_PRO,
+            3: LicenseManager.LICENSE_TIER_ENTERPRISE,
+            4: LicenseManager.LICENSE_TIER_PREMIUM,
+            5: LicenseManager.LICENSE_TIER_MASTER,
+        }
+        return mapping.get(nivel, LicenseManager.LICENSE_TIER_BASIC)
 
     @staticmethod
     def _tier_to_label(tier: str) -> str:
@@ -237,13 +307,15 @@ class LicenseManager(BaseUtil):
             LicenseManager.LICENSE_TIER_BASIC: "Básico",
             LicenseManager.LICENSE_TIER_PRO: "Profissional",
             LicenseManager.LICENSE_TIER_ENTERPRISE: "Enterprise",
+            LicenseManager.LICENSE_TIER_PREMIUM: "Premium",
+            LicenseManager.LICENSE_TIER_MASTER: "Master",
         }
         return labels.get(tier, "")
 
     @staticmethod
     def _check_license(license_key: str) -> bool:
         """
-        Valida a chave de licença localmente.
+        Valida a chave de licença no servidor Supabase.
 
         Args:
             license_key: Chave de licença a ser validada.
@@ -251,14 +323,21 @@ class LicenseManager(BaseUtil):
         Returns:
             bool: True se a chave é válida, False caso contrário.
         """
-        return license_key == LicenseManager.VALID_LICENSE_KEY
+        result = LicenseManager._query_server(license_key)
+
+        if result is not None:
+            ativo = result.get("ativo", False)
+            return bool(ativo)
+
+        # Servidor indisponível — retorna False para validações críticas
+        return False
 
     def _try_renew(self, license_key: str, prefs: dict, today: datetime.date) -> bool:
         """
         Tenta renovar a licença no período de janela (0-7 dias antes do fim).
 
-        Se a validação for bem-sucedida, atualiza a data de expiração.
-        Se falhar (qualquer motivo), ainda retorna True (graça).
+        Se a validação no servidor for bem-sucedida, atualiza a data de expiração.
+        Se falhar (offline/erro), ainda retorna True (período de graça).
 
         Args:
             license_key: Chave de licença.
@@ -274,7 +353,8 @@ class LicenseManager(BaseUtil):
             new_expiry = today + timedelta(days=30)
             self._save_license_cache(prefs, "active", new_expiry)
             self.logger.debug(
-                f"Licença renovada com sucesso até {new_expiry.strftime(self.DATE_FORMAT)}"
+                f"Licença renovada com sucesso até "
+                f"{new_expiry.strftime(self.DATE_FORMAT)}"
             )
         else:
             self.logger.warning(
@@ -288,7 +368,7 @@ class LicenseManager(BaseUtil):
         self, license_key: str, prefs: dict, today: datetime.date
     ) -> bool:
         """
-        Valida a licença e atualiza o cache nas preferências.
+        Valida a licença no servidor e atualiza o cache nas preferências.
 
         Args:
             license_key: Chave de licença.

@@ -1,15 +1,12 @@
-
-
-
 class Security:
-    SUBABASE_API_KEY = "sb_publishable_TTKVxJBQndH8tqtnyru1Uw_CVwgVzxE"
+    """Configurações de segurança e credenciais para serviços externos."""
 
-    SUPABASE_HEADERS = {
-        "apikey": SUBABASE_API_KEY,
-        "Authorization": f"Bearer {SUBABASE_API_KEY}"
+    SUPABASE_URL: str = "https://ynlameyuhvmesozcuanh.supabase.co"
+    SUPABASE_API_KEY: str = "sb_publishable_TTKVxJBQndH8tqtnyru1Uw_CVwgVzxE"
+
+    SUPABASE_HEADERS: dict = {
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": f"Bearer {SUPABASE_API_KEY}",
     }
 
-    SUPABASE_PARAMS = {
-        "api_key": "eq.A7B2C-H6B8D-L9B4X",
-        "select": "*"
-    }
+    SUPABASE_LICENSE_TABLE: str = "api_keys"

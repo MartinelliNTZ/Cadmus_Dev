@@ -705,9 +705,25 @@
                 {% if a.flight_ids and a.flight_ids|length > 0 %}
                 <tr style="background: transparent;">
                     <td colspan="7" style="padding: 2px 8px 8px 8px; border: none;">
-                        <span class="muted" style="font-size: 11px;">Voos afetados: {{ a.flight_ids | join(', ') }}</span>
+                        <span class="muted" style="font-size: 11px;">Voos afetados:
+                        {% for fid in a.flight_ids %}
+                            {% if base_folder %}
+                                <a href="file:///{{ base_folder | replace('/', '\\\\') }}" target="_blank" style="color: var(--l4); text-decoration: underline;">{{ fid }}</a>{% if not loop.last %}, {% endif %}
+                            {% else %}
+                                {{ fid }}{% if not loop.last %}, {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        </span>
                         {% if a.photos and a.photos|length > 0 %}
-                        <br><span class="muted" style="font-size: 11px;">Fotos: {{ a.photos | join(', ') }}</span>
+                        <br><span class="muted" style="font-size: 11px;">Fotos:
+                        {% for photo in a.photos %}
+                            {% if photo_path_map.get(photo) %}
+                                <a href="file:///{{ photo_path_map[photo] | replace('/', '\\\\') }}" target="_blank" style="color: var(--l5); text-decoration: underline;" title="Clique para abrir a pasta da foto">{{ photo }}</a>{% if not loop.last %}, {% endif %}
+                            {% else %}
+                                {{ photo }}{% if not loop.last %}, {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        </span>
                         {% endif %}
                     </td>
                 </tr>

@@ -500,6 +500,15 @@ class RenderEngine:
         worst_results = sorted(results, key=lambda r: r.overall_score)[:30]
         per_indicator = agg.get("per_indicator", {})
 
+        # ── Mapear filename → caminho completo das fotos ──
+        photo_path_map: Dict[str, str] = {}
+        for r in results:
+            fname = getattr(r, "filename", None)
+            if fname:
+                path = r.get_indicator("Path") if hasattr(r, "get_indicator") else None
+                if path:
+                    photo_path_map[fname] = str(path)
+
         # ── Converter ícones para base64 (portátil, sem dependência de file://) ──
         def _icon_to_base64(icon_name: str) -> str:
             """Converte ícone do IconManager para base64 data URI."""
@@ -579,6 +588,8 @@ class RenderEngine:
             email_icon_url=email_icon_url,
             linkedin_icon_url=linkedin_icon_url,
             buy_me_a_coffee_icon_url=buy_me_a_coffee_icon_url,
+            photo_path_map=photo_path_map,
+            base_folder=json_meta.get("base_folder", ""),
         )
 
     def save_report(self, html: str, output_path: str = "relatorio.html") -> None:

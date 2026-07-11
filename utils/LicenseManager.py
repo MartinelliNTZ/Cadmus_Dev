@@ -13,7 +13,8 @@ Regras de validação:
 - Chave válida é consultada no Supabase via Security.SUPABASE_*
 
 A persistência dos dados de licença é feita via LicenseFileManager em arquivo
-ofuscado (%TEMP%/cadmus/license.dat) ao invés de Preferences.
+ofuscado (%TEMP%/cadmus/license.dat). As chaves criptográficas são persistidas
+em Preferences, garantindo que o arquivo seja legível entre sessões do QGIS.
 """
 
 from datetime import datetime, timedelta
@@ -32,6 +33,7 @@ class LicenseManager(BaseUtil):
     Gerenciador de licença com cache mensal e renovação antecipada.
 
     A persistência é feita via LicenseFileManager em arquivo ofuscado.
+    As chaves criptográficas são persistidas em Preferences.
 
     Constantes:
         RENEWAL_WINDOW_DAYS: int — dias antes do vencimento para tentar renovar (7)
@@ -56,7 +58,7 @@ class LicenseManager(BaseUtil):
         Fluxo:
         1. Carrega license_key do arquivo de licença ofuscado
         2. Se não há license_key -> False
-        3. Se há cache ativo (status="active" + expiry no futuro com margem > 7 dias) -> True
+        3. Se há cache ativo (expiry no futuro com margem > 7 dias) -> True
         4. Se está no período de renovação (0-7 dias antes do fim) -> tenta validar
            no servidor, mas retorna True mesmo em falha (atualiza expiry se conseguir)
         5. Se expirou -> valida obrigatoriamente no servidor; se inválida marca como
@@ -141,7 +143,7 @@ class LicenseManager(BaseUtil):
         expire_str = lic_data.get(LicenseFileManager.FIELD_EXPIRE_DATE, "")
         level = lic_data.get(LicenseFileManager.FIELD_LEVEL, 0)
 
-        # Verifica validade do cache: se HMAC passar e não expirou, está ativo
+        # Verifica validade do cache
         is_cached = self._file_mgr.validate_license(lic_data)
 
         info = {

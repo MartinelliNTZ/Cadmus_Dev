@@ -9,12 +9,15 @@ Utiliza apenas bibliotecas padrão do Python:
     json, os, base64, hashlib, hmac, secrets, datetime, zlib
 
 Pipeline de escrita:
-    dict → JSON → HMAC → compress → XOR keystream → Base64 → license.dat
+    dict -> JSON -> HMAC -> compress -> XOR keystream -> Base64 -> license.dat
 
 Pipeline de leitura:
-    license.dat → Base64 decode → XOR keystream → decompress → JSON → HMAC verify
+    license.dat -> Base64 decode -> XOR keystream -> decompress -> JSON -> HMAC verify
 
 Arquivo salvo em: {cadmus_temp_root}/license.dat
+
+As chaves criptográficas são fixas na classe (constantes), garantindo que o
+arquivo seja legível entre sessões do QGIS sem depender de Preferences.
 """
 
 import json
@@ -22,7 +25,6 @@ import os
 import base64
 import hashlib
 import hmac
-import secrets
 import zlib
 from typing import Optional
 
@@ -34,17 +36,20 @@ class LicenseFileManager(BaseUtil):
     """
     Gerencia um arquivo de licença ofuscado com integridade HMAC.
 
+    Chaves criptográficas fixas (constantes da classe) para garantir
+    persistência entre sessões.
+
     Constantes:
-        SECRET_KEY: bytes — usada para gerar o keystream (XOR)
-        HMAC_KEY: bytes — usada exclusivamente para assinatura HMAC
+        _SECRET_KEY: bytes — usada para gerar o keystream (XOR)
+        _HMAC_KEY: bytes — usada exclusivamente para assinatura HMAC
         LICENSE_VERSION: int — versão do formato do arquivo (1)
         COMPRESSION: bool — se True, aplica zlib.compress antes do XOR
         LICENSE_FILENAME: str — nome do arquivo de licença
     """
 
-    # Chaves (geradas aleatoriamente na primeira inicialização)
-    _SECRET_KEY: bytes = b""
-    _HMAC_KEY: bytes = b""
+    # Chaves fixas (NÃO mudar entre versões ou arquivos existentes ficarão ilegíveis)
+    _SECRET_KEY: bytes = b"C4dmu5_S3cr3t_K3y_2026!@#$%^&*()_+="
+    _HMAC_KEY: bytes = b"C4dmu5_HM4c_K3y_2026!@#$%^&*()_+="
 
     LICENSE_VERSION: int = 1
     COMPRESSION: bool = True
@@ -61,7 +66,6 @@ class LicenseFileManager(BaseUtil):
 
     def __init__(self, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE):
         super().__init__(tool_key)
-        self._ensure_keys()
 
     # ----------------------------------------------------------------
     # Public API
@@ -339,7 +343,6 @@ class LicenseFileManager(BaseUtil):
         Returns:
             str: Assinatura HMAC em hexadecimal.
         """
-        # Serializa sem signature
         data_copy = dict(data)
         data_copy.pop(LicenseFileManager.FIELD_SIGNATURE, None)
 
@@ -382,19 +385,6 @@ class LicenseFileManager(BaseUtil):
         file_path = os.path.join(temp_root, self.LICENSE_FILENAME)
         self.logger.debug(f"Caminho do arquivo de licença: {file_path}")
         return file_path
-
-    def _ensure_keys(self) -> None:
-        """
-        Garante que as chaves SECRET_KEY e HMAC_KEY estão definidas.
-
-        Se estiverem vazias, gera novas chaves aleatórias de 32 bytes.
-        """
-        if not self._SECRET_KEY:
-            self.__class__._SECRET_KEY = secrets.token_bytes(32)
-            self.__class__._HMAC_KEY = secrets.token_bytes(32)
-            self.logger.debug(
-                "Chaves criptográficas geradas (primeira inicialização)"
-            )
 
     @staticmethod
     def build_license_dict(

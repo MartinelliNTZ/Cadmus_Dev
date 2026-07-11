@@ -303,3 +303,11 @@
   - LICENSE_ACTIVE, LICENSE_INACTIVE, LICENSE_SAVE, LICENSE_DELETE, LICENSE_VALIDATE
   - LICENSE_SAVED_SUCCESS, LICENSE_DELETED_SUCCESS, LICENSE_INVALID_KEY, LICENSE_EMPTY_KEY
   - LICENSE_DAYS_REMAINING, LICENSE_NO_KEY, LICENSE_OPEN_DIALOG
+2.3.51 11/07/2026
+[2.3.51.1][11/07/2026] Adicionado atributo license_level em Tool e filtro por licença no ToolRegistry:
+  - Adicionado parâmetro `license_level` (default None) em core/model/Tool.__init__()
+  - Configurado `license_level=1` para divide_points_by_strips em ToolRegistry._create_tool_list()
+  - Adicionado método `_filter_tools_by_license()` em ToolRegistry que remove ferramentas
+    cujo license_level é maior que o nível atual da licença (lido via LicenseManager.get_license_info())
+  - Filtro executado ao final de ToolRegistry.__init__(), após validação de main_actions
+  - SKILL_LICENSE.md atualizado para v4.0.0 com documentação do filtro

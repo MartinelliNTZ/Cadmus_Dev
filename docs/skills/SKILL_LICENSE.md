@@ -1,6 +1,6 @@
 ---
-description: 'Skill de gerenciamento de licença — LicenseFileManager, LicenseManager, LicenseDialog, integração com SettingsPlugin.'
-version: '3.0.0'
+description: 'Skill de gerenciamento de licença — LicenseFileManager, LicenseManager, LicenseDialog, integração com SettingsPlugin, filtro por license_level no ToolRegistry.'
+version: '4.0.0'
 ---
 
 # 🔐 SKILL: Gerenciamento de Licença
@@ -14,6 +14,7 @@ O sistema de licença do Cadmus é composto por:
 3. **Security** (`core/config/Security.py`) — credenciais e URL do Supabase
 4. **LicenseDialog** (`resources/widgets/LicenseDialog.py`) — diálogo modal para gerenciamento visual
 5. **SettingsPlugin** — botão "Gerenciar Licença" que abre o LicenseDialog diretamente
+6. **ToolRegistry** — filtro automático de ferramentas por `license_level` baseado no nível atual da licença
 
 ---
 
@@ -200,6 +201,59 @@ arquivo → Base64 decode → XOR keystream → zlib decompress → JSON → HMA
 
 ---
 
+## 🧩 Integração com ToolRegistry — Filtro por Nível de Licença
+
+O `ToolRegistry` filtra automaticamente ferramentas cujo `license_level` é maior que o nível atual da licença.
+
+### Atributo `license_level` em `Tool`
+
+A classe `Tool` (`core/model/Tool.py`) possui o atributo opcional `license_level`:
+
+```python
+Tool(
+    ...
+    license_level=None,  # None = livre para todos os níveis
+)
+```
+
+- `license_level=None` (padrão): ferramenta visível para todos os usuários, independente de licença.
+- `license_level=1`: ferramenta visível apenas se o nível da licença atual for >= 1.
+- `license_level=N`: ferramenta visível apenas se o nível da licença atual for >= N.
+
+### Método `_filter_tools_by_license()` em `ToolRegistry`
+
+Chamado automaticamente no final de `ToolRegistry.__init__()`, após a criação e validação da lista de ferramentas:
+
+```python
+def _filter_tools_by_license(self):
+    license_mgr = LicenseManager(ToolKey.SYSTEM)
+    lic_info = license_mgr.get_license_info()
+    current_level = lic_info.get("nivel", 0)
+
+    self.tools = [
+        tool for tool in self.tools
+        if tool.license_level is None or current_level >= tool.license_level
+    ]
+```
+
+### Comportamento
+
+- Se não há chave de licença: `current_level = 0` → ferramentas com `license_level >= 1` são removidas.
+- Se a licença é nível 1: ferramentas com `license_level=1` ficam visíveis; `license_level=2+` são removidas.
+- Se a licença é nível 5: todas as ferramentas ficam visíveis (5 >= qualquer license_level).
+
+### Exemplo
+
+```python
+# Apenas visível com licença nível 1+
+divide_points_by_strips = Tool(
+    ...
+    license_level=1,
+)
+```
+
+---
+
 ## 🚫 Proibições
 
 - **Nunca** importar `LicenseDialog` em WidgetFactory (diálogo não é widget)
@@ -218,3 +272,4 @@ arquivo → Base64 decode → XOR keystream → zlib decompress → JSON → HMA
 | 2026-07-11 | 1.0.1 | Renomeado LicenseDialogWidget → LicenseDialog; removido factory method do WidgetFactory; strings genéricas |
 | 2026-07-11 | 2.0.0 | Migração para validação via servidor Supabase; removido VALID_LICENSE_KEY local e tiers textuais; apenas nivel numérico 1-5 |
 | 2026-07-11 | 3.0.0 | Migração de persistência de Preferences para LicenseFileManager (arquivo ofuscado %TEMP%/cadmus/license.dat); removida dependência de Preferences |
+| 2026-07-11 | 4.0.0 | Adicionado atributo `license_level` em `Tool` e filtro `_filter_tools_by_license()` em `ToolRegistry`; ferramentas com `license_level` maior que o nível atual da licença são removidas da lista; `divide_points_by_strips` configurado com `license_level=1` |

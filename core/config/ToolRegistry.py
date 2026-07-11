@@ -8,6 +8,7 @@ from ...i18n.TranslationManager import STR
 from ...utils.StringManager import StringManager
 from ...utils.Preferences import Preferences
 from ..enum import ToolTypeEnum
+from ...utils.LicenseManager import LicenseManager
 
 
 class ToolRegistry:
@@ -45,6 +46,9 @@ class ToolRegistry:
 
         # Recriar tools com main_actions validadas
         self.tools = self._create_tool_list()
+
+        # Filtrar ferramentas por nível de licença
+        self._filter_tools_by_license()
 
         self.logger.info(
             f"[ToolRegistry.__init__] ✓ Inicializado com {len(self.tools)} ferramentas"
@@ -381,6 +385,7 @@ class ToolRegistry:
             tooltip=STR.DIVIDE_POINTS_BY_STRIPS_TOOLTIP,
             order=60,
             show_in_toolbar=True,
+            license_level=1,
         )
         tools.append(divide_points_by_strips)
 
@@ -558,6 +563,36 @@ class ToolRegistry:
         except Exception as e:
             self.logger.error(f"[update_tool_main_action] Erro: {e}", exc_info=True)
             return None
+
+    def _filter_tools_by_license(self):
+        """
+        Remove ferramentas cujo license_level é maior que o nível atual da licença.
+
+        Ferramentas com license_level=None (padrão) não são filtradas.
+        Ferramentas com license_level >= 1 só ficam visíveis se o nível da licença
+        atual for maior ou igual ao license_level da ferramenta.
+        """
+        try:
+            license_mgr = LicenseManager(ToolKey.SYSTEM)
+            lic_info = license_mgr.get_license_info()
+            current_level = lic_info.get("nivel", 0)
+
+            before = len(self.tools)
+            self.tools = [
+                tool
+                for tool in self.tools
+                if tool.license_level is None or current_level >= tool.license_level
+            ]
+            filtered = before - len(self.tools)
+            if filtered > 0:
+                self.logger.info(
+                    f"[_filter_tools_by_license] Filtradas {filtered} ferramentas "
+                    f"por nível de licença (nível atual: {current_level})"
+                )
+        except Exception as e:
+            self.logger.error(
+                f"[_filter_tools_by_license] Erro ao filtrar ferramentas: {e}",
+            )
 
     def _make_plugin_executor(self, module_path: str, run_func: str = "run"):
         """

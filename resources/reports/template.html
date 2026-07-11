@@ -707,8 +707,11 @@
                     <td colspan="7" style="padding: 2px 8px 8px 8px; border: none;">
                         <span class="muted" style="font-size: 11px;">Voos afetados:
                         {% for fid in a.flight_ids %}
-                            {% if base_folder %}
-                                <a href="file:///{{ base_folder | replace('/', '\\\\') }}" target="_blank" style="color: var(--l4); text-decoration: underline;">{{ fid }}</a>{% if not loop.last %}, {% endif %}
+                            {% set flight_folder = flight_folder_map.get(fid) %}
+                            {% if flight_folder %}
+                                <a href="file:///{{ flight_folder | replace('/', '\\\\') }}" target="_blank" style="color: var(--l4); text-decoration: underline;" title="Clique para abrir a pasta do voo">{{ fid }}</a>{% if not loop.last %}, {% endif %}
+                            {% elif base_folder %}
+                                <a href="file:///{{ base_folder | replace('/', '\\\\') }}" target="_blank" style="color: var(--l4); text-decoration: underline;" title="Clique para abrir a pasta raiz">{{ fid }}</a>{% if not loop.last %}, {% endif %}
                             {% else %}
                                 {{ fid }}{% if not loop.last %}, {% endif %}
                             {% endif %}

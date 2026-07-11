@@ -502,12 +502,27 @@ class RenderEngine:
 
         # ── Mapear filename → caminho completo das fotos ──
         photo_path_map: Dict[str, str] = {}
+        # ── Mapear flight_id → caminho da pasta do voo ──
+        flight_folder_map: Dict[str, str] = {}
         for r in results:
             fname = getattr(r, "filename", None)
             if fname:
                 path = r.get_indicator("Path") if hasattr(r, "get_indicator") else None
                 if path:
                     photo_path_map[fname] = str(path)
+
+            # Extrair pasta do voo
+            flight_id = getattr(r, "flight_id", None)
+            if flight_id:
+                # Tenta MrkFolder primeiro (caminho completo da pasta do voo)
+                mrk_folder = r.get_indicator("MrkFolder") if hasattr(r, "get_indicator") else None
+                if mrk_folder:
+                    flight_folder_map[flight_id] = str(mrk_folder)
+                elif flight_id not in flight_folder_map:
+                    # Fallback: extrai diretório do Path da primeira foto do voo
+                    if path:
+                        folder = str(Path(path).parent)
+                        flight_folder_map[flight_id] = folder
 
         # ── Converter ícones para base64 (portátil, sem dependência de file://) ──
         def _icon_to_base64(icon_name: str) -> str:
@@ -589,6 +604,7 @@ class RenderEngine:
             linkedin_icon_url=linkedin_icon_url,
             buy_me_a_coffee_icon_url=buy_me_a_coffee_icon_url,
             photo_path_map=photo_path_map,
+            flight_folder_map=flight_folder_map,
             base_folder=json_meta.get("base_folder", ""),
         )
 

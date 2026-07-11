@@ -2,7 +2,8 @@
 """
 LicenseManager — Gerenciamento de licença com cache e renovação automática
 ===========================================================================
-Gerencia validação de licença com consulta ao servidor Supabase e cache de status.
+Gerencia validação de licença com consulta ao servidor Supabase e cache em
+arquivo ofuscado via LicenseFileManager.
 
 Regras de validação:
 - Se a licença está ativa e dentro do prazo (> 7 dias restantes) -> retorna True (cache)
@@ -10,6 +11,9 @@ Regras de validação:
   mesmo se falhar (offline/erro)
 - Se expirou -> valida obrigatoriamente; se inválida, salva como inativa e retorna False
 - Chave válida é consultada no Supabase via Security.SUPABASE_*
+
+A persistência dos dados de licença é feita via LicenseFileManager em arquivo
+ofuscado (%TEMP%/cadmus/license.dat) ao invés de Preferences.
 """
 
 from datetime import datetime, timedelta
@@ -19,7 +23,7 @@ import requests
 
 from ..core.config.Security import Security
 from .BaseUtil import BaseUtil
-from .Preferences import Preferences
+from .LicenseFileManager import LicenseFileManager
 from .ToolKeys import ToolKey
 
 
@@ -27,14 +31,10 @@ class LicenseManager(BaseUtil):
     """
     Gerenciador de licença com cache mensal e renovação antecipada.
 
+    A persistência é feita via LicenseFileManager em arquivo ofuscado.
+
     Constantes:
         RENEWAL_WINDOW_DAYS: int — dias antes do vencimento para tentar renovar (7)
-
-    Preferências utilizadas (system_preferences):
-        license_key: str — chave de licença fornecida pelo usuário
-        license_status: str — "active" | "inactive" | ""
-        license_expiry: str — data de expiração no formato "YYYY-MM-DD"
-        license_tier: str — nível numérico "1" a "5" ou ""
     """
 
     RENEWAL_WINDOW_DAYS: int = 7
@@ -43,6 +43,7 @@ class LicenseManager(BaseUtil):
 
     def __init__(self, tool_key: str = ToolKey.UNTRACEABLE):
         super().__init__(tool_key)
+        self._file_mgr = LicenseFileManager(tool_key)
 
     # ----------------------------------------------------------------
     # Public API
@@ -53,7 +54,7 @@ class LicenseManager(BaseUtil):
         Verifica se a licença é válida, respeitando cache e renovação.
 
         Fluxo:
-        1. Carrega license_key das preferências do sistema
+        1. Carrega license_key do arquivo de licença ofuscado
         2. Se não há license_key -> False
         3. Se há cache ativo (status="active" + expiry no futuro com margem > 7 dias) -> True
         4. Se está no período de renovação (0-7 dias antes do fim) -> tenta validar
@@ -64,21 +65,23 @@ class LicenseManager(BaseUtil):
         Returns:
             bool: True se a licença é válida, False caso contrário
         """
-        prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-        license_key = (prefs.get("license_key") or "").strip()
+        lic_data = self._file_mgr.load_license()
+        if lic_data is None:
+            self.logger.debug("Nenhum cache de licença encontrado")
+            return False
+
+        license_key = (lic_data.get(LicenseFileManager.FIELD_LICENSE_KEY) or "").strip()
 
         if not license_key:
             self.logger.debug("Nenhuma chave de licença configurada")
             return False
 
-        status = prefs.get("license_status", "")
-        expiry_str = prefs.get("license_expiry", "")
-
+        expire_str = lic_data.get(LicenseFileManager.FIELD_EXPIRE_DATE, "")
         today = datetime.now().date()
 
         # --- Caso 1: Cache ativo com expiry válido ---
-        if status == "active" and expiry_str:
-            expiry = self._parse_date(expiry_str)
+        if expire_str:
+            expiry = self._parse_date(expire_str)
             if expiry is not None:
                 days_remaining = (expiry - today).days
 
@@ -93,18 +96,18 @@ class LicenseManager(BaseUtil):
                         f"Licença em renovação ({days_remaining} dias restantes), "
                         f"tentando validar no servidor..."
                     )
-                    return self._try_renew(license_key, prefs, today)
+                    return self._try_renew(license_key, today)
 
                 else:
                     self.logger.debug(
                         f"Licença expirada há {-days_remaining} dias, "
                         f"validando no servidor..."
                     )
-                    return self._validate_and_update(license_key, prefs, today)
+                    return self._validate_and_update(license_key, today)
 
-        # --- Caso 2: Sem cache -> valida do zero ---
+        # --- Caso 2: Sem cache válido -> valida do zero ---
         self.logger.debug("Nenhum cache de licença encontrado, validando...")
-        return self._validate_and_update(license_key, prefs, today)
+        return self._validate_and_update(license_key, today)
 
     def get_license_info(self) -> dict:
         """
@@ -121,26 +124,38 @@ class LicenseManager(BaseUtil):
                 "days_remaining": int,
             }
         """
-        prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-        license_key = (prefs.get("license_key") or "").strip()
-        status = prefs.get("license_status", "")
-        expiry_str = prefs.get("license_expiry", "")
-        tier_str = prefs.get("license_tier", "")
+        lic_data = self._file_mgr.load_license()
 
-        nivel = int(tier_str) if tier_str.isdigit() else 0
+        if lic_data is None:
+            return {
+                "has_key": False,
+                "key_preview": "",
+                "status": "",
+                "expiry": "",
+                "nivel": 0,
+                "is_active": False,
+                "days_remaining": -1,
+            }
+
+        license_key = (lic_data.get(LicenseFileManager.FIELD_LICENSE_KEY) or "").strip()
+        expire_str = lic_data.get(LicenseFileManager.FIELD_EXPIRE_DATE, "")
+        level = lic_data.get(LicenseFileManager.FIELD_LEVEL, 0)
+
+        # Verifica validade do cache: se HMAC passar e não expirou, está ativo
+        is_cached = self._file_mgr.validate_license(lic_data)
 
         info = {
             "has_key": bool(license_key),
             "key_preview": (license_key[:4] + "****") if license_key else "",
-            "status": status,
-            "expiry": expiry_str,
-            "nivel": nivel,
-            "is_active": False,
+            "status": "active" if is_cached else "inactive",
+            "expiry": expire_str,
+            "nivel": int(level) if isinstance(level, int) else 0,
+            "is_active": is_cached,
             "days_remaining": -1,
         }
 
-        if status == "active" and expiry_str:
-            expiry = self._parse_date(expiry_str)
+        if expire_str and is_cached:
+            expiry = self._parse_date(expire_str)
             if expiry is not None:
                 today = datetime.now().date()
                 days = (expiry - today).days
@@ -156,6 +171,7 @@ class LicenseManager(BaseUtil):
         Fluxo:
         1. Valida a chave no Supabase
         2. Se válida: salva chave, status "active", expiry (+30 dias), nivel
+           em arquivo ofuscado via LicenseFileManager
         3. Se inválida: NÃO salva, retorna erro
 
         Args:
@@ -178,12 +194,15 @@ class LicenseManager(BaseUtil):
         today = datetime.now().date()
         new_expiry = today + timedelta(days=30)
 
-        prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-        prefs["license_key"] = license_key
-        prefs["license_status"] = "active"
-        prefs["license_expiry"] = new_expiry.strftime(self.DATE_FORMAT)
-        prefs["license_tier"] = str(nivel)
-        Preferences.save_tool_prefs(ToolKey.SYSTEM, prefs)
+        lic_data = LicenseFileManager.build_license_dict(
+            license_key=license_key,
+            level=nivel,
+            expire_date=new_expiry.strftime(self.DATE_FORMAT),
+        )
+
+        saved = self._file_mgr.save_license(lic_data)
+        if not saved:
+            return {"success": False, "message": "Falha ao salvar arquivo de licença."}
 
         self.logger.debug(
             f"Licença salva com sucesso: nivel={nivel}, "
@@ -193,16 +212,10 @@ class LicenseManager(BaseUtil):
 
     def delete_license(self) -> None:
         """
-        Remove todos os dados de licença das preferências.
+        Remove o arquivo de licença ofuscado do disco.
         """
-        prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-        prefs["license_key"] = ""
-        prefs["license_status"] = ""
-        prefs["license_expiry"] = ""
-        prefs["license_tier"] = ""
-        Preferences.save_tool_prefs(ToolKey.SYSTEM, prefs)
-
-        self.logger.debug("Licença removida das preferências")
+        self._file_mgr.delete_license()
+        self.logger.debug("Licença removida do arquivo ofuscado")
 
     # ----------------------------------------------------------------
     # Internal Methods
@@ -288,16 +301,16 @@ class LicenseManager(BaseUtil):
 
         return False
 
-    def _try_renew(self, license_key: str, prefs: dict, today: datetime.date) -> bool:
+    def _try_renew(self, license_key: str, today: datetime.date) -> bool:
         """
         Tenta renovar a licença no período de janela (0-7 dias antes do fim).
 
-        Se a validação no servidor for bem-sucedida, atualiza a data de expiração.
+        Se a validação no servidor for bem-sucedida, atualiza a data de expiração
+        no arquivo ofuscado.
         Se falhar (offline/erro), ainda retorna True (período de graça).
 
         Args:
             license_key: Chave de licença.
-            prefs: Preferências do sistema atuais.
             today: Data de hoje.
 
         Returns:
@@ -307,7 +320,17 @@ class LicenseManager(BaseUtil):
 
         if is_valid:
             new_expiry = today + timedelta(days=30)
-            self._save_license_cache(prefs, "active", new_expiry)
+            lic_data = LicenseFileManager.build_license_dict(
+                license_key=license_key,
+                level=1,
+                expire_date=new_expiry.strftime(self.DATE_FORMAT),
+            )
+            # Tenta carregar dados existentes para preservar nível
+            existing = self._file_mgr.load_license()
+            if existing and isinstance(existing.get(LicenseFileManager.FIELD_LEVEL), int):
+                lic_data[LicenseFileManager.FIELD_LEVEL] = existing[LicenseFileManager.FIELD_LEVEL]
+
+            self._file_mgr.save_license(lic_data)
             self.logger.debug(
                 f"Licença renovada com sucesso até "
                 f"{new_expiry.strftime(self.DATE_FORMAT)}"
@@ -320,14 +343,13 @@ class LicenseManager(BaseUtil):
         return True
 
     def _validate_and_update(
-        self, license_key: str, prefs: dict, today: datetime.date
+        self, license_key: str, today: datetime.date
     ) -> bool:
         """
-        Valida a licença no servidor e atualiza o cache nas preferências.
+        Valida a licença no servidor e atualiza o cache no arquivo ofuscado.
 
         Args:
             license_key: Chave de licença.
-            prefs: Preferências do sistema atuais.
             today: Data de hoje.
 
         Returns:
@@ -337,37 +359,26 @@ class LicenseManager(BaseUtil):
 
         if is_valid:
             new_expiry = today + timedelta(days=30)
-            self._save_license_cache(prefs, "active", new_expiry)
+            lic_data = LicenseFileManager.build_license_dict(
+                license_key=license_key,
+                level=1,
+                expire_date=new_expiry.strftime(self.DATE_FORMAT),
+            )
+            # Tenta carregar dados existentes para preservar nível
+            existing = self._file_mgr.load_license()
+            if existing and isinstance(existing.get(LicenseFileManager.FIELD_LEVEL), int):
+                lic_data[LicenseFileManager.FIELD_LEVEL] = existing[LicenseFileManager.FIELD_LEVEL]
+
+            self._file_mgr.save_license(lic_data)
             self.logger.debug(
                 f"Licença validada com sucesso até "
                 f"{new_expiry.strftime(self.DATE_FORMAT)}"
             )
             return True
         else:
-            self._save_license_cache(prefs, "inactive", None)
-            self.logger.warning("Chave de licença inválida")
+            self._file_mgr.delete_license()
+            self.logger.warning("Chave de licença inválida, cache removido")
             return False
-
-    def _save_license_cache(
-        self,
-        prefs: dict,
-        status: str,
-        expiry: Optional[datetime.date],
-    ) -> None:
-        """
-        Salva o status da licença nas preferências do sistema.
-
-        Args:
-            prefs: Preferências do sistema atuais.
-            status: "active" | "inactive".
-            expiry: Data de expiração (None para inativa).
-        """
-        prefs["license_status"] = status
-        if expiry is not None:
-            prefs["license_expiry"] = expiry.strftime(self.DATE_FORMAT)
-        else:
-            prefs["license_expiry"] = ""
-        Preferences.save_tool_prefs(ToolKey.SYSTEM, prefs)
 
     @staticmethod
     def _parse_date(date_str: str) -> Optional[datetime.date]:

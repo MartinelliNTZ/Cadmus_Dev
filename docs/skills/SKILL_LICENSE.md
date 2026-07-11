@@ -1,6 +1,6 @@
 ---
-description: 'Skill de gerenciamento de licença — LicenseManager, LicenseDialog, integração com SettingsPlugin.'
-version: '2.0.0'
+description: 'Skill de gerenciamento de licença — LicenseFileManager, LicenseManager, LicenseDialog, integração com SettingsPlugin.'
+version: '3.0.0'
 ---
 
 # 🔐 SKILL: Gerenciamento de Licença
@@ -9,10 +9,11 @@ version: '2.0.0'
 
 O sistema de licença do Cadmus é composto por:
 
-1. **LicenseManager** (`utils/LicenseManager.py`) — lógica de validação via servidor Supabase, cache, renovação e persistência
-2. **Security** (`core/config/Security.py`) — credenciais e URL do Supabase
-3. **LicenseDialog** (`resources/widgets/LicenseDialog.py`) — diálogo modal para gerenciamento visual
-4. **SettingsPlugin** — botão "Gerenciar Licença" que abre o LicenseDialog diretamente
+1. **LicenseFileManager** (`utils/LicenseFileManager.py`) — persistência em arquivo ofuscado (`%TEMP%/cadmus/license.dat`) com HMAC e XOR
+2. **LicenseManager** (`utils/LicenseManager.py`) — lógica de validação via servidor Supabase, cache, renovação (usa LicenseFileManager internamente)
+3. **Security** (`core/config/Security.py`) — credenciais e URL do Supabase
+4. **LicenseDialog** (`resources/widgets/LicenseDialog.py`) — diálogo modal para gerenciamento visual
+5. **SettingsPlugin** — botão "Gerenciar Licença" que abre o LicenseDialog diretamente
 
 ---
 
@@ -42,14 +43,23 @@ Valida a chave no servidor Supabase e salva. Retorna `{"success": bool, "message
 - Se válida: salva chave, status "active", expiry (+30 dias), nivel (1-5 numérico)
 
 ### `delete_license() -> None`
-Remove todos os dados de licença das preferências.
+Remove o arquivo de licença ofuscado do disco.
 
 ---
 
-## 🧩 Dependências Externas
+## 🧩 Dependências
 
+### Externas
 - `requests` — usado para consultar a API REST do Supabase
-- `core.config.Security` — contém URL, API Key, headers e nome da tabela
+
+### Internas (utils/)
+- `LicenseFileManager` — persistência em arquivo ofuscado
+- `BaseUtil` — classe base com logger
+- `ExplorerUtils` — resolução de pastas temporárias
+- `ToolKeys` — constantes de tool_key
+
+### Apenas bibliotecas padrão Python (LicenseFileManager)
+- `json`, `os`, `base64`, `hashlib`, `hmac`, `secrets`, `zlib`, `datetime`
 
 ---
 
@@ -83,7 +93,7 @@ GET https://ynlameyuhvmesozcuanh.supabase.co/rest/v1/api_keys?api_key=eq.{chave}
 ```
 
 ### Níveis:
-O campo `nivel` do servidor (1-5) é salvo diretamente como string em `license_tier` nas preferências.
+O campo `nivel` do servidor (1-5) é salvo diretamente no campo `level` do arquivo ofuscado.
 Não existem tiers textuais — apenas o número do nível.
 
 ---
@@ -137,23 +147,66 @@ Diálogo modal (`QDialog`) em `resources/widgets/LicenseDialog.py`:
 
 ---
 
-## 📦 Preferências (system_preferences)
+## 📦 Persistência (LicenseFileManager)
 
-| Chave | Tipo | Descrição |
+Os dados de licença são persistidos em arquivo ofuscado ao invés de Preferences.
+
+### Arquivo
+`{TEMP}/cadmus/license.dat`
+
+### Pipeline de escrita
+```
+dict → JSON → HMAC-SHA256 → zlib compress → XOR keystream → Base64 → arquivo
+```
+
+### Pipeline de leitura
+```
+arquivo → Base64 decode → XOR keystream → zlib decompress → JSON → HMAC verify → dict
+```
+
+### Dicionário armazenado
+| Campo | Tipo | Descrição |
 |-------|------|-----------|
 | `license_key` | str | Chave de licença |
-| `license_status` | str | "active" \| "inactive" \| "" |
-| `license_expiry` | str | Data "YYYY-MM-DD" |
-| `license_tier` | str | Nível numérico "1" a "5" ou "" |
+| `level` | int | Nível 1-5 |
+| `expire_date` | str | Data "YYYY-MM-DD" |
+| `created_at` | str | ISO datetime de criação |
+| `machine_id` | str | ID da máquina (opcional) |
+| `version` | int | Versão do formato (1) |
+| `signature` | str | HMAC-SHA256 hexadecimal |
+
+### Integridade (HMAC)
+- Chave `_HMAC_KEY` (32 bytes aleatórios) — usada exclusivamente para assinatura
+- Assinatura removida antes de recalcular; comparada com `hmac.compare_digest()`
+- Se HMAC não corresponder: licença considerada adulterada → None
+
+### Ofuscação (XOR + SHA-256 keystream)
+- Chave `_SECRET_KEY` (32 bytes aleatórios) — usada para gerar keystream
+- Keystream: `SHA256(SECRET_KEY + counter)` para counter=0,1,2... até tamanho necessário
+- XOR byte a byte com os dados comprimidos
+- Resultado codificado em Base64 (ascii)
+
+### Chaves criptográficas
+- Geradas com `secrets.token_bytes(32)` na primeira inicialização
+- Duas chaves distintas: SECRET_KEY (keystream) e HMAC_KEY (assinatura)
+- Permanecem em memória durante o ciclo de vida do plugin
+
+### Observações de segurança
+- **Arquivo ilegível** no Bloco de Notas (Base64 + XOR + compressão)
+- **Detecta adulteração** via HMAC
+- **Não utiliza bibliotecas externas** (apenas módulos nativos Python)
+- **Limitação**: XOR com SHA-256 é ofuscação, não substitui AES.
+  Um atacante com engenharia reversa pode extrair as chaves do executável.
 
 ---
 
 ## 🚫 Proibições
 
 - **Nunca** importar `LicenseDialog` em WidgetFactory (diálogo não é widget)
-- **Nunca** manipular preferências de licença manualmente — usar `LicenseManager`
+- **Nunca** manipular dados de licença manualmente — usar `LicenseManager`
 - **Nunca** exibir chave completa na UI — usar `key_preview` (4 primeiros chars + "****")
 - **Nunca** chamar `_query_server()` ou `_check_license()` diretamente — usar os métodos públicos
+- **Nunca** usar `Preferences` para dados de licença — usar `LicenseFileManager` via `LicenseManager`
 
 ---
 
@@ -164,3 +217,4 @@ Diálogo modal (`QDialog`) em `resources/widgets/LicenseDialog.py`:
 | 2026-07-11 | 1.0.0 | Criação da skill |
 | 2026-07-11 | 1.0.1 | Renomeado LicenseDialogWidget → LicenseDialog; removido factory method do WidgetFactory; strings genéricas |
 | 2026-07-11 | 2.0.0 | Migração para validação via servidor Supabase; removido VALID_LICENSE_KEY local e tiers textuais; apenas nivel numérico 1-5 |
+| 2026-07-11 | 3.0.0 | Migração de persistência de Preferences para LicenseFileManager (arquivo ofuscado %TEMP%/cadmus/license.dat); removida dependência de Preferences |

@@ -4,10 +4,10 @@ from qgis.PyQt.QtWidgets import QLayout, QWidget
 from qgis.PyQt.QtCore import Qt, QPoint
 from qgis.PyQt.QtGui import QCursor
 from typing import Optional
-from ..styles.Styles import Styles
-from .ScrollWidget import ScrollWidget
-from ...core.config.LogUtils import LogUtils
-from ...utils.ToolKeys import ToolKey
+from ...styles.Styles import Styles
+from ..ScrollWidget import ScrollWidget
+from ....core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
 
 logger = LogUtils(
     tool=ToolKey.CADMUS_PLUGIN, class_name="MainLayout", level=LogUtils.DEBUG

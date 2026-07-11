@@ -10,10 +10,10 @@
 from ...resources.widgets.ImageWidget import ImageWidget
 from ...utils.StringManager import StringManager
 from ...resources.widgets.LayerInputWidget import LayerInputWidget
-from ...resources.widgets.BottomActionButtonsWidget import BottomActionButtonsWidget
-from ...resources.widgets.MainLayout import MainLayout
+from ...resources.widgets.ExecutionButtonsWidget import ExecutionButtonsWidget
+from ...resources.widgets.system.MainLayout import MainLayout
 from ...resources.styles.Styles import Styles
-from ...resources.widgets.AppBarWidget import AppBarWidget
+from ...resources.widgets.system.AppBarWidget import AppBarWidget
 from ...resources.widgets.AttributeSelectorWidget import AttributeSelectorWidget
 from ...resources.widgets.RadioButtonGridWidget import RadioButtonGridWidget
 from ...resources.widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
@@ -160,7 +160,7 @@ class WidgetFactory:
         if separator_top:
             layout.addWidget(WidgetFactory.create_separator())
 
-        widget = BottomActionButtonsWidget(
+        widget = ExecutionButtonsWidget(
             parent=parent,
             run_callback=run_callback,
             close_callback=close_callback,

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from qgis.PyQt.QtWidgets import QToolBar
-from ...utils.ToolKeys import ToolKey
-from ...core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
+from ....core.config.LogUtils import LogUtils
 
 
 class CadmusToolBar(QToolBar):

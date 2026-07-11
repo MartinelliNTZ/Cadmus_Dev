@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from qgis.PyQt.QtWidgets import QMenu, QAction, QToolBar
 from ...resources.IconManager import IconManager as im
-from ...resources.widgets.DropdownToolButton import DropdownToolButton
+from ...resources.widgets.system.DropdownToolButton import DropdownToolButton
 from .LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 from ...utils.Preferences import Preferences

@@ -20,7 +20,7 @@ O sistema de licença do Cadmus é composto por:
 
 ### `is_license_valid() -> bool`
 Verifica se a licença é válida com cache e renovação automática.
-Consulta o SupABASE para validar a chave quando necessário.
+Consulta o Supabase para validar a chave quando necessário.
 
 ### `get_license_info() -> dict`
 Retorna informações completas da licença:
@@ -30,8 +30,7 @@ Retorna informações completas da licença:
     "key_preview": str,       # "A7B2****"
     "status": str,            # "active" | "inactive" | ""
     "expiry": str,            # "YYYY-MM-DD" ou ""
-    "tier": str,              # "BASIC" | "PRO" | "ENTERPRISE" | "PREMIUM" | "MASTER" | ""
-    "level": str,             # "Básico" | "Profissional" | "Enterprise" | "Premium" | "Master" | ""
+    "nivel": int,             # 1-5 (0 se sem chave)
     "is_active": bool,
     "days_remaining": int,
 }
@@ -40,7 +39,7 @@ Retorna informações completas da licença:
 ### `save_license_key(license_key: str) -> dict`
 Valida a chave no servidor Supabase e salva. Retorna `{"success": bool, "message": str}`.
 - Se inválida ou servidor offline: NÃO salva, retorna erro
-- Se válida: salva chave, status "active", expiry (+30 dias), tier (mapeado do `nivel` do servidor)
+- Se válida: salva chave, status "active", expiry (+30 dias), nivel (1-5 numérico)
 
 ### `delete_license() -> None`
 Remove todos os dados de licença das preferências.
@@ -56,7 +55,7 @@ Remove todos os dados de licença das preferências.
 
 ## 🌐 Validação via Servidor (Supabase)
 
-A validação agora é feita consultando a tabela `api_keys` no Supabase:
+A validação é feita consultando a tabela `api_keys` no Supabase:
 
 ```
 GET https://ynlameyuhvmesozcuanh.supabase.co/rest/v1/api_keys?api_key=eq.{chave}&select=*
@@ -83,14 +82,9 @@ GET https://ynlameyuhvmesozcuanh.supabase.co/rest/v1/api_keys?api_key=eq.{chave}
 ]
 ```
 
-### Mapeamento nivel (1-5) -> tier:
-| nivel | tier        | label          |
-|-------|-------------|----------------|
-| 1     | BASIC       | Básico         |
-| 2     | PRO         | Profissional   |
-| 3     | ENTERPRISE  | Enterprise     |
-| 4     | PREMIUM     | Premium        |
-| 5     | MASTER      | Master         |
+### Níveis:
+O campo `nivel` do servidor (1-5) é salvo diretamente como string em `license_tier` nas preferências.
+Não existem tiers textuais — apenas o número do nível.
 
 ---
 
@@ -115,6 +109,7 @@ Diálogo modal (`QDialog`) em `resources/widgets/LicenseDialog.py`:
 - **QLineEdit** para inserir chave
 - **Botão 🔑** para validar (tooltip `STR.VALIDATE`)
 - **Grid de labels**: Nível (`STR.LEVEL`), Validade (`STR.EXPIRATION_DATE`), Status (`STR.STATUS`)
+  - Nível exibe o número (1-5) ou "-"
   - Cores: verde=ativa, vermelho=inativa, cinza=sem chave
 - **Botão 🗑️ REMOVE** — apaga a licença (texto via `STR.REMOVE`)
 - **Botão 💾 SAVE** — salva (texto via `STR.SAVE`)
@@ -149,7 +144,7 @@ Diálogo modal (`QDialog`) em `resources/widgets/LicenseDialog.py`:
 | `license_key` | str | Chave de licença |
 | `license_status` | str | "active" \| "inactive" \| "" |
 | `license_expiry` | str | Data "YYYY-MM-DD" |
-| `license_tier` | str | "BASIC" \| "PRO" \| "ENTERPRISE" \| "PREMIUM" \| "MASTER" \| "" |
+| `license_tier` | str | Nível numérico "1" a "5" ou "" |
 
 ---
 
@@ -168,4 +163,4 @@ Diálogo modal (`QDialog`) em `resources/widgets/LicenseDialog.py`:
 |------|--------|-----------|
 | 2026-07-11 | 1.0.0 | Criação da skill |
 | 2026-07-11 | 1.0.1 | Renomeado LicenseDialogWidget → LicenseDialog; removido factory method do WidgetFactory; strings genéricas |
-| 2026-07-11 | 2.0.0 | Migração para validação via servidor Supabase; removido VALID_LICENSE_KEY local; adicionado Security como fonte de credenciais |
+| 2026-07-11 | 2.0.0 | Migração para validação via servidor Supabase; removido VALID_LICENSE_KEY local e tiers textuais; apenas nivel numérico 1-5 |

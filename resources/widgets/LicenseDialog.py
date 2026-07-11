@@ -190,7 +190,8 @@ class LicenseDialog(BaseDialog):
     def _refresh(self):
         info = self._license_mgr.get_license_info()
 
-        self._lbl_level.setText(info.get("level") or "-")
+        nivel = info.get("nivel", 0)
+        self._lbl_level.setText(str(nivel) if nivel > 0 else "-")
         self._lbl_expiry.setText(info.get("expiry") or "-")
 
         is_active = info.get("is_active", False)

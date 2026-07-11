@@ -34,26 +34,14 @@ class LicenseManager(BaseUtil):
         license_key: str — chave de licença fornecida pelo usuário
         license_status: str — "active" | "inactive" | ""
         license_expiry: str — data de expiração no formato "YYYY-MM-DD"
-        license_tier: str — tier da licença "BASIC" | "PRO" | "ENTERPRISE" | ""
+        license_tier: str — nível numérico "1" a "5" ou ""
     """
 
     RENEWAL_WINDOW_DAYS: int = 7
 
     DATE_FORMAT: str = "%Y-%m-%d"
 
-    LICENSE_TIER_BASIC: str = "BASIC"
-    LICENSE_TIER_PRO: str = "PRO"
-    LICENSE_TIER_ENTERPRISE: str = "ENTERPRISE"
-    LICENSE_TIER_PREMIUM: str = "PREMIUM"
-    LICENSE_TIER_MASTER: str = "MASTER"
-
     def __init__(self, tool_key: str = ToolKey.UNTRACEABLE):
-        """
-        Inicializa o gerenciador de licença.
-
-        Args:
-            tool_key: Chave da ferramenta para rastreamento de logs.
-        """
         super().__init__(tool_key)
 
     # ----------------------------------------------------------------
@@ -95,14 +83,12 @@ class LicenseManager(BaseUtil):
                 days_remaining = (expiry - today).days
 
                 if days_remaining > self.RENEWAL_WINDOW_DAYS:
-                    # Cache válido, ainda muito tempo -> retorna True sem verificar
                     self.logger.debug(
                         f"Licença em cache ativa, expira em {days_remaining} dias"
                     )
                     return True
 
                 elif days_remaining >= 0:
-                    # Período de renovação (0-7 dias restantes)
                     self.logger.debug(
                         f"Licença em renovação ({days_remaining} dias restantes), "
                         f"tentando validar no servidor..."
@@ -110,7 +96,6 @@ class LicenseManager(BaseUtil):
                     return self._try_renew(license_key, prefs, today)
 
                 else:
-                    # Expirada -> valida obrigatoriamente
                     self.logger.debug(
                         f"Licença expirada há {-days_remaining} dias, "
                         f"validando no servidor..."
@@ -131,8 +116,7 @@ class LicenseManager(BaseUtil):
                 "key_preview": str (primeiros 4 chars + "****"),
                 "status": str ("active" | "inactive" | ""),
                 "expiry": str (data formatada ou ""),
-                "tier": str ("BASIC" | "PRO" | "ENTERPRISE" | "PREMIUM" | "MASTER" | ""),
-                "level": str ("Básico" | "Profissional" | "Enterprise" | "Premium" | "Master" | ""),
+                "nivel": int (nível 1-5, 0 se sem chave),
                 "is_active": bool,
                 "days_remaining": int,
             }
@@ -141,15 +125,16 @@ class LicenseManager(BaseUtil):
         license_key = (prefs.get("license_key") or "").strip()
         status = prefs.get("license_status", "")
         expiry_str = prefs.get("license_expiry", "")
-        tier = prefs.get("license_tier", "")
+        tier_str = prefs.get("license_tier", "")
+
+        nivel = int(tier_str) if tier_str.isdigit() else 0
 
         info = {
             "has_key": bool(license_key),
             "key_preview": (license_key[:4] + "****") if license_key else "",
             "status": status,
             "expiry": expiry_str,
-            "tier": tier,
-            "level": self._tier_to_label(tier) if tier else "",
+            "nivel": nivel,
             "is_active": False,
             "days_remaining": -1,
         }
@@ -170,7 +155,7 @@ class LicenseManager(BaseUtil):
 
         Fluxo:
         1. Valida a chave no Supabase
-        2. Se válida: salva chave, status "active", expiry (+30 dias), tier
+        2. Se válida: salva chave, status "active", expiry (+30 dias), nivel
         3. Se inválida: NÃO salva, retorna erro
 
         Args:
@@ -184,7 +169,7 @@ class LicenseManager(BaseUtil):
             self.logger.warning("Tentativa de salvar chave vazia")
             return {"success": False, "message": "Chave de licença não pode estar vazia."}
 
-        is_valid, tier = self._validate_and_get_tier(license_key)
+        is_valid, nivel = self._validate_and_get_nivel(license_key)
 
         if not is_valid:
             self.logger.warning("Tentativa de salvar chave inválida")
@@ -197,11 +182,11 @@ class LicenseManager(BaseUtil):
         prefs["license_key"] = license_key
         prefs["license_status"] = "active"
         prefs["license_expiry"] = new_expiry.strftime(self.DATE_FORMAT)
-        prefs["license_tier"] = tier
+        prefs["license_tier"] = str(nivel)
         Preferences.save_tool_prefs(ToolKey.SYSTEM, prefs)
 
         self.logger.debug(
-            f"Licença salva com sucesso: tier={tier}, "
+            f"Licença salva com sucesso: nivel={nivel}, "
             f"expira={new_expiry.strftime(self.DATE_FORMAT)}"
         )
         return {"success": True, "message": "Licença salva e validada com sucesso."}
@@ -224,29 +209,26 @@ class LicenseManager(BaseUtil):
     # ----------------------------------------------------------------
 
     @staticmethod
-    def _validate_and_get_tier(license_key: str) -> tuple:
+    def _validate_and_get_nivel(license_key: str) -> tuple:
         """
-        Valida a chave no servidor Supabase e retorna (is_valid, tier).
+        Valida a chave no servidor Supabase e retorna (is_valid, nivel).
 
         Args:
             license_key: Chave de licença.
 
         Returns:
-            tuple: (bool, str)
+            tuple: (bool, int) — nivel 1-5 se válida, 0 se inválida
         """
         result = LicenseManager._query_server(license_key)
 
         if result is not None:
-            # Servidor respondeu
             ativo = result.get("ativo", False)
             if ativo:
                 nivel = result.get("nivel", 1)
-                tier = LicenseManager._nivel_to_tier(nivel)
-                return True, tier
-            return False, ""
+                return True, int(nivel)
+            return False, 0
 
-        # Servidor indisponível — falha segura
-        return False, ""
+        return False, 0
 
     @staticmethod
     def _query_server(license_key: str) -> Optional[dict]:
@@ -278,39 +260,14 @@ class LicenseManager(BaseUtil):
             if isinstance(data, list) and len(data) > 0:
                 return data[0]
 
-            return None  # Não encontrou a chave
+            return None
 
         except requests.RequestException as e:
-            # Log silencioso — não quebra fluxo em caso de offline
             import logging
             logging.getLogger(__name__).warning(
                 f"Falha ao consultar servidor de licença: {e}"
             )
             return None
-
-    @staticmethod
-    def _nivel_to_tier(nivel: int) -> str:
-        """Converte nível numérico (1-5) para tier string."""
-        mapping = {
-            1: LicenseManager.LICENSE_TIER_BASIC,
-            2: LicenseManager.LICENSE_TIER_PRO,
-            3: LicenseManager.LICENSE_TIER_ENTERPRISE,
-            4: LicenseManager.LICENSE_TIER_PREMIUM,
-            5: LicenseManager.LICENSE_TIER_MASTER,
-        }
-        return mapping.get(nivel, LicenseManager.LICENSE_TIER_BASIC)
-
-    @staticmethod
-    def _tier_to_label(tier: str) -> str:
-        """Converte tier code para label amigável."""
-        labels = {
-            LicenseManager.LICENSE_TIER_BASIC: "Básico",
-            LicenseManager.LICENSE_TIER_PRO: "Profissional",
-            LicenseManager.LICENSE_TIER_ENTERPRISE: "Enterprise",
-            LicenseManager.LICENSE_TIER_PREMIUM: "Premium",
-            LicenseManager.LICENSE_TIER_MASTER: "Master",
-        }
-        return labels.get(tier, "")
 
     @staticmethod
     def _check_license(license_key: str) -> bool:
@@ -329,7 +286,6 @@ class LicenseManager(BaseUtil):
             ativo = result.get("ativo", False)
             return bool(ativo)
 
-        # Servidor indisponível — retorna False para validações críticas
         return False
 
     def _try_renew(self, license_key: str, prefs: dict, today: datetime.date) -> bool:
@@ -361,7 +317,6 @@ class LicenseManager(BaseUtil):
                 "Falha na renovação da licença (período de graça ativo)"
             )
 
-        # Mesmo inválida, retorna True durante o período de renovação
         return True
 
     def _validate_and_update(

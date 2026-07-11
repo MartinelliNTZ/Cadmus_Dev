@@ -7,6 +7,7 @@ from ...core.config.LogUtils import LogUtils
 from ...resources.IconManager import IconManager as IM
 from ..ToolKeys import ToolKey
 from ..ColorUtil import ColorUtil
+from ..ImageUtils import ImageUtils
 
 
 class RenderEngine:
@@ -498,21 +499,27 @@ class RenderEngine:
         # Piores resultados (menor overall_score primeiro) limitado a 30
         worst_results = sorted(results, key=lambda r: r.overall_score)[:30]
         per_indicator = agg.get("per_indicator", {})
-        cadmus_icon_path = Path(IM.icon_path(IM.CADMUS_PNG)).resolve()
-        mtl_agro_icon_path = Path(IM.icon_path(IM.MTL_AGRO_PNG)).resolve()
-        cadmus_icon_url = cadmus_icon_path.as_uri()
-        mtl_agro_icon_url = mtl_agro_icon_path.as_uri()
-        # Social icons paths
-        github_icon_path = Path(IM.icon_path(IM.GITHUB)).resolve()
-        instagram_icon_path = Path(IM.icon_path(IM.INSTAGRAM)).resolve()
-        email_icon_path = Path(IM.icon_path(IM.EMAIL)).resolve()
-        linkedin_icon_path = Path(IM.icon_path(IM.LINKEDIN)).resolve()
-        buy_me_a_coffee_icon_path = Path(IM.icon_path(IM.BUY_ME_A_COFFEE)).resolve()
-        github_icon_url = github_icon_path.as_uri()
-        instagram_icon_url = instagram_icon_path.as_uri()
-        email_icon_url = email_icon_path.as_uri()
-        linkedin_icon_url = linkedin_icon_path.as_uri()
-        buy_me_a_coffee_icon_url = buy_me_a_coffee_icon_path.as_uri()
+
+        # ── Converter ícones para base64 (portátil, sem dependência de file://) ──
+        def _icon_to_base64(icon_name: str) -> str:
+            """Converte ícone do IconManager para base64 data URI."""
+            icon_path = Path(IM.icon_path(icon_name)).resolve()
+            b64 = ImageUtils.photo_to_base64(str(icon_path), tool_key=self.tool_key)
+            if b64 is None:
+                self.logger.warning(
+                    f"Falha ao converter ícone '{icon_name}' para base64, "
+                    f"usando file:// como fallback"
+                )
+                return icon_path.as_uri()
+            return b64
+
+        cadmus_icon_url = _icon_to_base64(IM.CADMUS_PNG)
+        mtl_agro_icon_url = _icon_to_base64(IM.MTL_AGRO_PNG)
+        github_icon_url = _icon_to_base64(IM.GITHUB)
+        instagram_icon_url = _icon_to_base64(IM.INSTAGRAM)
+        email_icon_url = _icon_to_base64(IM.EMAIL)
+        linkedin_icon_url = _icon_to_base64(IM.LINKEDIN)
+        buy_me_a_coffee_icon_url = _icon_to_base64(IM.BUY_ME_A_COFFEE)
         light_metrics = (
             (agg or {}).get("advanced_analysis", {}).get("metrics", {})
             if isinstance(agg, dict)
@@ -547,18 +554,11 @@ class RenderEngine:
             per_indicator=per_indicator,
             cadmus_icon_url=cadmus_icon_url,
             mtl_agro_icon_url=mtl_agro_icon_url,
-            cadmus_icon_path=str(cadmus_icon_path),
-            mtl_agro_icon_path=str(mtl_agro_icon_path),
             github_icon_url=github_icon_url,
-            github_icon_path=str(github_icon_path),
             instagram_icon_url=instagram_icon_url,
-            instagram_icon_path=str(instagram_icon_path),
             email_icon_url=email_icon_url,
-            email_icon_path=str(email_icon_path),
             linkedin_icon_url=linkedin_icon_url,
-            linkedin_icon_path=str(linkedin_icon_path),
             buy_me_a_coffee_icon_url=buy_me_a_coffee_icon_url,
-            buy_me_a_coffee_icon_path=str(buy_me_a_coffee_icon_path),
         )
 
     def save_report(self, html: str, output_path: str = "relatorio.html") -> None:

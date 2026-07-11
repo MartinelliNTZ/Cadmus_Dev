@@ -520,6 +520,26 @@ class RenderEngine:
         email_icon_url = _icon_to_base64(IM.EMAIL)
         linkedin_icon_url = _icon_to_base64(IM.LINKEDIN)
         buy_me_a_coffee_icon_url = _icon_to_base64(IM.BUY_ME_A_COFFEE)
+
+        # ── Converter logotipo do projeto (json_meta.logotipo) para base64 ──
+        json_meta = agg.get("json_meta") or {}
+        logotipo_path = json_meta.get("logotipo")
+        if logotipo_path:
+            logotipo_b64 = ImageUtils.photo_to_base64(
+                logotipo_path, tool_key=self.tool_key
+            )
+            if logotipo_b64:
+                json_meta["logotipo"] = logotipo_b64
+                self.logger.info(
+                    f"Logotipo do projeto convertido para base64: "
+                    f"'{logotipo_path}'"
+                )
+            else:
+                self.logger.warning(
+                    f"Não foi possível converter logotipo para base64: "
+                    f"'{logotipo_path}', mantendo caminho original"
+                )
+
         light_metrics = (
             (agg or {}).get("advanced_analysis", {}).get("metrics", {})
             if isinstance(agg, dict)

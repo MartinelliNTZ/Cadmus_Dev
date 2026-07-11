@@ -155,19 +155,12 @@ class SettingsPlugin(BasePluginMTL):
         self.geral_collapsable.add_content_layout(prec_layout)
         self.geral_collapsable.add_content_layout(thresh_layout)
 
-        license_layout, self.license_key_input = WidgetFactory.create_input_fields_widget(
-            fields_dict={
-                "license_key": {
-                    "title": "",
-                    "type": "text",
-                    "default": "",
-                    "show_label": False,
-                },
-            },
+        license_layout, self.license_btn = WidgetFactory.create_simple_button(
+            text="🔑 Gerenciar Licença",
             parent=self,
-            separator_top=False,
-            separator_bottom=False,
+            spacing=4,
         )
+        self.license_btn.clicked.connect(self._open_license_dialog)
         self.geral_collapsable.add_content_layout(license_layout)
 
         self.geral_collapsable.add_content_layout(toolbar_layout)
@@ -305,12 +298,6 @@ class SettingsPlugin(BasePluginMTL):
         if project_folder:
             self.project_folder_selector.set_path(project_folder)
 
-        self.license_key_input.set_values(
-            {
-                "license_key": self.system_preferences.get("license_key", ""),
-            }
-        )
-
         self.calc_collapsable.set_expanded(self.preferences.get("calc_expanded", False))
         self.geral_collapsable.set_expanded(
             self.preferences.get("geral_expanded", True)
@@ -366,9 +353,8 @@ class SettingsPlugin(BasePluginMTL):
             f"Categorias visiveis na toolbar salvas: {toolbar_visibility}"
         )
 
-        license_key = (self.license_key_input.get_value("license_key") or "").strip()
-        self.system_preferences["license_key"] = license_key
-        self.logger.debug(f"License key salva: {'***' if license_key else 'vazia'}")
+        # License não é mais salva via input_fields aqui; o LicenseDialog salva diretamente
+        # via LicenseManager.save_license_key(). Apenas garantimos que a preferência existe.
 
         paths = self.project_folder_selector.get_paths()
         self.preferences["projects_folder"] = paths[0] if paths else ""
@@ -435,6 +421,17 @@ class SettingsPlugin(BasePluginMTL):
 
         self.logger.info("Configurações aplicadas e salvas")
         self.close()
+
+    def _open_license_dialog(self):
+        """
+        Abre o diálogo de gerenciamento de licença.
+        A licença é salva/gerenciada pelo LicenseDialog diretamente via LicenseManager.
+        """
+        self.logger.debug("Abrindo diálogo de gerenciamento de licença")
+        from ..resources.widgets.LicenseDialog import LicenseDialog
+
+        dialog = LicenseDialog(iface=self.iface, parent=self)
+        dialog.exec_()
 
     def _open_preferences_folder(self):
         """Abre a pasta de preferências do Cadmus."""

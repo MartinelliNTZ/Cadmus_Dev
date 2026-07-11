@@ -693,6 +693,21 @@ class Strings_pt_BR:
     MODE_ZIP = "Zipar arquivos"
     MODE_UNZIP = "Deszipar arquivos"
 
+    # License
+    LICENSE_TITLE = "Gerenciar Licença"
+    LICENSE_SAVED_SUCCESS = "Licença salva e validada com sucesso."
+    LICENSE_DELETED_SUCCESS = "Licença removida com sucesso."
+    LICENSE_INVALID_KEY = "Chave de licença inválida."
+    LICENSE_EMPTY_KEY = "Digite uma chave de licença."
+    LICENSE_NO_KEY = "sem chave"
+    EXPIRATION_DATE = "Validade"
+    REMAINING_DAYS = "dias restantes"
+    STATUS = "Status"
+    LEVEL = "Nível"
+    ACTIVE = "Ativa"
+    INACTIVE = "Inativa"
+    VALIDATE = "Validar"
+
     # plugins/SaveTemporaryLayersPlugin.py
     SAVE_TEMPORARY_LAYER_TITLE = "Salvar Temporárias"
     SAVE_TEMPORARY_LAYER_TOOLTIP = "Salva camadas temporárias (memory) do projeto em arquivos permanentes no disco"

@@ -1060,3 +1060,4 @@ class WidgetFactory:
             label.setAlignment(alignment)
 
         return label
+

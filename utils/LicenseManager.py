@@ -37,6 +37,10 @@ class LicenseManager(BaseUtil):
 
     DATE_FORMAT: str = "%Y-%m-%d"
 
+    LICENSE_TIER_BASIC: str = "BASIC"
+    LICENSE_TIER_PRO: str = "PRO"
+    LICENSE_TIER_ENTERPRISE: str = "ENTERPRISE"
+
     def __init__(self, tool_key: str = ToolKey.UNTRACEABLE):
         """
         Inicializa o gerenciador de licença.
@@ -109,9 +113,132 @@ class LicenseManager(BaseUtil):
         self.logger.debug("Nenhum cache de licença encontrado, validando...")
         return self._validate_and_update(license_key, prefs, today)
 
+    def get_license_info(self) -> dict:
+        """
+        Retorna informações completas da licença cadastrada.
+
+        Returns:
+            dict: {
+                "has_key": bool,
+                "key_preview": str (primeiros 4 chars + "****"),
+                "status": str ("active" | "inactive" | ""),
+                "expiry": str (data formatada ou ""),
+                "tier": str ("BASIC" | "PRO" | "ENTERPRISE" | ""),
+                "level": str ("Básico" | "Profissional" | "Enterprise" | ""),
+                "is_active": bool,
+                "days_remaining": int,
+            }
+        """
+        prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
+        license_key = (prefs.get("license_key") or "").strip()
+        status = prefs.get("license_status", "")
+        expiry_str = prefs.get("license_expiry", "")
+        tier = prefs.get("license_tier", "")
+
+        info = {
+            "has_key": bool(license_key),
+            "key_preview": (license_key[:4] + "****") if license_key else "",
+            "status": status,
+            "expiry": expiry_str,
+            "tier": tier,
+            "level": self._tier_to_label(tier) if tier else "",
+            "is_active": False,
+            "days_remaining": -1,
+        }
+
+        if status == "active" and expiry_str:
+            expiry = self._parse_date(expiry_str)
+            if expiry is not None:
+                today = datetime.now().date()
+                days = (expiry - today).days
+                info["days_remaining"] = days
+                info["is_active"] = days >= 0
+
+        return info
+
+    def save_license_key(self, license_key: str) -> dict:
+        """
+        Salva e valida uma chave de licença.
+
+        Fluxo:
+        1. Valida a chave
+        2. Se válida: salva chave, status "active", expiry, tier
+        3. Se inválida: NÃO salva, retorna erro
+
+        Args:
+            license_key: Chave de licença a ser salva.
+
+        Returns:
+            dict: {"success": bool, "message": str}
+        """
+        license_key = license_key.strip()
+        if not license_key:
+            self.logger.warning("Tentativa de salvar chave vazia")
+            return {"success": False, "message": "Chave de licença não pode estar vazia."}
+
+        is_valid, tier = self._validate_and_get_tier(license_key)
+
+        if not is_valid:
+            self.logger.warning("Tentativa de salvar chave inválida")
+            return {"success": False, "message": "Chave de licença inválida."}
+
+        today = datetime.now().date()
+        new_expiry = today + timedelta(days=30)
+
+        prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
+        prefs["license_key"] = license_key
+        prefs["license_status"] = "active"
+        prefs["license_expiry"] = new_expiry.strftime(self.DATE_FORMAT)
+        prefs["license_tier"] = tier
+        Preferences.save_tool_prefs(ToolKey.SYSTEM, prefs)
+
+        self.logger.debug(
+            f"Licença salva com sucesso: tier={tier}, expira={new_expiry.strftime(self.DATE_FORMAT)}"
+        )
+        return {"success": True, "message": "Licença salva e validada com sucesso."}
+
+    def delete_license(self) -> None:
+        """
+        Remove todos os dados de licença das preferências.
+        """
+        prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
+        prefs["license_key"] = ""
+        prefs["license_status"] = ""
+        prefs["license_expiry"] = ""
+        prefs["license_tier"] = ""
+        Preferences.save_tool_prefs(ToolKey.SYSTEM, prefs)
+
+        self.logger.debug("Licença removida das preferências")
+
     # ----------------------------------------------------------------
     # Internal Methods
     # ----------------------------------------------------------------
+
+    @staticmethod
+    def _validate_and_get_tier(license_key: str) -> tuple:
+        """
+        Valida a chave e retorna (is_valid, tier).
+
+        Args:
+            license_key: Chave de licença.
+
+        Returns:
+            tuple: (bool, str)
+        """
+        if license_key == LicenseManager.VALID_LICENSE_KEY:
+            return True, LicenseManager.LICENSE_TIER_PRO
+
+        return False, ""
+
+    @staticmethod
+    def _tier_to_label(tier: str) -> str:
+        """Converte tier code para label amigável."""
+        labels = {
+            LicenseManager.LICENSE_TIER_BASIC: "Básico",
+            LicenseManager.LICENSE_TIER_PRO: "Profissional",
+            LicenseManager.LICENSE_TIER_ENTERPRISE: "Enterprise",
+        }
+        return labels.get(tier, "")
 
     @staticmethod
     def _check_license(license_key: str) -> bool:

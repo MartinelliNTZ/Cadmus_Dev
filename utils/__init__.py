@@ -21,6 +21,7 @@ from .Preferences import Preferences
 from .ProjectUtils import ProjectUtils
 from .SVGUtils import SVGUtils
 from .XmlUtil import XmlUtil
+from .ImageUtils import ImageUtils
 
 __all__ = [
     "ToolKey",
@@ -31,6 +32,7 @@ __all__ = [
     "ColorUtil",
     "ExplorerUtils",
     "FileCompressUtils",
+    "ImageUtils",
     "JsonUtil",
     "LayoutsUtils",
     "MathUtils",

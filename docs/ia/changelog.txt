@@ -232,3 +232,15 @@
    - Logs: debug quando reordenação bem-sucedida, warning quando falha (ordem original mantida)
    - Utiliza método estático existente que cria nova layer em memória com campos ordenados
      case-insensitive (A-Z), preservando dados e geometria
+2.3.48 11/07/2026
+[2.3.48.1][11/07/2026] Novo utilitário ImageUtils:
+   - Criado utils/ImageUtils.py com classe ImageUtils herdando de BaseUtil
+   - Método photo_to_base64(): converte foto do disco para string base64 com data URI
+     (ex: data:image/jpeg;base64,...). Suporta .jpg, .jpeg, .png, .tif, .tiff, .bmp, .gif, .webp, .ico.
+     Inclui validações de arquivo, extensão, leitura segura com tratamento de exceções,
+     e log via LogUtils com tool_key.
+   - Método base64_to_bytes(): decodifica string base64 (com ou sem data URI) de volta para bytes.
+   - Método auxiliar _guess_mime_type(): mapeia extensão para MIME type.
+   - Registrado em utils/__init__.py com export ImageUtils.
+   - SKILL_UTILS.md atualizado para v2.1.0: adicionada entrada #28 na tabela de classes,
+     item no Resumo Executivo, caso de uso, dependência e histórico.

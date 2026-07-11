@@ -22,6 +22,7 @@ description: >
 - Manipulação de XML/QML
 - Merge de PDFs e conversão PNG→PDF
 - Remoção/restauração de extensão de arquivos
+- **Conversão de imagens para base64** (via ImageUtils)
 
 ---
 
@@ -85,27 +86,28 @@ Facilitar tarefas comuns e recorrentes do plugin, garantindo padronização, ras
 | 25 | **SVGUtils** | `utils/SVGUtils.py` | **Geração de SVG a partir de camadas vetoriais QGIS.** Converte features para elementos SVG (pontos, linhas, polígonos) com símbolos e rótulos. 25+ métodos. |
 | 26 | **XmlUtil** | `utils/XmlUtil.py` | **Manipulação de XML e QML (QGIS Style Layer).** Cria, carrega, salva documentos XML. Constrói estilos QML para raster multiband. Métodos: `create_element`, `add_sub_element`, `pretty_xml`, `save_xml`, `load_xml`, `save_qml_style`, `build_raster_multiband_qml`. |
 | 27 | **PDFUtils** | `utils/PDFUtils.py` | **Manipulação de PDFs e conversão de imagens.** Merge de PDFs (PyPDF2), merge de PNGs para PDF (Pillow). Métodos: `merge_pdfs`, `merge_pngs_to_pdf`. |
-| 28 | **StringAdapter** | `utils/adapter/StringAdapter.py` | **Adaptação de strings para diferentes formatos.** |
-| 29 | **CustomPhotosFieldsUtil** | `utils/mrk/CustomPhotosFieldsUtil.py` | **Utilitário para campos personalizados de fotos.** |
-| 30 | **ExifUtil** | `utils/mrk/ExifUtil.py` | **Leitura de metadados EXIF de imagens.** |
-| 31 | **InitialParamsUtil** | `utils/mrk/InitialParamsUtil.py` | **Parâmetros iniciais para processamento de fotos.** |
-| 32 | **MetadataFields** | `utils/mrk/MetadataFields.py` | **Definição dos campos de metadados (EXIF/XMP).** |
-| 33 | **MrkParser** | `utils/mrk/MrkParser.py` | **Parser de arquivos .mrk (formato de pontos do drone).** |
-| 34 | **MrkUtil** | `utils/mrk/MrkUtil.py` | **Utilitários para arquivos .mrk.** |
-| 35 | **PhotoMetadata** | `utils/mrk/PhotoMetadata.py` | **Agregação de metadados de foto (EXIF + XMP + .mrk).** |
-| 36 | **PqiUtil** | `utils/mrk/PqiUtil.py` | **Cálculo de PQI (Picture Quality Index).** |
-| 37 | **XmpUtil** | `utils/mrk/XmpUtil.py` | **Leitura de metadados XMP de imagens (DJI, Mavic, etc.).** |
-| 38 | **AggregateAnalyzer** | `utils/report/AggregateAnalyzer.py` | **Análise agregada de dados de relatório.** |
-| 39 | **AlertManager** | `utils/report/AlertManager.py` | **Gerenciamento de alertas em relatórios.** |
-| 40 | **FlightAggregator** | `utils/report/FlightAggregator.py` | **Agregação de dados de voo.** |
-| 41 | **IMGMetadata** | `utils/report/IMGMetadata.py` | **Metadados de imagens para relatório.** |
-| 42 | **JsonMetadataManager** | `utils/report/JsonMetadataManager.py` | **Gerenciamento de metadados em JSON para relatório.** |
-| 43 | **RangeMetadataManager** | `utils/report/RangeMetadataManager.py` | **Gerenciamento de ranges de metadados.** |
-| 44 | **RenderEngine** | `utils/report/RenderEngine.py` | **Motor de renderização de relatórios.** |
-| 45 | **ReportPapelineManager** | `utils/report/ReportPapelineManager.py` | **Gerenciamento de pipeline de relatórios.** |
-| 46 | **ScoreSPBJudge** | `utils/judge/ScoreSPBJudge.py` | **Julgador de pontuação SPB.** |
-| 47 | **SequentialPointBreakJudge** | `utils/judge/SequentialPointBreakJudge.py` | **Julgador Sequential Point Break.** |
-| 48 | **SimpleSPBJudge** | `utils/judge/SimpleSPBJudge.py` | **Julgador SPB simplificado.** |
+| 28 | **ImageUtils** ✨ NOVO | `utils/ImageUtils.py` | **Conversão de imagens para base64 e operações relacionadas.** Métodos: `photo_to_base64` (converte foto para string base64 com data URI), `base64_to_bytes` (decodifica base64 de volta para bytes). Herda de BaseUtil com suporte a LogUtils. |
+| 29 | **StringAdapter** | `utils/adapter/StringAdapter.py` | **Adaptação de strings para diferentes formatos.** |
+| 30 | **CustomPhotosFieldsUtil** | `utils/mrk/CustomPhotosFieldsUtil.py` | **Utilitário para campos personalizados de fotos.** |
+| 31 | **ExifUtil** | `utils/mrk/ExifUtil.py` | **Leitura de metadados EXIF de imagens.** |
+| 32 | **InitialParamsUtil** | `utils/mrk/InitialParamsUtil.py` | **Parâmetros iniciais para processamento de fotos.** |
+| 33 | **MetadataFields** | `utils/mrk/MetadataFields.py` | **Definição dos campos de metadados (EXIF/XMP).** |
+| 34 | **MrkParser** | `utils/mrk/MrkParser.py` | **Parser de arquivos .mrk (formato de pontos do drone).** |
+| 35 | **MrkUtil** | `utils/mrk/MrkUtil.py` | **Utilitários para arquivos .mrk.** |
+| 36 | **PhotoMetadata** | `utils/mrk/PhotoMetadata.py` | **Agregação de metadados de foto (EXIF + XMP + .mrk).** |
+| 37 | **PqiUtil** | `utils/mrk/PqiUtil.py` | **Cálculo de PQI (Picture Quality Index).** |
+| 38 | **XmpUtil** | `utils/mrk/XmpUtil.py` | **Leitura de metadados XMP de imagens (DJI, Mavic, etc.).** |
+| 39 | **AggregateAnalyzer** | `utils/report/AggregateAnalyzer.py` | **Análise agregada de dados de relatório.** |
+| 40 | **AlertManager** | `utils/report/AlertManager.py` | **Gerenciamento de alertas em relatórios.** |
+| 41 | **FlightAggregator** | `utils/report/FlightAggregator.py` | **Agregação de dados de voo.** |
+| 42 | **IMGMetadata** | `utils/report/IMGMetadata.py` | **Metadados de imagens para relatório.** |
+| 43 | **JsonMetadataManager** | `utils/report/JsonMetadataManager.py` | **Gerenciamento de metadados em JSON para relatório.** |
+| 44 | **RangeMetadataManager** | `utils/report/RangeMetadataManager.py` | **Gerenciamento de ranges de metadados.** |
+| 45 | **RenderEngine** | `utils/report/RenderEngine.py` | **Motor de renderização de relatórios.** |
+| 46 | **ReportPapelineManager** | `utils/report/ReportPapelineManager.py` | **Gerenciamento de pipeline de relatórios.** |
+| 47 | **ScoreSPBJudge** | `utils/judge/ScoreSPBJudge.py` | **Julgador de pontuação SPB.** |
+| 48 | **SequentialPointBreakJudge** | `utils/judge/SequentialPointBreakJudge.py` | **Julgador Sequential Point Break.** |
+| 49 | **SimpleSPBJudge** | `utils/judge/SimpleSPBJudge.py` | **Julgador SPB simplificado.** |
 
 ---
 
@@ -275,6 +277,7 @@ QgisMessageUtil.bar_info(iface, "Arquivo salvo com sucesso!")
 - Quando precisa **manipular XML/QML** → usar **XmlUtil**
 - Quando precisa **merge de PDFs/PNGs** → usar **PDFUtils**
 - Quando precisa **gerar cores** → usar **ColorUtil**
+- Quando precisa **converter foto para base64** → usar **ImageUtils**
 
 ---
 
@@ -309,6 +312,7 @@ QgisMessageUtil.bar_info(iface, "Arquivo salvo com sucesso!")
 | SVGUtils | `utils/SVGUtils.py` | Geração de SVG a partir de camadas vetoriais |
 | XmlUtil | `utils/XmlUtil.py` | Manipulação de XML e QML |
 | PDFUtils | `utils/PDFUtils.py` | Merge de PDFs e conversão PNG→PDF |
+| ImageUtils | `utils/ImageUtils.py` | Conversão de imagens para base64 e decodificação de base64 para bytes |
 
 ---
 
@@ -402,3 +406,4 @@ if success:
 |------|--------|-----------|
 | 2026-04-20 | 1.0.0 | Criação via SKILL_FACTORY — lidas classes base do utils |
 | 2026-06-08 | 2.0.0 | **Refatoração arquitetural**: removidos `os.rename` e `zipfile.ZipFile` de PathExtensionTask. Criado `FileCompressUtils` (compressão/extração). Adicionados `rename_file`, `remove_extension_dot`, `restore_extension_dot` ao `ExplorerUtils`. SKILL enriquecida com todas as 48 classes do diretório utils. |
+| 2026-07-11 | 2.1.0 | **Novo utilitário ImageUtils**: classe para conversão de imagens para base64 com data URI. Métodos: `photo_to_base64`, `base64_to_bytes`. Adicionada entrada #28 na tabela de classes. |

@@ -85,7 +85,11 @@ class LayerInputWidget(QWidget):
         self._state_layer = layer
 
         if isinstance(layer, QgsVectorLayer):
-            layer.selectionChanged.connect(self._update_selection_state)
+            try:
+                layer.selectionChanged.connect(self._update_selection_state)
+            except RuntimeError:
+                # Objeto C++ deletado durante shutdown — ignora
+                pass
 
         self._update_selection_state()
         self.layerChanged.emit(layer)
@@ -101,8 +105,12 @@ class LayerInputWidget(QWidget):
 
     def _on_project_layers_changed(self, *args):
         # garante que o combo se mantenha consistente
-        if self._state_layer not in QgsProject.instance().mapLayers().values():
-            self._combo.setCurrentIndex(0)
+        try:
+            if self._state_layer not in QgsProject.instance().mapLayers().values():
+                self._combo.setCurrentIndex(0)
+        except RuntimeError:
+            # Objeto C++ foi deletado durante shutdown do QGIS
+            pass
 
     def _update_selection_state(self):
         if not self._chk_selected:
@@ -115,7 +123,14 @@ class LayerInputWidget(QWidget):
             self._chk_selected.setEnabled(False)
             return
 
-        count = layer.selectedFeatureCount()
+        try:
+            count = layer.selectedFeatureCount()
+        except RuntimeError:
+            # Objeto C++ deletado durante shutdown — desabilita checkbox
+            self._chk_selected.setChecked(False)
+            self._chk_selected.setEnabled(False)
+            return
+
         self._chk_selected.setEnabled(count > 0)
 
         if count == 0:
@@ -125,7 +140,14 @@ class LayerInputWidget(QWidget):
         old = self._state_layer
         if isinstance(old, QgsVectorLayer):
             try:
+                # Verifica se o objeto C++ ainda existe (evita RuntimeError durante shutdown)
+                if old is not None and not old.isValid():
+                    return
                 old.selectionChanged.disconnect(self._update_selection_state)
+            except RuntimeError:
+                # Objeto C++ foi deletado (ex: durante restart/shutdown do QGIS)
+                # A desconexão já é tratada automaticamente pelo Qt
+                pass
             except Exception as e:
                 logger.exception(e)
 
@@ -185,6 +207,21 @@ class LayerInputWidget(QWidget):
 
     def set_layer(self, layer):
         self._combo.setLayer(layer)
+
+    def on_layer_change(self, callback):
+        """
+        Conecta um callback ao sinal layerChanged.
+        Já invoca imediatamente para popular o dropdown
+        logo na abertura, independente do estado da camada.
+
+        Uso no plugin:
+            self.layer_input.on_layer_change(self._on_layer_changed)
+
+        O plugin apenas informa qual callback conectar,
+        o widget gerencia o ciclo de vida.
+        """
+        self.layerChanged.connect(callback)
+        callback()
 
     # --------------------------------------------------
     # Utils

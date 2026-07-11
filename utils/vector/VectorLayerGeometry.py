@@ -2,6 +2,8 @@
 from pathlib import Path
 import json
 import math
+import re
+from typing import Union, Tuple
 
 from typing import Optional
 
@@ -142,7 +144,7 @@ class VectorLayerGeometry:
     @staticmethod
     def create_point_layer_from_dicts(
         points: list,
-        name: str = "MRK_Pontos",
+        name: str = "MRK_Points",
         field_specs: Optional[list] = None,
         geometry_keys: tuple = ("lon", "lat"),
         extra_fields: Optional[dict] = None,
@@ -261,8 +263,8 @@ class VectorLayerGeometry:
                     return None
             return value
 
-        vl.startEditing()
         skipped_invalid_geometry = 0
+        features = []
         for p in points:
             x_val = p.get(x_key)
             y_val = p.get(y_key)
@@ -286,8 +288,9 @@ class VectorLayerGeometry:
                 for field_name in extra_fields.keys():
                     attrs.append(p.get(field_name))
             f.setAttributes(attrs)
-            vl.addFeature(f)
+            features.append(f)
 
+        vl.dataProvider().addFeatures(features)
         vl.commitChanges()
         vl.updateExtents()
         if skipped_invalid_geometry:
@@ -301,134 +304,259 @@ class VectorLayerGeometry:
             return None
         return vl
 
+    def natural_sort_key(value: Union[str, int, float, None]) -> Tuple:
+        """
+        Gera uma chave de ordenação para valores mistos (string com números ou números puros).
+        Exemplos:
+            'A1'   -> ('A', 1)
+            'A2'   -> ('A', 2)
+            'A10'  -> ('A', 10)
+            'B1'   -> ('B', 1)
+            123    -> (123,)
+            12.5   -> (12.5,)
+            None   -> ('',)  # ou (float('-inf'),)
+        """
+        if value is None:
+            return ("",)  # valores nulos vão para o início
+
+        if isinstance(value, (int, float)):
+            return (value,)
+
+        # Converte para string e separa partes numéricas e não numéricas
+        s = str(value)
+        parts = re.split(r"(\d+)", s)  # ex: 'A10' -> ['A', '10', '']
+        key_parts = []
+        for part in parts:
+            if part.isdigit():
+                key_parts.append(int(part))
+            else:
+                key_parts.append(part)
+        return tuple(key_parts)
+
     @staticmethod
     def create_line_layer_from_points(
         points: list,
+        order_by_field: str,
         name: str = "Trilha",
-        group_by_fields: list = None,
-        attribute_fields: list = None,
+        group_by_fields: Optional[list] = None,
+        attribute_fields: Optional[list] = None,
+        output_field_specs: Optional[list] = None,
+        attributes_resolver=None,
+        crs_authid: str = "EPSG:4326",
+        min_vertices_per_line: int = 2,
         tool_key: str = ToolKey.UNTRACEABLE,
     ) -> Optional[QgsVectorLayer]:
-        """Cria linha(s) em memoria a partir de pontos."""
+        """
+        Cria linha(s) em memória a partir de QgsFeature com geometria Point.
+
+        As coordenadas são extraídas diretamente da geometria de cada feição.
+
+        Parâmetros obrigatórios:
+            points         — lista de QgsFeature com geometria Point
+            order_by_field — campo usado para ordenar as feições dentro de cada grupo
+
+        Parâmetros opcionais:
+            group_by_fields    — campos para separar os pontos em linhas distintas
+            attribute_fields   — campos copiados do primeiro ponto para a feição da linha
+            output_field_specs — schema explícito: [(nome, tipo, len, prec), ...]
+            attributes_resolver — callback(group, group_key) -> dict
+        """
         logger = VectorLayerGeometry._get_logger(tool_key)
-        logger.debug(
-            f"create_line_layer_from_points(points={len(points) if points else 0}, name={name}, group_by_fields={group_by_fields}, attribute_fields={attribute_fields})"
-        )
+
         if not points:
+            logger.warning("create_line_layer_from_points: lista de pontos vazia")
             return None
 
-        def _first_non_empty(record, keys):
-            for key in keys:
-                value = record.get(key)
-                if value not in (None, ""):
-                    return value
-            return None
+        logger.debug(
+            f"create_line_layer_from_points("
+            f"points={len(points)}, order={order_by_field}, "
+            f"group_by={group_by_fields})"
+        )
 
-        def _to_float(value):
-            if value in (None, ""):
+        # --- Extração de coordenadas direto da geometria ---
+        def _extract_xy(feature: QgsFeature) -> Optional[QgsPointXY]:
+            geom = feature.geometry()
+            if not geom or geom.isEmpty():
                 return None
+            pt = geom.asPoint()
+            return QgsPointXY(pt.x(), pt.y())
+
+        def _safe_attribute(feature: QgsFeature, field_name: str):
             try:
-                return float(value)
+                return feature.attribute(field_name)
             except Exception:
                 return None
 
-        def _extract_xy(record):
-            x_candidates = [
-                "Lon",
-                "lon",
-                "Longitude",
-                "GPSLong",
-                "GpsLongitude",
-                MetadataFields.resolve_output_name("Lon"),
-                MetadataFields.resolve_output_name("GpsLongitude"),
-            ]
-            y_candidates = [
-                "Lat",
-                "lat",
-                "Latitude",
-                "GpsLat",
-                "GpsLatitude",
-                MetadataFields.resolve_output_name("Lat"),
-                MetadataFields.resolve_output_name("GpsLatitude"),
-            ]
-            x_val = _to_float(_first_non_empty(record, x_candidates))
-            y_val = _to_float(_first_non_empty(record, y_candidates))
-            if x_val is None or y_val is None:
-                return None
-            return (x_val, y_val)
+        # --- Ordenação por sequência ---
+        def _sort_key(feature: QgsFeature):
+            val = _safe_attribute(feature, order_by_field)
+            return VectorLayerGeometry.natural_sort_key(val)
 
-        def _photo_sort_key(record):
-            photo_candidates = [
-                "Foto",
-                "foto",
-                "PhotoNum",
-                MetadataFields.resolve_output_name("Foto"),
-            ]
-            raw = _first_non_empty(record, photo_candidates)
-            try:
-                return int(raw)
-            except Exception:
-                return 0
-
-        groups = {None: points}
+        # --- Agrupamento ---
         if group_by_fields:
-            groups = {}
-            for point in points:
-                key = tuple(str(point.get(field, "") or "").strip() for field in group_by_fields)
-                groups.setdefault(key, []).append(point)
+            groups: dict = {}
+            for feat in points:
+                key = tuple(
+                    str(_safe_attribute(feat, f) or "").strip() for f in group_by_fields
+                )
+                groups.setdefault(key, []).append(feat)
+        else:
+            groups = {None: points}
 
+        # --- Schema de campos ---
         fields = QgsFields()
         resolved_attr_pairs = []
-        if attribute_fields:
-            seen_output_names = set()
+
+        if output_field_specs:
+            for spec in output_field_specs:
+                if not spec:
+                    continue
+                fields.append(
+                    QgsField(
+                        spec[0],
+                        spec[1] if len(spec) > 1 else QVariant.String,
+                        len=spec[2] if len(spec) > 2 else 0,
+                        prec=spec[3] if len(spec) > 3 else 0,
+                    )
+                )
+
+        elif attribute_fields:
+            seen = set()
             for input_name in attribute_fields:
                 output_name = MetadataFields.resolve_output_name(input_name)
-                if output_name in seen_output_names:
+                if output_name in seen:
                     continue
-                seen_output_names.add(output_name)
+                seen.add(output_name)
                 resolved_attr_pairs.append((input_name, output_name))
                 fields.append(QgsField(output_name, QVariant.String))
 
-        line = QgsVectorLayer("LineString?crs=EPSG:4326", name, "memory")
-        line.dataProvider().addAttributes(fields)
-        line.updateFields()
+        # --- Camada de memória ---
+        line_layer = QgsVectorLayer(f"LineString?crs={crs_authid}", name, "memory")
+        line_layer.dataProvider().addAttributes(fields)
+        line_layer.updateFields()
 
-        for _, group in groups.items():
+        # --- Feições ---
+        for group_key, group in groups.items():
             try:
-                group = sorted(group, key=_photo_sort_key)
+                group = sorted(group, key=_sort_key)
             except Exception as e:
-                logger.error(f"Erro ordenando pontos para linha: {e}")
-                return None
-
-            vertices = []
-            for point in group:
-                xy = _extract_xy(point)
-                if not xy:
-                    continue
-                vertices.append(QgsPointXY(xy[0], xy[1]))
-
-            if len(vertices) < 2:
+                logger.error(f"Erro ao ordenar grupo {group_key}: {e}")
                 continue
 
-            feature = QgsFeature(line.fields())
+            vertices = [xy for feat in group if (xy := _extract_xy(feat))]
+
+            if len(vertices) < max(2, min_vertices_per_line):
+                logger.debug(f"Grupo {group_key} ignorado: {len(vertices)} vértice(s)")
+                continue
+
+            feature = QgsFeature(line_layer.fields())
             feature.setGeometry(QgsGeometry.fromPolylineXY(vertices))
 
-            if attribute_fields:
+            if attributes_resolver:
+                try:
+                    custom_attrs = attributes_resolver(group, group_key=group_key) or {}
+                except TypeError:
+                    custom_attrs = attributes_resolver(group) or {}
+                except Exception as e:
+                    logger.warning(
+                        f"attributes_resolver falhou para grupo {group_key}: {e}"
+                    )
+                    custom_attrs = {}
+                for attr_name, attr_value in custom_attrs.items():
+                    if line_layer.fields().lookupField(attr_name) != -1:
+                        feature.setAttribute(attr_name, attr_value)
+
+            elif resolved_attr_pairs:
                 source = group[0]
                 for input_name, output_name in resolved_attr_pairs:
-                    value = source.get(input_name)
+                    value = _safe_attribute(source, input_name)
                     if value is None and output_name != input_name:
-                        value = source.get(output_name)
+                        value = _safe_attribute(source, output_name)
                     if value is not None:
                         feature.setAttribute(output_name, value)
 
-            line.dataProvider().addFeature(feature)
+            line_layer.dataProvider().addFeature(feature)
 
-        line.updateExtents()
-        if line.featureCount() == 0:
+        line_layer.updateExtents()
+
+        if line_layer.featureCount() == 0:
+            logger.warning("create_line_layer_from_points: nenhuma feição gerada")
             return None
-        return line
 
+        return line_layer
+
+    @staticmethod
+    def merge_memory_layers(
+        layers: list,
+        crs_authid: str,
+        layer_name: str,
+    ) -> Optional[QgsVectorLayer]:
+        """Mescla camadas de memória em uma única camada."""
+        if not layers:
+            return None
+        if len(layers) == 1:
+            return layers[0]
+
+        first = None
+        for lyr in layers:
+            if lyr and lyr.isValid():
+                first = lyr
+                break
+
+        if first is None:
+            uri = f"Point?crs={crs_authid}"
+        else:
+            geom_type = first.geometryType()  # 0=Point,1=Line,2=Polygon
+            if geom_type == 1:
+                uri = f"LineString?crs={crs_authid}"
+            elif geom_type == 2:
+                uri = f"Polygon?crs={crs_authid}"
+            else:
+                uri = f"Point?crs={crs_authid}"
+
+        merged = QgsVectorLayer(uri, layer_name, "memory")
+        merged_data = merged.dataProvider()
+
+        all_field_names = []
+        for lyr in layers:
+            if not lyr or not lyr.isValid():
+                continue
+            for field in lyr.fields():
+                if field.name() not in all_field_names:
+                    all_field_names.append(field.name())
+
+        unique_fields = []
+        seen = set()
+        for lyr in layers:
+            if not lyr or not lyr.isValid():
+                continue
+            for fname in all_field_names:
+                idx = lyr.fields().lookupField(fname)
+                if idx >= 0 and fname not in seen:
+                    seen.add(fname)
+                    unique_fields.append(lyr.fields().field(idx))
+
+        merged_data.addAttributes(unique_fields)
+        merged.updateFields()
+
+        for lyr in layers:
+            if not lyr or not lyr.isValid():
+                continue
+            for feat in lyr.getFeatures():
+                new_feat = QgsFeature(merged.fields())
+                new_feat.setGeometry(feat.geometry())
+                for field_name in all_field_names:
+                    src_idx = lyr.fields().lookupField(field_name)
+                    tgt_idx = merged.fields().lookupField(field_name)
+                    if src_idx >= 0 and tgt_idx >= 0:
+                        new_feat.setAttribute(tgt_idx, feat.attribute(src_idx))
+                merged_data.addFeatures([new_feat])
+
+        merged.updateExtents()
+        merged.updateFields()
+        return merged
+
+    @staticmethod
     def create_buffer_geometry(
         *,
         layer: QgsVectorLayer,
@@ -446,7 +574,9 @@ class VectorLayerGeometry:
         logger.debug(
             f"create_buffer_geometry: distance={distance}, segments={segments}, dissolve={dissolve}"
         )
-        if VectorLayerGeometry.get_layer_type(layer, tool_key=external_tool_key) not in (
+        if VectorLayerGeometry.get_layer_type(
+            layer, tool_key=external_tool_key
+        ) not in (
             QgsWkbTypes.PointGeometry,
             QgsWkbTypes.LineGeometry,
             QgsWkbTypes.PolygonGeometry,
@@ -522,7 +652,10 @@ class VectorLayerGeometry:
 
         logger = VectorLayerGeometry._get_logger(external_tool_key)
         logger.debug(f"explode_multipart_features(layer={layer})")
-        if VectorLayerGeometry.get_layer_type(layer, tool_key=external_tool_key) == QgsWkbTypes.LineGeometry:
+        if (
+            VectorLayerGeometry.get_layer_type(layer, tool_key=external_tool_key)
+            == QgsWkbTypes.LineGeometry
+        ):
             result = processing.run(
                 "native:explodelines",
                 {"INPUT": layer, "OUTPUT": "memory:"},
@@ -553,7 +686,10 @@ class VectorLayerGeometry:
 
     @staticmethod
     def explode_lines_to_path_safe(
-        *, layer: QgsVectorLayer, output_path: str, external_tool_key=ToolKey.UNTRACEABLE
+        *,
+        layer: QgsVectorLayer,
+        output_path: str,
+        external_tool_key=ToolKey.UNTRACEABLE,
     ) -> str:
         """
         Explode linhas (LineString / MultiLineString) manualmente.
@@ -751,7 +887,9 @@ class VectorLayerGeometry:
         logger.debug(f"convert_geometry_type(layer={layer}, target_type={target_type})")
         pass
 
-    def simplify_geometry(self, layer, tolerance, external_tool_key=ToolKey.UNTRACEABLE):
+    def simplify_geometry(
+        self, layer, tolerance, external_tool_key=ToolKey.UNTRACEABLE
+    ):
         """Simplifica geometrias reduzindo vértices mantendo forma geral."""
         logger = VectorLayerGeometry._get_logger(external_tool_key)
         logger.debug(f"simplify_geometry(layer={layer}, tolerance={tolerance})")
@@ -789,10 +927,14 @@ class VectorLayerGeometry:
         )
         pass
 
-    def get_geometry_union(self, geometry1, geometry2, external_tool_key=ToolKey.UNTRACEABLE):
+    def get_geometry_union(
+        self, geometry1, geometry2, external_tool_key=ToolKey.UNTRACEABLE
+    ):
         """Calcula a união entre duas geometrias."""
         logger = VectorLayerGeometry._get_logger(external_tool_key)
-        logger.debug(f"get_geometry_union(geometry1={geometry1}, geometry2={geometry2})")
+        logger.debug(
+            f"get_geometry_union(geometry1={geometry1}, geometry2={geometry2})"
+        )
         pass
 
     def dissolve_geometries_by_attribute(

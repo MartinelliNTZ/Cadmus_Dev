@@ -12,9 +12,13 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
 )
 from ..resources.IconManager import IconManager as IM
+from ..core.config.LogUtils import LogUtils
+from .BaseUtil import BaseUtil
+
+logger = LogUtils(tool=BaseUtil.TOOL_KEY_UNTRACEABLE, class_name="QgisMessageUtil")
 
 
-class QgisMessageUtil:
+class QgisMessageUtil(BaseUtil):
     """Utilitário estático para exibir mensagens no QGIS.
 
     Todos os métodos aceitam `iface` (QgisInterface) como primeiro argumento.
@@ -45,7 +49,8 @@ class QgisMessageUtil:
         # iface.messageBar pode não existir em alguns contextos; tente capturar
         try:
             iface.messageBar().pushMessage(title, message, level, duration)
-        except Exception:
+        except Exception as e:
+            logger.debug(f"_push_message_bar: failed with error: {e}")
             # fallback para QMessageBox modal se messageBar não estiver disponível
             QMessageBox.information(iface.mainWindow(), title, message)
 
@@ -301,8 +306,7 @@ class QgisMessageUtil:
         )
 
         iface.messageBar().pushWidget(widget, level=0, duration=duration)
-        
-        
+
     @staticmethod
     def show_icon_message_bar(
         iface,
@@ -314,7 +318,7 @@ class QgisMessageUtil:
         border_radius=8,
         padding="8px 12px",
         font_size=12,
-        bold=True
+        bold=True,
     ):
         """
         Exibe uma message bar visualmente mais rica.
@@ -342,9 +346,7 @@ class QgisMessageUtil:
             icon_label = QLabel()
 
             pix = QPixmap(icon_path).scaled(
-                18, 18,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation
+                18, 18, Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
 
             icon_label.setPixmap(pix)

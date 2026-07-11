@@ -2,7 +2,7 @@ from qgis.gui import QgsMapTool
 from qgis.core import QgsApplication
 import sip
 
-from ..core.task.reverse_geocoding_task import ReverseGeocodeTask
+from ..core.task.ReverseGeocodeTask import ReverseGeocodeTask
 from ..core.task.altimetry_task import AltimetriaTask
 from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..core.engine_tasks.ExecutionContext import ExecutionContext
@@ -91,16 +91,13 @@ class CoordClickTool(QgsMapTool):
             ):
                 self.pipeline_engine.cancel()
             context = ExecutionContext(
-                {
-                    "lat": lat,
-                    "lon": lon,
-                    "iface": self.iface,
-                    "dialog": self.dialog,
-                    "tool_key": "coord_click",
-                }
+                tool_key="coord_click",
+                lat=lat,
+                lon=lon,
             )
 
             # Reverse geocode and altimetry are independent — run in parallel
+            # Both steps read lat/lon directly from context (atributos canônicos)
             steps = [
                 ParallelStep(
                     [ReverseGeocodeStep(), AltimetryStep()],
@@ -108,7 +105,12 @@ class CoordClickTool(QgsMapTool):
                 )
             ]
 
-            self.pipeline_engine = AsyncPipelineEngine(steps, context)
+            self.pipeline_engine = AsyncPipelineEngine(
+                steps,
+                context,
+                on_finished=self._on_pipeline_finished,
+                on_error=self._on_pipeline_error,
+            )
             self.pipeline_engine.start()
         except Exception as e:
             # Fallback to previous behavior: schedule tasks individually
@@ -126,7 +128,9 @@ class CoordClickTool(QgsMapTool):
                 except Exception as e2:
                     self.logger.error(f"on_address handler error: {e2}")
 
-            self.address_task = ReverseGeocodeTask(lat, lon, on_address)
+            self.address_task = ReverseGeocodeTask(lat, lon, tool_key="coord_click")
+            self.address_task.on_success = lambda result: on_address(result, None)
+            self.address_task.on_error = lambda exc: on_address(None, str(exc) if exc else "Unknown error")
             QgsApplication.taskManager().addTask(self.address_task)
 
             def on_altitude(value, error):
@@ -141,12 +145,44 @@ class CoordClickTool(QgsMapTool):
                 except Exception as e2:
                     self.logger.error(f"on_altitude handler error: {e2}")
 
-            self.alt_task = AltimetriaTask(lat, lon, on_altitude)
+            self.alt_task = AltimetriaTask(lat, lon, tool_key="coord_click")
+            self.alt_task.on_success = lambda result: on_altitude(result, None)
+            self.alt_task.on_error = lambda exc: on_altitude(None, str(exc) if exc else "Unknown error")
             QgsApplication.taskManager().addTask(self.alt_task)
 
     # --------------------------------------------------
     # Utils
     # --------------------------------------------------
+    # --------------------------------------------------
+    # Pipeline callbacks (desacoplados — lêem dados do contexto)
+    # --------------------------------------------------
+    def _on_pipeline_finished(self, context):
+        """Callback chamado pela engine ao finalizar pipeline com sucesso."""
+        try:
+            address_data = context.get_result("address_data")
+            if address_data and self.dialog:
+                self.dialog.set_address(address_data)
+                self.logger.debug(f"Address set from pipeline: {address_data}")
+
+            altitude = context.get_result("altitude")
+            if altitude is not None and self.dialog:
+                self.dialog.set_altitude(altitude)
+                self.logger.debug(f"Altitude set from pipeline: {altitude}")
+        except Exception as e:
+            self.logger.error(f"Pipeline finished callback error: {e}")
+
+    def _on_pipeline_error(self, errors):
+        """Callback chamado pela engine ao finalizar pipeline com erro."""
+        try:
+            for err in errors:
+                self.logger.warning(f"Pipeline error: {err}")
+                if self.dialog:
+                    self.dialog.set_address(None)
+                    self.dialog.set_altitude(None)
+                self.iface.messageBar().pushWarning("Pipeline", str(err))
+        except Exception as e:
+            self.logger.error(f"Pipeline error callback error: {e}")
+
     def _cancel_task(self, task):
         if task and not sip.isdeleted(task):
             if not task.isCanceled():

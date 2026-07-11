@@ -2,6 +2,7 @@
 import os
 import re
 from typing import List, Optional
+from venv import logger
 from xml.sax.saxutils import escape
 
 from qgis.PyQt.QtGui import QColor
@@ -23,9 +24,10 @@ from qgis.core import (
 
 from ..core.config.LogUtils import LogUtils
 from .ToolKeys import ToolKey
+from .BaseUtil import BaseUtil
 
 
-class SVGUtils:
+class SVGUtils(BaseUtil):
     SVG_SIZE = 2048
     MARGIN = 48
     DEFAULT_STROKE_COLOR = "#202020"
@@ -368,7 +370,8 @@ class SVGUtils:
             symbol_layer = (
                 symbol.symbolLayer(0) if symbol.symbolLayerCount() > 0 else None
             )
-        except Exception:
+        except Exception as e:
+            logger.debug(f"symbol_style_for_feature: failed with error: {e}")
             symbol_layer = None
 
         if symbol_layer is not None:
@@ -424,12 +427,14 @@ class SVGUtils:
             "fill": fill_color or SVGUtils.DEFAULT_FILL_COLOR,
             "fill_opacity": opacity if fill_color != "none" else 0.0,
             "stroke": (
-                configured_border_color
-                or stroke_color
-                or SVGUtils.DEFAULT_STROKE_COLOR
-            )
-            if show_border
-            else "none",
+                (
+                    configured_border_color
+                    or stroke_color
+                    or SVGUtils.DEFAULT_STROKE_COLOR
+                )
+                if show_border
+                else "none"
+            ),
             "stroke_width": border_width if show_border else 0.0,
             "stroke_opacity": stroke_opacity if show_border else 0.0,
             "point_radius": point_radius,
@@ -502,7 +507,10 @@ class SVGUtils:
                 provider_ids = (
                     labeling.subProviders() if hasattr(labeling, "subProviders") else []
                 )
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    f"_read_label_settings_from_labeling: failed with error: {e}"
+                )
                 provider_ids = []
 
             provider_id = provider_ids[0] if provider_ids else ""
@@ -542,7 +550,10 @@ class SVGUtils:
         if not field_name:
             try:
                 display_expression = str(layer.displayExpression() or "").strip()
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    f"_read_label_settings_from_custom_properties: failed with error: {e}"
+                )
                 display_expression = ""
 
             if display_expression:
@@ -566,16 +577,23 @@ class SVGUtils:
                     "fontSize": SVGUtils.DEFAULT_LABEL_FONT_SIZE,
                 }
 
-            logger.debug("Nenhum fallback de rotulo encontrado em customProperty/displayExpression/Name")
+            logger.debug(
+                "Nenhum fallback de rotulo encontrado em customProperty/displayExpression/Name"
+            )
             return None
 
         is_expression = str(
             layer.customProperty("labeling/isExpression", "false") or "false"
         ).lower() in ("1", "true", "yes")
-        family = str(
-            layer.customProperty("labeling/fontFamily", SVGUtils.DEFAULT_LABEL_FONT_FAMILY)
+        family = (
+            str(
+                layer.customProperty(
+                    "labeling/fontFamily", SVGUtils.DEFAULT_LABEL_FONT_FAMILY
+                )
+                or SVGUtils.DEFAULT_LABEL_FONT_FAMILY
+            ).strip()
             or SVGUtils.DEFAULT_LABEL_FONT_FAMILY
-        ).strip() or SVGUtils.DEFAULT_LABEL_FONT_FAMILY
+        )
 
         try:
             size = float(
@@ -584,7 +602,10 @@ class SVGUtils:
                 )
                 or SVGUtils.DEFAULT_LABEL_FONT_SIZE
             )
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                f"_read_label_settings_from_custom_properties: failed with error: {e}"
+            )
             size = SVGUtils.DEFAULT_LABEL_FONT_SIZE
 
         logger.debug(
@@ -609,9 +630,9 @@ class SVGUtils:
             return None
 
         try:
-            expression_text = SVGUtils._label_setting_value(
-                label_settings, "fieldName", ""
-            ) or ""
+            expression_text = (
+                SVGUtils._label_setting_value(label_settings, "fieldName", "") or ""
+            )
             is_expression = bool(
                 SVGUtils._label_setting_value(label_settings, "isExpression", False)
             )
@@ -655,7 +676,7 @@ class SVGUtils:
             return None
 
     @staticmethod
-    def label_anchor_point(geometry: QgsGeometry):
+    def label_anchor_point(geometry: QgsGeometry, logger: LogUtils = None):
         if not geometry or geometry.isEmpty():
             return None
 
@@ -674,7 +695,11 @@ class SVGUtils:
             centroid = geometry.centroid()
             if centroid and not centroid.isEmpty():
                 return centroid.asPoint()
-        except Exception:
+        except Exception as e:
+            from ..core.config.LogUtils import LogUtils
+
+            logger = LogUtils(tool="Untraceable", class_name="None")
+            logger.debug(f"label_anchor_point: failed with error: {e}")
             return None
 
         return None
@@ -691,18 +716,27 @@ class SVGUtils:
             text_format = label_settings.format()
             family = text_format.font().family()
             return family or SVGUtils.DEFAULT_LABEL_FONT_FAMILY
-        except Exception:
+        except Exception as e:
+            from ..core.config.LogUtils import LogUtils
+
+            logger = LogUtils(tool="Untraceable", class_name="None")
+            logger.debug(f"label_font_family: failed with error: {e}")
             return SVGUtils.DEFAULT_LABEL_FONT_FAMILY
 
     @staticmethod
     def label_font_size(label_settings, style: Optional[dict] = None) -> float:
+        from ..core.config.LogUtils import LogUtils
+
+        logger = LogUtils(tool="Untraceable", class_name="None")
         if style is not None:
             configured_size = style.get("label_size")
             try:
                 configured_size = float(configured_size)
                 if configured_size > 0:
                     return configured_size
-            except Exception:
+            except Exception as e:
+
+                logger.debug(f"label_font_size: failed with error: {e}")
                 pass
 
         size = SVGUtils._label_setting_value(
@@ -712,7 +746,8 @@ class SVGUtils:
             size = float(size)
             if size > 0:
                 return size
-        except Exception:
+        except Exception as e:
+            logger.debug(f"label_font_size: failed with error: {e}")
             pass
 
         try:
@@ -721,8 +756,8 @@ class SVGUtils:
             point_size = float(font.pointSizeF())
             if point_size > 0:
                 return point_size
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"label_font_size: failed with error: {e}")
         return SVGUtils.DEFAULT_LABEL_FONT_SIZE
 
     @staticmethod
@@ -773,12 +808,16 @@ class SVGUtils:
 
     @staticmethod
     def extract_symbol_color(symbol_layer, method_names) -> Optional[str]:
+        from ..core.config.LogUtils import LogUtils
+
+        logger = LogUtils(tool="Untraceable", class_name="None")
         for method_name in method_names:
             method = getattr(symbol_layer, method_name, None)
             if callable(method):
                 try:
                     return SVGUtils.qcolor_to_svg(method())
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"extract_symbol_color: failed with error: {e}")
                     continue
         return None
 
@@ -791,7 +830,8 @@ class SVGUtils:
                     value = float(method())
                     if value > 0:
                         return value
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"extract_symbol_number: failed with error: {e}")
                     continue
         return fallback
 
@@ -818,7 +858,9 @@ class SVGUtils:
         return candidate
 
     @staticmethod
-    def write_svg(output_path: str, svg_content: str, tool_key: str = ToolKey.UNTRACEABLE):
+    def write_svg(
+        output_path: str, svg_content: str, tool_key: str = ToolKey.UNTRACEABLE
+    ):
         logger = SVGUtils._get_logger(tool_key)
         with open(output_path, "w", encoding="utf-8") as stream:
             stream.write(svg_content)

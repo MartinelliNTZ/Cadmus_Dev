@@ -15,12 +15,12 @@ from pathlib import Path
 from qgis.PyQt.QtCore import QProcess
 from qgis.PyQt.QtWidgets import QProgressDialog
 from ..core.config.LogUtils import LogUtils
-from .ToolKeys import ToolKey
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..i18n.TranslationManager import STR
+from .BaseUtil import BaseUtil
 
 
-class DependenciesManager:
+class DependenciesManager(BaseUtil):
     """Gerencia validação e instalação de dependências externas."""
 
     _active_processes = []
@@ -39,14 +39,14 @@ class DependenciesManager:
     }
 
     @staticmethod
-    def get_logger(toolkey=ToolKey.UNTRACEABLE):
-        return LogUtils(tool=toolkey, class_name="DependenciesManager")
+    def _get_logger(tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE) -> LogUtils:
+        return LogUtils(tool=tool_key, class_name="DependenciesManager")
 
     @staticmethod
     def _get_dependency_config(
-        dependency_name: str, toolkey=ToolKey.UNTRACEABLE
+        dependency_name: str, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
     ) -> dict:
-        logger = DependenciesManager.get_logger(toolkey)
+        logger = DependenciesManager._get_logger(tool_key)
         dep_info = DependenciesManager.DEPENDENCIES.get(dependency_name)
 
         if dep_info:
@@ -83,8 +83,8 @@ class DependenciesManager:
         return path.exists() and name.startswith("python") and name.endswith(".exe")
 
     @staticmethod
-    def _find_python_executable(toolkey=ToolKey.UNTRACEABLE) -> str:
-        logger = DependenciesManager.get_logger(toolkey)
+    def _find_python_executable(tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE) -> str:
+        logger = DependenciesManager._get_logger(tool_key)
         current_executable = Path(sys.executable).resolve() if sys.executable else None
         candidates = []
 
@@ -156,8 +156,10 @@ class DependenciesManager:
         return ""
 
     @staticmethod
-    def get_dependency_info(dependency_name: str, toolkey=ToolKey.UNTRACEABLE) -> dict:
-        dep_info = DependenciesManager._get_dependency_config(dependency_name, toolkey)
+    def get_dependency_info(
+        dependency_name: str, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
+    ) -> dict:
+        dep_info = DependenciesManager._get_dependency_config(dependency_name, tool_key)
         return {
             "import": dep_info["import"],
             "description": dep_info["description"],
@@ -165,9 +167,11 @@ class DependenciesManager:
         }
 
     @staticmethod
-    def check_dependency(dependency_name: str, toolkey=ToolKey.UNTRACEABLE) -> bool:
-        logger = DependenciesManager.get_logger(toolkey)
-        dep_info = DependenciesManager._get_dependency_config(dependency_name, toolkey)
+    def check_dependency(
+        dependency_name: str, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
+    ) -> bool:
+        logger = DependenciesManager._get_logger(tool_key)
+        dep_info = DependenciesManager._get_dependency_config(dependency_name, tool_key)
         module_name = dep_info["import"]
 
         logger.debug(
@@ -186,30 +190,29 @@ class DependenciesManager:
                 module_name=module_name,
             )
             return True
-        except ImportError as exc:
+        except ImportError as e:
             logger.warning(
                 "Dependência ausente",
                 code="DEPENDENCY_MISSING",
                 dependency_name=dependency_name,
                 module_name=module_name,
-                error=str(exc),
+                error=str(e),
             )
             return False
-        except Exception as exc:
+        except Exception as e:
             logger.exception(
-                exc,
-                code="DEPENDENCY_CHECK_ERROR",
-                dependency_name=dependency_name,
-                module_name=module_name,
+                e, code="DEPENDENCY_CHECK_ERROR", dependency_name=dependency_name
             )
             return False
 
     @staticmethod
-    def install_dependency(dependency_name: str, toolkey=ToolKey.UNTRACEABLE) -> bool:
-        logger = DependenciesManager.get_logger(toolkey)
-        dep_info = DependenciesManager._get_dependency_config(dependency_name, toolkey)
+    def install_dependency(
+        dependency_name: str, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
+    ) -> bool:
+        logger = DependenciesManager._get_logger(tool_key)
+        dep_info = DependenciesManager._get_dependency_config(dependency_name, tool_key)
         pip_name = dep_info["pip"]
-        python_exe = DependenciesManager._find_python_executable(toolkey)
+        python_exe = DependenciesManager._find_python_executable(tool_key)
 
         if not python_exe:
             logger.error(
@@ -264,24 +267,20 @@ class DependenciesManager:
                 python_executable=python_exe,
             )
             return False
-        except Exception as exc:
+        except Exception as e:
             logger.exception(
-                exc,
-                code="INSTALL_DEPENDENCY_EXCEPTION",
-                dependency_name=dependency_name,
-                pip_name=pip_name,
-                python_executable=python_exe,
+                e, code="INSTALL_DEPENDENCY_EXCEPTION", dependency_name=dependency_name
             )
             return False
 
     @staticmethod
     def install_dependency_gui(
-        dependency_name: str, iface, toolkey=ToolKey.UNTRACEABLE
+        dependency_name: str, iface, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
     ) -> bool:
-        logger = DependenciesManager.get_logger(toolkey)
-        dep_info = DependenciesManager._get_dependency_config(dependency_name, toolkey)
+        logger = DependenciesManager._get_logger(tool_key)
+        dep_info = DependenciesManager._get_dependency_config(dependency_name, tool_key)
         pip_name = dep_info["pip"]
-        python_exe = DependenciesManager._find_python_executable(toolkey)
+        python_exe = DependenciesManager._find_python_executable(tool_key)
 
         if not python_exe:
             logger.error(
@@ -303,7 +302,11 @@ class DependenciesManager:
         try:
             parent = iface.mainWindow() if iface else None
             progress = QProgressDialog(
-                STR.INSTALLING_DEPENDENCY + " " + dep_info["description"], STR.CANCEL, 0, 0, parent
+                STR.INSTALLING_DEPENDENCY + " " + dep_info["description"],
+                STR.CANCEL,
+                0,
+                0,
+                parent,
             )
             progress.setWindowTitle(STR.INSTALLING_DEPENDENCIES)
             progress.setAutoClose(True)
@@ -334,8 +337,15 @@ class DependenciesManager:
                         dependency_name=dependency_name,
                         pip_name=pip_name,
                     )
-                    QgisMessageUtil.modal_info(iface, STR.DEPENDENCY + " " + dep_info["description"] + " " + STR.INSTALLED_SUCCESSFULLY, STR.SUCCESS)
-
+                    QgisMessageUtil.modal_info(
+                        iface,
+                        STR.DEPENDENCY
+                        + " "
+                        + dep_info["description"]
+                        + " "
+                        + STR.INSTALLED_SUCCESSFULLY,
+                        STR.SUCCESS,
+                    )
                 else:
                     logger.error(
                         "Instalação GUI concluída com erro",
@@ -396,21 +406,17 @@ class DependenciesManager:
                 python_executable=python_exe,
             )
             return True
-        except Exception as exc:
+        except Exception as e:
             logger.exception(
-                exc,
-                code="INSTALL_GUI_EXCEPTION",
-                dependency_name=dependency_name,
-                pip_name=pip_name,
-                python_executable=python_exe,
+                e, code="INSTALL_GUI_EXCEPTION", dependency_name=dependency_name
             )
             return False
 
     @staticmethod
     def validate_dependencies(
-        required_dependencies: list, toolkey=ToolKey.UNTRACEABLE
+        required_dependencies: list, tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE
     ) -> dict:
-        logger = DependenciesManager.get_logger(toolkey)
+        logger = DependenciesManager._get_logger(tool_key)
         logger.info(
             "Validando conjunto de dependências",
             code="VALIDATE_DEPENDENCIES_START",
@@ -422,7 +428,7 @@ class DependenciesManager:
         present = []
 
         for dep_name in required_dependencies:
-            if DependenciesManager.check_dependency(dep_name, toolkey):
+            if DependenciesManager.check_dependency(dep_name, tool_key):
                 present.append(dep_name)
             else:
                 missing.append(dep_name)

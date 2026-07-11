@@ -68,7 +68,7 @@ class _RestartExecutor:
 
         O comando é executado com `shell=False` para evitar injeção de shell (B602).
         """
-        
+
         def _run_cmd():
             try:
                 exe = cmd[0]
@@ -114,12 +114,12 @@ def run_restart_qgis(iface) -> None:
     """
     project = QgsProject.instance()
     project_path = project.fileName()
-    
+
     preferences = {}
     preferences.clear()
     preferences = Preferences.load_tool_prefs(ToolKey.RESTART_QGIS)
     valor_atual = preferences.get("usages", 0)
-    preferences["usages"] = valor_atual + 1    
+    preferences["usages"] = valor_atual + 1
     Preferences.save_tool_prefs(ToolKey.RESTART_QGIS, preferences)
 
     logger.info(

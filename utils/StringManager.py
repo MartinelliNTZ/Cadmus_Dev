@@ -6,17 +6,26 @@ from qgis.PyQt.QtCore import QVariant
 
 import re
 from ..i18n.TranslationManager import STR
+from .BaseUtil import BaseUtil
 
 
-class StringManager:
+class StringManager(BaseUtil):
 
     DIVIDE_STRIP_FIELDS = {
         StripOutputFieldKey.SHOT_ID: Field(
             label="Shot ID",
             attribute="shot_id",
             description="Identificador único do segmento de tiro/faixa.",
-            type=QVariant.Int,
-            length=10,
+            type=QVariant.String,
+            length=50,
+            precision=0,
+        ),
+        StripOutputFieldKey.OLD_SHOT_ID: Field(
+            label="Old Shot ID",
+            attribute="old_shot_id",
+            description="Identificador original do shot antes da validação de tamanho de grupo.",
+            type=QVariant.String,
+            length=50,
             precision=0,
         ),
         StripOutputFieldKey.SHOT_VALID: Field(
@@ -107,6 +116,38 @@ class StringManager:
             length=20,
             precision=8,
         ),
+        StripOutputFieldKey.AZIMUTH_PREV: Field(
+            label="Azimuth Prev",
+            attribute="azimuth_prev",
+            description="Azimute do segmento anterior (i-1 → i).",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        StripOutputFieldKey.AZIMUTH_NEXT: Field(
+            label="Azimuth Next",
+            attribute="azimuth_next",
+            description="Azimute do segmento seguinte (i → i+1).",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        StripOutputFieldKey.DELTA_AZ_PREV: Field(
+            label="Delta Azimuth Prev",
+            attribute="delta_az_prev",
+            description="Diferença angular entre azimute instantâneo e azimute anterior.",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
+        StripOutputFieldKey.DELTA_AZ_NEXT: Field(
+            label="Delta Azimuth Next",
+            attribute="delta_az_next",
+            description="Diferença angular entre azimute instantâneo e azimute seguinte.",
+            type=QVariant.Double,
+            length=20,
+            precision=8,
+        ),
     }
     MENU_CATEGORIES = {
         "SYSTEM": STR.MENU_SYSTEM,
@@ -131,6 +172,7 @@ class StringManager:
 
     # Filtros de arquivos
     FILTER_ALL = "All files (*.*)"
+    FILTER_IMAGES = "Images (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff)"
     FILTER_VECTOR = "Shapefile (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson *.json);;KML (*.kml);;CSV (*.csv)"
     FILTER_QGIS_STYLE = "QML files (*.qml)"
     SHP_EXTENSIONS = [".shp", ".shx", ".dbf", ".prj", ".cpg", ".qix"]
@@ -166,18 +208,31 @@ class StringManager:
     DIVIDE_POINTS_STRIP_TYPES = ["Curva", "Reta", "Ambas"]
 
     DIVIDE_POINTS_OPERATIONAL_FIELDS = {
-        "frequencia_pontos": {
-            "title": STR.EXPECTED_POINT_FREQUENCY_SECONDS,
-            "type": "int",
-            "default": 1,
-        },
-        "largura_tiro": {
-            "title": STR.EXPECTED_LATERAL_WIDTH_METERS,
+        "threshold_azimute_grave": {
+            "title": STR.SEVERE_AZIMUTH_DEVIATION_THRESHOLD,
+            "description": "Desvio alto de azimute que indica uma mudanca de direcao clara.",
             "type": "float",
-            "default": 20.0,
+            "default": 45.0,
+        },
+        "n_minimo_pontos": {
+            "title": STR.MINIMUM_POINT_COUNT,
+            "description": "Menor quantidade de pontos que um trecho precisa para ser aceito.",
+            "type": "int",
+            "default": 20,
+        },
+        "max_desvio": {
+            "title": "Numero max de pontos desvio",
+            "description": "Maximo de pontos fora do padrao que serao ignorados antes de confirmar a quebra.",
+            "type": "int",
+            "default": 2,
+        },
+        "max_distance": {
+            "title": "Distância Máxima entre pontos",
+            "description": "Distância máxima entre pontos para considerar uma quebra.",
+            "type": "int",
+            "default": 150,
         },
     }
-
     DIVIDE_POINTS_SENSITIVITY_FIELDS = {
         "janela_azimute": {
             "title": STR.AZIMUTH_MOVING_WINDOW,
@@ -191,23 +246,11 @@ class StringManager:
             "type": "float",
             "default": 20.0,
         },
-        "threshold_azimute_grave": {
-            "title": STR.SEVERE_AZIMUTH_DEVIATION_THRESHOLD,
-            "description": "Desvio alto de azimute que indica uma mudanca de direcao clara.",
-            "type": "float",
-            "default": 45.0,
-        },
         "score_minimo_quebra": {
             "title": STR.MINIMUM_BREAK_SCORE,
             "description": "Pontos necessarios para que o desvio seja considerado uma quebra real.",
             "type": "int",
             "default": 3,
-        },
-        "n_minimo_pontos": {
-            "title": STR.MINIMUM_POINT_COUNT,
-            "description": "Menor quantidade de pontos que um trecho precisa para ser aceito.",
-            "type": "int",
-            "default": 20,
         },
         "tolerancia_tempo": {
             "title": STR.TIME_TOLERANCE_MULTIPLIER,
@@ -215,11 +258,15 @@ class StringManager:
             "type": "float",
             "default": 3.0,
         },
-        "max_desvio": {
-            "title": "Numero max de pontos desvio",
-            "description": "Maximo de pontos fora do padrao que serao ignorados antes de confirmar a quebra.",
+        "frequencia_pontos": {
+            "title": STR.EXPECTED_POINT_FREQUENCY_SECONDS,
             "type": "int",
-            "default": 5,
+            "default": 1,
+        },
+        "largura_tiro": {
+            "title": STR.EXPECTED_LATERAL_WIDTH_METERS,
+            "type": "float",
+            "default": 20.0,
         },
     }
 

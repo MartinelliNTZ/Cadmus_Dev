@@ -42,7 +42,6 @@ class CadmusPlugin:
         self.logger.info("Plugin inicializado")
         self.logger.info(f"Locale: {locale}. TM.STR: {STR.APP_NAME}")
 
-
         self.mrk_drop_handler = MrkDropHandler(self.iface)
         self.iface.registerCustomDropHandler(self.mrk_drop_handler)
         self.logger.info("MRK drop handler registrado com sucesso")
@@ -50,6 +49,7 @@ class CadmusPlugin:
         # Inicializar PyQtSignalManager para escutar sinais
         try:
             from .core.config.PyQtSignalManager import PyQtSignalManager
+
             self.pyqt_signal_manager = PyQtSignalManager(tool_key=self.TOOL_KEY)
             self.pyqt_signal_manager.start()
             self.logger.info("PyQtSignalManager inicializado e escutando sinais")

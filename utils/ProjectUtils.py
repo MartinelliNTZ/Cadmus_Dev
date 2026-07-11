@@ -12,10 +12,14 @@ from qgis.core import (
 )
 
 from ..core.config.LogUtils import LogUtils
+from .BaseUtil import BaseUtil
 from typing import Union, Optional
 
 
-class ProjectUtils:
+class ProjectUtils(BaseUtil):
+
+    TOOL_KEY_UNTRACEABLE: str = BaseUtil.TOOL_KEY_UNTRACEABLE
+
     @staticmethod
     def get_active_vector_layer(layer, logger=None, require_editable=False):
         """Valida camada vetorial ativa.
@@ -38,16 +42,43 @@ class ProjectUtils:
 
     @staticmethod
     def ensure_editable(layer, logger=None):
-        """Verifica se a camada estÃ¡ em modo ediÃ§Ã£o.
+        """Verifica se a camada está em modo edição.
         Recebe: layer (QgsVectorLayer), logger.
         Retorna: bool.
-        NÃ£o acessa iface nem exibe mensagens.
+        Não acessa iface nem exibe mensagens.
         """
         if logger:
             logger.debug(
-                f"Verificando se camada estÃ¡ em ediÃ§Ã£o: {layer.name()}. EditÃ¡vel: {layer.isEditable()}"
+                f"Verificando se camada está em edição: {layer.name()}. Editável: {layer.isEditable()}"
             )
         return layer.isEditable()
+
+    @staticmethod
+    def ask_and_make_editable(iface, layer, logger=None):
+        """Pergunta ao usuário se deseja tornar a camada editável.
+        Recebe: iface (QgisInterface), layer (QgsVectorLayer), logger.
+        Retorna: bool (True se tornou editável ou já era, False se recusou).
+        """
+        if layer.isEditable():
+            return True
+
+        from ..utils.QgisMessageUtil import QgisMessageUtil
+        from ..i18n.TranslationManager import STR
+
+        msg = STR.LAYER_NOT_EDITABLE_ASK.format(layer_name=layer.name())
+        resposta = QgisMessageUtil.confirm(iface, msg, "Camada não editável")
+        if resposta:
+            layer.startEditing()
+            if logger:
+                logger.debug(
+                    f"Camada '{layer.name()}' colocada em modo edição pelo usuário"
+                )
+            QgisMessageUtil.bar_info(iface, STR.LAYER_NOW_EDITABLE)
+            return True
+
+        if logger:
+            logger.debug(f"Usuário recusou tornar camada '{layer.name()}' editável")
+        return False
 
     @staticmethod
     def get_project_instance() -> QgsProject:
@@ -96,9 +127,7 @@ class ProjectUtils:
         if crs.isValid():
             return crs
 
-        logger.warning(
-            f"SRC invalido: '{authid}'. Usando fallback {fallback_authid}"
-        )
+        logger.warning(f"SRC invalido: '{authid}'. Usando fallback {fallback_authid}")
         return QgsCoordinateReferenceSystem(fallback_authid)
 
     @staticmethod
@@ -400,6 +429,188 @@ class ProjectUtils:
             return None
 
     @staticmethod
+    def get_all_layers(
+        project: Optional[QgsProject] = None,
+        layer_type: Optional[str] = None,
+        logger=None,
+    ) -> list:
+        """
+        Retorna todas as camadas do projeto, opcionalmente filtradas por tipo.
+
+        Args:
+            project: Instância do projeto (default: QgsProject.instance())
+            layer_type: "vector", "raster" ou None para todos
+            logger: Opcional, para logging de debug
+
+        Returns:
+            list de QgsMapLayer
+        """
+        resolved = project or QgsProject.instance()
+        layers = list(resolved.mapLayers().values())
+
+        if logger:
+            logger.debug(
+                f"get_all_layers: total={len(layers)}, filter_type={layer_type}"
+            )
+            from qgis.core import QgsRasterLayer
+            for l in layers:
+                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                logger.debug(
+                    f"  layer: name='{l.name()}', provider='{l.providerType()}', "
+                    f"type='{layer_type_str}', "
+                    f"valid={l.isValid()}"
+                )
+
+        if layer_type == "vector":
+            return [l for l in layers if isinstance(l, QgsVectorLayer)]
+        elif layer_type == "raster":
+            from qgis.core import QgsRasterLayer
+            return [l for l in layers if isinstance(l, QgsRasterLayer)]
+
+        return layers
+
+    @staticmethod
+    def get_temporary_layers(
+        project: Optional[QgsProject] = None,
+        provider_name: str = "memory",
+        logger=None,
+    ) -> list:
+        """
+        Retorna todas as camadas temporárias (memory) do projeto.
+
+        Args:
+            project: Instância do projeto (default: QgsProject.instance())
+            provider_name: Nome do provider (default: "memory")
+            logger: Opcional, para logging de debug
+
+        Returns:
+            list de QgsMapLayer com provider igual a provider_name
+        """
+        resolved = project or QgsProject.instance()
+        all_layers = list(resolved.mapLayers().values())
+
+        temp_layers = [
+            l for l in all_layers
+            if l and l.isValid() and (l.providerType() or "") == provider_name
+        ]
+
+        if logger:
+            from qgis.core import QgsRasterLayer
+            logger.debug(
+                f"get_temporary_layers: total={len(all_layers)}, "
+                f"provider='{provider_name}', encontradas={len(temp_layers)}"
+            )
+            for l in temp_layers:
+                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                logger.debug(
+                    f"  temp_layer: name='{l.name()}', "
+                    f"type='{layer_type_str}', "
+                    f"source='{l.source()}'"
+                )
+            if not temp_layers:
+                logger.debug(
+                    "Nenhuma camada temporária encontrada. "
+                    "Listando todas as camadas para debug:"
+                )
+                for l in all_layers:
+                    layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                    logger.debug(
+                        f"  layer: name='{l.name()}', "
+                        f"provider='{l.providerType()}', "
+                        f"valid={l.isValid()}, "
+                        f"type='{layer_type_str}'"
+                    )
+
+        return temp_layers
+
+    @staticmethod
+    def get_temp_file_layers(
+        project: Optional[QgsProject] = None,
+        allow_temp_dir: bool = True,
+        logger=None,
+    ) -> list:
+        """
+        Retorna camadas cujo arquivo fonte está em diretório temporário do sistema
+        (ex: C:\\Users\\...\\AppData\\Local\\Temp\\processing_...\\OUTPUT.tif).
+
+        Detecta por:
+        - 'Temp' no path (case-insensitive)
+        - Ou caminho começa com tempdir real resolvido
+
+        Útil para encontrar rasters/vectors temporários que não são do tipo 'memory'
+        mas foram gerados por algoritmos de processing e estão em pastas temporárias.
+
+        Args:
+            project: Instância do projeto (default: QgsProject.instance())
+            allow_temp_dir: Se True, considera camadas em qualquer subpasta de temp.
+                            Se False, retorna lista vazia (desabilitado).
+            logger: Opcional, para logging de debug
+
+        Returns:
+            list de QgsMapLayer cujo source está em diretório temporário
+        """
+        if not allow_temp_dir:
+            return []
+
+        import tempfile
+        from pathlib import Path
+
+        resolved = project or QgsProject.instance()
+        all_layers = list(resolved.mapLayers().values())
+
+        # Resolver tempdir real (expande ~, resolve symlinks, caminhos curtos 8.3)
+        temp_root = str(Path(tempfile.gettempdir()).resolve()).lower()
+        temp_marker = os.path.sep + "temp" + os.path.sep
+
+        temp_file_layers = []
+        for l in all_layers:
+            if not l or not l.isValid():
+                continue
+            source = l.source() or ""
+            if not source:
+                continue
+
+            # Extrair caminho do arquivo (remove |layername= etc)
+            file_path = source.split("|")[0]
+            file_path_resolved = str(Path(file_path).resolve()).lower()
+
+            # Log detalhado para debug
+            if logger:
+                logger.debug(
+                    f"  verificando layer: name='{l.name()}', "
+                    f"file_path='{file_path}', "
+                    f"resolved='{file_path_resolved}', "
+                    f"temp_root='{temp_root}'"
+                )
+
+            # Verificar se contém '\\Temp\\' ou '\\temp\\' no path (case-insensitive, compatível com 8.3)
+            is_in_temp = temp_marker in file_path_resolved
+
+            # Fallback: verificar se começa com temp_root real
+            if not is_in_temp:
+                is_in_temp = file_path_resolved.startswith(temp_root)
+
+            if is_in_temp:
+                temp_file_layers.append(l)
+
+        if logger:
+            from qgis.core import QgsRasterLayer
+            logger.debug(
+                f"get_temp_file_layers: total={len(all_layers)}, "
+                f"temp_root='{temp_root}', encontradas={len(temp_file_layers)}"
+            )
+            for l in temp_file_layers:
+                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                logger.debug(
+                    f"  temp_file_layer: name='{l.name()}', "
+                    f"type='{layer_type_str}', "
+                    f"provider='{l.providerType()}', "
+                    f"source='{l.source()}'"
+                )
+
+        return temp_file_layers
+
+    @staticmethod
     def add_layer_if_missing(layer):
         """Adiciona a layer ao projeto apenas se ainda nao estiver registrada."""
         try:
@@ -491,4 +702,3 @@ class ProjectUtils:
         except Exception as e:
             logger.error(f"Erro ao centralizar canvas na extensao do arquivo: {e}")
             return False
-

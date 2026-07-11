@@ -2,25 +2,20 @@
 import os
 from qgis.core import QgsProject
 from ..plugins.BasePlugin import BasePluginMTL
-from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
-from ..core.engine_tasks.ExecutionContext import ExecutionContext
-from ..core.engine_tasks.MrkParseStep import MrkParseStep
-from ..core.engine_tasks.PhotoMetadataStep import PhotoMetadataStep
-from ..core.engine_tasks.ReportGenerationStep import ReportGenerationStep
-from ..utils.mrk.PhotoMetadata import PhotoMetadata
+from ..core.services.DronePipelineService import DronePipelineService
+from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
-from ..utils.ExplorerUtils import ExplorerUtils
 from ..utils.StringManager import StringManager
-from ..utils.Preferences import load_tool_prefs, save_tool_prefs
+from ..utils.Preferences import save_tool_prefs
 from ..utils.ToolKeys import ToolKey
+from ..utils.LicenseManager import LicenseManager
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..utils.DependenciesManager import DependenciesManager
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.adapter.StringAdapter import StringAdapter
 from ..utils.mrk.MetadataFields import MetadataFields
-from ..core.services.ReportGenerationService import ReportGenerationService
 
 
 class DroneCordinates(BasePluginMTL):
@@ -29,10 +24,12 @@ class DroneCordinates(BasePluginMTL):
 
     CHECKBOX_OPTIONS = {
         "recursive": STR.RECURSIVE_SEARCH,
+        "use_mrk": STR.USE_MRK_DATA,
         "photos": STR.PHOTOS_METADATA,
         "generate_report": STR.GENERATE_REPORT,
     }
 
+    PREF_INITIAL_FIELDS = "initial_fields_selected"
     PREF_EXIF_FIELDS = "exif_fields_selected"
     PREF_XMP_FIELDS = "xmp_fields_selected"
     PREF_CUSTOM_FIELDS = "custom_fields_selected"
@@ -43,7 +40,7 @@ class DroneCordinates(BasePluginMTL):
         super().__init__(iface.mainWindow())
         self.iface = iface
 
-        # Inicializa a UI e preferÃªncias via BasePluginMTL
+        # Inicializa a UI e preferências via BasePluginMTL
         self.init(
             self.TOOL_KEY,
             "Drone Coordinates",
@@ -58,6 +55,10 @@ class DroneCordinates(BasePluginMTL):
             enable_scroll=True,
         )
 
+        # Verifica licença — controla exibição de itens do relatório
+        license_mgr = LicenseManager(tool_key=self.TOOL_KEY)
+        is_license_valid = license_mgr.is_license_valid()
+
         # ====== PASTA MRK ======
         folder_layout, self.folder_selector = WidgetFactory.create_path_selector(
             parent=self,
@@ -66,7 +67,7 @@ class DroneCordinates(BasePluginMTL):
             separator_bottom=True,
         )
 
-        # ====== OPÃ‡Ã•ES (CollapsibleParametersWidget) ======
+        # ====== OPÇÕES (CollapsibleParametersWidget) ======
         opts_layout, self.opts_collapsible = (
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
@@ -75,9 +76,46 @@ class DroneCordinates(BasePluginMTL):
             )
         )
 
-        # Criar checkboxes
+        # ====== LOGO / IMAGE SELECTOR (só se licença válida) ======
+        if is_license_valid:
+            logo_layout, self.logo_selector = WidgetFactory.create_save_file_selector(
+                parent=self,
+                file_filter=StringManager.FILTER_IMAGES,
+                checkbox_text=STR.USE_LOGO,
+                label_text=STR.LOGO_LABEL,
+                separator_top=False,
+                separator_bottom=False,
+                mode="file",
+            )
+            self.opts_collapsible.add_content_layout(logo_layout)
+
+        # ====== PROJETO TITLE (só se licença válida) ======
+        if is_license_valid:
+            title_fields = {
+                "project_title": {
+                    "title": STR.PROJECT_TITLE,
+                    "description": STR.PROJECT_TITLE_HINT,
+                    "type": "text",
+                    "default": "",
+                }
+            }
+            title_layout, self.title_input = WidgetFactory.create_input_fields_widget(
+                fields_dict=title_fields,
+                parent=self,
+                separator_top=False,
+                separator_bottom=False,
+            )
+            self.opts_collapsible.add_content_layout(title_layout)
+
+        # ====== OPÇÕES (CollapsibleParametersWidget) ======
+
+        # Monta checkboxes — remove generate_report se licença inválida
+        checkbox_options = dict(self.CHECKBOX_OPTIONS)
+        if not is_license_valid:
+            checkbox_options.pop("generate_report", None)
+
         opts_checkbox_layout, self.checkbox_map = WidgetFactory.create_checkbox_grid(
-            options_data=self.CHECKBOX_OPTIONS,
+            options_data=checkbox_options,
             items_per_row=1,
             checked_by_default=False,
             separator_bottom=False,
@@ -88,6 +126,11 @@ class DroneCordinates(BasePluginMTL):
         self.chk_photos = self.checkbox_map.get("photos")
         if self.chk_photos:
             self.chk_photos.toggled.connect(self.on_photos_changed)
+
+        # Connect use_mrk toggle to enable/disable MRK sections
+        self.chk_use_mrk = self.checkbox_map.get("use_mrk")
+        if self.chk_use_mrk:
+            self.chk_use_mrk.toggled.connect(self._on_use_mrk_changed)
 
         # ====== METADATA EXIF FIELDS ======
         exif_layout, self.exif_fields_collapsible = (
@@ -151,6 +194,29 @@ class DroneCordinates(BasePluginMTL):
             )
         )
         self.custom_fields_collapsible.add_content_layout(custom_grid_layout)
+
+        # ====== METADATA INITIAL FIELDS ======
+        initial_layout, self.initial_fields_collapsible = (
+            WidgetFactory.create_collapsible_parameters(
+                parent=self,
+                title="Initial Fields",
+                expanded_by_default=False,
+            )
+        )
+        initial_items = StringAdapter.to_key_label_description(
+            MetadataFields.INITIAL_FIELDS
+        )
+        initial_grid_layout, self.initial_fields_grid = (
+            WidgetFactory.create_checkbox_grid(
+                options_data=initial_items,
+                items_per_row=2,
+                checked_by_default=True,
+                return_widget=True,
+                separator_bottom=False,
+                show_control_buttons=True,
+            )
+        )
+        self.initial_fields_collapsible.add_content_layout(initial_grid_layout)
 
         # ====== METADATA MRK FIELDS ======
         mrk_layout, self.mrk_fields_collapsible = (
@@ -244,9 +310,7 @@ class DroneCordinates(BasePluginMTL):
             )
         )
 
-        # ====== CONTEÃšDO AO LAYOUT ======
-        # MainLayout encapsula o scroll internamente
-        # add_items() roteia automaticamente para scroll ou inner_layout
+        # ====== CONTEÚO AO LAYOUT ======
         self.layout.add_items(
             [
                 folder_layout,
@@ -254,6 +318,7 @@ class DroneCordinates(BasePluginMTL):
                 exif_layout,
                 xmp_layout,
                 custom_layout,
+                initial_layout,
                 mrk_layout,
                 save_layout,
                 styles_layout,
@@ -261,27 +326,31 @@ class DroneCordinates(BasePluginMTL):
             ]
         )
 
+    def _on_use_mrk_changed(self, checked: bool):
+        """Habilita/desabilita seção MRK conforme checkbox 'Obter dados MRK'."""
+        # Se MRK estiver desabilitado, esconde/cinza a seção de campos MRK
+        self.mrk_fields_collapsible.setVisible(checked)
+        self.mrk_fields_collapsible.setEnabled(checked)
+        if not checked:
+            # Se não usa MRK, também limpa a seleção de campos MRK
+            self.mrk_fields_grid.set_checked_keys([])
+
     def _ensure_photos_dependency(self, checked: bool):
         if not checked:
             return
-
         if DependenciesManager.check_dependency("Pillow", self.TOOL_KEY):
             return
-
         confirmed = QgisMessageUtil.confirm(
             self.iface,
             STR.PHOTOS_METADATA_REQUIRED_MESSAGE,
             STR.REQUIRED_LIBRARY,
         )
-
         if not confirmed:
             self.chk_photos.setChecked(False)
             return
-
         started = DependenciesManager.install_dependency_gui(
             "Pillow", self.iface, self.TOOL_KEY
         )
-
         if not started:
             QgisMessageUtil.modal_error(
                 self.iface,
@@ -310,6 +379,12 @@ class DroneCordinates(BasePluginMTL):
             allowed_keys=MetadataFields.custom_keys(),
         )
 
+    def _get_selected_initial_fields(self):
+        return MetadataFields.normalize_selected_keys(
+            self.initial_fields_grid.get_checked_keys(),
+            allowed_keys=MetadataFields.initial_keys(),
+        )
+
     def _get_selected_mrk_fields(self):
         return MetadataFields.normalize_selected_keys(
             self.mrk_fields_grid.get_checked_keys(),
@@ -317,31 +392,34 @@ class DroneCordinates(BasePluginMTL):
         )
 
     def _load_prefs(self):
-        # self.logger.debug("Carregando preferÃªncias", code="PREFS_LOAD_START")
-        # self.preferences = load_tool_prefs(self.TOOL_KEY)
-
         folder_path = self.preferences.get("folder", "")
         if folder_path:
             self.folder_selector.set_path(folder_path)
             self.logger.debug(
                 "Caminho restaurado", code="PREFS_FOLDER_RESTORED", path=folder_path
             )
-
-        # Checkboxes
         self.checkbox_map["recursive"].setChecked(
             self.preferences.get("recursive", True)
         )
-        self.checkbox_map["photos"].setChecked(self.preferences.get("photos", True))
-        self.checkbox_map["generate_report"].setChecked(
-            self.preferences.get("generate_report", True)
+        self.checkbox_map["use_mrk"].setChecked(
+            self.preferences.get("use_mrk", True)
         )
-
-        # Filtros de campos de metadata
+        self.checkbox_map["photos"].setChecked(self.preferences.get("photos", True))
+        chk_report = self.checkbox_map.get("generate_report")
+        if chk_report:
+            chk_report.setChecked(self.preferences.get("generate_report", True))
+        initial_selected = self.preferences.get(self.PREF_INITIAL_FIELDS)
         exif_selected = self.preferences.get(self.PREF_EXIF_FIELDS)
         xmp_selected = self.preferences.get(self.PREF_XMP_FIELDS)
         custom_selected = self.preferences.get(self.PREF_CUSTOM_FIELDS)
         mrk_selected = self.preferences.get(self.PREF_MRK_FIELDS)
-
+        if isinstance(initial_selected, list):
+            self.initial_fields_grid.set_checked_keys(
+                MetadataFields.normalize_selected_keys(
+                    initial_selected,
+                    allowed_keys=MetadataFields.initial_keys(),
+                )
+            )
         if isinstance(exif_selected, list):
             self.exif_fields_grid.set_checked_keys(
                 MetadataFields.normalize_selected_keys(
@@ -370,8 +448,6 @@ class DroneCordinates(BasePluginMTL):
                     allowed_keys=MetadataFields.mrk_keys(),
                 )
             )
-
-        # Salvamento
         self.save_points_selector.set_enabled(
             self.preferences.get("save_file_pts", False)
         )
@@ -380,8 +456,13 @@ class DroneCordinates(BasePluginMTL):
         )
         self.save_track_selector.set_enabled(self.preferences.get("save_file", False))
         self.save_track_selector.set_file_path(self.preferences.get("output_path", ""))
-
-        # Estilo (QML)
+        if hasattr(self, "logo_selector") and self.preferences.get("logo_path", ""):
+            self.logo_selector.set_file_path(self.preferences.get("logo_path", ""))
+            self.logo_selector.set_enabled(self.preferences.get("logo_enabled", False))
+        if hasattr(self, "title_input"):
+            title_val = self.preferences.get("project_title", "")
+            if title_val:
+                self.title_input.set_values({"project_title": title_val})
         self.qml_points_selector.set_enabled(
             self.preferences.get("apply_style_points", False)
         )
@@ -394,8 +475,6 @@ class DroneCordinates(BasePluginMTL):
         self.qml_track_selector.set_file_path(
             self.preferences.get("qml_path_track", "")
         )
-
-        # Estados dos CollapsibleParametersWidget
         self.opts_collapsible.set_expanded(self.preferences.get("opts_expanded", True))
         self.exif_fields_collapsible.set_expanded(
             self.preferences.get("exif_expanded", False)
@@ -406,6 +485,9 @@ class DroneCordinates(BasePluginMTL):
         self.custom_fields_collapsible.set_expanded(
             self.preferences.get("custom_expanded", False)
         )
+        self.initial_fields_collapsible.set_expanded(
+            self.preferences.get("initial_expanded", False)
+        )
         self.mrk_fields_collapsible.set_expanded(
             self.preferences.get("mrk_expanded", False)
         )
@@ -414,20 +496,25 @@ class DroneCordinates(BasePluginMTL):
             self.preferences.get("styles_expanded", False)
         )
 
-        self.logger.debug("PreferÃªncias carregadas", code="PREFS_LOAD_COMPLETE")
+        # Aplica visibilidade do MRK conforme preferência
+        use_mrk = self.preferences.get("use_mrk", True)
+        self.mrk_fields_collapsible.setVisible(use_mrk)
+        self.mrk_fields_collapsible.setEnabled(use_mrk)
+
+        self.logger.debug("Preferências carregadas", code="PREFS_LOAD_COMPLETE")
 
     def _save_prefs(self):
-        self.logger.debug("Salvando preferÃªncias", code="PREFS_SAVE_START")
-
+        self.logger.debug("Salvando preferências", code="PREFS_SAVE_START")
         paths = self.folder_selector.get_paths()
         folder_path = paths[0] if paths else ""
-
         self.preferences["folder"] = folder_path
         self.preferences["recursive"] = self.checkbox_map["recursive"].isChecked()
+        self.preferences["use_mrk"] = self.checkbox_map["use_mrk"].isChecked()
         self.preferences["photos"] = self.checkbox_map["photos"].isChecked()
-        self.preferences["generate_report"] = self.checkbox_map[
-            "generate_report"
-        ].isChecked()
+        chk_report = self.checkbox_map.get("generate_report")
+        if chk_report:
+            self.preferences["generate_report"] = chk_report.isChecked()
+        self.preferences[self.PREF_INITIAL_FIELDS] = self._get_selected_initial_fields()
         self.preferences[self.PREF_EXIF_FIELDS] = self._get_selected_exif_fields()
         self.preferences[self.PREF_XMP_FIELDS] = self._get_selected_xmp_fields()
         self.preferences[self.PREF_CUSTOM_FIELDS] = self._get_selected_custom_fields()
@@ -436,24 +523,32 @@ class DroneCordinates(BasePluginMTL):
         self.preferences["save_file_pts"] = self.save_points_selector.is_enabled()
         self.preferences["output_path"] = self.save_track_selector.get_file_path()
         self.preferences["output_path_pts"] = self.save_points_selector.get_file_path()
+        if hasattr(self, "title_input"):
+            project_title_values = self.title_input.get_values()
+            self.preferences["project_title"] = project_title_values.get(
+                "project_title", ""
+            )
+        if hasattr(self, "logo_selector"):
+            self.preferences["logo_path"] = self.logo_selector.get_file_path().strip()
+            self.preferences["logo_enabled"] = self.logo_selector.is_enabled()
         self.preferences["apply_style_track"] = self.qml_track_selector.is_enabled()
         self.preferences["qml_path_track"] = self.qml_track_selector.get_file_path()
         self.preferences["apply_style_points"] = self.qml_points_selector.is_enabled()
         self.preferences["qml_path_points"] = self.qml_points_selector.get_file_path()
-        # Estados dos CollapsibleParametersWidget
         self.preferences["opts_expanded"] = self.opts_collapsible.is_expanded()
         self.preferences["exif_expanded"] = self.exif_fields_collapsible.is_expanded()
         self.preferences["xmp_expanded"] = self.xmp_fields_collapsible.is_expanded()
         self.preferences["custom_expanded"] = (
             self.custom_fields_collapsible.is_expanded()
         )
+        self.preferences["initial_expanded"] = (
+            self.initial_fields_collapsible.is_expanded()
+        )
         self.preferences["mrk_expanded"] = self.mrk_fields_collapsible.is_expanded()
         self.preferences["save_expanded"] = self.save_collapsible.is_expanded()
         self.preferences["styles_expanded"] = self.styles_collapsible.is_expanded()
-
         save_tool_prefs(self.TOOL_KEY, self.preferences)
-
-        self.logger.debug("PreferÃªncias salvas", code="PREFS_SAVE_COMPLETE")
+        self.logger.debug("Preferências salvas", code="PREFS_SAVE_COMPLETE")
 
     def execute_tool(self):
         self.logger.info(
@@ -462,141 +557,36 @@ class DroneCordinates(BasePluginMTL):
 
         paths = self.folder_selector.get_paths()
         if not paths:
-            self.logger.error("Nenhum diretÃ³rio selecionado", code="NO_SELECTION")
+            self.logger.error("Nenhum diretório selecionado", code="NO_SELECTION")
             return
 
-        recursive = self.checkbox_map["recursive"].isChecked()
         apply_photos = self.checkbox_map["photos"].isChecked()
 
         if apply_photos and not DependenciesManager.check_dependency(
             "Pillow", self.TOOL_KEY
         ):
             self.logger.warning(
-                "Cruzamento com metadados solicitado sem Pillow disponÃ­vel; serÃ¡ ignorado"
+                "Cruzamento com metadados solicitado sem Pillow disponível; será ignorado"
             )
             apply_photos = False
             self.checkbox_map["photos"].setChecked(False)
 
-        extra_fields = None
-
-        context = ExecutionContext()
-        context.set("paths", paths)
-        context.set("recursive", recursive)
-        context.set("extra_fields", extra_fields)
-        # Combine EXIF and XMP fields into selected_required_fields for pipeline compatibility
-        selected_required_fields = (
-            self._get_selected_exif_fields() + self._get_selected_xmp_fields()
-        )
-        context.set("selected_required_fields", selected_required_fields)
-        context.set("selected_custom_fields", self._get_selected_custom_fields())
-        context.set("selected_mrk_fields", self._get_selected_mrk_fields())
-        context.set("generate_report", self.checkbox_map["generate_report"].isChecked())
-        context.set("tool_key", self.TOOL_KEY)
-        context.set("iface", self.iface)
-        context.set("points_layer_name", "MRK_Pontos")
-
-        steps = [MrkParseStep()]
-        if apply_photos:
-            steps.append(PhotoMetadataStep())
-
-        # Adicionar step de geração de relatório se solicitado
-        if self.checkbox_map["generate_report"].isChecked():
-            steps.append(ReportGenerationStep())
-
-        self.logger.debug(
-            "Iniciando pipeline de processamento",
-            code="PIPELINE_START",
-            steps=[s.name() for s in steps],
+        first_path = paths[0] if paths else None
+        base_folder = (
+            os.path.dirname(first_path)
+            if first_path and os.path.isfile(first_path)
+            else first_path
         )
 
-        engine = AsyncPipelineEngine(
-            steps=steps,
-            context=context,
-            on_finished=self._on_pipeline_finished,
-            on_error=self._on_pipeline_error,
+        # Salva preferências atuais antes de executar
+        self._save_prefs()
+
+        # Delega montagem e execução do pipeline para o DronePipelineService
+        DronePipelineService.execute(
+            iface=self.iface,
+            input_path=base_folder,
+            paths=paths,
         )
-        engine.start()
-
-    def _on_pipeline_finished(self, context):
-        layer = context.get("layer")
-        if not layer or not layer.isValid():
-            from ..utils.QgisMessageUtil import QgisMessageUtil
-
-            QgisMessageUtil.modal_error(self.iface, STR.ERROR_LAYER_NOT_FOUND)
-            return
-
-        if not QgsProject.instance().mapLayer(layer.id()):
-            QgsProject.instance().addMapLayer(layer)
-
-        # ===== PONTOS =====
-        if self.save_points_selector.is_enabled():
-            out_path = self.save_points_selector.get_file_path().strip()
-            if out_path:
-                saved_layer = VectorLayerSource.save_and_load_layer(
-                    layer,
-                    out_path,
-                    tool_key=self.TOOL_KEY,
-                    decision="rename",
-                )
-                if saved_layer and saved_layer.isValid():
-                    QgsProject.instance().addMapLayer(saved_layer)
-                    layer = saved_layer
-
-        if self.qml_points_selector.is_enabled():
-            qml = self.qml_points_selector.get_file_path().strip()
-            if qml and os.path.exists(qml):
-                ok = layer.loadNamedStyle(qml)
-                if isinstance(ok, tuple):
-                    ok = ok[0]
-                if ok:
-                    layer.triggerRepaint()
-
-        # ===== TRAÃ‡O =====
-        points = context.get("points", []) or []
-        normalized_points = [
-            MetadataFields.normalize_record_to_keys(point or {}) for point in points
-        ]
-        try:
-            vl_line = VectorLayerGeometry.create_line_layer_from_points(
-                normalized_points,
-                group_by_fields=["MrkPath", "MrkFile"],
-                attribute_fields=MetadataFields.default_track_attribute_keys(),
-            )
-            if vl_line:
-                out_layer = None
-                save_to_file = self.save_track_selector.is_enabled()
-                out_path = (
-                    self.save_track_selector.get_file_path().strip()
-                    if save_to_file
-                    else None
-                )
-                if save_to_file and out_path:
-                    saved_layer = VectorLayerSource.save_and_load_layer(
-                        vl_line,
-                        out_path,
-                        tool_key=self.TOOL_KEY,
-                        decision="rename",
-                    )
-                    if saved_layer and saved_layer.isValid():
-                        out_layer = saved_layer
-                        QgsProject.instance().addMapLayer(out_layer)
-                else:
-                    out_layer = vl_line
-                    QgsProject.instance().addMapLayer(out_layer)
-
-                if self.qml_track_selector.is_enabled() and out_layer:
-                    qml = self.qml_track_selector.get_file_path().strip()
-                    if qml and os.path.exists(qml):
-                        ok = out_layer.loadNamedStyle(qml)
-                        if isinstance(ok, tuple):
-                            ok = ok[0]
-                        if ok:
-                            out_layer.triggerRepaint()
-        except Exception as e:
-            self.logger.error(f"Falha ao gerar camada de traco: {e}")
-
-        QgisMessageUtil.bar_success(self.iface, STR.SUCCESS_MESSAGE)
-
 
 def run(iface):
     dlg = DroneCordinates(iface)

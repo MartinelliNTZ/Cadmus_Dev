@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import traceback
+
 from .BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
 from ..services.ReportGenerationService import ReportGenerationService
@@ -35,5 +37,11 @@ class ReportGenerationTask(BaseTask):
             return True
 
         except Exception as e:
-            logger.error(f"Erro na geração do relatório HTML: {e}")
-            raise e
+            error_msg = str(e)
+            # Captura o traceback completo para diagnostico
+            tb_str = traceback.format_exc()
+            logger.error(f"Erro na geração do relatório HTML: {error_msg}")
+            logger.error(f"Traceback completo:\n{tb_str}")
+            logger.critical(f"Unhandled exception in task: {error_msg}")
+            self.exception = error_msg
+            return False

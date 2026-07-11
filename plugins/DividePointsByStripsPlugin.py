@@ -1,39 +1,43 @@
 # -*- coding: utf-8 -*-
 
 import time
+from functools import partial
 from qgis.core import (
     QgsMapLayerProxyModel,
     QgsVectorLayer,
-    QgsProject,
     QgsField,
     QgsFeature,
-    QgsGeometry,
 )
 from qgis.PyQt.QtCore import QVariant
-from qgis.core import QgsProject
 
 from .BasePlugin import BasePluginMTL
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
-from ..utils.Preferences import load_tool_prefs, save_tool_prefs
+from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.StringManager import StringManager
 from ..utils.ToolKeys import ToolKey
 from ..utils.adapter.StringAdapter import StringAdapter
 from ..core.enum.OutputFieldKey import StripOutputFieldKey
 from ..utils.judge.SequentialPointBreakJudge import SequentialPointBreakJudge
+from ..utils.judge.SimpleSPBJudge import SimpleSPBJudge
+from ..utils.judge.ScoreSPBJudge import ScoreSPBJudge
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
+from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
-from ..utils.MathUtils import MathUtils
+from ..utils.ProjectUtils import ProjectUtils
 
 
 class DividePointsByStripsPlugin(BasePluginMTL):
     TOOL_KEY = ToolKey.DIVIDE_POINTS_BY_STRIPS
     PREF_SELECTED_OUTPUT_FIELDS = "selected_output_fields"
+    PREF_JUDGE_MODE = "judge_mode"
     REQUIRED_OUTPUT_FIELD = "shot_id"
     PATH_MODES = [STR.CURVE, STR.STRAIGHT, STR.BOTH_PATH]
+    JUDGE_MODES = {"Complexo": "complex", "Simples": "simple", "Score": "score"}
 
     def __init__(self, iface):
+        """Inicializa plugin e estado base."""
         super().__init__(iface.mainWindow())
         self.iface = iface
         self.save_points_selector = None
@@ -45,6 +49,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         )
 
     def _build_ui(self, **kwargs):
+        """Monta componentes da interface."""
         super()._build_ui(
             title=STR.DIVIDE_POINTS_BY_STRIPS_TITLE,
             icon_path="vector.ico",
@@ -61,7 +66,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             label_text=STR.INPUT_POINTS,
             filters=[QgsMapLayerProxyModel.PointLayer],
             allow_empty=False,
-            enable_selected_checkbox=False,
+            enable_selected_checkbox=True,
             parent=self,
             separator_top=False,
             separator_bottom=True,
@@ -72,7 +77,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.OPERATIONAL_PARAMETERS,
-                expanded_by_default=True,
+                expanded_by_default=self.preferences.get("", False),
                 separator_top=False,
                 separator_bottom=True,
             )
@@ -99,6 +104,28 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
+        judge_mode_layout, self.judge_mode_selector = (
+            WidgetFactory.create_dropdown_selector(
+                title="Modo de Processamento",
+                options_dict=self.JUDGE_MODES,
+                selected_key=self.preferences.get(self.PREF_JUDGE_MODE, "Complexo"),
+                allow_empty=False,
+                parent=self,
+                separator_top=False,
+                separator_bottom=False,
+            )
+        )
+        group_field_layout, self.group_field_selector = (
+            WidgetFactory.create_dropdown_selector(
+                title="Agrupar por Campo (opcional)",
+                options_dict={},
+                allow_empty=True,
+                empty_text=STR.SELECT,
+                parent=self,
+                separator_top=False,
+                separator_bottom=False,
+            )
+        )
         operational_layout, self.operational_fields = (
             WidgetFactory.create_input_fields_widget(
                 fields_dict=StringManager.DIVIDE_POINTS_OPERATIONAL_FIELDS,
@@ -107,22 +134,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
-        dist_max_layout, self.dist_max_input = WidgetFactory.create_double_spin_input(
-            "Distância Máxima de Quebra (m)",
-            #tooltip="Distância a partir da qual uma quebra de faixa é forçada automaticamente.",
-            value=0.0,
-            minimum=0.0,
-            maximum=100000.0,
-            decimals=1,
-            step=10.0,
-            #arent=self,
-        )
         self.operational_params.add_content_layout(id_field_layout)
-        self.operational_params.add_content_layout(time_field_layout)
+        self.operational_params.add_content_layout(group_field_layout)
         self.operational_params.add_content_layout(operational_layout)
-        self.operational_params.add_content_layout(dist_max_layout)
 
-        sensitivity_layout, self.sensitivity_fields = (
+        sensitivity_fields_layout, self.sensitivity_fields = (
             WidgetFactory.create_input_fields_widget(
                 fields_dict=StringManager.DIVIDE_POINTS_SENSITIVITY_FIELDS,
                 parent=self,
@@ -131,16 +147,15 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             )
         )
 
-        advanced_layout, self.advanced_params = (
+        sensitivity_layout, self.advanced_params = (
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.SENSITIVITY_PARAMETERS,
-                expanded_by_default=True,
+                expanded_by_default=self.preferences.get("", False),
                 separator_top=False,
                 separator_bottom=True,
             )
         )
-        self.advanced_params.add_content_layout(sensitivity_layout)
 
         radio_layout, self.radio_path_mode = WidgetFactory.create_radio_button_grid(
             items=self.PATH_MODES,
@@ -152,6 +167,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             separator_top=False,
             separator_bottom=True,
         )
+
+        self.advanced_params.add_content_layout(sensitivity_fields_layout)
+        self.advanced_params.add_content_layout(time_field_layout)
+        self.advanced_params.add_content_layout(judge_mode_layout)
+        self.advanced_params.add_content_layout(radio_layout)
 
         output_layout, self.output_fields_grid = WidgetFactory.create_checkbox_grid(
             options_data=StringAdapter.to_key_label_description(
@@ -174,7 +194,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             WidgetFactory.create_collapsible_parameters(
                 parent=self,
                 title=STR.ATTRIBUTES,
-                expanded_by_default=True,
+                expanded_by_default=self.preferences.get("", False),
                 separator_top=False,
                 separator_bottom=True,
             )
@@ -190,17 +210,21 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 separator_bottom=True,
             )
         )
-        save_pts_layout, self.save_points_selector = WidgetFactory.create_save_file_selector(
-            parent=self,
-            file_filter=StringManager.FILTER_VECTOR,
-            checkbox_text=STR.SAVE_POINTS_CHECKBOX,
-            label_text=STR.SAVE_IN,
+        save_pts_layout, self.save_points_selector = (
+            WidgetFactory.create_save_file_selector(
+                parent=self,
+                file_filter=StringManager.FILTER_VECTOR,
+                checkbox_text=STR.SAVE_POINTS_CHECKBOX,
+                label_text=STR.SAVE_IN,
+            )
         )
-        save_lines_layout, self.save_track_selector = WidgetFactory.create_save_file_selector(
-            parent=self,
-            file_filter=StringManager.FILTER_VECTOR,
-            checkbox_text=STR.SAVE_TRACK_CHECKBOX,
-            label_text=STR.SAVE_IN,
+        save_lines_layout, self.save_track_selector = (
+            WidgetFactory.create_save_file_selector(
+                parent=self,
+                file_filter=StringManager.FILTER_VECTOR,
+                checkbox_text=STR.SAVE_TRACK_CHECKBOX,
+                label_text=STR.SAVE_IN,
+            )
         )
         self.save_collapsible.add_content_layout(save_pts_layout)
         self.save_collapsible.add_content_layout(save_lines_layout)
@@ -221,9 +245,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             [
                 intro_label,
                 layer_layout,
-                radio_layout,
                 operational_container_layout,
-                advanced_layout,                
+                sensitivity_layout,
                 attributes_layout,
                 save_layout,
                 buttons_layout,
@@ -232,8 +255,10 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self._refresh_field_selectors()
 
     def _load_prefs(self):
+        """Restaura preferências na UI."""
         self.id_field = self.preferences.get("id_field", "")
         self.time_field = self.preferences.get("time_field", "")
+        self.group_field = self.preferences.get("group_field", "")
         operational_fields = self.preferences.get("operational_fields", {})
         if (
             "largura_lateral" in operational_fields
@@ -276,22 +301,40 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.save_track_selector.set_file_path(
             self.preferences.get("last_output_track_file", "")
         )
-        
-        self.dist_max_input.setValue(float(self.preferences.get("max_distance_meters", 0.0)))
+
+        self.group_field_selector.set_selected_key(
+            self.preferences.get("group_field", "")
+        )
+        self.judge_mode_selector.set_selected_key(
+            self.preferences.get(self.PREF_JUDGE_MODE, "Complexo")
+        )
 
         # Restaurar estado de expansão dos colapsáveis
-        self.operational_params.set_expanded(self.preferences.get("expanded_operational", True))
-        self.advanced_params.set_expanded(self.preferences.get("expanded_sensitivity", True))
-        self.attributes_params.set_expanded(self.preferences.get("expanded_attributes", True))
-        
+        self.operational_params.set_expanded(
+            self.preferences.get("expanded_operational", True)
+        )
+        self.advanced_params.set_expanded(
+            self.preferences.get("expanded_sensitivity", True)
+        )
+        self.attributes_params.set_expanded(
+            self.preferences.get("expanded_attributes", True)
+        )
+
         self.save_collapsible.set_expanded(self.preferences.get("expanded_save", False))
 
         self._refresh_field_selectors()
 
     def _save_prefs(self):
+        """Persiste preferências da UI."""
         self.preferences["id_field"] = self.id_field_selector.get_selected_key() or ""
         self.preferences["time_field"] = (
             self.time_field_selector.get_selected_key() or ""
+        )
+        self.preferences["group_field"] = (
+            self.group_field_selector.get_selected_key() or ""
+        )
+        self.preferences[self.PREF_JUDGE_MODE] = (
+            self.judge_mode_selector.get_selected_key() or "Complexo"
         )
         self.preferences["operational_fields"] = self.operational_fields.get_values()
         self.preferences["sensitivity_fields"] = self.sensitivity_fields.get_values()
@@ -299,27 +342,34 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.preferences[self.PREF_SELECTED_OUTPUT_FIELDS] = (
             self._get_selected_output_fields()
         )
-        self.preferences["save_to_folder"] = bool(self.save_points_selector.is_enabled())
+        self.preferences["save_to_folder"] = bool(
+            self.save_points_selector.is_enabled()
+        )
         self.preferences["last_output_file"] = self.save_points_selector.get_file_path()
-        self.preferences["save_track_to_folder"] = bool(self.save_track_selector.is_enabled())
-        self.preferences["last_output_track_file"] = self.save_track_selector.get_file_path()
+        self.preferences["save_track_to_folder"] = bool(
+            self.save_track_selector.is_enabled()
+        )
+        self.preferences["last_output_track_file"] = (
+            self.save_track_selector.get_file_path()
+        )
         self.preferences["window_width"] = self.width()
-        self.preferences["max_distance_meters"] = float(self.dist_max_input.value())
         self.preferences["window_height"] = self.height()
 
         # Salvar estado de expansão dos colapsáveis
         self.preferences["expanded_operational"] = self.operational_params.is_expanded()
         self.preferences["expanded_sensitivity"] = self.advanced_params.is_expanded()
         self.preferences["expanded_attributes"] = self.attributes_params.is_expanded()
-        
+
         self.preferences["expanded_save"] = self.save_collapsible.is_expanded()
 
-        save_tool_prefs(self.TOOL_KEY, self.preferences)
+        Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
 
     def _on_layer_changed(self, _layer):
+        """Recarrega seletores após troca de camada."""
         self._refresh_field_selectors()
 
     def _normalize_selected_output_fields(self, selected_output_fields):
+        """Normaliza campos selecionados de saída."""
         normalized = []
         for value in selected_output_fields or []:
             if hasattr(value, "value"):
@@ -332,6 +382,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return normalized
 
     def _get_selected_output_fields(self):
+        """Retorna campos de saída marcados."""
         selected = (
             self.output_fields_grid.get_checked_keys()
             if hasattr(self, "output_fields_grid")
@@ -341,6 +392,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     @staticmethod
     def _resolve_field_name_from_map(field_name_map, logical_key):
+        """Resolve nome físico a partir de chave lógica."""
         if not isinstance(field_name_map, dict):
             return None
         key_value = logical_key.value if hasattr(logical_key, "value") else logical_key
@@ -352,6 +404,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     @staticmethod
     def _normalize_field_name_map(field_name_map):
+        """Normaliza o mapa de nomes de campo."""
         normalized = {}
         if not isinstance(field_name_map, dict):
             return normalized
@@ -363,23 +416,26 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         return normalized
 
     def _build_filtered_result_layer(
-        self, 
-        result_layer,      # camada de resultado (já com todos os campos)
-        original_layer,    # camada de entrada original (para obter os campos originais)
-        selected_output_fields, 
-        field_name_map
+        self,
+        result_layer,  # camada de resultado (já com todos os campos)
+        original_layer,  # camada de entrada original (para obter os campos originais)
+        selected_output_fields,
+        field_name_map,
     ):
-        """Cria um layer com todos os atributos originais + apenas os campos calculados selecionados."""
+        """Monta camada final com atributos filtrados."""
         if not result_layer or not result_layer.isValid():
             return result_layer
         if not original_layer or not original_layer.isValid():
-            self.logger.warning("Camada original inválida, usando apenas campos selecionados")
-            # fallback para o comportamento antigo? melhor retornar a result_layer sem filtro
+            self.logger.warning(
+                "Camada original inválida, retornando resultado sem filtro"
+            )
             return result_layer
 
         normalized_map = self._normalize_field_name_map(field_name_map)
         if not selected_output_fields or not normalized_map:
-            self.logger.info("Filtro de campos não aplicado")
+            self.logger.info(
+                "Filtro de campos não aplicado (sem seleção ou mapa vazio)"
+            )
             return result_layer
 
         normalized_selected = set(
@@ -391,17 +447,21 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             if key.value in normalized_selected
         ]
 
-        # 1. Obtém todos os campos da camada ORIGINAL (mantém todos)
-        original_fields = [original_layer.fields().field(i) for i in range(original_layer.fields().count())]
+        # Campos da camada ORIGINAL
+        original_fields = [
+            original_layer.fields().field(i)
+            for i in range(original_layer.fields().count())
+        ]
 
-        # 2. Adiciona apenas os campos calculados que foram selecionados (se não existirem nos originais)
+        # Campos calculados selecionados — NÃO verifica se já existem,
+        # sempre adiciona para sobrescrever valores existentes.
         extra_fields = []
+        extra_field_names = set()
         for logical_key in selected_keys:
             field_spec = SequentialPointBreakJudge.DIVIDE_STRIP_FIELDS.get(logical_key)
             field_name = self._resolve_field_name_from_map(normalized_map, logical_key)
-            if field_spec and field_name:
-                if any(f.name() == field_name for f in original_fields):
-                    continue  # não duplicar
+            if field_spec and field_name and field_name not in extra_field_names:
+                extra_field_names.add(field_name)
                 extra_fields.append(
                     QgsField(
                         field_name,
@@ -411,143 +471,229 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     )
                 )
 
-        # Cria a nova camada
+        # Remove colunas duplicadas entre originais e extras;
+        # campos extras SEMPRE substituem os originais de mesmo nome.
+        orig_kept = [f for f in original_fields if f.name() not in extra_field_names]
+
         uri = f"Point?crs={result_layer.crs().authid()}"
-        filtered_layer = QgsVectorLayer(uri, f"{original_layer.name()}_filtered", "memory")
+        filtered_layer = QgsVectorLayer(
+            uri, f"{original_layer.name()}_filtered", "memory"
+        )
         if not filtered_layer.isValid():
             self.logger.error("Falha ao criar camada temporária filtrada")
             return result_layer
 
-        # Adiciona todos os campos originais + os extras selecionados
-        all_fields = original_fields + extra_fields
+        all_fields = orig_kept + extra_fields
         filtered_layer.dataProvider().addAttributes(all_fields)
         filtered_layer.updateFields()
 
         filtered_layer.startEditing()
 
-        # Para cada feição da camada de resultado, copiamos:
-        # - geometria
-        # - todos os atributos originais (buscando da result_layer, que os possui)
-        # - apenas os atributos calculados selecionados
         for result_feature in result_layer.getFeatures():
             new_feature = QgsFeature(filtered_layer.fields())
             new_feature.setGeometry(result_feature.geometry())
 
-            # Copia todos os campos originais (usando os nomes dos campos originais)
-            for orig_field in original_fields:
+            # Copia campos originais (exceto os que foram sobrescritos)
+            for orig_field in orig_kept:
                 field_name = orig_field.name()
                 source_idx = result_layer.fields().lookupField(field_name)
                 target_idx = filtered_layer.fields().lookupField(field_name)
                 if source_idx >= 0 and target_idx >= 0:
-                    new_feature.setAttribute(target_idx, result_feature.attribute(source_idx))
+                    new_feature.setAttribute(
+                        target_idx, result_feature.attribute(source_idx)
+                    )
 
-            # Copia apenas os campos calculados selecionados
+            # Copia campos calculados selecionados (sobrescrevem originais se mesmo nome)
             for logical_key in selected_keys:
-                resolved_name = self._resolve_field_name_from_map(normalized_map, logical_key)
+                resolved_name = self._resolve_field_name_from_map(
+                    normalized_map, logical_key
+                )
                 if not resolved_name:
                     continue
                 source_idx = result_layer.fields().lookupField(resolved_name)
                 target_idx = filtered_layer.fields().lookupField(resolved_name)
                 if source_idx >= 0 and target_idx >= 0:
-                    new_feature.setAttribute(target_idx, result_feature.attribute(source_idx))
+                    new_feature.setAttribute(
+                        target_idx, result_feature.attribute(source_idx)
+                    )
 
             filtered_layer.addFeature(new_feature)
 
         filtered_layer.commitChanges()
         filtered_layer.updateFields()
         self.logger.info(
-            "Filtro de atributos concluído: originais + selecionados",
-            filtered_field_names=[f.name() for f in filtered_layer.fields()],
+            "Filtro de atributos concluído (sobrescreve existentes)",
+            original_kept_count=len(orig_kept),
+            extra_count=len(extra_fields),
             feature_count=filtered_layer.featureCount(),
         )
         return filtered_layer
 
-    def _generate_strip_lines_layer(self, point_layer, field_name_map, original_layer_name):
-        """Gera uma camada de linhas onde cada feição representa um shot_id."""
+    def _generate_strip_lines_layer(
+        self, point_layer, field_name_map, original_layer_name, sequence_field
+    ):
+        """Orquestra a criação de linhas por shot."""
         t0 = time.time()
-        self.logger.info("Iniciando agrupamento de pontos para geração de linhas (strips)")
-
-        sid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_ID)
-        valid_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.SHOT_VALID)
-        az_key = self._resolve_field_name_from_map(field_name_map, StripOutputFieldKey.AZIMUTH_INSTANT)
-
-        # Agrupamento manual para garantir ordem e controle de atributos
-        shots_data = {}
-        for feat in point_layer.getFeatures():
-            sid = feat.attribute(sid_key)
-            if sid is None or sid == 0:
-                continue
-            
-            if sid not in shots_data:
-                shots_data[sid] = {
-                    "points": [],
-                    "azs": [],
-                    "valid": feat.attribute(valid_key),
-                }
-            
-            geom = feat.geometry()
-            if geom and not geom.isEmpty():
-                shots_data[sid]["points"].append(geom.asPoint())
-                az_val = feat.attribute(az_key)
-                if isinstance(az_val, (int, float)):
-                    shots_data[sid]["azs"].append(az_val)
-
-        # Criar camada de memória para linhas
-        uri = f"LineString?crs={point_layer.crs().authid()}"
-        line_layer = QgsVectorLayer(uri, f"{original_layer_name}_linhas", "memory")
-        provider = line_layer.dataProvider()
-
-        # Definir campos agregados
-        fields = [
-            QgsField("shot_id", QVariant.Int),
-            QgsField("shot_valid", QVariant.Int),
-            QgsField("point_count", QVariant.Int),
-            QgsField("azimuth_mean", QVariant.Double, len=10, prec=2),
-            QgsField("source", QVariant.String, len=255)
-        ]
-        provider.addAttributes(fields)
-        line_layer.updateFields()
-
-        new_features = []
-        ignored_shots = 0
-
-        for sid in sorted(shots_data.keys()):
-            data = shots_data[sid]
-            pts = data["points"]
-            
-            if len(pts) < 2:
-                ignored_shots += 1
-                continue
-            
-            line_geom = QgsGeometry.fromPolylineXY(pts)
-            
-            feat = QgsFeature(line_layer.fields())
-            feat.setGeometry(line_geom)
-            
-            # Calcular média circular do azimute para a linha
-            avg_az = MathUtils.circular_mean(data["azs"]) if data.get("azs") else 0.0
-            
-            feat.setAttribute("shot_id", int(sid))
-            feat.setAttribute("shot_valid", int(data["valid"]))
-            feat.setAttribute("point_count", len(pts))
-            feat.setAttribute("azimuth_mean", float(avg_az))
-            feat.setAttribute("source", point_layer.source())
-            
-            new_features.append(feat)
-
-        provider.addFeatures(new_features)
-        line_layer.updateFields()
-        
-        self.logger.info(
-            "Geração de linhas concluída",
-            total_lines=len(new_features),
-            ignored_single_points=ignored_shots,
-            elapsed=round(time.time() - t0, 2)
+        self.logger.info("Iniciando geração de linhas (strips)")
+        sid_key, valid_key, az_key = self._resolve_strip_line_fields(field_name_map)
+        features, stats = self._collect_strip_line_features(
+            point_layer=point_layer,
+            sid_key=sid_key,
+            valid_key=valid_key,
+            az_key=az_key,
         )
-        
+
+        self.logger.info(
+            "Coleta de pontos para strips concluída",
+            total_features_processed=stats["total_features_processed"],
+            valid_features=stats["valid_features"],
+            unique_shots=stats["unique_shots"],
+            skipped_null_sid=stats["skipped_null_sid"],
+            skipped_zero_sid=stats["skipped_zero_sid"],
+            skipped_invalid_geom=stats["skipped_invalid_geom"],
+        )
+
+        line_layer = VectorLayerGeometry.create_line_layer_from_points(
+            points=features,
+            order_by_field=sequence_field,
+            name=f"{original_layer_name}_linhas",
+            group_by_fields=[sid_key],
+            crs_authid=point_layer.crs().authid(),
+            min_vertices_per_line=2,
+            output_field_specs=self._strip_line_output_field_specs(),
+            attributes_resolver=partial(
+                self._strip_line_attributes_resolver,
+                source_path=point_layer.source(),
+                sid_key=sid_key,
+                valid_key=valid_key,
+                az_key=az_key,
+            ),
+            tool_key=self.TOOL_KEY,
+        )
+
+        if line_layer and line_layer.isValid():
+            self.logger.info(
+                "Geração de linhas concluída",
+                total_lines=line_layer.featureCount(),
+                elapsed=round(time.time() - t0, 2),
+            )
+        else:
+            self.logger.warning(
+                "Geração de linhas não retornou camada válida",
+                elapsed=round(time.time() - t0, 2),
+            )
+
         return line_layer
 
+    def _resolve_strip_line_fields(self, field_name_map):
+        """Resolve campos usados na linha de strip."""
+        sid_key = self._resolve_field_name_from_map(
+            field_name_map, StripOutputFieldKey.SHOT_ID
+        )
+        valid_key = self._resolve_field_name_from_map(
+            field_name_map, StripOutputFieldKey.SHOT_VALID
+        )
+        az_key = self._resolve_field_name_from_map(
+            field_name_map, StripOutputFieldKey.AZIMUTH_INSTANT
+        )
+        self.logger.debug(
+            "Campos resolvidos para geração de strips",
+            sid_key=sid_key,
+            valid_key=valid_key,
+            az_key=az_key,
+        )
+        return sid_key, valid_key, az_key
+
+    @staticmethod
+    def _strip_line_output_field_specs():
+        """Define campos de saída das linhas."""
+        return [
+            ("shot_id", QVariant.String, 50, 0),
+            ("shot_valid", QVariant.Int, 0, 0),
+            ("point_count", QVariant.Int, 0, 0),
+            ("azimuth_mean", QVariant.Double, 10, 2),
+            ("source", QVariant.String, 255, 0),
+        ]
+
+    def _collect_strip_line_features(self, point_layer, sid_key, valid_key, az_key):
+        """Coleta feições válidas para geração das linhas."""
+        features = []
+        stats = {
+            "total_features_processed": 0,
+            "valid_features": 0,
+            "unique_shots": 0,
+            "skipped_null_sid": 0,
+            "skipped_zero_sid": 0,
+            "skipped_invalid_geom": 0,
+        }
+
+        seen_shots = set()
+        for feat in point_layer.getFeatures():
+            stats["total_features_processed"] += 1
+            sid = feat.attribute(sid_key)
+            if sid is None:
+                stats["skipped_null_sid"] += 1
+                continue
+            if sid == 0 or str(sid) == "0":
+                stats["skipped_zero_sid"] += 1
+                continue
+
+            geom = feat.geometry()
+            if not geom or geom.isEmpty():
+                stats["skipped_invalid_geom"] += 1
+                continue
+
+            sid_str = str(sid)
+            if sid_str not in seen_shots:
+                seen_shots.add(sid_str)
+            features.append(feat)
+            stats["valid_features"] += 1
+
+        stats["unique_shots"] = len(seen_shots)
+        return features, stats
+
+    def _strip_line_attributes_resolver(
+        self,
+        group_records,
+        group_key=None,
+        *,
+        source_path,
+        sid_key,
+        valid_key,
+        az_key,
+    ):
+        """Calcula atributos agregados de uma linha."""
+        sid_val = ""
+        if group_records:
+            sid_val = str(group_records[0].attribute(sid_key))
+
+        valid_val = 0
+        if group_records:
+            try:
+                valid_val = int(group_records[0].attribute(valid_key) or 0)
+            except Exception as e:
+                self.logger.warning(f"Erro ao converter valid_key para inteiro: {e}")
+                valid_val = 0
+
+        az_values = []
+        for rec in group_records or []:
+            az = rec.attribute(az_key)
+            if isinstance(az, (int, float)):
+                az_values.append(float(az))
+
+        avg_az = (
+            VectorLayerGeometry.circular_mean_degrees(az_values) if az_values else 0.0
+        )
+        return {
+            "shot_id": sid_val,
+            "shot_valid": valid_val,
+            "point_count": len(group_records or []),
+            "azimuth_mean": float(avg_az),
+            "source": source_path,
+        }
+
     def _refresh_field_selectors(self):
+        """Atualiza opções dos seletores de campo."""
         layer = self.layer_input.current_layer()
         options = VectorLayerAttributes.get_field_options(layer)
 
@@ -557,16 +703,113 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         selected_time = getattr(self, "time_field", "") or self.preferences.get(
             "time_field", ""
         )
+        selected_group = getattr(self, "group_field", "") or self.preferences.get(
+            "group_field", ""
+        )
 
         self.id_field_selector.set_options(options)
         self.time_field_selector.set_options(options)
+        self.group_field_selector.set_options(options)
 
         if selected_id:
             self.id_field_selector.set_selected_key(selected_id)
         if selected_time:
             self.time_field_selector.set_selected_key(selected_time)
+        if selected_group:
+            self.group_field_selector.set_selected_key(selected_group)
+
+    @staticmethod
+    def _normalize_group_key(group_value):
+        """Normaliza valor para chave de grupo."""
+        return str(group_value) if group_value is not None else "__NONE__"
+
+    def _build_group_prefixes(self, group_values):
+        """Gera prefixos para cada grupo."""
+        prefixes = {}
+        for idx, gv in enumerate(group_values):
+            if idx < 26:
+                letter = chr(ord("A") + idx)
+            else:
+                letter = f"{chr(ord('A') + (idx % 26))}{idx // 26}"
+            prefixes[self._normalize_group_key(gv)] = letter
+        return prefixes
+
+    def _apply_group_prefix_to_shot_ids(self, layer, prefix):
+        """Aplica prefixo aos shot_ids existentes."""
+        if not layer or not layer.isValid() or not prefix:
+            self.logger.warning(
+                "Aplicação de prefixo pulada",
+                reason="layer inválido ou prefixo vazio",
+                prefix=prefix,
+                layer_valid=layer.isValid() if layer else False,
+            )
+            return
+
+        shot_idx = layer.fields().lookupField(self.REQUIRED_OUTPUT_FIELD)
+        if shot_idx == -1:
+            self.logger.warning(
+                "Campo shot_id não encontrado na camada",
+                required_field=self.REQUIRED_OUTPUT_FIELD,
+                available_fields=[f.name() for f in layer.fields()],
+            )
+            return
+
+        layer.startEditing()
+        modified_count = 0
+        old_shot_idx = layer.fields().lookupField("old_shot_id")
+        for feat in layer.getFeatures():
+            sid = feat.attribute(shot_idx)
+            if sid is None:
+                continue
+            sid_str = str(sid)
+            if sid_str == "0":
+                continue
+            prefixed = f"{prefix}{sid_str}"
+            if prefixed != sid_str:
+                layer.changeAttributeValue(feat.id(), shot_idx, prefixed)
+                if old_shot_idx != -1:
+                    old_sid = feat.attribute(old_shot_idx)
+                    if old_sid is not None:
+                        old_sid_str = str(old_sid)
+                        if old_sid_str != "0":
+                            layer.changeAttributeValue(
+                                feat.id(), old_shot_idx, f"{prefix}{old_sid_str}"
+                            )
+                modified_count += 1
+        layer.commitChanges()
+
+        self.logger.info(
+            "Prefixo aplicado aos shot_ids",
+            prefix=prefix,
+            modified_features=modified_count,
+            total_features=layer.featureCount(),
+        )
+
+    def _create_subset_layer_for_group(self, layer, field_group, group_value):
+        """Cria subcamada por valor de grupo."""
+        crs = layer.crs().authid()
+        uri = "Point?crs=%s" % crs
+        subset = QgsVectorLayer(
+            uri, "{}_{}".format(layer.name(), str(group_value)), "memory"
+        )
+        subset_data = subset.dataProvider()
+        subset_data.addAttributes(layer.fields())
+        subset.updateFields()
+        new_features = []
+        for feat in layer.getFeatures():
+            feat_val = feat.attribute(field_group)
+            if str(feat_val) == str(group_value):
+                new_feat = QgsFeature(subset.fields())
+                new_feat.setGeometry(feat.geometry())
+                for field in feat.fields():
+                    new_feat.setAttribute(field.name(), feat.attribute(field.name()))
+                new_features.append(new_feat)
+        subset_data.addFeatures(new_features)
+        subset.updateFields()
+        return subset
 
     def execute_tool(self):
+        """Executa processamento de segmentação."""
         layer = self.layer_input.current_layer()
         if not isinstance(layer, QgsVectorLayer):
             QgisMessageUtil.bar_warning(self.iface, STR.SELECT_POINT_VECTOR_LAYER)
@@ -574,17 +817,19 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         field_id = self.id_field_selector.get_selected_key()
         field_time = self.time_field_selector.get_selected_key()
-        
+        field_group = self.group_field_selector.get_selected_key()
+
         # O campo ID continua obrigatório para ordenação, mas tempo agora é opcional.
         if not field_id:
             QgisMessageUtil.bar_warning(self.iface, STR.SELECT_REQUIRED_FIELDS)
             return
 
-        self.logger.info(f"Campos selecionados: ID={field_id}, Tempo={field_time or 'N/A'}")
+        self.logger.info(
+            f"Campos selecionados: ID={field_id}, Tempo={field_time or 'N/A'}, Grupo={field_group or 'N/A'}"
+        )
 
         operational_values = self.operational_fields.get_values()
         sensitivity_values = self.sensitivity_fields.get_values()
-        max_dist = float(self.dist_max_input.value())
 
         self.logger.info(
             "Executando segmentacao de tiros em camada de pontos",
@@ -602,82 +847,225 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.logger.info("Iniciando processamento sincrono da segmentacao")
 
         try:
-            summary = SequentialPointBreakJudge(
-                layer=layer,
-                tool_key=self.TOOL_KEY,
-            ).judge(
-                field_id=field_id,
-                field_time=field_time,
-                point_frequency_seconds=float(
-                    operational_values.get("frequencia_pontos", 1) or 1
-                ),
-                strip_width_meters=float(
-                    operational_values.get("largura_tiro", 20.0) or 20.0
-                ),
-                azimuth_window=int(sensitivity_values.get("janela_azimute", 10) or 10),
-                light_azimuth_threshold=float(
-                    sensitivity_values.get("threshold_azimute_leve", 20.0) or 20.0
-                ),
-                severe_azimuth_threshold=float(
-                    sensitivity_values.get("threshold_azimute_grave", 45.0) or 45.0
-                ),
-                minimum_break_score=int(
-                    sensitivity_values.get("score_minimo_quebra", 3) or 3
-                ),
-                minimum_point_count=int(
-                    sensitivity_values.get("n_minimo_pontos", 20) or 20
-                ),
-                time_tolerance_multiplier=float(
-                    sensitivity_values.get("tolerancia_tempo", 3.0) or 3.0
-                ),
-                max_desvio=int(sensitivity_values.get("max_desvio", 5) or 5),
-                confirmation_window=3,
-                min_confirmed=2,
-                border_azimuth_threshold=90.0,
-                border_speed_threshold=1.0,
-                border_distance_threshold=5.0,
-                retroactive_relabel_window=5,
-                fusion_azimuth_tolerance=10.0,
-                conflict_resolver=lambda field_name: QgisMessageUtil.ask_field_conflict(
-                    self.iface, field_name
-                ),
-                path_mode=self.radio_path_mode.get_selected_text(),
-                max_distance_meters=max_dist,
-            )
-            processing_time = time.time() - start_time
             selected_fields = self._get_selected_output_fields()
-            field_name_map = self._normalize_field_name_map(
-                summary.get("field_name_map", {})
-            )
-            safe_summary = {
-                "total_points": summary.get("total_points"),
-                "total_shots": summary.get("total_shots"),
-                "valid_shots": summary.get("valid_shots"),
-                "invalid_shots": summary.get("invalid_shots"),
-                "source_path": summary.get("source_path"),
+            judge_mode = self.judge_mode_selector.get_selected_key()
+            judge_mode_id = self.JUDGE_MODES[judge_mode]
+            if judge_mode_id == "simple":
+                judge_class = SimpleSPBJudge
+            elif judge_mode_id == "score":
+                judge_class = ScoreSPBJudge
+            else:
+                judge_class = SequentialPointBreakJudge
+            judge_args = {
+                "field_id": field_id,
+                "field_time": field_time,
+                "point_frequency_seconds": float(
+                    sensitivity_values["frequencia_pontos"]
+                ),
+                "strip_width_meters": float(sensitivity_values["largura_tiro"]),
+                "azimuth_window": int(sensitivity_values["janela_azimute"]),
+                "light_azimuth_threshold": float(
+                    sensitivity_values["threshold_azimute_leve"]
+                ),
+                "severe_azimuth_threshold": float(
+                    operational_values["threshold_azimute_grave"]
+                ),
+                "minimum_break_score": int(sensitivity_values["score_minimo_quebra"]),
+                "minimum_point_count": int(operational_values["n_minimo_pontos"]),
+                "time_tolerance_multiplier": float(
+                    sensitivity_values["tolerancia_tempo"]
+                ),
+                "max_desvio": int(operational_values["max_desvio"]),
+                "confirmation_window": 3,
+                "min_confirmed": 2,
+                "border_azimuth_threshold": 90.0,
+                "border_speed_threshold": 1.0,
+                "border_distance_threshold": 5.0,
+                "retroactive_relabel_window": 5,
+                "fusion_azimuth_tolerance": 10.0,
+                "conflict_resolver": "replace",
+                "path_mode": self.radio_path_mode.get_selected_text(),
+                "max_distance_meters": float(operational_values["max_distance"]),
             }
+
+            if field_group:
+                group_values = []
+                seen_values = set()
+                for feat in layer.getFeatures():
+                    val = feat.attribute(field_group)
+                    key = self._normalize_group_key(val)
+                    if key not in seen_values:
+                        seen_values.add(key)
+                        group_values.append(val)
+                self.logger.info(
+                    "Processamento por grupo ativado",
+                    group_field=field_group,
+                    unique_groups=len(group_values),
+                    group_values=[str(v) for v in group_values],
+                )
+            else:
+                group_values = [None]
+
+            group_prefixes = self._build_group_prefixes(group_values)
+
             self.logger.info(
-                "Segmentacao concluida com sucesso",
-                processing_time_seconds=round(processing_time, 2),
-                summary=safe_summary,
-            )
-            self.logger.info(
-                "Configuracao de filtro de atributos de saida",
-                selected_output_fields=selected_fields,
-                required_output_field=self.REQUIRED_OUTPUT_FIELD,
-                field_name_map=field_name_map,
+                "Prefixos de grupo construídos", group_prefixes=group_prefixes
             )
 
-            raw_result_layer = summary.get("result_layer")
+            all_result_layers = []
+            all_strip_layers = []
+            all_summaries = []
+            total_points_all = 0
+            total_shots_all = 0
+            valid_shots_all = 0
+            invalid_shots_all = 0
+            field_name_map = None
+
+            for gv in group_values:
+                if field_group:
+                    process_layer = self._create_subset_layer_for_group(
+                        layer, field_group, gv
+                    )
+                    group_label = str(gv)
+                    self.logger.info(
+                        f"Processando grupo: {group_label}",
+                        features=process_layer.featureCount(),
+                    )
+                    if process_layer.featureCount() == 0:
+                        self.logger.warning(f"Grupo '{group_label}' vazio, ignorando.")
+                        continue
+                else:
+                    process_layer = layer
+                    group_label = layer.name()
+
+                summary = judge_class(
+                    layer=process_layer,
+                    tool_key=self.TOOL_KEY,
+                ).judge(**judge_args)
+
+                all_summaries.append(summary)
+
+                if field_name_map is None:
+                    field_name_map = self._normalize_field_name_map(
+                        summary.get("field_name_map", {})
+                    )
+
+                total_points_all += summary.get("total_points", 0)
+                total_shots_all += summary.get("total_shots", 0)
+                valid_shots_all += summary.get("valid_shots", 0)
+                invalid_shots_all += summary.get("invalid_shots", 0)
+
+                raw_result_layer = summary.get("result_layer")
+                if raw_result_layer and raw_result_layer.isValid():
+                    prefix = group_prefixes.get(self._normalize_group_key(gv), "A")
+                    self.logger.info(
+                        "Aplicando prefixo ao grupo",
+                        group_value=gv,
+                        prefix=prefix,
+                        layer_name=raw_result_layer.name(),
+                        feature_count=raw_result_layer.featureCount(),
+                    )
+                    self._apply_group_prefix_to_shot_ids(raw_result_layer, prefix)
+
+                    if field_group and gv is not None:
+                        group_idx = raw_result_layer.fields().lookupField(field_group)
+                        if group_idx == -1:
+                            orig_field = layer.fields().field(
+                                layer.fields().lookupField(field_group)
+                            )
+                            if orig_field.isValid():
+                                raw_result_layer.dataProvider().addAttributes(
+                                    [orig_field]
+                                )
+                                raw_result_layer.updateFields()
+                                group_idx = raw_result_layer.fields().lookupField(
+                                    field_group
+                                )
+                                raw_result_layer.startEditing()
+                                for feat in raw_result_layer.getFeatures():
+                                    raw_result_layer.changeAttributeValue(
+                                        feat.id(), group_idx, gv
+                                    )
+                                raw_result_layer.commitChanges()
+
+                    all_result_layers.append(raw_result_layer)
+
+                    strip_lines_layer = self._generate_strip_lines_layer(
+                        raw_result_layer,
+                        field_name_map or {},
+                        f"{group_label}",
+                        field_id,
+                    )
+                    if strip_lines_layer and strip_lines_layer.isValid():
+                        if field_group and gv is not None:
+                            lines_data = strip_lines_layer.dataProvider()
+                            group_field_idx = strip_lines_layer.fields().lookupField(
+                                field_group
+                            )
+                            if group_field_idx == -1:
+                                try:
+                                    orig_field_val = layer.fields().field(
+                                        layer.fields().lookupField(field_group)
+                                    )
+                                    if orig_field_val.isValid():
+                                        field_type = orig_field_val.type()
+                                        field_name_to_use = orig_field_val.name()
+                                    else:
+                                        field_type = QVariant.String
+                                        field_name_to_use = field_group
+                                except Exception as e:
+                                    self.logger.warning(f"Erro ao obter campo original: {e}")
+                                    field_type = QVariant.String
+                                    field_name_to_use = field_group
+                                lines_data.addAttributes(
+                                    [QgsField(field_name_to_use, field_type, len=255)]
+                                )
+                                strip_lines_layer.updateFields()
+                                group_idx_line = strip_lines_layer.fields().lookupField(
+                                    field_name_to_use
+                                )
+                                strip_lines_layer.startEditing()
+                                for feat in strip_lines_layer.getFeatures():
+                                    strip_lines_layer.changeAttributeValue(
+                                        feat.id(), group_idx_line, gv
+                                    )
+                                strip_lines_layer.commitChanges()
+
+                        all_strip_layers.append(strip_lines_layer)
+
+            if not all_result_layers:
+                QgisMessageUtil.bar_warning(
+                    self.iface, "Nenhum grupo produziu resultado."
+                )
+                return
+
+            crs_authid = layer.crs().authid()
+            if len(all_result_layers) == 1 and not field_group:
+                raw_result_layer = all_result_layers[0]
+                summary_data = all_summaries[0]
+            else:
+                raw_result_layer = VectorLayerGeometry.merge_memory_layers(
+                    all_result_layers, crs_authid, f"{layer.name()}_segmentado"
+                )
+                summary_data = {
+                    "total_points": total_points_all,
+                    "total_shots": total_shots_all,
+                    "valid_shots": valid_shots_all,
+                    "invalid_shots": invalid_shots_all,
+                    "source_path": layer.source(),
+                    "field_name_map": field_name_map,
+                    "result_layer": raw_result_layer,
+                }
+
             result_layer = self._build_filtered_result_layer(
                 raw_result_layer,
-                layer,  # <--- passe a camada de entrada original
+                layer,
                 selected_fields,
-                field_name_map,
+                field_name_map or {},
             )
 
             if result_layer and result_layer.isValid():
-                QgsProject.instance().addMapLayer(result_layer)
+                ProjectUtils.add_layer(result_layer)
                 self.logger.info(
                     "Nova camada adicionada ao projeto", layer_name=result_layer.name()
                 )
@@ -701,7 +1089,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                         decision="rename",
                     )
                     if saved_layer and saved_layer.isValid():
-                        QgsProject.instance().addMapLayer(saved_layer)
+                        ProjectUtils.add_layer(saved_layer)
                         result_layer = saved_layer
                         self.logger.info(
                             "Camada salva e carregada", layer_name=saved_layer.name()
@@ -719,40 +1107,71 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     "Salvamento em arquivo desabilitado; resultado filtrado mantido apenas no projeto"
                 )
 
-            # ====== NOVA SAÍDA: GERAÇÃO DE LINHAS (STRIPS) ======
-            strip_lines_layer = self._generate_strip_lines_layer(
-                raw_result_layer, 
-                field_name_map, 
-                layer.name()
-            )
-            
-            if strip_lines_layer and strip_lines_layer.isValid():
-                # Obrigatorio: Adiciona camada temporária em memória
-                QgsProject.instance().addMapLayer(strip_lines_layer)
-                self.logger.info("Camada de linhas (strips) adicionada ao projeto como camada temporária")
+            if all_strip_layers:
+                if len(all_strip_layers) == 1:
+                    strip_lines_layer = all_strip_layers[0]
+                else:
+                    strip_lines_layer = VectorLayerGeometry.merge_memory_layers(
+                        all_strip_layers, crs_authid, f"{layer.name()}_linhas"
+                    )
 
-                # Opcional: Salva em disco se o seletor estiver ativo e com caminho
-                if self.save_track_selector and self.save_track_selector.is_enabled():
-                    line_out_path = self.save_track_selector.get_file_path().strip()
-                    if line_out_path:
-                        saved_line_layer = VectorLayerSource.save_and_load_layer(
-                            strip_lines_layer,
-                            line_out_path,
-                            tool_key=self.TOOL_KEY,
-                            decision="rename",
-                        )
-                        if saved_line_layer and saved_line_layer.isValid():
-                            QgsProject.instance().addMapLayer(saved_line_layer)
-                            self.logger.info(
-                                "Camada de linhas salva em disco e carregada", 
-                                path=line_out_path
+                if strip_lines_layer and strip_lines_layer.isValid():
+                    ProjectUtils.add_layer(strip_lines_layer)
+                    self.logger.info(
+                        "Camada de linhas (strips) adicionada ao projeto como camada temporaria"
+                    )
+
+                    if (
+                        self.save_track_selector
+                        and self.save_track_selector.is_enabled()
+                    ):
+                        line_out_path = self.save_track_selector.get_file_path().strip()
+                        if line_out_path:
+                            saved_line_layer = VectorLayerSource.save_and_load_layer(
+                                strip_lines_layer,
+                                line_out_path,
+                                tool_key=self.TOOL_KEY,
+                                decision="rename",
                             )
+                            if saved_line_layer and saved_line_layer.isValid():
+                                ProjectUtils.add_layer(saved_line_layer)
+                                self.logger.info(
+                                    "Camada de linhas salva em disco e carregada",
+                                    path=line_out_path,
+                                )
+                            else:
+                                self.logger.warning(
+                                    "Falha ao salvar camada de linhas (strips) em arquivo"
+                                )
                         else:
-                            self.logger.warning("Falha ao salvar camada de linhas (strips) em arquivo")
-                    else:
-                        self.logger.warning("Salvamento de linhas habilitado, mas caminho de saída está vazio")
+                            self.logger.warning(
+                                "Salvamento de linhas habilitado, mas caminho de saida esta vazio"
+                            )
+
+            processing_time = time.time() - start_time
+            safe_summary = {
+                "total_points": total_points_all,
+                "total_shots": total_shots_all,
+                "valid_shots": valid_shots_all,
+                "invalid_shots": invalid_shots_all,
+                "source_path": layer.source(),
+            }
+            self.logger.info(
+                "Segmentacao concluida com sucesso",
+                processing_time_seconds=round(processing_time, 2),
+                summary=safe_summary,
+            )
+            self.logger.info(
+                "Configuracao de filtro de atributos de saida",
+                selected_output_fields=selected_fields,
+                required_output_field=self.REQUIRED_OUTPUT_FIELD,
+                field_name_map=field_name_map,
+            )
+
+            summary = summary_data
 
         except Exception as e:
+            processing_time = time.time() - start_time
             processing_time = time.time() - start_time
             self.logger.error(
                 f"Erro na segmentacao de tiros apos {processing_time:.2f}s: {e}",
@@ -780,7 +1199,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             duration=8,
         )
 
+
 def run(iface):
+    """Abre o diálogo do plugin."""
     dlg = DividePointsByStripsPlugin(iface)
     dlg.setModal(False)
     dlg.show()

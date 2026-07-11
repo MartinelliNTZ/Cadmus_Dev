@@ -364,6 +364,7 @@ class Strings_de(Strings_pt_BR):
         "auf die erzeugten Punkte und den Pfad anwenden."
     )
     RECURSIVE_SEARCH = "Unterordner durchsuchen"
+    USE_MRK_DATA = "MRK-Daten abrufen"
     PHOTOS_METADATA = "Mit Fotometadaten verknüpfen"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Zum Verknüpfen mit Fotometadaten muss das Paket Pillow installiert werden.\n\nJetzt installieren?"
     MRK_FOLDER = "MRK-Ordner:"
@@ -383,17 +384,10 @@ class Strings_de(Strings_pt_BR):
         "Listet temporare Metadaten-JSON-Dateien und erzeugt den HTML-Bericht erneut.\n"
         "Bietet zudem einen Schnellzugriff auf den Berichtsordner."
     )
-    PHOTO_VECTORIZATION_TITLE = "Foto-Vektorisierung"
-    PHOTO_VECTORIZATION_TOOLTIP = (
-        "Erzeugt eine Vektorebene aus Bildern und optional einen Bericht mit den extrahierten Daten."
-    )
     REFRESH_JSON_LIST = "JSON-Liste aktualisieren"
     OPEN_REPORTS_FOLDER = "Berichtsordner offnen"
     OPEN_JSONS_FOLDER = "JSON-Ordner offnen"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Vektor Ohne MRK Erzeugen"
-    PHOTO_FOLDER = "Fotoordner:"
-    VECTORIZE_PHOTOS = "Foto-Vektor erzeugen"
-    PHOTOS_WITHOUT_MRK_LAYER_NAME = "Fotos_Ohne_MRK"
     NO_JSON_FOUND = "Keine temporaren JSON-Dateien gefunden."
 
     # plugins/SettingsPlugin.py

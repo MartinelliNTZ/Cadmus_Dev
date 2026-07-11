@@ -454,10 +454,9 @@ class LogcatDialog(QDialog):
                                 self._logger.warning(
                                     f"Erro ao reabilitar signals: {str(e)}"
                                 )
-                            except Exception:
+                            except Exception as e2:
                                 logging.getLogger("Cadmus.logcat.LogcatDialog").warning(
-                                    "Erro ao reabilitar signals e logger não disponível: %s",
-                                    str(e),
+                                    f"Erro ao reabilitar signals e logger não disponível: {str(e2)}"
                                 )
 
                     # Restaurar posição do scroll DEPOIS da atualização
@@ -653,10 +652,9 @@ class LogcatDialog(QDialog):
                             self._logger.warning(
                                 f"Erro no fallback set_entries: {str(fe)}"
                             )
-                        except Exception:
+                        except Exception as e2:
                             logging.getLogger("Cadmus.logcat.LogcatDialog").warning(
-                                "Erro no fallback set_entries e logger não disponível: %s",
-                                str(fe),
+                                f"Erro no fallback set_entries e logger não disponível: {str(e2)}"
                             )
                     raise
 
@@ -671,10 +669,9 @@ class LogcatDialog(QDialog):
                 except Exception as e:
                     try:
                         self._logger.warning(f"Erro ao reabilitar signals: {str(e)}")
-                    except Exception:
+                    except Exception as e2:
                         logging.getLogger("Cadmus.logcat.LogcatDialog").warning(
-                            "Erro ao reabilitar signals e logger não disponível: %s",
-                            str(e),
+                            f"Erro ao reabilitar signals e logger não disponível: {str(e2)}"
                         )
 
             # Atualizar botões de filtro
@@ -896,9 +893,9 @@ class LogcatDialog(QDialog):
             if self.file_watcher:
                 try:
                     self.file_watcher.stop()
-                except Exception:
+                except Exception as e:
                     self._logger.warning(
-                        "Erro ao parar file_watcher durante closeEvent", exc_info=True
+                        f"Erro ao parar file_watcher durante closeEvent: {str(e)}", exc_info=True
                     )
                 self.file_watcher = None
 
@@ -906,27 +903,27 @@ class LogcatDialog(QDialog):
             try:
                 if self.update_timer and self.update_timer.isActive():
                     self.update_timer.stop()
-            except Exception:
+            except Exception as e:
                 self._logger.warning(
-                    "Erro ao parar update_timer durante closeEvent", exc_info=True
+                    f"Erro ao parar update_timer durante closeEvent: {str(e)}", exc_info=True
                 )
 
             # PRIORIDADE 2b: Parar debounce timer
             try:
                 if self.search_debounce_timer and self.search_debounce_timer.isActive():
                     self.search_debounce_timer.stop()
-            except Exception:
+            except Exception as e:
                 self._logger.warning(
-                    "Erro ao parar search_debounce_timer durante closeEvent",
+                    f"Erro ao parar search_debounce_timer durante closeEvent: {str(e)}",
                     exc_info=True,
                 )
 
             # PRIORIDADE 3: Desconectar signals
             try:
                 self.file_changed.disconnect()
-            except Exception:
+            except Exception as e:
                 self._logger.warning(
-                    "Erro ao desconectar file_changed durante closeEvent", exc_info=True
+                    f"Erro ao desconectar file_changed durante closeEvent: {str(e)}", exc_info=True
                 )
 
             # PRIORIDADE 4: Limpar dados em memória
@@ -934,9 +931,9 @@ class LogcatDialog(QDialog):
                 self.all_entries.clear()
                 if self.table_model:
                     self.table_model.clear()
-            except Exception:
+            except Exception as e:
                 self._logger.warning(
-                    "Erro ao limpar dados durante closeEvent", exc_info=True
+                    f"Erro ao limpar dados durante closeEvent: {str(e)}", exc_info=True
                 )
 
         except Exception as e:
@@ -945,9 +942,9 @@ class LogcatDialog(QDialog):
                     f"Erro não esperado em closeEvent: {str(e)}",
                     error_type=type(e).__name__,
                 )
-            except Exception:
+            except Exception as e2:
                 logging.getLogger("Cadmus.logcat.LogcatDialog").exception(
-                    "Erro não esperado em closeEvent: %s", str(e)
+                    f"Erro não esperado em closeEvent: {str(e)}", str(e2)
                 )
         finally:
             event.accept()
@@ -959,9 +956,9 @@ class LogcatDialog(QDialog):
             if self.file_watcher:
                 try:
                     self.file_watcher.stop()
-                except Exception:
+                except Exception as e:
                     self._logger.warning(
-                        "Erro ao parar file_watcher durante _on_destroyed",
+                        f"Erro ao parar file_watcher durante _on_destroyed: {str(e)}",
                         exc_info=True,
                     )
                 self.file_watcher = None
@@ -970,9 +967,9 @@ class LogcatDialog(QDialog):
                 try:
                     if self.update_timer.isActive():
                         self.update_timer.stop()
-                except Exception:
+                except Exception as e:
                     self._logger.warning(
-                        "Erro ao parar update_timer durante _on_destroyed",
+                        f"Erro ao parar update_timer durante _on_destroyed: {str(e)}",
                         exc_info=True,
                     )
 
@@ -980,17 +977,17 @@ class LogcatDialog(QDialog):
                 try:
                     if self.search_debounce_timer.isActive():
                         self.search_debounce_timer.stop()
-                except Exception:
+                except Exception as e:
                     self._logger.warning(
-                        "Erro ao parar search_debounce_timer durante _on_destroyed",
+                        f"Erro ao parar search_debounce_timer durante _on_destroyed: {str(e)}",
                         exc_info=True,
                     )
-        except Exception:
+        except Exception as e:
             try:
                 self._logger.critical(
-                    "Erro não esperado em _on_destroyed", exc_info=True
+                    f"Erro não esperado em _on_destroyed: {str(e)}", exc_info=True
                 )
-            except Exception:
+            except Exception as e2:
                 logging.getLogger("Cadmus.logcat.LogcatDialog").exception(
-                    "Erro não esperado em _on_destroyed"
+                    f"Erro não esperado em _on_destroyed: {str(e)}", str(e2)
                 )

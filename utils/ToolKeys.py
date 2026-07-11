@@ -9,7 +9,6 @@ class ToolKey:
     EXPORT_ALL_LAYOUTS = "export_all_layouts"
     DRONE_COORDINATES = "drone_coordinates"
     REPORT_METADATA = "report_metadata"
-    PHOTO_VECTORIZATION = "photo_vectorization"
     LOAD_FOLDER_LAYERS = "load_folder_layers"
     REPLACE_IN_LAYOUTS = "replace_in_layouts"
     RESTART_QGIS = "restart_qgis"
@@ -26,8 +25,9 @@ class ToolKey:
     ABOUT_DIALOG = "about_dialog"
     VECTOR_TO_SVG = "vector_to_svg"
     CREATE_PROJECT = "create_project"
-    DIFFERENCE_BETWEEN_LINES= "difference_between_lines"
+    DIFFERENCE_BETWEEN_LINES = "difference_between_lines"
     SAVE_TEMPORARY_LAYER = "save_temporary_layer"
+    PATH_EXTENSION_TOOL = "path_extension_tool"
 
     # model3 / panel tool
     # processing/
@@ -42,6 +42,12 @@ class ToolKey:
     RASTER_DIFERENCE_STATISTICS = "raster_diference_statistics"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average"
     GRID_GENERATOR = "grid_generator"
+    NDVI_CALCULATOR = "ndvi_calculator"
+    RGB_MOSAIC_CREATOR = "rgb_mosaic_creator"
+    RASTER_OPTIMIZER = "raster_optimizer"
+    RGB_STYLE_STANDARDIZER = "rgb_style_standardizer"
+    GLI_CALCULATOR = "gli_calculator"
+    NDRE_CALCULATOR = "ndre_calculator"
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {
@@ -50,7 +56,6 @@ class ToolKey:
         EXPORT_ALL_LAYOUTS: "#4ECDC4",  # turquesa -> exportacao / layout
         DRONE_COORDINATES: "#45B7D1",  # azul -> coordenadas / espacial
         REPORT_METADATA: "#5DADE2",  # azul medio -> relatorios de metadata
-        PHOTO_VECTORIZATION: "#6BB1C8",  # azul agua -> vetorizacao de fotos
         LOAD_FOLDER_LAYERS: "#96CEB4",  # verde -> carga de dados
         REPLACE_IN_LAYOUTS: "#F8C471",  # laranja -> alteracao / replace
         RESTART_QGIS: "#FF6B6B",  # vermelho -> acao critica
@@ -64,6 +69,8 @@ class ToolKey:
         VECTOR_FIELDS: "#C39BD3",  # purpura -> calculos vetoriais
         VECTOR_TO_SVG: "#7FB3D5",  # azul suave -> exportacao vetorial
         CREATE_PROJECT: "#73C6B6",  # verde agua -> criacao de projeto
+        PATH_EXTENSION_TOOL: "#E67E22",  # laranja -> path extension
+        SAVE_TEMPORARY_LAYER: "#3498DB",  # azul -> salvar temporárias
         # === Processing / analises ===
         ATTRIBUTE_STATISTICS: "#F7DC6F",  # amarelo -> estatistica
         DIFFERENCE_FIELDS: "#BB8FCE",  # roxo -> comparacao
@@ -72,4 +79,9 @@ class ToolKey:
         RASTER_MASS_SAMPLER: "#F1948A",  # coral -> raster pesado
         GRID_GENERATOR: "#F39C12",  # laranja forte -> gerador de grade
         ELEVATION_ANALISYS: "#5DADE2",  # azul medio -> relevo
+        RASTER_OPTIMIZER: "#E67E22",  # laranja -> otimizacao raster
+        NDVI_CALCULATOR: "#27AE60",  # verde -> ndvi / vegetacao
+        RGB_MOSAIC_CREATOR: "#E74C3C",  # vermelho -> rgb / cor
+        RGB_STYLE_STANDARDIZER: "#8E44AD",  # roxo -> padronizacao de estilo
+        GLI_CALCULATOR: "#2ECC71",  # verde claro -> gli / vegetacao verde
     }

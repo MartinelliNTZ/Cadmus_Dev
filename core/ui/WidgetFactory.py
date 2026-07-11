@@ -322,6 +322,7 @@ class WidgetFactory:
         checkbox_text: str = STR.SAVE_TO_FILE,
         label_text: str = STR.SAVE_IN,
         path_button=None,
+        mode: str = SelectorWidget.MODE_FILE,
     ):
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -335,7 +336,7 @@ class WidgetFactory:
             file_filter=file_filter,
             checkbox_text=checkbox_text,
             title=label_text,
-            mode=SelectorWidget.MODE_SAVE,
+            mode=mode,
             path_button=path_button,
             checkbox=True,
         )

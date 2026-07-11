@@ -38,10 +38,6 @@ class RangeMetadataManager:
         try:
             with open(target_path, "r", encoding="utf-8") as f:
                 self._config = yaml.safe_load(f)
-            total = len((self._config or {}).get("thresholds", {}))
-            self._logger.info(
-                f"Config de report carregada: {target_path} ({total} indicadores)"
-            )
         except Exception as e:
             raise ValueError(f"Erro carregando config: {e}")
 
@@ -57,6 +53,28 @@ class RangeMetadataManager:
             return {}
         return self._config.get("templates", {})
 
+    def get_alerts(self) -> Dict[str, Any]:
+        """Retorna definicoes de alertas do YAML (secao 'alerts:')."""
+        if self._config is None:
+            return {}
+        alerts = self._config.get("alerts", {})
+        return {k: v for k, v in alerts.items() if v.get("enabled", True)}
+
+    def get_alert(self, alert_name: str) -> Optional[Dict[str, Any]]:
+        """Retorna a definicao de um alerta especifico pelo nome."""
+        return self.get_alerts().get(alert_name)
+
+    def resolve_indicator_levels(self, indicator_ref: str) -> list:
+        """Retorna os levels de um indicator definido em thresholds:."""
+        thresh = self.get_thresholds(indicator_ref)
+        if not thresh:
+            return []
+        levels = thresh.get("levels", [])
+        return [
+            RangeMetadataManager._parse_num(level) if not isinstance(level, list) else level
+            for level in levels
+        ]
+
     @staticmethod
     def _parse_num(raw: Any) -> float:
         """Converte um valor textual ou numerico em float com suporte a infinitos."""
@@ -65,7 +83,14 @@ class RangeMetadataManager:
         if isinstance(raw, (int, float)):
             return float(raw)
         text = str(raw).strip().lower()
-        if text in {"inf", "+inf", "infinity", "+infinity", "float('inf')", 'float("inf")'}:
+        if text in {
+            "inf",
+            "+inf",
+            "infinity",
+            "+infinity",
+            "float('inf')",
+            'float("inf")',
+        }:
             return math.inf
         if text in {"-inf", "-infinity", "float('-inf')", 'float("-inf")'}:
             return -math.inf
@@ -82,7 +107,7 @@ class RangeMetadataManager:
 
         ttype = thresh.get("type")
         levels = thresh.get("levels", [])
-        messages = thresh.get("messages", [f"Nivel {{}}" for _ in levels])
+        messages = thresh.get("messages", ["Nivel {{}}" for _ in levels])
 
         if ttype == "categorical":
             mapping = thresh.get("mapping", {})
@@ -112,13 +137,19 @@ class RangeMetadataManager:
         elif ttype == "range_best":
             for i, interval in enumerate(levels):
                 if isinstance(interval, list):
-                    minv = self._parse_num(interval[0]) if len(interval) > 0 else -math.inf
-                    maxv = self._parse_num(interval[1]) if len(interval) > 1 else math.inf
+                    minv = (
+                        self._parse_num(interval[0]) if len(interval) > 0 else -math.inf
+                    )
+                    maxv = (
+                        self._parse_num(interval[1]) if len(interval) > 1 else math.inf
+                    )
                 else:
                     minv, maxv = -math.inf, self._parse_num(interval)
                 maxv = math.inf if maxv is None else maxv
                 if minv <= vnum <= maxv:
-                    return i + 1, messages[i]
+                    # Protecao contra IndexError caso levels e messages tenham tamanhos diferentes
+                    msg = messages[i] if i < len(messages) else f"Nivel {i + 1}"
+                    return i + 1, msg
             level = 3
         else:
             level = 3

@@ -35,6 +35,8 @@ class Strings_pt_BR:
     AUTO_DETECT = "Auto-detectar"
 
     # Common labels
+    PRECISION = "Precisao"
+    CONTINUE_ANYWAY = "Continuar mesmo assim"
     MENU_SYSTEM = "Sistema"
     MENU_LAYOUTS = "Layouts"
     MENU_FOLDER = "Pasta"
@@ -363,6 +365,7 @@ class Strings_pt_BR:
         "aos pontos e ao trajeto gerados."
     )
     RECURSIVE_SEARCH = "Vasculhar subpastas"
+    USE_MRK_DATA = "Obter dados MRK"
     PHOTOS_METADATA = "Cruzar com metadados das fotos"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Para cruzar com metadados das fotos é necessário instalar o pacote Pillow.\n\nDeseja instalar agora?"
     GENERATE_REPORT = "Gerar relatório"
@@ -370,6 +373,10 @@ class Strings_pt_BR:
     SAVE_POINTS_CHECKBOX = "Salvar pontos MRK em arquivo?"
     SAVE_IN = "Salvar em:"
     SAVE_TRACK_CHECKBOX = "Salvar rastro em arquivo?"
+    USE_LOGO = "Usar logotipo?"
+    LOGO_LABEL = "Logotipo:"
+    PROJECT_TITLE = "Título do Projeto"
+    PROJECT_TITLE_HINT = "Ex: Fazenda Esperança"
     APPLY_STYLE_POINTS = "Aplicar estilo (QML) nos pontos?"
     QML_POINTS = "QML pontos:"
     APPLY_STYLE_TRACK = "Aplicar estilo (QML) no rastro?"
@@ -383,18 +390,15 @@ class Strings_pt_BR:
         "Lista JSONs temporarios de metadata e permite regerar o relatorio HTML.\n"
         "Tambem oferece atalho para abrir a pasta de relatorios gerados."
     )
-    PHOTO_VECTORIZATION_TITLE = "Vetorizacao de Fotos"
-    PHOTO_VECTORIZATION_TOOLTIP = (
-        "Gera uma camada vetorial a partir de imagens e opcionalmente um relatorio "
-        "com os dados extraidos."
-    )
     REFRESH_JSON_LIST = "Atualizar lista de JSON"
     OPEN_REPORTS_FOLDER = "Abrir pasta de relatorios"
     OPEN_JSONS_FOLDER = "Abrir pasta de JSON"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Gerar Vetor Sem MRK"
-    PHOTO_FOLDER = "Pasta de fotos:"
-    VECTORIZE_PHOTOS = "Gerar vetor de fotos"
-    PHOTOS_WITHOUT_MRK_LAYER_NAME = "Fotos_Sem_MRK"
+    VETORIZE_FLIGHT = "Vetorizar voo"
+    VETORIZE_FLIGHT_TOOLTIP = (
+        "Gera camada vetorial de pontos e rastro a partir do JSON de metadata selecionado.\n"
+        "Equivalente a executar o pipeline de coordenadas de drone apenas com o JSON."
+    )
     NO_JSON_FOUND = "Nenhum JSON temporario encontrado."
 
     # plugins/SettingsPlugin.py
@@ -544,6 +548,8 @@ class Strings_pt_BR:
         "Mostra informacoes gerais sobre o plugin,\n"
         "como versao, autoria e contexto do projeto."
     )
+    LAYER_NOT_EDITABLE_ASK = "A camada '{layer_name}' não está no modo de edição.\n\nDeseja torná-la editável agora?"
+    LAYER_NOW_EDITABLE = "Camada colocada em modo de edição automaticamente."
     VECTOR_FIELDS_TITLE = "Calcular Campos Vetoriais"
     VECTOR_FIELDS_TOOLTIP = (
         "Calcula automaticamente campos vetoriais como area,\n"
@@ -614,7 +620,93 @@ class Strings_pt_BR:
     DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
         "A interface foi criada. A rotina de divisão por faixas será implementada na próxima etapa."
     )
+
+    # processing/RasterOptimizer.py
+    RASTER_OPTIMIZER_TITLE = "Otimizar Raster (Overviews)"
+    RASTER_OPTIMIZER_TOOLTIP = (
+        "Cria ou reconstrói pirâmides (overviews) em rasters TIFF.\n"
+        "Permite selecionar pasta com rasters ou camadas individuais,\n"
+        "escolher os níveis de overview, método de reamostragem\n"
+        "e algoritmo de compressão (LZW, DEFLATE, ZSTD)."
+    )
+    INPUT_RASTER_LAYERS = "Camadas Raster de Entrada"
+    INPUT_RASTER_FOLDER = "Pasta com Rasters"
+    OVERVIEW_LEVELS = "Níveis de Overview"
+    RESAMPLING_METHOD = "Método de Reamostragem"
+    COMPRESS_OVERVIEW = "Compressão das Overviews"
+    PREDICTOR = "Predictor"
+    ZLEVEL = "ZLevel (compressão)"
+    DELETE_EXISTING_OVERVIEWS = "Deletar overviews existentes antes de recriar"
+    OVERVIEWS_CREATED_SUCCESS = "Overviews criadas/atualizadas com sucesso."
+    OVERVIEWS_ERROR = "Erro ao criar overviews: {error}"
+    RASTER_OPTIMIZER_COMPLETED = "Otimização de rasters concluída."
+    USE_RECURSIVE_SEARCH = "Incluir subpastas"
+    SEARCHING_RASTERS = "Buscando rasters..."
+    BIGTIFF_YES = "Forçar BIGTIFF (necessário para arquivos >4GB)"
+    RGB_MOSAIC_CREATOR_TITLE = "Criador de Mosaico RGB"
+    INPUT_RASTER_RED_BAND = "Raster Banda Vermelha (R)"
+    INPUT_RASTER_GREEN_BAND = "Raster Banda Verde (G)"
+    INPUT_RASTER_BLUE_BAND = "Raster Banda Azul (B)"
+    BAND_RED_LABEL = "Banda R"
+    BAND_GREEN_LABEL = "Banda G"
+    BAND_BLUE_LABEL = "Banda B"
+    CREATE_ALPHA_BAND = "Criar banda alpha para NoData"
+    ALPHA_NODATA_VALUE = "Valor NoData para alpha"
+    RGB_COMPOSITE = "Composicao RGB"
+    NDVI_CALCULATOR_TITLE = "Calculadora NDVI"
+    INPUT_RASTER_NIR = "Raster Infravermelho Proximo (NIR)"
+    INPUT_RASTER_RED = "Raster Vermelho (RED)"
+    BAND_NIR = "Banda NIR"
+    BAND_RED = "Banda RED"
+    SENTINEL_BANDS_INFO = "Sentinel-2: Banda 8 (NIR) e Banda 4 (Red)"
+    LANDSAT_BANDS_INFO = "Landsat 8/9: Banda 5 (NIR) e Banda 4 (Red) | Landsat 5/7: Banda 4 (NIR) e Banda 3 (Red)"
+    NDVI = "NDVI"
+    NDRE_CALCULATOR_TITLE = "Calculadora NDRE (Red Edge)"
+    INPUT_RASTER_NIR_NDRE = "Raster Infravermelho Proximo (NIR) para NDRE"
+    INPUT_RASTER_REDEDGE = "Raster Borda Vermelha (RedEdge)"
+    BAND_REDEDGE = "Banda RedEdge"
+    NDRE = "NDRE"
+    GLI_CALCULATOR_TITLE = "Calculadora GLI (Green Leaf Index)"
+    INPUT_RASTER_RGB_GLI = "Raster RGB de entrada (3 ou 4 bandas)"
+    GLI = "GLI"
+    GLI_STYLE_PATH = "Caminho do estilo QML GLI"
+    GLI_INTERPRETATION = """Interpretacao dos valores GLI:
+  -1.0 a 0.0  : Solo exposto, agua, superficies nao vegetadas
+   0.0 a 0.2  : Vegetacao esparsa ou estressada
+   0.2 a 0.5  : Vegetacao moderada
+   0.5 a 1.0  : Vegetacao densa e saudavel"""
+    RGB_STYLE_STANDARDIZER_TITLE = "Padronizar Estilo RGB (Percentil)"
+    INPUT_RASTER_RGB = "Raster RGB de entrada"
+    RGB_STANDARDIZER_OUTPUT = "Raster RGB padronizado"
     SEGMENTATION_MODE = "Modo de Segmentação"
     CURVE = "Curva"
     STRAIGHT = "Reta"
     BOTH_PATH = "Ambas"
+
+    PATH = "Path"
+
+    # plugins/PathExtensionPlugin.py
+    PATH_EXTENSION_TITLE = "Remover/Restaurar Extensão"
+    PATH_EXTENSION_TOOLTIP = "Remove ou restaura a extensão de arquivos nos paths das feições"
+    MODE_REMOVE = "Remover extensão"
+    MODE_RESTORE = "Restaurar extensão"
+    MODE_ZIP = "Zipar arquivos"
+    MODE_UNZIP = "Deszipar arquivos"
+
+    # plugins/SaveTemporaryLayersPlugin.py
+    SAVE_TEMPORARY_LAYER_TITLE = "Salvar Temporárias"
+    SAVE_TEMPORARY_LAYER_TOOLTIP = "Salva camadas temporárias (memory) do projeto em arquivos permanentes no disco"
+    PREFIX = "Prefixo"
+    SUFFIX = "Sufixo"
+    EXTENSION_VECTOR = "Extensão Vetor"
+    EXTENSION_RASTER = "Extensão Raster"
+    VECTORS_FOLDER = "Pasta de Vetores"
+    RASTERS_FOLDER = "Pasta de Rasters"
+    SEPARATOR = "Separador"
+    VECTOR_EXTENSIONS = "Extensões Vetor"
+    RASTER_EXTENSIONS = "Extensões Raster"
+    OUTPUT_CONFIG = "Configuração de Saída"
+    CONVERTER_FILE_TYPE = "Tipo de Arquivo"
+    SELECT_OUTPUT_FOLDER = "Selecionar Pasta de Saída"
+    USE_PROJECT_FOLDER = "Usar Pasta do Projeto"
+    OPEN_OUTPUT_FOLDER = "Abrir Pasta de Saída"

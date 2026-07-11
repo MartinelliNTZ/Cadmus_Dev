@@ -46,6 +46,15 @@ class IconManager:
     REMOVE_KML_FIELDS = "remove_kml_fields.ico"
     DIFFERENCE_BETWEEN_LINES = "difference_between_lines.ico"
     SAVE_TEMPORARY_LAYER = "save_temporary_layer.ico"
+    PATH_EXTENSION = "path_extension_tool.ico"
+    FILE_CONVERTER = "file_converter.ico"
+
+    # Social icons
+    GITHUB = "GithubIcon.ico"
+    INSTAGRAM = "InstagramIcon.ico"
+    EMAIL = "Email.ico"
+    LINKEDIN = "LinkedinIcon.ico"
+    BUY_ME_A_COFFEE = "BuyMeaCoffe.ico"
 
     # processing
     ATTRIBUTE_STATS = "attribute_stats.ico"
@@ -55,6 +64,7 @@ class IconManager:
     RASTER_MASS_CLIPPER = "raster_mass_clipper.ico"
     GRID_GENERATOR = "grid_generator.ico"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average.ico"
+    RASTER_OPTIMIZER = "raster_mass.ico"
 
     @classmethod
     def icon(cls, name: str) -> QIcon:

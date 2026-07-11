@@ -19,10 +19,7 @@ class VectorMultipartPlugin(BasePluginMTL):
             tool_key=ToolKey.CONVERTER_MULTIPART,
             class_name="VectorMultipartPlugin",
             build_ui=False,
-        )        
-        
-        
-        
+        )
 
     def initGui(self):
         self.create_action(
@@ -112,6 +109,7 @@ class VectorMultipartPlugin(BasePluginMTL):
                 self.iface, STR.GEOMETRIES_CONVERTED_TO_MULTIPART_NOT_SAVED
             )
             return
+
 
 def run(iface):
     plugin = VectorMultipartPlugin(iface)

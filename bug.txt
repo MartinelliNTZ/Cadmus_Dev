@@ -1,0 +1,2 @@
+corrigir agora o bug de linhas
+alem de colocar o juiz antigo como outro modo

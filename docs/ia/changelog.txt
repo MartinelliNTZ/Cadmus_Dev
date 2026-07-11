@@ -1,12 +1,275 @@
 #inicie aqui sempre use a data atual nos logs sempre insira na sequencia
-2.3.25 20/04/2026
-[2.3.25.1][20/04/2026] comece aqui
-[2.3.25.2][20/04/2026] DividePointsByStrips: corrigido filtro de campos de saida no salvamento; agora salva somente os checkboxes marcados e sempre inclui shot_id (mesmo com diferencas no field_name_map).
-[2.3.25.3][20/04/2026] CreateProjectPlugin: migrado para heranca de BasePluginMTL (plugin INSTANT sem UI), com init(build_ui=False), execute_tool() como fluxo principal e run() alinhado ao ciclo padrao mantendo o comportamento de criacao de projeto.
-[2.3.25.4][20/04/2026] ProjectNameDialog/Styles: criado estilo dedicado Styles.project_name_dialog() e aplicado ao dialogo com objectName para padronizar visual (label, input e botoes) sem afetar outros dialogs.
-[2.3.25.5][20/04/2026] ProjectNameDialog/Styles: corrigida aplicacao de estilo dos botoes OK/Cancelar com escopo em QDialogButtonBox (#project_name_button_box) e objectNames dedicados para evitar override do tema nativo.
-[2.3.25.6][20/04/2026] ProjectNameDialog: substituido QDialogButtonBox por botoes QPushButton (OK/Cancelar) para garantir aplicacao do stylesheet; adicionada chave STR.OK em Strings_pt_BR.
-[2.3.25.7][20/04/2026] Styles.project_name_dialog: removido escopo de QDialogButtonBox e ajustado seletor para QPushButton#project_name_btn_ok/#project_name_btn_cancel, alinhando o estilo com o novo layout do ProjectNameDialog.
-2.3.26 23/04/2026
-[2.3.26.1][23/04/2026] SequentialPointBreakJudge: corrigido UnboundLocalError no metodo _evaluate_bidirectional ao acessar precomputed_dt antes de sua populacao.
-[2.3.26.2][23/04/2026] SequentialPointBreakJudge: removida declaracao duplicada e precoce de use_time que causava UnboundLocalError.
+2.3.29 27/04/2026
+[2.3.29.1][27/04/2026] comece aqui
+[2.3.29.2][28/04/2026] Corrigido possível erro de argumentos duplicados em DividePointsByStripsPlugin.judge_args
+[2.3.29.3][28/04/2026] Atualizado DividePointsByStripsPlugin para gerar shot_id como string com prefixo de grupo e linha de strip com geometry robusta
+[2.3.29.4][28/04/2026] Adicionados logs de validação em _generate_strip_lines_layer e processamento de grupos para debug de linhas zeradas
+[2.3.29.5][28/04/2026] Refatoração v3 do SequentialPointBreakJudge:
+  - _precompute_metrics agora retorna 3 valores (raw_az, smoothed_az, metrics) — raw_az contém azimutes brutos (não suavizados) para a checagem bidirecional detector inflexões reais sem falsos negativos.
+  - raw_az[0] = None em vez de 0.0; az_history começa vazio e add_to_history rejeita None/0.0, eliminando a poluição do histórico inicial com azimute fantasma.
+  - _bidirectional_inflection_check recebe raw_az (bruto), não smoothed_az — a suavização prévia diluía gradientes de direção e produzia falsos negativos de quebra.
+  - Fusão de shots (_fuse_small_shots) recalcula tamanhos incrementalmente com loop while + set fused_from, corrigindo fusões em cadeia que usavam estatísticas obsoletas.
+  - _apply_retroactive_relabel_guarded verifica se o shot de origem atingiu minimum_point_count antes de permitir relabel, evitando destruir strips válidas ao retirar seus pontos de cauda.
+  - Duplo check de azimute anterior+posterior: para cada ponto i, compara raw_az[i] (segmento i-1→i) e raw_az[i+1] (segmento i→i+1) contra a média da strip. Se AMBOS desviam > severe_azimuth_threshold → dual_angle_break: +2 no score, quebra antecipada (R0.5), sobrepõe falsos positivos da checagem bidirecional, reduz confirmações prospectivas necessárias, transforma ambíguo em quebra, relaxa guard do relabel retroativo (janela dobrada + threshold severo). Se ambos desviam > light_azimuth_threshold → dual_angle_light: +1 score, reduz required_conf. Também estende detecção de bordadura para dual_angle_break com distância < 2× border_distance_threshold.
+
+2.3.30 09/06/2026
+[2.3.30.1][09/06/2026] Consolidada documentação da skill de comunicação (SignalHub / PyQtSignalManager / QgisMessageUtil) em docs/skills/SKILL_COMUNICATION_SYSTEM.md — inclui padrões de payload, exemplos de uso, integração com LogUtils e recomendações de segurança/threads.
+2.3.31 09/06/2026
+[2.3.31.1][09/06/2026] Reestruturada skill de comunicação: clarificados cenários de uso para LogUtils, PluginSignalHub/PyQtSignalManager e QgisMessageUtil; adicionadas políticas sobre `tool_key`, payloads, responsabilidades e testes.
+2.3.32 09/06/2026
+[2.3.32.1][09/06/2026] Ajuste da skill de comunicação: `tool_key` declarado exclusivo para ferramentas; classes não-ferramentas devem receber `tool_key` como parâmetro ou receber `logger` injetado. Exemplos padronizados atualizados.
+2.3.33 08/07/2026
+[2.3.33.1][08/07/2026] SKILL_AGENT.md aprimorado com seção MAPEAMENTO SITUAÇÃO → SKILL, referenciando todas as 12 skills complementares; atualizado workflow PASSO 1, DIRETIVAS CENTRAIS, REGRAS OPERACIONAIS, ERROS COMUNS e seção QUANDO USAR/NÃO USAR com referências cruzadas às skills corretas.
+2.3.34 08/07/2026
+[2.3.34.1][08/07/2026] ReverseGeocodeTask padronizado para contrato pipeline:
+  - Herda de BaseTask (não mais QgsTask direto)
+  - tool_key obrigatório como keyword-only argument
+  - Método _run() em vez de run() (BaseTask gerencia wrapper)
+  - Remove callback pattern legado (on_success/on_error agora são callbacks reservados da engine)
+  - Cancelamento cooperativo via isCanceled()
+  - LogUtils usa tool_key da task (não string hardcoded)
+[2.3.34.2][08/07/2026] ReverseGeocodeStep padronizado para contrato pipeline:
+  - should_run() retorna condicional baseado em lat/lon no contexto (não retorna None)
+  - create_task() sempre retorna ReverseGeocodeTask (nunca None)
+  - on_success() persiste resultado no contexto via context.set("address_data")
+  - Import corrigido de ..task.reverse_geocoding_task para ..task.ReverseGeocodeTask
+[2.3.34.3][08/07/2026] CoordClickTool fallback atualizado para nova assinatura ReverseGeocodeTask(lat, lon, tool_key=...)
+2.3.35 09/07/2026
+[2.3.35.1][09/07/2026] Refatoração ExecutionContext + Steps:
+  - ExecutionContext agora com atributos canônicos (input_path, output_path, files, tool_key, json_path)
+  - Mantida compatibilidade total com set()/get() legado (DEPRECATED) para plugins não refatorados
+  - Adicionado set_result()/get_result() para comunicação entre steps
+  - json_path promovido a atributo canônico (usado por múltiplos steps)
+[2.3.35.2][09/07/2026] Steps refatorados com __init__ parametrizado (sem dependência do context):
+  - PhotoEnrichmentStep: source, enable_mrk, enable_exif, enable_xmp, enable_custom_fields, selected_*_fields, project_title, logo_path, recursive, paths
+  - JsonVectorizationStep: source, layer_name
+  - ReportGenerationStep: html_output_path
+  - Todos os steps resolvem tool_key, input_path do context canônico (nunca via context.get())
+[2.3.35.3][09/07/2026] Plugins 100% convertidos para novo padrão (sem contexto legado):
+  - DroneCoordinates.py: executa pipeline com steps parametrizados, context só com atributos canônicos
+  - DroneCoordinatesRunner.py: executa pipeline com steps parametrizados, context só com atributos canônicos
+  - PhotoVectorizationPlugin.py: executa pipeline com steps parametrizados, context só com atributos canônicos
+  - Nenhum context.set() ou context.get() para configuração de steps — tudo via parâmetros nomeados
+[2.3.35.4][09/07/2026] Skills atualizadas com novo padrão:
+  - SKILL_ASYNC_PAPELINE.md: seção 3 (Step parametrizado), seção 4 (ExecutionContext canônico), seção 18-19 (exemplos + resumo)
+  - SKILL_METADATA_PIPELINE.md: versão 3.0.0 — exemplos migrados para novo padrão, tabelas de parâmetros dos steps
+  - changelog.txt registrado como 2.3.35.4
+2.3.36 09/07/2026
+[2.3.36.1][09/07/2026] MRK como agregado opcional, coordenadas SEMPRE das fotos:
+  - DroneCoordinates: adicionado checkbox "Obter dados MRK" (default: True para compatibilidade retroativa)
+  - DroneCoordinates._on_use_mrk_changed(): habilita/desabilita seção MRK Fields
+  - DroneCoordinates._resolve_track_group_fields(): fallback sem MRK (agrupa por FolderLevel1)
+  - PhotoMetadata._enrich_with_mrk(): NÃO seta mais CoordSource=MRK nem QUALITY_FLAG=OK
+  - JsonToVectorTranslator._resolve_geometry(): remove fallback Lat/Lon (MRK)
+  - DroneCoordinatesRunner: respeita preferência use_mrk das prefs
+  - i18n: nova string USE_MRK_DATA em pt_BR, en, es, de
+  - SKILL_METADATA_PIPELINE.md: v3.1.0 — MRK como agregado
+[2.3.36.2][09/07/2026] Correção DroneCoordinatesRunner — defaults e campos alinhados com DroneCoordinates (UI):
+  - apply_photos default alterado de False para True (mesmo do UI)
+  - adicionado is_recursive lido das prefs (default True), antes era False hardcoded
+  - recursive no PhotoEnrichmentStep agora usa is_recursive das prefs
+  - selected_required_fields agora carrega das chaves exif_fields_selected + xmp_fields_selected
+    (antes usava required_fields_selected que nunca era salva pelo UI)
+2.3.37 09/07/2026
+[2.3.37.1][09/07/2026] Unificação do pipeline drone em DronePipelineService:
+  - Criado core/services/DronePipelineService.py — serviço único com DEFAULTS centralizado,
+    método execute() e callback _on_pipeline_finished() unificado
+  - MrkDropHandler simplificado: delega diretamente para DronePipelineService.execute()
+  - DroneCoordinatesRunner removido — não era mais necessário (MrkDropHandler e DroneCoordinates
+    chamam o Service diretamente)
+  - DroneCoordinates.execute_tool() simplificado: salva prefs e chama DronePipelineService.execute()
+  - Removidos métodos duplicados _resolve_track_order_field e _resolve_track_group_fields
+    do DroneCoordinates (agora no Service)
+  - Criado docs/plano_refatoracao_unificar_drone_pipeline.md com análise e proposta
+2.3.40 09/07/2026
+[2.3.40.1][09/07/2026] ReverseGeocodeStep integrado ao pipeline de drone + novo modo JSON:
+  - ReverseGeocodeStep refatorado: agora aceita json_path no __init__ e extrai coordenadas
+    da primeira foto do JSON (Lat/Lon), mantendo compatibilidade com modo legado (lat/lon direto)
+  - Adicionado `_get_first_photo_coords()` que percorre groups/records do JSON v2.0
+  - Adicionado `_resolve_coords()` com prioridade: __init__ > context > JSON
+  - on_success agora persiste dados no JSON via `JsonUtil.update_geocode_data()`
+    e timestamps `geocode_start`/`geocode_end` via `JsonUtil.update_timestamps()`
+  - should_run() retorna False se coordenadas não disponíveis (step pulável)
+[2.3.40.2][09/07/2026] JsonUtil.update_geocode_data() adicionado:
+  - Abre JSON existente e adiciona `geocode.municipio`, `geocode.state`, etc. no cabeçalho
+  - Usado pelo ReverseGeocodeStep.on_success() para persistir localização
+[2.3.40.3][09/07/2026] DronePipelineService pipeline atualizado:
+  - Pipeline agora: PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)
+  - ReverseGeocodeStep() sem parâmetros: lê json_path do context automaticamente
+  - SKILL_METADATA_PIPELINE.md atualizado para v3.2.0 com novo fluxo
+[2.3.40.4][09/07/2026] AltimetryStep padronizado + altimetry_task migrado para BaseTask:
+  - altimetry_task.py: migrado de QgsTask direto para BaseTask, assinatura `AltimetriaTask(lat, lon, tool_key=...)`
+  - AltimetryStep.py: refatorado com `__init__` parametrizado (`lat`, `lon`, `report_metadata_mode`), usa `context.tool_key` canônico
+  - AltimetryStep.on_success: persiste altitude no JSON via `JsonUtil.update_geocode_data({"altitude": ...})` + timestamps altimetry_start/altimetry_end
+  - CoordClickTool fallback atualizado para nova assinatura AltimetriaTask(..., tool_key=...)
+  - ReverseGeocodeStep: removido json_path do __init__, adicionado report_metadata_mode, simplificado sem fallback legado
+[2.3.40.5][09/07/2026] Correções de contrato (PLUGIN_CONTRACT.md):
+  - BaseStep: adicionado `__init__` com `self.logger` + `_init_logger(context)` que cria LogUtils a partir de context.tool_key
+  - ReverseGeocodeStep e AltimetryStep: removidos `logger = LogUtils(...)` locais → usam `self.logger` via `_init_logger(context)`
+  - _get_first_photo_coords: removido `except Exception:` silencioso → `except (json.JSONDecodeError, IOError, OSError, ValueError, KeyError)` com log via `self.logger.warning()`
+  - on_success: exceções logadas com `self.logger.exception(e, code="...")`
+  - on_error: exceções de salvamento de timestamp logadas com `self.logger.warning()`
+  - Nova utils/JsonUtil.py: `update_altitude_data()` — escreve altitude no nível raiz do JSON (fora de geocode)
+2.3.41 09/07/2026
+[2.3.41.1][09/07/2026] Extraída lógica de busca da primeira foto para Etapa 6 do PhotoMetadata:
+  - Adicionada Etapa 6 em PhotoMetadata.run_pipeline(): percorre records enriquecidos e salva
+    lat/lon da primeira foto com GPS em _first_photo_raw_coord (cache estático)
+  - Adicionado PhotoMetadata.get_first_photo_raw_coord() — getter público para o cache
+  - PhotoEnrichmentStep.on_success() (main thread): lê raw_coord do cache, chama
+    VectorLayerProjection.get_coordinate_info() para enriquecer com EPSG, zona UTM e hemisfério,
+    salva no context (first_photo_lat, first_photo_lon, first_photo_coord_info) e no JSON
+    via JsonUtil.update_first_photo_coord()
+  - Adicionado JsonUtil.update_first_photo_coord() — escreve dict coord_info no cabeçalho do JSON
+  - ReverseGeocodeStep refatorado: remove _get_first_photo_coords(), lê first_photo_lat/lon do context
+  - AltimetryStep refatorado: remove _get_first_photo_coords(), lê first_photo_lat/lon do context
+  - Ambos os steps não buscam mais a primeira foto diretamente — eliminada lógica duplicada
+  - SKILL_METADATA_PIPELINE.md atualizado para v3.3.0 com novo fluxo
+
+2.3.39 09/07/2026
+[2.3.39.1][09/07/2026] Refatorado DronePipelineService para usar Preferences corretamente:
+  - Substituído import `from ...utils.Preferences import load_tool_prefs` (depreciado) por `from ...utils.Preferences import Preferences`
+  - Substituídas todas as chamadas de `load_tool_prefs()` por `Preferences.load_tool_prefs()`
+  - Substituído acesso a dict com bracket (`prefs["key"]`) por `.get("key", default)` — prevenção de KeyError
+  - Afetados: `execute()`, `_on_pipeline_finished()`, `_load_safe_prefs()`
+2.3.38 09/07/2026
+[2.3.38.1][09/07/2026] Removida ferramenta PhotoVectorizationPlugin (plugins/PhotoVectorizationPlugin.py):
+  - Deletado arquivo do plugin PhotoVectorizationPlugin.py
+  - Removido ToolKey.PHOTO_VECTORIZATION de utils/ToolKeys.py
+  - Removida cor TOOL_KEY_COLORS[PHOTO_VECTORIZATION] em utils/ToolKeys.py
+  - Removidas strings PHOTO_VECTORIZATION_TITLE e PHOTO_VECTORIZATION_TOOLTIP de i18n/Strings_pt_BR.py, Strings_en.py, Strings_es.py, Strings_de.py
+  - Removidas strings PHOTO_FOLDER, VECTORIZE_PHOTOS, PHOTOS_WITHOUT_MRK_LAYER_NAME de pt_BR, en, es, de
+  - Removido registro photo_vectorization Tool de core/config/ToolRegistry.py
+  - Removida constante PHOTO_VECTORIZATION de resources/IconManager.py
+  - Deletado ícone resources/icons/photo_vectorization.ico
+  - Nenhum outro plugin foi alterado
+2.3.42 09/07/2026
+[2.3.42.1][09/07/2026] lat/lon promovidos a atributos canônicos do ExecutionContext:
+  - Adicionados `lat`/`lon` como atributos canônicos (type float | None) em ExecutionContext.py
+  - Adicionados parâmetros `lat`/`lon` no __init__() do ExecutionContext
+  - set_result()/get_result()/set()/get()/require() sincronizam com lat/lon
+  - clear() reseta lat/lon para None
+  - __repr__ agora exibe lat/lon
+[2.3.42.2][09/07/2026] PhotoEnrichmentStep.on_success() usa context.lat/context.lon:
+  - Substituído `context.set_result("first_photo_lat", ...)` e `context.set_result("first_photo_lon", ...)`
+    por `context.lat = ...` e `context.lon = ...` (atributos canônicos)
+  - Mantido `context.set_result("first_photo_coord_info", enrich_result)` para dados completos
+[2.3.42.3][09/07/2026] AltimetryStep simplificado (sem __init__ params, sem report_metadata_mode):
+  - Removeu __init__(lat, lon, report_metadata_mode) → agora __init__() vazio
+  - should_run() lê context.lat/context.lon (sempre)
+  - create_task() lê context.lat/context.lon (sempre)
+  - on_success() persiste no JSON se context.json_path existir (independente de cenário)
+  - on_error() persiste erro no JSON se context.json_path existir (independente de cenário)
+[2.3.42.4][09/07/2026] ReverseGeocodeStep simplificado (sem __init__ params, sem report_metadata_mode):
+  - Removeu __init__(lat, lon, report_metadata_mode) → agora __init__() vazio
+  - should_run() lê context.lat/context.lon (sempre)
+  - create_task() lê context.lat/context.lon (sempre)
+  - on_success() persiste no JSON se context.json_path existir (independente de cenário)
+  - on_error() persiste erro no JSON se context.json_path existir (independente de cenário)
+[2.3.42.5][09/07/2026] CoordClickTool atualizado para novo padrão:
+  - ExecutionContext criado com lat=lat, lon=lon
+  - ReverseGeocodeStep() e AltimetryStep() sem parâmetros (lêem do context)
+[2.3.42.6][09/07/2026] DronePipelineService atualizado:
+  - ReverseGeocodeStep() e AltimetryStep() sem parâmetros (lêem do context via atributos canônicos)
+  - Comentários atualizados refletindo novo fluxo
+[2.3.42.7][09/07/2026] Adicionado JsonUtil.update_json() genérico:
+  - Novo método estático que recebe json_path e updates dict
+  - Abre JSON, aplica dict.update() no nível raiz, salva
+  - Útil para steps que precisam adicionar dados simples sem criar método específico
+[2.3.42.8][09/07/2026] Removidos métodos específicos de JsonUtil (unificados em update_json()):
+  - Removido update_geocode_data() → substituído por update_json(json_path, {"geocode": payload})
+  - Removido update_altitude_data() → substituído por update_json(json_path, {"altitude": value})
+  - Removido update_first_photo_coord() → substituído por update_json(json_path, {"first_photo_coord": coord_info})
+  - Callers atualizados: PhotoMetadata.enrich_first_photo_coord(), AltimetryStep.on_success(), ReverseGeocodeStep.on_success()
+[2.3.42.9][09/07/2026] Skills atualizadas para v4.0.0 (lat/lon canônicos):
+  - SKILL_ASYNC_PAPELINE.md: seção 4 inclui context.lat/context.lon como atributos canônicos
+  - SKILL_AGENT.md: regra 3 atualizada (atributos canônicos + set_result/get_result), nova regra 4 (lat/lon)
+  - SKILL_METADATA_PIPELINE.md: v4.0.0 — tabela ExecutionContext inclui lat/lon, ReverseGeocodeStep simplificado,
+    histórico com entrada 4.0.0, referências a FirstPhotoCoordStep removidas
+2.3.43 09/07/2026
+[2.3.43.1][09/07/2026] Corrigido bug 'dict' object is not callable em PhotoMetadata.enrich_first_photo_coord():
+   - Linha `raw_coord = PhotoMetadata._first_photo_raw_coord()` alterada para
+     `raw_coord = PhotoMetadata._first_photo_raw_coord` (acesso a atributo, não chamada de método)
+   - O erro ocorria porque _first_photo_raw_coord é um dict (ou None), não um método/função
+2.3.44 09/07/2026
+[2.3.44.1][09/07/2026] Adicionadas informações geoespaciais no cabeçalho do relatório HTML:
+   - JsonMetadataManager.load_json_metadata() agora extrai first_photo_coord (zona_num, zona_letra, hemisferio, epsg),
+     geocode (municipio, state_district, state, region, country) e altitude do JSON raiz
+   - Template HTML atualizado: nova seção no cabeçalho exibindo EPSG, MUNICIPIO, DISTRITO, ESTADO,
+     REGIAO, PAIS e ALTITUDE SRTM quando disponíveis no json_meta
+   - SKILL_REPORT_SYSTEM.md atualizado com novos campos do json_meta
+2.3.45 10/07/2026
+[2.3.45.1][10/07/2026] ReverseGeocodeTask tratado como falha gracefull (não aborta pipeline):
+   - TimeoutError, HTTPException, ConnectionError, OSError agora retornam result={} (sucesso)
+     em vez de exception que abortava a pipeline via engine
+   - HTTP não-200, redirect sem Location e dados nulos também retornam result={} (gracefull)
+   - Log nivel WARNING para falhas de rede, INFO para redirects, mantendo rastreabilidade
+   - Evita que pipeline de drone ou CoordClickTool seja abortada por indisponibilidade da API
+2.3.46 10/07/2026
+[2.3.46.1][10/07/2026] Nova ferramenta: Salvar Temporárias (SaveTemporaryLayersPlugin):
+  - Reutilizado ToolKey.SAVE_TEMPORARY_LAYER existente em utils/ToolKeys.py
+  - Adicionada cor SAVE_TEMPORARY_LAYER: "#3498DB" em ToolKeys.TOOL_KEY_COLORS
+  - Adicionadas strings STR.SAVE_TEMPORARY_LAYER_TITLE/TOOLTIP e demais em i18n/Strings_pt_BR.py
+  - Ícone SAVE_TEMPORARY_LAYER já existente em resources/IconManager.py (save_temporary_layer.ico)
+  - Criado plugins/SaveTemporaryLayersPlugin.py com:
+    - InputFieldsWidget para prefixo e sufixo nos nomes dos arquivos
+    - DropdownSelectorWidget para extensões vetor (shp, gpkg, geojson, kml, dxf, gml, csv)
+    - DropdownSelectorWidget para extensões raster (tif, jp2, png, jpg)
+    - GridComplexSelector modo output sem parent, com 📁, 🛠️, ➡️
+    - Import relativo corrigido: from ..resources.widgets.grid.GridComplexSelector
+    - _get_temporary_layers(): percorre QgsProject.layerTreeRoot() e filtra camadas com source "memory:"
+    - execute_tool(): salva vetores com QgsVectorFileWriter e rasters com QgsRasterFileWriter
+    - Fallback para pasta do projeto se nenhuma saída for selecionada
+    - Subpastas vectors/ e rasters/ criadas automaticamente na pasta de saída
+    - Feedback ao usuário via QgisMessageUtil.bar_info/bar_warning
+  - Registrado em core/config/ToolRegistry.py na categoria VECTOR com order=70,
+    usando _make_plugin_executor("...plugins.SaveTemporaryLayersPlugin")
+  - Removido ToolKey.FILE_CONVERTER (não utilizado)
+2.3.47 10/07/2026
+[2.3.47.1][10/07/2026] Atributos do vetor reordenados alfabeticamente após vetorização:
+   - Adicionado import de VectorLayerAttributes em JsonVectorizationStep.run_inline()
+   - Inserida chamada a VectorLayerAttributes.reorder_fields_alphabetically(layer) logo após
+     criação da layer e antes de adicioná-la ao QgsProject
+   - Logs: debug quando reordenação bem-sucedida, warning quando falha (ordem original mantida)
+   - Utiliza método estático existente que cria nova layer em memória com campos ordenados
+     case-insensitive (A-Z), preservando dados e geometria
+2.3.48 11/07/2026
+[2.3.48.1][11/07/2026] Novo utilitário ImageUtils:
+   - Criado utils/ImageUtils.py com classe ImageUtils herdando de BaseUtil
+   - Método photo_to_base64(): converte foto do disco para string base64 com data URI
+     (ex: data:image/jpeg;base64,...). Suporta .jpg, .jpeg, .png, .tif, .tiff, .bmp, .gif, .webp, .ico.
+     Inclui validações de arquivo, extensão, leitura segura com tratamento de exceções,
+     e log via LogUtils com tool_key.
+   - Método base64_to_bytes(): decodifica string base64 (com ou sem data URI) de volta para bytes.
+   - Método auxiliar _guess_mime_type(): mapeia extensão para MIME type.
+   - Registrado em utils/__init__.py com export ImageUtils.
+    - SKILL_UTILS.md atualizado para v2.1.0: adicionada entrada #28 na tabela de classes,
+      item no Resumo Executivo, caso de uso, dependência e histórico.
+2.3.49 11/07/2026
+[2.3.49.1][11/07/2026] Adicionado campo license_key nas configurações do SettingsPlugin:
+  - InputFieldsWidget: adicionado suporte a `show_label` no field config (default True)
+  - SettingsPlugin._build_ui(): inserido InputFieldsWidget sem label/tooltip para license_key
+  - SettingsPlugin._load_prefs(): carrega license_key de system_preferences
+  - SettingsPlugin._save_prefs(): persiste license_key em system_preferences
+[2.3.49.2][11/07/2026] Criado LicenseManager em utils/LicenseManager.py:
+  - Herda de BaseUtil com LogUtils e tool_key
+  - Constante VALID_LICENSE_KEY = "1234" (chave válida atual)
+  - Constante RENEWAL_WINDOW_DAYS = 7 (janela de renovação)
+  - is_license_valid() → bool com lógica de cache e renovação:
+    * Sem license_key nas prefs → False
+    * Cache ativo com > 7 dias restantes → True (sem verificar)
+    * 0-7 dias restantes → tenta renovar, retorna True sempre (graça)
+    * Expirada → valida obrigatoriamente, retorna False se inválida
+    * Sem cache → valida do zero
+  - Salva license_status ("active"/"inactive") e license_expiry (YYYY-MM-DD) nas system_preferences
+  - Registrado em utils/__init__.py com export LicenseManager
+[2.3.49.3][11/07/2026] DronePipelineService verifica licença antes de gerar relatório:
+  - Adicionado import de LicenseManager em DronePipelineService
+  - Se license_key estiver configurada nas system_preferences, valida via LicenseManager.is_license_valid()
+  - Se license_key NÃO estiver configurada, permite geração do relatório sem validação
+  - Se license_key configurada mas inválida, suprime ReportGenerationStep com log warning
+[2.3.49.4][11/07/2026] DroneCoordinates UI condicionada à licença em _build_ui():
+  - LicenseManager.is_license_valid() consultado uma vez no início de _build_ui()
+  - Se inválida: logo, título do projeto e generate_report NÃO são criados na UI
+  - Se inválida: checkbox_options copia CHECKBOX_OPTIONS e remove "generate_report"
+  - _load_prefs() e _save_prefs() usam hasattr para acesso seguro a atributos opcionais
+  - Nenhum conhecimento de license_key fora do LicenseManager

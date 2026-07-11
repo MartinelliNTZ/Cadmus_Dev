@@ -6,6 +6,8 @@ import jinja2
 from ...core.config.LogUtils import LogUtils
 from ...resources.IconManager import IconManager as IM
 from ..ToolKeys import ToolKey
+from ..ColorUtil import ColorUtil
+from ..ImageUtils import ImageUtils
 
 
 class RenderEngine:
@@ -29,9 +31,16 @@ class RenderEngine:
         """Monta payload de graficos consumido pelo template (Chart.js)."""
         charts: Dict[str, Any] = {}
 
-        dist = agg_data.get("level_distribution", {})
+        dist = agg_data.get(
+            "pqi_level_distribution", agg_data.get("level_distribution", {})
+        )
         total = sum(dist.values())
         labels = ["Critical (1)", "Poor (2)", "OK (3)", "Good (4)", "Excellent (5)"]
+        title = (
+            "PQI Level Distribution (%)"
+            if "pqi_level_distribution" in agg_data
+            else "Level Distribution (%)"
+        )
         if total == 0:
             pie_data = [0, 0, 0, 0, 0]
         else:
@@ -41,10 +50,14 @@ class RenderEngine:
             "type": "pie",
             "labels": labels,
             "data": pie_data,
-            "title": "Level Distribution (%)",
+            "title": title,
         }
 
-        ind_means = {k: v["mean"] for k, v in agg_data.get("per_indicator", {}).items()}
+        per_indicator_data = agg_data.get("per_indicator", {})
+        ind_means = {}
+        for k, v in per_indicator_data.items():
+            if isinstance(v, dict) and "mean" in v and v["mean"] is not None:
+                ind_means[k] = v["mean"]
         bar_labels = list(ind_means.keys())[:10]
         charts["indicator_bar"] = {
             "type": "bar",
@@ -53,7 +66,308 @@ class RenderEngine:
             "title": "Average Level per Indicator",
         }
 
+        # Bucket size dos graficos de serie temporal (media de ~100 segmentos)
+        bucket_size = agg_data.get("chart_bucket_size", 1)
+
+        # Temperature per photo series (line chart) - bucketizada
+        temp_series = agg_data.get("temp_chart_series", [])
+        if temp_series:
+            colors = ColorUtil.generate(len(temp_series))
+            temp_datasets = []
+            for idx, series in enumerate(temp_series):
+                color = colors[idx % len(colors)]
+                temp_datasets.append(
+                    {
+                        "label": series["label"],
+                        "data": series["data"],
+                        "borderColor": color,
+                        "backgroundColor": ColorUtil.to_rgba(color, 0.1),
+                        "borderWidth": 0.5,
+                        "fill": False,
+                        "tension": 0.4,
+                        "pointRadius": 2,
+                    }
+                )
+            x_axis_title = (
+                f"Bucket (media de {bucket_size} fotos)"
+                if bucket_size > 1
+                else "Foto #"
+            )
+            charts["temp_line"] = {
+                "type": "line",
+                "datasets": temp_datasets,
+                "bucket_size": bucket_size,
+                "x_axis_title": x_axis_title,
+                "title": (
+                    f"Temperatura do Sensor - Média a cada {bucket_size} fotos (°C)"
+                    if bucket_size > 1
+                    else "Temperatura do Sensor por Foto (°C)"
+                ),
+            }
+
+        # LRF Target Distance per photo series (line chart) - bucketizada
+        lrf_series = agg_data.get("lrf_chart_series", [])
+        if lrf_series:
+            lrf_colors = ColorUtil.generate(len(lrf_series))
+            lrf_datasets = []
+            for idx, series in enumerate(lrf_series):
+                color = lrf_colors[idx % len(lrf_colors)]
+                lrf_datasets.append(
+                    {
+                        "label": series["label"],
+                        "data": series["data"],
+                        "borderColor": color,
+                        "backgroundColor": ColorUtil.to_rgba(color, 0.1),
+                        "borderWidth": 0.5,
+                        "fill": False,
+                        "tension": 0.4,
+                        "pointRadius": 2,
+                    }
+                )
+            x_axis_title = (
+                f"Bucket (media de {bucket_size} fotos)"
+                if bucket_size > 1
+                else "Foto #"
+            )
+            charts["lrf_line"] = {
+                "type": "line",
+                "datasets": lrf_datasets,
+                "bucket_size": bucket_size,
+                "x_axis_title": x_axis_title,
+                "title": (
+                    f"LRF Target Distance - Média a cada {bucket_size} fotos (m)"
+                    if bucket_size > 1
+                    else "LRF Target Distance ao Longo do Voo (m)"
+                ),
+            }
+
+        # ISO Speed Ratings per photo series (line chart) - bucketizada
+        iso_series = agg_data.get("iso_chart_series", [])
+        if iso_series:
+            iso_colors = ColorUtil.generate(len(iso_series))
+            iso_datasets = []
+            for idx, series in enumerate(iso_series):
+                color = iso_colors[idx % len(iso_colors)]
+                iso_datasets.append(
+                    {
+                        "label": series["label"],
+                        "data": series["data"],
+                        "borderColor": color,
+                        "backgroundColor": ColorUtil.to_rgba(color, 0.1),
+                        "borderWidth": 0.5,
+                        "fill": False,
+                        "tension": 0.4,
+                        "pointRadius": 2,
+                    }
+                )
+            x_axis_title = (
+                f"Bucket (media de {bucket_size} fotos)"
+                if bucket_size > 1
+                else "Foto #"
+            )
+            charts["iso_line"] = {
+                "type": "line",
+                "datasets": iso_datasets,
+                "bucket_size": bucket_size,
+                "x_axis_title": x_axis_title,
+                "title": (
+                    f"ISO Speed Ratings - Média a cada {bucket_size} fotos"
+                    if bucket_size > 1
+                    else "ISO Speed Ratings ao Longo do Voo"
+                ),
+            }
+
+        # Médias por intervalo de hora do dia - line chart (intervalo DINAMICO)
+        interval_minutes = agg_data.get("hourly_interval_minutes", 60)
+        if interval_minutes == 60:
+            interval_label = "Hora"
+            interval_label_pt = "Hora"
+        elif interval_minutes == 30:
+            interval_label = "30min"
+            interval_label_pt = "30 min"
+        elif interval_minutes == 15:
+            interval_label = "15min"
+            interval_label_pt = "15 min"
+        else:
+            interval_label = f"{interval_minutes}min"
+            interval_label_pt = f"{interval_minutes} min"
+
+        temp_hourly = agg_data.get("temp_hourly_avg", [])
+        if temp_hourly and any(h.get("mean") is not None for h in temp_hourly):
+            labels = [h["label"] for h in temp_hourly]
+            data = [
+                h["mean"] if h.get("mean") is not None else None for h in temp_hourly
+            ]
+            charts["temp_hourly_line"] = {
+                "type": "line",
+                "labels": labels,
+                "datasets": [
+                    {
+                        "label": "Temperatura Média (°C)",
+                        "data": data,
+                        "borderColor": "#00E676",
+                        "backgroundColor": ColorUtil.to_rgba("#00E676", 0.1),
+                        "borderWidth": 0.5,
+                        "fill": False,
+                        "tension": 0.4,
+                        "pointRadius": 4,
+                        "pointBackgroundColor": "#00E676",
+                    }
+                ],
+                "interval_minutes": interval_minutes,
+                "interval_label": interval_label,
+                "title": f"Temperatura Média do Sensor a cada {interval_label_pt} (°C)",
+            }
+
+        lrf_hourly = agg_data.get("lrf_hourly_avg", [])
+        if lrf_hourly and any(
+            h.get("lrf_mean") is not None or h.get("relz_mean") is not None
+            for h in lrf_hourly
+        ):
+            labels = [h["label"] for h in lrf_hourly]
+            lrf_data = [
+                h["lrf_mean"] if h.get("lrf_mean") is not None else None
+                for h in lrf_hourly
+            ]
+            relz_data = [
+                h["relz_mean"] if h.get("relz_mean") is not None else None
+                for h in lrf_hourly
+            ]
+            datasets = []
+            if any(d is not None for d in lrf_data):
+                datasets.append(
+                    {
+                        "label": "LRF Média (m)",
+                        "data": lrf_data,
+                        "borderColor": "#1e88e5",
+                        "backgroundColor": ColorUtil.to_rgba("#1e88e5", 0.1),
+                        "borderWidth": 0.5,
+                        "fill": False,
+                        "tension": 0.4,
+                        "pointRadius": 4,
+                        "pointBackgroundColor": "#1e88e5",
+                        "yAxisID": "y",
+                    }
+                )
+            if any(d is not None for d in relz_data):
+                datasets.append(
+                    {
+                        "label": "Altitude Relativa Média (m)",
+                        "data": relz_data,
+                        "borderColor": "#FF9100",
+                        "backgroundColor": ColorUtil.to_rgba("#FF9100", 0.1),
+                        "borderWidth": 0.5,
+                        "borderDash": [5, 3],
+                        "fill": False,
+                        "tension": 0.4,
+                        "pointRadius": 4,
+                        "pointBackgroundColor": "#FF9100",
+                        "yAxisID": "y",
+                    }
+                )
+            charts["lrf_hourly_line"] = {
+                "type": "line",
+                "labels": labels,
+                "datasets": datasets,
+                "interval_minutes": interval_minutes,
+                "interval_label": interval_label,
+                "title": f"LRF e Altitude Relativa a cada {interval_label_pt}",
+                "dual_axis": True,
+            }
+
+        # ISO Speed Ratings médio por intervalo de hora do dia
+        iso_hourly = agg_data.get("iso_hourly_avg", [])
+        if iso_hourly and any(h.get("mean") is not None for h in iso_hourly):
+            labels = [h["label"] for h in iso_hourly]
+            data = [
+                h["mean"] if h.get("mean") is not None else None for h in iso_hourly
+            ]
+            charts["iso_hourly_line"] = {
+                "type": "line",
+                "labels": labels,
+                "datasets": [
+                    {
+                        "label": "ISO Médio",
+                        "data": data,
+                        "borderColor": "#FF9100",
+                        "backgroundColor": ColorUtil.to_rgba("#FF9100", 0.1),
+                        "borderWidth": 0.5,
+                        "fill": False,
+                        "tension": 0.4,
+                        "pointRadius": 4,
+                        "pointBackgroundColor": "#FF9100",
+                    }
+                ],
+                "interval_minutes": interval_minutes,
+                "interval_label": interval_label,
+                "title": f"ISO Speed Ratings Médio a cada {interval_label_pt}",
+            }
+
         return charts
+
+    @staticmethod
+    def compute_column_visibility(agg: Dict[str, Any]) -> None:
+        """Decide colunas visiveis na tabela de voos com base nos dados presentes.
+
+        Responsabilidade exclusiva de apresentacao: se nenhum voo tem dado de temperatura
+        do sensor, a coluna e ocultada. Mutates agg in-place para o template consumir.
+        """
+        per_flight = agg.get("per_flight", [])
+        if not per_flight:
+            # Se nao ha voos, mostra tudo por seguranca
+            for field in (
+                "speed3d_kmh",
+                "sensor_temp",
+                "lrf",
+                "rel_alt",
+                "abs_alt",
+                "iso",
+                "shutter",
+                "wb_cct",
+                "dist3d",
+                "flight_roll",
+                "flight_yaw",
+                "flight_pitch",
+            ):
+                agg[f"show_column_{field}"] = True
+            return
+
+        def _is_zero_or_none(val):
+            if val is None:
+                return True
+            if isinstance(val, (int, float)):
+                return val == 0.0
+            if isinstance(val, str):
+                return val.strip() in ("", "N/A")
+            return False
+
+        checks = {
+            "speed3d_kmh": lambda f: _is_zero_or_none(f.get("avg_speed3d_kmh")),
+            "sensor_temp": lambda f: _is_zero_or_none(f.get("avg_sensor_temperature")),
+            "lrf": lambda f: _is_zero_or_none(f.get("avg_lrf_target_distance")),
+            "rel_alt": lambda f: _is_zero_or_none(f.get("avg_relative_altitude")),
+            "abs_alt": lambda f: _is_zero_or_none(f.get("avg_absolute_altitude")),
+            "iso": lambda f: _is_zero_or_none(f.get("avg_iso")),
+            "shutter": lambda f: f.get("avg_shutter_speed_text") in (None, "", "N/A"),
+            "wb_cct": lambda f: _is_zero_or_none(f.get("avg_white_balance_cct")),
+            "dist3d": lambda f: _is_zero_or_none(f.get("avg_dist3d_previous")),
+            "flight_roll": lambda f: _is_zero_or_none(f.get("avg_flight_roll")),
+            "flight_yaw": lambda f: _is_zero_or_none(f.get("avg_flight_yaw")),
+            "flight_pitch": lambda f: _is_zero_or_none(f.get("avg_flight_pitch")),
+        }
+
+        for field, check_fn in checks.items():
+            all_none = all(check_fn(f) for f in per_flight)
+            agg[f"show_column_{field}"] = not all_none
+
+        # level5 columns: hide if ALL flights have None or 0
+        level5_keys = [col["key"] for col in agg.get("flight_level5_columns", [])]
+        for col_key in level5_keys:
+            all_zero_or_none = all(
+                _is_zero_or_none(f.get("level5_means", {}).get(col_key))
+                for f in per_flight
+            )
+            agg[f"show_column_level5_{col_key}"] = not all_zero_or_none
 
     @staticmethod
     def _to_float(value: Any):
@@ -153,11 +467,13 @@ class RenderEngine:
                 + ",".join([f"[{m['lat']},{m['lon']}]" for m in markers])
                 + "]);"
             )
-            leaflet_lines.append("if (bounds.isValid()) { map.fitBounds(bounds.pad(0.15)); }")
+            leaflet_lines.append(
+                "if (bounds.isValid()) { map.fitBounds(bounds.pad(0.15)); }"
+            )
         else:
             leaflet_lines.append(
-                'L.popup({closeButton:false,autoClose:false,closeOnClick:false})'
-                f'.setLatLng([{center_lat}, {center_lon}])'
+                "L.popup({closeButton:false,autoClose:false,closeOnClick:false})"
+                f".setLatLng([{center_lat}, {center_lon}])"
                 '.setContent("Sem coordenadas válidas para exibir no mapa.")'
                 ".openOn(map);"
             )
@@ -180,14 +496,100 @@ class RenderEngine:
         """Renderiza o HTML final do relatorio com dados agregados e detalhes por imagem."""
         total_images = len(results)
         mean_overall = agg.get("mean_overall", 0)
+        # Piores resultados (menor overall_score primeiro) limitado a 30
+        worst_results = sorted(results, key=lambda r: r.overall_score)[:30]
         per_indicator = agg.get("per_indicator", {})
-        cadmus_icon_path = Path(IM.icon_path(IM.CADMUS_PNG)).resolve()
-        mtl_agro_icon_path = Path(IM.icon_path(IM.MTL_AGRO_PNG)).resolve()
-        cadmus_icon_url = cadmus_icon_path.as_uri()
-        mtl_agro_icon_url = mtl_agro_icon_path.as_uri()
+
+        # ── Mapear filename → caminho completo das fotos ──
+        photo_path_map: Dict[str, str] = {}
+        # ── Mapear flight_id → caminho da pasta do voo ──
+        flight_folder_map: Dict[str, str] = {}
+        for r in results:
+            fname = getattr(r, "filename", None)
+            if fname:
+                path = r.get_indicator("Path") if hasattr(r, "get_indicator") else None
+                if path:
+                    photo_path_map[fname] = str(path)
+
+            # Extrair pasta do voo
+            flight_id = getattr(r, "flight_id", None)
+            if flight_id:
+                # Tenta MrkFolder primeiro (caminho completo da pasta do voo)
+                mrk_folder = r.get_indicator("MrkFolder") if hasattr(r, "get_indicator") else None
+                if mrk_folder:
+                    flight_folder_map[flight_id] = str(mrk_folder)
+                elif flight_id not in flight_folder_map:
+                    # Fallback: extrai diretório do Path da primeira foto do voo
+                    if path:
+                        folder = str(Path(path).parent)
+                        flight_folder_map[flight_id] = folder
+
+        # ── Converter ícones para base64 (portátil, sem dependência de file://) ──
+        def _icon_to_base64(icon_name: str) -> str:
+            """Converte ícone do IconManager para base64 data URI."""
+            icon_path = Path(IM.icon_path(icon_name)).resolve()
+            b64 = ImageUtils.photo_to_base64(str(icon_path), tool_key=self.tool_key)
+            if b64 is None:
+                self.logger.warning(
+                    f"Falha ao converter ícone '{icon_name}' para base64, "
+                    f"usando file:// como fallback"
+                )
+                return icon_path.as_uri()
+            return b64
+
+        cadmus_icon_url = _icon_to_base64(IM.CADMUS_PNG)
+        mtl_agro_icon_url = _icon_to_base64(IM.MTL_AGRO_PNG)
+        github_icon_url = _icon_to_base64(IM.GITHUB)
+        instagram_icon_url = _icon_to_base64(IM.INSTAGRAM)
+        email_icon_url = _icon_to_base64(IM.EMAIL)
+        linkedin_icon_url = _icon_to_base64(IM.LINKEDIN)
+        buy_me_a_coffee_icon_url = _icon_to_base64(IM.BUY_ME_A_COFFEE)
+
+        # ── Converter logotipo do projeto (json_meta.logotipo) para base64 ──
+        json_meta = agg.get("json_meta") or {}
+        logotipo_path = json_meta.get("logotipo")
+        if logotipo_path:
+            logotipo_b64 = ImageUtils.photo_to_base64(
+                logotipo_path, tool_key=self.tool_key
+            )
+            if logotipo_b64:
+                json_meta["logotipo"] = logotipo_b64
+                self.logger.info(
+                    f"Logotipo do projeto convertido para base64: "
+                    f"'{logotipo_path}'"
+                )
+            else:
+                self.logger.warning(
+                    f"Não foi possível converter logotipo para base64: "
+                    f"'{logotipo_path}', mantendo caminho original"
+                )
+
+        light_metrics = (
+            (agg or {}).get("advanced_analysis", {}).get("metrics", {})
+            if isinstance(agg, dict)
+            else {}
+        )
+        self.logger.info(
+            "Renderizando bloco de luz no relatorio",
+            code="REPORT_LIGHT_SOURCE_BLOCK",
+            data={
+                "predominant": light_metrics.get("light_source_predominant"),
+                "predominant_count": light_metrics.get(
+                    "light_source_predominant_count"
+                ),
+                "predominant_pct": light_metrics.get("light_source_predominant_pct"),
+                "classes_count": len(light_metrics.get("light_source_classes") or []),
+                "from_text": light_metrics.get("light_source_from_text"),
+                "from_code": light_metrics.get("light_source_from_code"),
+            },
+        )
+
+        # Decidir visibilidade das colunas da tabela de voos (decisao de apresentacao)
+        RenderEngine.compute_column_visibility(agg)
 
         return self.template.render(
             results=results,
+            worst_results=worst_results,
             agg=agg,
             charts=charts,
             map_snippet=map_data.get("leaflet_snippet", ""),
@@ -196,8 +598,14 @@ class RenderEngine:
             per_indicator=per_indicator,
             cadmus_icon_url=cadmus_icon_url,
             mtl_agro_icon_url=mtl_agro_icon_url,
-            cadmus_icon_path=str(cadmus_icon_path),
-            mtl_agro_icon_path=str(mtl_agro_icon_path),
+            github_icon_url=github_icon_url,
+            instagram_icon_url=instagram_icon_url,
+            email_icon_url=email_icon_url,
+            linkedin_icon_url=linkedin_icon_url,
+            buy_me_a_coffee_icon_url=buy_me_a_coffee_icon_url,
+            photo_path_map=photo_path_map,
+            flight_folder_map=flight_folder_map,
+            base_folder=json_meta.get("base_folder", ""),
         )
 
     def save_report(self, html: str, output_path: str = "relatorio.html") -> None:

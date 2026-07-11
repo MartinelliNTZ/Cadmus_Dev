@@ -1,20 +1,28 @@
 # -*- coding: utf-8 -*-
 """Utility helpers for Cadmus.
 
-Este __init__ expõe apenas submódulos seguros que não causam
-importação circular com `core.config.LogUtils`.
-
-Não incluir módulos que importam `LogUtils` (ex.: `LayoutsUtils`,
-`PDFUtils`, `ProjectUtils`, `ExplorerUtils`) para evitar ciclos durante
-o carregamento do pacote.
+Todos os módulos em utils/ seguem o padrão estático com _get_logger().
+Não há risco de importação circular pois core.config.LogUtils não importa de utils.
 """
 
-# Apenas exportar utilitários seguros (sem dependência direta de LogUtils)
 from .ToolKeys import ToolKey
 from .QgisMessageUtil import QgisMessageUtil
 from .DependenciesManager import DependenciesManager
 from .FormatUtils import FormatUtils
 from .StringManager import StringManager
+from .ColorUtil import ColorUtil
+from .ExplorerUtils import ExplorerUtils
+from .FileCompressUtils import FileCompressUtils
+from .JsonUtil import JsonUtil
+from .LayoutsUtils import LayoutsUtils
+from .MathUtils import MathUtils
+from .PDFUtils import PDFUtils
+from .Preferences import Preferences
+from .ProjectUtils import ProjectUtils
+from .SVGUtils import SVGUtils
+from .XmlUtil import XmlUtil
+from .ImageUtils import ImageUtils
+from .LicenseManager import LicenseManager
 
 __all__ = [
     "ToolKey",
@@ -22,4 +30,17 @@ __all__ = [
     "DependenciesManager",
     "FormatUtils",
     "StringManager",
+    "ColorUtil",
+    "ExplorerUtils",
+    "FileCompressUtils",
+    "ImageUtils",
+    "JsonUtil",
+    "LicenseManager",
+    "LayoutsUtils",
+    "MathUtils",
+    "PDFUtils",
+    "Preferences",
+    "ProjectUtils",
+    "SVGUtils",
+    "XmlUtil",
 ]

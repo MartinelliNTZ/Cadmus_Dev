@@ -369,6 +369,7 @@ class Strings_en(Strings_pt_BR):
         "to both points and generated track."
     )
     RECURSIVE_SEARCH = "Search subfolders"
+    USE_MRK_DATA = "Get MRK data"
     PHOTOS_METADATA = "Match with photo metadata"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "To match with photo metadata, the Pillow package is required.\n\nWould you like to install it now?"
     MRK_FOLDER = "MRK folder:"
@@ -388,17 +389,10 @@ class Strings_en(Strings_pt_BR):
         "Lists temporary metadata JSON files and regenerates the HTML report.\n"
         "Also provides a shortcut to open the reports folder."
     )
-    PHOTO_VECTORIZATION_TITLE = "Photo Vectorization"
-    PHOTO_VECTORIZATION_TOOLTIP = (
-        "Generates a vector layer from photos and optionally a report with the extracted data."
-    )
     REFRESH_JSON_LIST = "Refresh JSON list"
     OPEN_REPORTS_FOLDER = "Open reports folder"
     OPEN_JSONS_FOLDER = "Open JSON folder"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Generate Vector Without MRK"
-    PHOTO_FOLDER = "Photo folder:"
-    VECTORIZE_PHOTOS = "Generate photo vector"
-    PHOTOS_WITHOUT_MRK_LAYER_NAME = "Photos_Without_MRK"
     NO_JSON_FOUND = "No temporary JSON files were found."
 
     # plugins/SettingsPlugin.py

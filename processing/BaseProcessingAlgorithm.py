@@ -5,9 +5,12 @@ from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.core import QgsProcessingAlgorithm
 
+import processing
+
 from ..core.config.LogUtils import LogUtils
 from ..resources.HtmlInstructionsProvider import HtmlInstructionsProvider
 from ..resources.IconManager import IconManager as im
+from ..resources.OtherFilesManager import OtherFilesManager
 from ..utils.Preferences import Preferences
 from ..utils.ToolKeys import ToolKey
 from ..i18n.TranslationManager import STR
@@ -35,6 +38,12 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     ALGORITHM_DISPLAY_NAME = None
     ALGORITHM_GROUP = GROUP_VETORIAL
     ICON = "cadmus_icon.ico"
+
+    # Constantes comuns de parâmetros booleano (reutilizáveis entre algoritmos)
+    PARAM_OPEN_OUTPUT_FOLDER = "OPEN_OUTPUT_FOLDER"
+    PARAM_DISPLAY_HELP = "DISPLAY_HELP"
+    PARAM_OPEN_OUTPUT_FOLDER_LABEL = STR.OPEN_OUTPUT_FOLDER
+    PARAM_DISPLAY_HELP_LABEL = STR.DISPLAY_HELP_FIELD
 
     def shortHelpString(self):
         if self.prefs.get("display_help", True):  # self.INSTRUCTIONS_FILE:
@@ -103,3 +112,69 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     def open_folder_in_explorer(self, folder_path):
         if folder_path and os.path.exists(folder_path):
             QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
+
+    # ------------------------------------------------------------------
+    # Helpers comuns para feedback
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _push_banner(feedback, title: str, width: int = 50):
+        """
+        Exibe um banner estilizado no feedback do processing.
+
+        Exemplo:
+            self._push_banner(feedback, "CRIADOR DE MOSAICO RGB - CADMUS")
+        """
+        if feedback is None:
+            return
+        feedback.pushInfo("=" * width)
+        feedback.pushInfo(title)
+        feedback.pushInfo("=" * width)
+
+    @staticmethod
+    def _push_info_line(feedback, label: str, value: str):
+        """Exibe uma linha info formatada no feedback."""
+        if feedback is None:
+            return
+        feedback.pushInfo(f"{label}: {value}")
+
+    @staticmethod
+    def _apply_qml_style(feedback, logger, calc_output: str, qml_filename: str, context=None) -> bool:
+        """
+        Aplica um arquivo QML de estilo a um raster de saída via native:setlayerstyle.
+
+        O caminho é resolvido automaticamente via OtherFilesManager (resources/qml/).
+
+        Retorna True se o estilo foi aplicado com sucesso, False caso contrário.
+
+        Parâmetros:
+            feedback          - objeto feedback do processing
+            logger            - logger da classe (LogUtils)
+            calc_output (str) - caminho do raster de saída
+            qml_filename (str)- nome do arquivo .qml (ex: "indice_gli_8_classes.qml")
+            context           - contexto do processing (obrigatório para executar o algoritmo)
+        """
+        style_file_path = OtherFilesManager.style_path(qml_filename)
+
+        if os.path.exists(style_file_path):
+            style_params = {
+                'INPUT': calc_output,
+                'STYLE': style_file_path,
+            }
+            logger.debug(f"Aplicando estilo via native:setlayerstyle: {style_file_path}")
+            processing.run(
+                'native:setlayerstyle',
+                style_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+            feedback.pushInfo(f"Estilo aplicado: {style_file_path}")
+            return True
+        else:
+            feedback.pushInfo(
+                f"Arquivo de estilo nao encontrado: {style_file_path}. "
+                "O raster sera carregado sem estilo personalizado."
+            )
+            logger.warning(f"Arquivo de estilo nao encontrado: {style_file_path}")
+            return False

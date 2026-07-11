@@ -81,7 +81,7 @@ class VectorLayerMetrics:
 
     @staticmethod
     def calculate_line_length(
-        layer, field_name, use_ellipsoidal=True, precision: int = 4
+        layer, field_name, use_ellipsoidal=True, precision: int = 4, tool_key=None
     ):
         """
         Calcula comprimento de linhas (elipsoidal ou cartesiano).
@@ -96,6 +96,8 @@ class VectorLayerMetrics:
             Se True usa modelo elipsoidal, False usa cartesiano (padrão: True)
         precision : int
             Casas decimais para arredondamento e definição de campo
+        tool_key : str, optional
+            ToolKey da ferramenta chamadora para rastreamento em logs
         """
         if not layer or not layer.isValid():
             return
@@ -142,7 +144,7 @@ class VectorLayerMetrics:
 
     @staticmethod
     def calculate_polygon_area(
-        layer, field_name, use_ellipsoidal=True, precision: int = 4
+        layer, field_name, use_ellipsoidal=True, precision: int = 4, tool_key=None
     ):
         """
         Calcula área de polígonos em hectares (elipsoidal ou cartesiano).
@@ -158,6 +160,8 @@ class VectorLayerMetrics:
             Nome do campo para armazenar área em hectares
         use_ellipsoidal : bool
             Se True usa modelo elipsoidal, False usa cartesiano (padrão: True)
+        tool_key : str, optional
+            ToolKey da ferramenta chamadora para rastreamento em logs
         """
         if not layer or not layer.isValid():
             return

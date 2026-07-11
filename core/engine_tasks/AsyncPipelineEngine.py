@@ -67,7 +67,13 @@ class AsyncPipelineEngine:
         global_progress = ((step_index + step_progress / 100.0) / total_steps) * 100.0
 
         if self._pipeline_task:
-            self._pipeline_task.setProgress(global_progress)
+            try:
+                self._pipeline_task.setProgress(global_progress)
+            except RuntimeError:
+                self.logger.error(
+                    "PipelineTask C++ object deleted while setting progress",
+                    code="PIPELINE_TASK_DELETED",
+                )
 
     def cancel(self) -> None:
         self._is_cancelled = True
@@ -80,7 +86,13 @@ class AsyncPipelineEngine:
                 self.logger.error(f"Failed to cancel current task: {e}")
 
         if self._pipeline_task:
-            self._pipeline_task.cancel()
+            try:
+                self._pipeline_task.cancel()
+            except RuntimeError:
+                self.logger.error(
+                    "PipelineTask C++ object deleted while cancelling",
+                    code="PIPELINE_TASK_DELETED",
+                )
 
         self._finish_cancelled()
 
@@ -107,6 +119,15 @@ class AsyncPipelineEngine:
         task = step.create_task(self._context)
 
         if task is None:
+            if hasattr(step, "run_inline"):
+                try:
+                    step.run_inline(self._context)
+                except Exception as exc:
+                    self._handle_task_error(exc)
+                    return
+                self._current_index += 1
+                self._run_next_step()
+                return
             raise RuntimeError(f"Step '{step.name()}' returned no task.")
 
         self._current_task = task
@@ -150,8 +171,20 @@ class AsyncPipelineEngine:
         self._current_task = None
 
         if self._pipeline_task:
-            self._pipeline_task.setProgress(100)
-            self._pipeline_task.mark_done()
+            try:
+                self._pipeline_task.setProgress(100)
+            except RuntimeError:
+                self.logger.error(
+                    "PipelineTask C++ object deleted while setting final progress",
+                    code="PIPELINE_TASK_DELETED",
+                )
+            try:
+                self._pipeline_task.mark_done()
+            except RuntimeError:
+                self.logger.error(
+                    "PipelineTask C++ object deleted while marking done on success",
+                    code="PIPELINE_TASK_DELETED",
+                )
 
         if self._on_finished:
             try:
@@ -164,7 +197,13 @@ class AsyncPipelineEngine:
         self._current_task = None
 
         if self._pipeline_task:
-            self._pipeline_task.mark_done()
+            try:
+                self._pipeline_task.mark_done()
+            except RuntimeError:
+                self.logger.error(
+                    "PipelineTask C++ object deleted while marking done on error",
+                    code="PIPELINE_TASK_DELETED",
+                )
 
         if self._on_error:
             try:
@@ -177,7 +216,13 @@ class AsyncPipelineEngine:
         self._current_task = None
 
         if self._pipeline_task:
-            self._pipeline_task.mark_done()
+            try:
+                self._pipeline_task.mark_done()
+            except RuntimeError:
+                self.logger.error(
+                    "PipelineTask C++ object deleted while marking done on cancel",
+                    code="PIPELINE_TASK_DELETED",
+                )
 
         if self._on_cancelled:
             try:

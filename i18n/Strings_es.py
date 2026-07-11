@@ -366,6 +366,7 @@ class Strings_es(Strings_pt_BR):
         "a los puntos y a la trayectoria generada."
     )
     RECURSIVE_SEARCH = "Buscar en subcarpetas"
+    USE_MRK_DATA = "Obtener datos MRK"
     PHOTOS_METADATA = "Cruzar con metadatos de fotos"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Para cruzar con metadatos de fotos es necesario instalar el paquete Pillow.\n\n¿Desea instalarlo ahora?"
     MRK_FOLDER = "Carpeta MRK:"
@@ -385,18 +386,10 @@ class Strings_es(Strings_pt_BR):
         "Lista JSON temporales de metadatos y permite regenerar el informe HTML.\n"
         "Tambien ofrece un acceso rapido a la carpeta de informes."
     )
-    PHOTO_VECTORIZATION_TITLE = "Vectorizacion de Fotos"
-    PHOTO_VECTORIZATION_TOOLTIP = (
-        "Genera una capa vectorial a partir de imagenes y opcionalmente un informe "
-        "con los datos extraidos."
-    )
     REFRESH_JSON_LIST = "Actualizar lista JSON"
     OPEN_REPORTS_FOLDER = "Abrir carpeta de informes"
     OPEN_JSONS_FOLDER = "Abrir carpeta de JSON"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Generar Vector Sin MRK"
-    PHOTO_FOLDER = "Carpeta de fotos:"
-    VECTORIZE_PHOTOS = "Generar vector de fotos"
-    PHOTOS_WITHOUT_MRK_LAYER_NAME = "Fotos_Sin_MRK"
     NO_JSON_FOUND = "No se encontraron JSON temporales."
 
     # plugins/SettingsPlugin.py

@@ -35,7 +35,7 @@ class SettingsPlugin(BasePluginMTL):
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
         self.iface = iface
-        self.init(ToolKey.SETTINGS, "SettingsPlugin",load_system_prefs=True)
+        self.init(ToolKey.SETTINGS, "SettingsPlugin", load_system_prefs=True)
         self.logger.info("SettingsPlugin inicializado")
 
     def _build_ui(self, **kwargs):
@@ -140,18 +140,36 @@ class SettingsPlugin(BasePluginMTL):
         )
         self.geral_collapsable.add_content_layout(pref_button_layout)
 
-        projects_layout, self.project_folder_selector = WidgetFactory.create_path_selector(
-            title=STR.PROJECTS_FOLDER,
-            mode="folder",
-            parent=self,
-            separator_top=False,
-            separator_bottom=False,
+        projects_layout, self.project_folder_selector = (
+            WidgetFactory.create_path_selector(
+                title=STR.PROJECTS_FOLDER,
+                mode="folder",
+                parent=self,
+                separator_top=False,
+                separator_bottom=False,
+            )
         )
         self.geral_collapsable.add_content_layout(projects_layout)
         self.geral_collapsable.add_content_layout(crs_layout)
         self.geral_collapsable.add_content_layout(lang_layout)
         self.geral_collapsable.add_content_layout(prec_layout)
         self.geral_collapsable.add_content_layout(thresh_layout)
+
+        license_layout, self.license_key_input = WidgetFactory.create_input_fields_widget(
+            fields_dict={
+                "license_key": {
+                    "title": "",
+                    "type": "text",
+                    "default": "",
+                    "show_label": False,
+                },
+            },
+            parent=self,
+            separator_top=False,
+            separator_bottom=False,
+        )
+        self.geral_collapsable.add_content_layout(license_layout)
+
         self.geral_collapsable.add_content_layout(toolbar_layout)
 
         calc_layout_collapsible, self.calc_collapsable = (
@@ -213,7 +231,9 @@ class SettingsPlugin(BasePluginMTL):
 
         calc_method = self.system_preferences.get("calculation_method", STR.ELLIPSOIDAL)
         if calc_method in self.CALCULATION_METHODS:
-            self.radio_calc.set_selected_index(self.CALCULATION_METHODS.index(calc_method))
+            self.radio_calc.set_selected_index(
+                self.CALCULATION_METHODS.index(calc_method)
+            )
             self.logger.debug(f"Método de cálculo carregado: {calc_method}")
         else:
             self.logger.warning(
@@ -233,13 +253,9 @@ class SettingsPlugin(BasePluginMTL):
             "default_crs_authid", self.DEFAULT_CRS_AUTHID
         )
         if not self.crs_selector.set_crs_authid(selected_crs_authid):
-            self.logger.warning(
-                f"SRC invalido: {selected_crs_authid}, usando padrao"
-            )
+            self.logger.warning(f"SRC invalido: {selected_crs_authid}, usando padrao")
             self.crs_selector.set_crs_authid(self.DEFAULT_CRS_AUTHID)
-        self.logger.debug(
-            f"SRC padrao carregado: {self.crs_selector.get_crs_authid()}"
-        )
+        self.logger.debug(f"SRC padrao carregado: {self.crs_selector.get_crs_authid()}")
 
         if "async_threshold_features" in self.system_preferences:
             thresh_feats = self.system_preferences.get("async_threshold_features", 1000)
@@ -251,15 +267,19 @@ class SettingsPlugin(BasePluginMTL):
                 )
             thresh_feats = 1000
 
-        thresh_value = int(thresh_feats) if isinstance(thresh_feats, int) else (
-            int(thresh_feats) if str(thresh_feats).isdigit() else 1000
+        thresh_value = (
+            int(thresh_feats)
+            if isinstance(thresh_feats, int)
+            else (int(thresh_feats) if str(thresh_feats).isdigit() else 1000)
         )
         self.spin_threshold.setValue(thresh_value)
         self.logger.debug(f"Limiar assíncrono carregado: {thresh_value} feições")
 
         prec = self.system_preferences.get("vector_field_precision", 2)
-        precision_value = int(prec) if isinstance(prec, int) else (
-            int(prec) if str(prec).isdigit() else 2
+        precision_value = (
+            int(prec)
+            if isinstance(prec, int)
+            else (int(prec) if str(prec).isdigit() else 2)
         )
         self.spin_precision.setValue(precision_value)
         self.logger.debug(f"Precisão de campos vetoriais carregada: {precision_value}")
@@ -284,6 +304,12 @@ class SettingsPlugin(BasePluginMTL):
         project_folder = self.preferences.get("projects_folder", "")
         if project_folder:
             self.project_folder_selector.set_path(project_folder)
+
+        self.license_key_input.set_values(
+            {
+                "license_key": self.system_preferences.get("license_key", ""),
+            }
+        )
 
         self.calc_collapsable.set_expanded(self.preferences.get("calc_expanded", False))
         self.geral_collapsable.set_expanded(
@@ -328,7 +354,9 @@ class SettingsPlugin(BasePluginMTL):
         }
 
         # Detecta se houve alteração na visibilidade para disparar refresh dinâmico
-        old_visibility = self.system_preferences.get(MenuManager.TOOLBAR_VISIBILITY_PREF_KEY, {})
+        old_visibility = self.system_preferences.get(
+            MenuManager.TOOLBAR_VISIBILITY_PREF_KEY, {}
+        )
         needs_toolbar_refresh = old_visibility != toolbar_visibility
 
         self.system_preferences[MenuManager.TOOLBAR_VISIBILITY_PREF_KEY] = (
@@ -337,6 +365,10 @@ class SettingsPlugin(BasePluginMTL):
         self.logger.debug(
             f"Categorias visiveis na toolbar salvas: {toolbar_visibility}"
         )
+
+        license_key = (self.license_key_input.get_value("license_key") or "").strip()
+        self.system_preferences["license_key"] = license_key
+        self.logger.debug(f"License key salva: {'***' if license_key else 'vazia'}")
 
         paths = self.project_folder_selector.get_paths()
         self.preferences["projects_folder"] = paths[0] if paths else ""

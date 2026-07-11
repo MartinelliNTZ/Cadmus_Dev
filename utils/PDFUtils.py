@@ -11,22 +11,20 @@ Responsável por:
 import os
 from ..core.config.LogUtils import LogUtils
 from .DependenciesManager import DependenciesManager
+from .BaseUtil import BaseUtil
 
 
-class PDFUtils:
+class PDFUtils(BaseUtil):
     """Utilitários para manipulação de PDFs e conversão de imagens."""
 
-    # Instância do logger
-    _logger = None
+    TOOL_KEY_UNTRACEABLE: str = BaseUtil.TOOL_KEY_UNTRACEABLE
 
     @classmethod
     def _get_logger(cls):
         """Retorna instância do logger."""
-        if cls._logger is None:
-            cls._logger = LogUtils(
-                tool="pdf_utils", class_name="PDFUtils", level=LogUtils.DEBUG
-            )
-        return cls._logger
+        return LogUtils(
+            tool=cls.TOOL_KEY_UNTRACEABLE, class_name="PDFUtils", level=LogUtils.DEBUG
+        )
 
     @staticmethod
     def merge_pdfs(pdf_list: list, output_pdf: str) -> tuple:
@@ -57,7 +55,9 @@ class PDFUtils:
 
         try:
             # Validação de dependência
-            if not DependenciesManager.check_dependency("PyPDF2"):
+            if not DependenciesManager.check_dependency(
+                "PyPDF2", tool_key=PDFUtils.TOOL_KEY_UNTRACEABLE
+            ):
                 msg = "PyPDF2 não está instalada"
                 logger.error(msg)
                 return False, msg
@@ -148,7 +148,9 @@ class PDFUtils:
 
         try:
             # Validação de dependência
-            if not DependenciesManager.check_dependency("Pillow"):
+            if not DependenciesManager.check_dependency(
+                "Pillow", tool_key=PDFUtils.TOOL_KEY_UNTRACEABLE
+            ):
                 msg = "Pillow não está instalada"
                 logger.error(msg)
                 return False, msg

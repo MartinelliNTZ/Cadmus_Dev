@@ -154,6 +154,22 @@ class SettingsPlugin(BasePluginMTL):
         self.geral_collapsable.add_content_layout(lang_layout)
         self.geral_collapsable.add_content_layout(prec_layout)
         self.geral_collapsable.add_content_layout(thresh_layout)
+
+        license_layout, self.license_key_input = WidgetFactory.create_input_fields_widget(
+            fields_dict={
+                "license_key": {
+                    "title": "",
+                    "type": "text",
+                    "default": "",
+                    "show_label": False,
+                },
+            },
+            parent=self,
+            separator_top=False,
+            separator_bottom=False,
+        )
+        self.geral_collapsable.add_content_layout(license_layout)
+
         self.geral_collapsable.add_content_layout(toolbar_layout)
 
         calc_layout_collapsible, self.calc_collapsable = (
@@ -289,6 +305,12 @@ class SettingsPlugin(BasePluginMTL):
         if project_folder:
             self.project_folder_selector.set_path(project_folder)
 
+        self.license_key_input.set_values(
+            {
+                "license_key": self.system_preferences.get("license_key", ""),
+            }
+        )
+
         self.calc_collapsable.set_expanded(self.preferences.get("calc_expanded", False))
         self.geral_collapsable.set_expanded(
             self.preferences.get("geral_expanded", True)
@@ -343,6 +365,10 @@ class SettingsPlugin(BasePluginMTL):
         self.logger.debug(
             f"Categorias visiveis na toolbar salvas: {toolbar_visibility}"
         )
+
+        license_key = (self.license_key_input.get_value("license_key") or "").strip()
+        self.system_preferences["license_key"] = license_key
+        self.logger.debug(f"License key salva: {'***' if license_key else 'vazia'}")
 
         paths = self.project_folder_selector.get_paths()
         self.preferences["projects_folder"] = paths[0] if paths else ""

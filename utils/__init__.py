@@ -22,6 +22,7 @@ from .ProjectUtils import ProjectUtils
 from .SVGUtils import SVGUtils
 from .XmlUtil import XmlUtil
 from .ImageUtils import ImageUtils
+from .LicenseManager import LicenseManager
 
 __all__ = [
     "ToolKey",
@@ -34,6 +35,7 @@ __all__ = [
     "FileCompressUtils",
     "ImageUtils",
     "JsonUtil",
+    "LicenseManager",
     "LayoutsUtils",
     "MathUtils",
     "PDFUtils",

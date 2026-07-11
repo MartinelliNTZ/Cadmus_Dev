@@ -242,5 +242,23 @@
    - Método base64_to_bytes(): decodifica string base64 (com ou sem data URI) de volta para bytes.
    - Método auxiliar _guess_mime_type(): mapeia extensão para MIME type.
    - Registrado em utils/__init__.py com export ImageUtils.
-   - SKILL_UTILS.md atualizado para v2.1.0: adicionada entrada #28 na tabela de classes,
-     item no Resumo Executivo, caso de uso, dependência e histórico.
+    - SKILL_UTILS.md atualizado para v2.1.0: adicionada entrada #28 na tabela de classes,
+      item no Resumo Executivo, caso de uso, dependência e histórico.
+2.3.49 11/07/2026
+[2.3.49.1][11/07/2026] Adicionado campo license_key nas configurações do SettingsPlugin:
+  - InputFieldsWidget: adicionado suporte a `show_label` no field config (default True)
+  - SettingsPlugin._build_ui(): inserido InputFieldsWidget sem label/tooltip para license_key
+  - SettingsPlugin._load_prefs(): carrega license_key de system_preferences
+  - SettingsPlugin._save_prefs(): persiste license_key em system_preferences
+[2.3.49.2][11/07/2026] Criado LicenseManager em utils/LicenseManager.py:
+  - Herda de BaseUtil com LogUtils e tool_key
+  - Constante VALID_LICENSE_KEY = "1234" (chave válida atual)
+  - Constante RENEWAL_WINDOW_DAYS = 7 (janela de renovação)
+  - is_license_valid() → bool com lógica de cache e renovação:
+    * Sem license_key nas prefs → False
+    * Cache ativo com > 7 dias restantes → True (sem verificar)
+    * 0-7 dias restantes → tenta renovar, retorna True sempre (graça)
+    * Expirada → valida obrigatoriamente, retorna False se inválida
+    * Sem cache → valida do zero
+  - Salva license_status ("active"/"inactive") e license_expiry (YYYY-MM-DD) nas system_preferences
+  - Registrado em utils/__init__.py com export LicenseManager

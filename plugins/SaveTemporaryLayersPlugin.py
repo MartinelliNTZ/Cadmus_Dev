@@ -26,7 +26,7 @@ from ..utils.ProjectUtils import ProjectUtils
 from ..utils.ExplorerUtils import ExplorerUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLineEdit, QPushButton
-from qgis.PyQt.QtCore import QTimer
+
 
 
 class SaveTemporaryLayersPlugin(BasePluginMTL):
@@ -145,7 +145,7 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
     def _build_output_folder_selector(self):
         """Constrói seletor de pasta com 📁 🛠️ ➡️ usando PyQt5."""
         from ..resources.styles.Styles import Styles
-        from qgis.PyQt.QtWidgets import QVBoxLayout, QFrame
+        from qgis.PyQt.QtWidgets import QVBoxLayout
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -357,7 +357,8 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                     output_root = os.path.dirname(project_path)
                 self.logger.info(f"Usando pasta do projeto: {output_root}")
             else:
-                self.logger.warning("Nenhuma pasta de saída selecionada e nenhum projeto salvo")
+                self.logger.warning(
+                    "Nenhuma pasta de saída selecionada e nenhum projeto salvo")
                 QgisMessageUtil.bar_warning(
                     self.iface,
                     "Selecione uma pasta de saída ou salve o projeto primeiro.",
@@ -401,7 +402,8 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         vector_layers, raster_layers = self._get_temporary_layers()
 
         if not vector_layers and not raster_layers:
-            self.logger.info("Nenhuma camada temporária encontrada para salvar")
+            self.logger.info(
+                "Nenhuma camada temporária encontrada para salvar")
             QgisMessageUtil.bar_info(
                 self.iface,
                 "Nenhuma camada temporária encontrada no projeto.",
@@ -411,11 +413,13 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         saved_count = 0
         errors = []
 
-        self.logger.info("Iniciando substituição de camadas temporárias por permanentes")
+        self.logger.info(
+            "Iniciando substituição de camadas temporárias por permanentes")
 
         for layer_name, layer in vector_layers:
             filename = f"{prefix}{layer_name}{suffix}{vector_ext}"
-            filepath = self._unique_filepath(os.path.join(vectors_dir, filename))
+            filepath = self._unique_filepath(
+                os.path.join(vectors_dir, filename))
             try:
                 from qgis.core import (
                     QgsVectorFileWriter,
@@ -430,13 +434,16 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                         msg = f"A camada '{layer_name}' tem alterações não salvas. Salvar antes de continuar?"
                         if QgisMessageUtil.confirm(self.iface, msg, "Alterações encontradas"):
                             layer.commitChanges()
-                            self.logger.info(f"Alterações salvas para camada '{layer_name}'")
+                            self.logger.info(
+                                f"Alterações salvas para camada '{layer_name}'")
                         else:
                             layer.rollBack()
-                            self.logger.info(f"Alterações descartadas para camada '{layer_name}'")
+                            self.logger.info(
+                                f"Alterações descartadas para camada '{layer_name}'")
                     else:
                         layer.commitChanges()
-                        self.logger.debug(f"Camada '{layer_name}' saiu do modo edição sem alterações")
+                        self.logger.debug(
+                            f"Camada '{layer_name}' saiu do modo edição sem alterações")
 
                 # ── Salvar arquivo no disco ──
                 write_options = QgsVectorFileWriter.SaveVectorOptions()
@@ -473,7 +480,8 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
 
         for layer_name, layer in raster_layers:
             filename = f"{prefix}{layer_name}{suffix}{raster_ext}"
-            filepath = self._unique_filepath(os.path.join(rasters_dir, filename))
+            filepath = self._unique_filepath(
+                os.path.join(rasters_dir, filename))
             try:
                 import shutil
                 from qgis.core import QgsProject, QgsRasterLayer
@@ -485,10 +493,12 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                         msg = f"A camada raster '{layer_name}' tem alterações não salvas. Salvar antes de continuar?"
                         if QgisMessageUtil.confirm(self.iface, msg, "Alterações encontradas"):
                             layer.commitChanges()
-                            self.logger.info(f"Alterações salvas para camada raster '{layer_name}'")
+                            self.logger.info(
+                                f"Alterações salvas para camada raster '{layer_name}'")
                         else:
                             layer.rollBack()
-                            self.logger.info(f"Alterações descartadas para camada raster '{layer_name}'")
+                            self.logger.info(
+                                f"Alterações descartadas para camada raster '{layer_name}'")
                     else:
                         layer.commitChanges()
 
@@ -645,7 +655,8 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             # ── Salvar estilo original como QML temporário ──
             qml_temp = None
             try:
-                qml_fd, qml_temp = tempfile.mkstemp(suffix=".qml", prefix="raster_style_")
+                qml_fd, qml_temp = tempfile.mkstemp(
+                    suffix=".qml", prefix="raster_style_")
                 os.close(qml_fd)
                 style_saved = old_layer.saveNamedStyle(qml_temp)
                 if style_saved[0]:

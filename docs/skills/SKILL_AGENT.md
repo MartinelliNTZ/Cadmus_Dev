@@ -375,3 +375,8 @@ Use este agente quando:
 - Tarefas que não envolvam pipeline assíncrona
 
 > ⚠️ Se a tarefa envolver contexto complementar (ex: pipeline que usa STR, logs, preferências ou manipula camadas), consulte o **MAPEAMENTO SITUAÇÃO → SKILL** no início deste documento e leia as skills relevantes antes de começar.
+
+flake8 e bandit serao usados para validar e boas praticas do codigo 
+.\core\exemple.py:207:10: W292 no newline at end of file
+todo final de codigo precisa de uma linha vazia(sem espaço)
+F401 'os' imported but unused   nao deixe import nao usados 

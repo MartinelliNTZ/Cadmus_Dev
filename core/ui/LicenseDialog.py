@@ -73,11 +73,11 @@ class LicenseDialog(BaseDialog):
         key_row.setSpacing(4)
 
         self._input_key = QLineEdit()
-        self._input_key.setPlaceholderText("Insira a chave de licença...")
+        self._input_key.setPlaceholderText("...")
         self._input_key.setStyleSheet(Styles.input())
         key_row.addWidget(self._input_key)
 
-        self._btn_validate = QPushButton("🔑")
+        self._btn_validate = QPushButton("_")
         self._btn_validate.setFixedWidth(32)
         self._btn_validate.setFixedHeight(24)
         self._btn_validate.setToolTip(STR.VALIDATE)
@@ -190,20 +190,30 @@ class LicenseDialog(BaseDialog):
     def _refresh(self):
         info = self._license_mgr.get_license_info()
 
-        nivel = info.get("nivel", 0)
-        self._lbl_level.setText(str(nivel) if nivel > 0 else "-")
-        self._lbl_expiry.setText(info.get("expiry") or "-")
-
-        is_active = info.get("is_active", False)
         has_key = info.get("has_key", False)
+        is_active = info.get("is_active", False)
+        is_valid = has_key and is_active
 
-        if not has_key:
-            self._lbl_status.setText(f"{STR.INACTIVE} ({STR.LICENSE_NO_KEY})")
-            self._lbl_status.setStyleSheet("color: gray;")
-        elif is_active:
+        nivel = info.get("nivel", 0)
+        self._lbl_level.setText(str(nivel) if is_valid and nivel > 0 else "")
+        self._lbl_expiry.setText(info.get("expiry") if is_valid else "")
+
+        if is_valid:
+            self.setWindowTitle(STR.LICENSE_TITLE)
+            self._btn_delete.setText(f"🗑️ {STR.REMOVE}")
+            self._btn_save.setText(f"💾 {STR.SAVE}")
+
             days = info.get("days_remaining", 0)
             self._lbl_status.setText(f"{STR.ACTIVE} ({days} {STR.REMAINING_DAYS})")
             self._lbl_status.setStyleSheet("color: green; font-weight: bold;")
         else:
-            self._lbl_status.setText(STR.INACTIVE)
-            self._lbl_status.setStyleSheet("color: red; font-weight: bold;")
+            self.setWindowTitle("")
+            self._btn_delete.setText("")
+            self._btn_save.setText("")
+
+            if not has_key:
+                self._lbl_status.setText("")
+                self._lbl_status.setStyleSheet("color: gray;")
+            else:
+                self._lbl_status.setText("")
+                self._lbl_status.setStyleSheet("color: red; font-weight: bold;")

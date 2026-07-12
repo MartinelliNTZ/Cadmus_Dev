@@ -217,6 +217,7 @@ class ToolRegistry:
             tooltip=STR.LOGCAT_TOOLTIP,
             order=20,
             show_in_toolbar=True,
+            license_level=3
         )
         tools.append(logcat)
 
@@ -414,6 +415,7 @@ class ToolRegistry:
             tooltip=STR.PATH_EXTENSION_TOOLTIP,
             order=70,
             show_in_toolbar=True,
+            license_level=3
         )
         tools.append(path_extension)
 

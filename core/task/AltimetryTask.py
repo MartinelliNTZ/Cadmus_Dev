@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import Optional
 import json
 from urllib.parse import urlparse
 import http.client

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext

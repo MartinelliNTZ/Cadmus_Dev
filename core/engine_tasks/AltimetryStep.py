@@ -7,7 +7,7 @@ from typing import Optional
 
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext
-from ..task.altimetry_task import AltimetriaTask
+from ..task.AltimetryTask import AltimetriaTask
 from ...utils.JsonUtil import JsonUtil
 
 

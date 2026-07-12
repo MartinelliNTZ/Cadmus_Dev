@@ -42,5 +42,6 @@ class Tool:
             try:
                 self.action.triggered.disconnect()
             except Exception as e:
-                self.logger.error(f"Falha ao desconectar executor anterior: {e}")
+                self.logger.error(
+                    f"Falha ao desconectar executor anterior: {e}")
             self.action.triggered.connect(executor)

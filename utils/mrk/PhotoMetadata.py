@@ -63,7 +63,6 @@ class PhotoMetadata:
         PhotoMetadata._timestamps = {}
         PhotoMetadata._first_photo_raw_coord = None
 
-
     @staticmethod
     def _get_logger(tool_key: str) -> LogUtils:
         return LogUtils(tool=tool_key, class_name="PhotoMetadata")
@@ -153,7 +152,8 @@ class PhotoMetadata:
         mrk_start = datetime.now().isoformat()
         mrk_points = points or []
         if enable_mrk and mrk_paths and not mrk_points:
-            mrk_points = PhotoMetadata._parse_mrk_paths(mrk_paths, recursive, tool_key)
+            mrk_points = PhotoMetadata._parse_mrk_paths(
+                mrk_paths, recursive, tool_key)
 
         if enable_mrk and mrk_points:
             skeleton = PhotoMetadata._enrich_with_mrk(
@@ -398,7 +398,8 @@ class PhotoMetadata:
         for path in mrk_paths:
             if os.path.isfile(path) and path.lower().endswith(".mrk"):
                 records = MrkUtil.extract_records(path)
-                logger.info(f"Encontrados {len(records)} registros no arquivo {path}")
+                logger.info(
+                    f"Encontrados {len(records)} registros no arquivo {path}")
             else:
                 base = path
                 if os.path.isfile(path):
@@ -451,13 +452,15 @@ class PhotoMetadata:
 
             try:
                 seq = f"{int(foto):04d}"
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Erro ao processar foto {foto}: {e}")
                 continue
 
             # Extrai dados do MRK para log de diagnostico
             mrk_file = point.get(MetadataFieldKey.MRK_FILE.value) or "?"
             mrk_folder = point.get(MetadataFieldKey.MRK_FOLDER.value) or "?"
-
+            logger.debug(
+                f"Processando ponto MRK: {mrk_file} / {mrk_folder} / foto={foto} / seq={seq}")
             # Procura no skeleton por fotos cujo nome contenha a sequência
             for filename, record in skeleton.items():
                 seq_match = PhotoMetadata.DJI_RE.search(filename)
@@ -471,7 +474,8 @@ class PhotoMetadata:
                         continue
 
                     # Enriquece o registro com dados MRK
-                    flight_context = PhotoMetadata._extract_flight_context(point)
+                    flight_context = PhotoMetadata._extract_flight_context(
+                        point)
                     for k, v in flight_context.items():
                         if v is not None:
                             record[k] = v
@@ -491,7 +495,8 @@ class PhotoMetadata:
                 unmatched_count += 1
                 # Só loga as primeiras 20 unmatched para nao poluir
                 if unmatched_count <= 20:
-                    folder = record.get(MetadataFieldKey.FOLDER_LEVEL_1.value, "?")
+                    folder = record.get(
+                        MetadataFieldKey.FOLDER_LEVEL_1.value, "?")
                     logger.debug(
                         "Foto SEM match MRK",
                         data={
@@ -549,7 +554,8 @@ class PhotoMetadata:
                 exif_payload = ExifUtil.extract_metadata_exif(
                     image_path, tool_key=tool_key
                 )
-                os_payload = ExifUtil.extract_metadata_os(image_path, tool_key=tool_key)
+                os_payload = ExifUtil.extract_metadata_os(
+                    image_path, tool_key=tool_key)
                 image_payload = ExifUtil.extract_metadata_image(
                     image_path, tool_key=tool_key
                 )
@@ -619,7 +625,8 @@ class PhotoMetadata:
                 continue
 
             try:
-                xmp_payload = XmpUtil.extract_metadata(image_path, tool_key=tool_key)
+                xmp_payload = XmpUtil.extract_metadata(
+                    image_path, tool_key=tool_key)
                 # XmpUtil já resolve os aliases internamente
 
                 # Mescla campos XMP (APENAS campos que não são do EXIF)
@@ -671,7 +678,8 @@ class PhotoMetadata:
                 logger.debug(
                     f"Processando campos custom para grupo '{group_key}' ({len(group)} fotos)"
                 )
-                custom_ready = {r.get(MetadataFieldKey.FILE.value): r for r in group}
+                custom_ready = {
+                    r.get(MetadataFieldKey.FILE.value): r for r in group}
                 if custom_ready:
                     enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
                         custom_ready, tool_key=tool_key
@@ -724,7 +732,8 @@ class PhotoMetadata:
         # Salva no JSON usando update_json() genérico
         if json_path and os.path.exists(json_path):
             try:
-                JsonUtil.update_json(json_path, {"first_photo_coord": coord_info})
+                JsonUtil.update_json(
+                    json_path, {"first_photo_coord": coord_info})
             except Exception:
                 pass
 
@@ -772,7 +781,8 @@ class PhotoMetadata:
         2. XMP (drone-dji:AbsoluteAltitude, etc) → já mapeado para GpsLatitude/GpsLongitude
         3. EXIF DMS (tupla graus/min/seg) → convertido para decimal usando GpsLatitudeRef/GpsLongitudeRef
         """
-        canonical = MetadataFields.normalize_record_to_keys(merged_payload or {})
+        canonical = MetadataFields.normalize_record_to_keys(
+            merged_payload or {})
 
         # --- Tentativa 1: Valor já é float (XMP ou MRK) ---
         lat_val = canonical.get(MetadataFieldKey.GPS_LATITUDE.value)
@@ -783,10 +793,12 @@ class PhotoMetadata:
 
         # --- Tentativa 2: Se é tupla/list (DMS do EXIF bruto), converte ---
         if lat is None and isinstance(lat_val, (list, tuple)) and len(lat_val) >= 3:
-            lat_ref = canonical.get(MetadataFieldKey.GPS_LATITUDE_REF.value, "")
+            lat_ref = canonical.get(
+                MetadataFieldKey.GPS_LATITUDE_REF.value, "")
             lat = PhotoMetadata._extract_gps_decimal_from_dms(lat_val, lat_ref)
         if lon is None and isinstance(lon_val, (list, tuple)) and len(lon_val) >= 3:
-            lon_ref = canonical.get(MetadataFieldKey.GPS_LONGITUDE_REF.value, "")
+            lon_ref = canonical.get(
+                MetadataFieldKey.GPS_LONGITUDE_REF.value, "")
             lon = PhotoMetadata._extract_gps_decimal_from_dms(lon_val, lon_ref)
 
         if lat is not None and lon is not None:
@@ -794,8 +806,10 @@ class PhotoMetadata:
                 canonical.get(MetadataFieldKey.ABSOLUTE_ALTITUDE.value)
                 or canonical.get("GPSAltitude")
             )
-            has_dji = any("drone-dji:" in str(k) for k in (merged_payload or {}).keys())
-            coord_source = str(canonical.get(MetadataFieldKey.COORD_SOURCE.value) or "")
+            has_dji = any("drone-dji:" in str(k)
+                          for k in (merged_payload or {}).keys())
+            coord_source = str(canonical.get(
+                MetadataFieldKey.COORD_SOURCE.value) or "")
             if coord_source == "MRK":
                 source = "MRK"
             elif has_dji:

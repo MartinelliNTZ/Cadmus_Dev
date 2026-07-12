@@ -57,9 +57,11 @@ class ScoreSPBJudge:
         self, *, layer=None, source_path: str = "", tool_key: str = ToolKey.UNTRACEABLE
     ):
         self.layer = layer
-        self.source_path = source_path or (layer.source() if layer is not None else "")
+        self.source_path = source_path or (
+            layer.source() if layer is not None else "")
         self.tool_key = tool_key
-        self.logger = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
+        self.logger = LogUtils(
+            tool=tool_key, class_name=self.__class__.__name__)
         self.JUDGEMENT_MODES = ["ANGLE", "DISTANCE"]
         self.JUDGEMENT_MODE = self.JUDGEMENT_MODES[0]
 
@@ -106,7 +108,8 @@ class ScoreSPBJudge:
             max_distance_meters=max_distance_meters,
         )
 
-        result_layer = self._create_memory_layer(layer, updates, field_name_map)
+        result_layer = self._create_memory_layer(
+            layer, updates, field_name_map)
 
         summary = {
             "total_points": len(ordered_points),
@@ -180,7 +183,8 @@ class ScoreSPBJudge:
         shot_ids = [1] * n  # id do shot original (antes de validar min)
         seg_types = ["noisy"] * n  # tipo semântico do segmento
         is_start = [False] * n  # True: ponto inicia um novo shot
-        is_second = [False] * n  # True: segundo ponto do shot (sem prev completo)
+        # True: segundo ponto do shot (sem prev completo)
+        is_second = [False] * n
 
         # Ponto 0 é sempre o início do shot 1
         is_start[0] = True
@@ -283,7 +287,8 @@ class ScoreSPBJudge:
         ]
 
         # ── Refina seg_types para pontos "normais" (ainda "noisy") ───────────
-        SPECIAL_TYPES = {"start", "break_direction", "break_distance", "end", "second"}
+        SPECIAL_TYPES = {"start", "break_direction",
+                         "break_distance", "end", "second"}
         for i in range(n):
             if seg_types[i] in SPECIAL_TYPES:
                 continue
@@ -421,7 +426,8 @@ class ScoreSPBJudge:
                     "point": point,
                 }
             )
-        ordered.sort(key=lambda x: (x["seq_id_sort"], x["timestamp"], x["fid"]))
+        ordered.sort(key=lambda x: (
+            x["seq_id_sort"], x["timestamp"], x["fid"]))
         self.logger.info(
             "Pontos carregados (simples)",
             valid=len(ordered),
@@ -436,7 +442,7 @@ class ScoreSPBJudge:
         return resolved
 
     @staticmethod
-    def _build_sort_key(self,value):
+    def _build_sort_key(self, value):
         try:
             return (0, int(value))
         except Exception as e:
@@ -467,12 +473,13 @@ class ScoreSPBJudge:
         if not text:
             return None
         for parser in (
-            lambda x: datetime.fromisoformat(x.replace("Z", "+00:00")).timestamp(),
+            lambda x: datetime.fromisoformat(
+                x.replace("Z", "+00:00")).timestamp(),
             lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S").timestamp(),
             lambda x: datetime.strptime(x, "%d/%m/%Y %H:%M:%S").timestamp(),
             lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%S").timestamp(),
             lambda x: datetime.strptime(x, "%Y%m%d%H%M%S").timestamp(),
-            lambda x: datetime.strptime(x, "%Y%m%d_%H%M%S").timestamp(),#
+            lambda x: datetime.strptime(x, "%Y%m%d_%H%M%S").timestamp(),
         ):
             try:
                 return float(parser(text))
@@ -526,7 +533,8 @@ class ScoreSPBJudge:
             new_feature = QgsFeature(new_layer.fields())
             new_feature.setGeometry(feature.geometry())
             for field in feature.fields():
-                new_feature.setAttribute(field.name(), feature.attribute(field.name()))
+                new_feature.setAttribute(
+                    field.name(), feature.attribute(field.name()))
             for attr_key, attr_val in updates[fid].items():
                 resolved = field_name_map.get(attr_key, attr_key)
                 idx = new_layer.fields().lookupField(resolved)

@@ -8,6 +8,8 @@ from ..utils.BaseUtil import BaseUtil
 from ..utils.ToolKeys import ToolKey
 from ..core.config.LogUtils import LogUtils
 logger = LogUtils(tool="Untraceable", class_name="None")
+
+
 class XmlUtil(BaseUtil):
     """
     Utilitário para manipulação de XML e QML (QGIS Style Layer).
@@ -192,7 +194,8 @@ class XmlUtil(BaseUtil):
             option, "name", {"type": "QString", "name": "name", "value": ""}
         )
         type_props = ET.SubElement(
-            option, "type", {"type": "QString", "name": "type", "value": "collection"}
+            option, "type", {"type": "QString",
+                             "name": "type", "value": "collection"}
         )
 
         # customproperties
@@ -226,7 +229,8 @@ class XmlUtil(BaseUtil):
         pipe_ddp = ET.SubElement(root, "pipe-data-defined-properties")
         option_pipe = ET.SubElement(pipe_ddp, "Option", {"type": "Map"})
         ET.SubElement(
-            option_pipe, "Option", {"type": "QString", "name": "name", "value": ""}
+            option_pipe, "Option", {
+                "type": "QString", "name": "name", "value": ""}
         )
         props_pipe = ET.SubElement(option_pipe, "properties")
         type_pipe = ET.SubElement(

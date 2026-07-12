@@ -459,6 +459,7 @@ class ToolRegistry:
             tooltip=STR.REPORT_METADATA_TOOLTIP,
             order=30,
             show_in_toolbar=True,
+            license_level=1
         )
         tools.append(report_metadata)
 

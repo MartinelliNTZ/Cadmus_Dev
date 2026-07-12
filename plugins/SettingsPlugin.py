@@ -52,7 +52,7 @@ class SettingsPlugin(BasePluginMTL):
         pref_button_layout, self.pref_button = WidgetFactory.create_simple_button(
             text=STR.OPEN_PREFERENCES_FOLDER,
             parent=self,
-            spacing=24,
+            spacing=2,
         )
         self.pref_button.clicked.connect(self._open_preferences_folder)
 
@@ -138,7 +138,7 @@ class SettingsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
-        self.geral_collapsable.add_content_layout(pref_button_layout)
+        
 
         projects_layout, self.project_folder_selector = (
             WidgetFactory.create_path_selector(
@@ -149,16 +149,18 @@ class SettingsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
+
         self.geral_collapsable.add_content_layout(projects_layout)
         self.geral_collapsable.add_content_layout(crs_layout)
         self.geral_collapsable.add_content_layout(lang_layout)
         self.geral_collapsable.add_content_layout(prec_layout)
         self.geral_collapsable.add_content_layout(thresh_layout)
+        self.geral_collapsable.add_content_layout(pref_button_layout)
 
         license_layout, self.license_btn = WidgetFactory.create_simple_button(
-            text="🔑 Gerenciar Licença",
+            text="🔑",
             parent=self,
-            spacing=4,
+            spacing=6,
         )
         self.license_btn.clicked.connect(self._open_license_dialog)
         self.geral_collapsable.add_content_layout(license_layout)

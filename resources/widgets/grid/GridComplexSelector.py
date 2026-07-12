@@ -49,7 +49,6 @@ from qgis.PyQt.QtWidgets import (
     QWidget, QGridLayout, QVBoxLayout, QLineEdit, QGroupBox,
 )
 from qgis.PyQt.QtCore import QTimer
-from qgis.core import QgsProject
 
 from ....resources.widgets.simple.ComplexSelector import ComplexSelector
 
@@ -231,21 +230,24 @@ class GridComplexSelector(QWidget):
         if "label_text" not in clean_kwargs:
             clean_kwargs["label_text"] = label
 
+        # Garantir que mode_type seja passado (chave reservada removida acima)
+        clean_kwargs["mode_type"] = mode_type
+
         # Resolve o parent_selector
         parent_selector = None
         if parent_key:
             parent_selector = self._resolve_parent_selector(parent_key)
 
-        # Se for output com parent
-        if mode_type == "output" and parent_key:
-            clean_kwargs["mode_type"] = "output"
+        # Se for output (com ou sem parent)
+        if mode_type == "output":
             clean_kwargs["subfolder"] = subfolder
             clean_kwargs["fixed_name"] = fixed_name
             clean_kwargs["suffix"] = suffix
             clean_kwargs["extension"] = extension
-            clean_kwargs["parent_selector"] = parent_selector
             clean_kwargs["show_suggest_button"] = True
-            clean_kwargs["show_origin_button"] = True  # ✅ Botão nativo ativado
+            if parent_key:
+                clean_kwargs["parent_selector"] = parent_selector
+                clean_kwargs["show_origin_button"] = True  # ✅ Botão nativo ativado
 
         selector = ComplexSelector(parent=self, **clean_kwargs)
         self._selectors[label] = selector

@@ -46,6 +46,7 @@ from qgis.core import QgsMapLayerProxyModel, QgsProject
 
 from ....core.config.LogUtils import LogUtils
 from ....resources.widgets.SimpleButtonWidget import SimpleButtonWidget
+from ....resources.styles.Styles import Styles
 from ....utils.ExplorerUtils import ExplorerUtils
 from ....utils.ProjectUtils import ProjectUtils
 
@@ -178,6 +179,7 @@ class ComplexSelector(QWidget):
         # Página 0: QLineEdit
         self._edit = QLineEdit()
         self._edit.setPlaceholderText(placeholder)
+        self._edit.setStyleSheet(Styles.input())
         if tooltip:
             self._edit.setToolTip(tooltip)
         self._edit.textChanged.connect(self._on_edit_text_changed)
@@ -187,6 +189,7 @@ class ComplexSelector(QWidget):
         self._combo = QgsMapLayerComboBox()
         self._combo.setAllowEmptyLayer(True)
         self._combo.setFilters(self._layer_filters)
+        self._combo.setStyleSheet(Styles.map_layer_combobox())
         self._combo.setVisible(False)  # começa invisível
         self._combo.currentIndexChanged.connect(self._on_combo_layer_changed)
         self._stack.addWidget(self._combo)

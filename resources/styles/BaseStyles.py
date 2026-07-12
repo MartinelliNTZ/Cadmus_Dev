@@ -267,6 +267,7 @@ class BaseStyles:
             border-radius: {BaseStyles.INPUT_BORDER_RADIUS}px;
             padding: {BaseStyles.INPUT_PADDING};
             min-height: {BaseStyles.INPUT_HEIGHT}px;
+            max-height: {BaseStyles.INPUT_HEIGHT + 6}px;
         }}
 
         QLineEdit:focus,

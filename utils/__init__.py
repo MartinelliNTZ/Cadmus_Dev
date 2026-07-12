@@ -22,7 +22,7 @@ from .ProjectUtils import ProjectUtils
 from .SVGUtils import SVGUtils
 from .XmlUtil import XmlUtil
 from .ImageUtils import ImageUtils
-from .RegistryManager import RegistryManager
+from ..core.config.RegistryManager import RegistryManager
 
 __all__ = [
     "ToolKey",

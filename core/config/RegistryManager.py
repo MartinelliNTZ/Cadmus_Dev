@@ -22,10 +22,10 @@ from typing import Optional
 
 import requests
 
-from ..core.config.Security import Security
-from .BaseUtil import BaseUtil
+from .Security import Security
+from ...utils.BaseUtil import BaseUtil
 from .RegistryFileManager import RegistryFileManager
-from .ToolKeys import ToolKey
+from ...utils.ToolKeys import ToolKey
 
 
 class RegistryManager(BaseUtil):

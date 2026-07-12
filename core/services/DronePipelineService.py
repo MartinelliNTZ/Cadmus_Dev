@@ -30,7 +30,7 @@ from ...utils.Preferences import Preferences
 from ...utils.ProjectUtils import ProjectUtils
 from ...utils.QgisMessageUtil import QgisMessageUtil
 from ...utils.ToolKeys import ToolKey
-from ...utils.RegistryManager import RegistryManager
+from ..config.RegistryManager import RegistryManager
 from ...utils.mrk.MetadataFields import MetadataFields
 from ...utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ...utils.vector.VectorLayerSource import VectorLayerSource

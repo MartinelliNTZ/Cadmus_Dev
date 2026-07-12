@@ -8,7 +8,7 @@ from ...i18n.TranslationManager import STR
 from ...utils.StringManager import StringManager
 from ...utils.Preferences import Preferences
 from ..enum import ToolTypeEnum
-from ...utils.RegistryManager import RegistryManager
+from .RegistryManager import RegistryManager
 
 
 class ToolRegistry:

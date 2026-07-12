@@ -21,7 +21,7 @@ from qgis.PyQt.QtWidgets import (
 from ...plugins.BaseDialog import BaseDialog
 from ...i18n.TranslationManager import STR
 from ...resources.styles.Styles import Styles
-from ...utils.RegistryManager import RegistryManager
+from ..config.RegistryManager import RegistryManager
 from ..config.LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 

@@ -28,8 +28,8 @@ import hmac
 import zlib
 from typing import Optional
 
-from .BaseUtil import BaseUtil
-from .ExplorerUtils import ExplorerUtils
+from ...utils.BaseUtil import BaseUtil
+from ...utils.ExplorerUtils import ExplorerUtils
 
 
 class RegistryFileManager(BaseUtil):

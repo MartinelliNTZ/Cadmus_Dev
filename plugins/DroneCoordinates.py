@@ -1,11 +1,11 @@
-﻿# -*- coding: utf-8 -*-
+﻿﻿# -*- coding: utf-8 -*-
 import os
 from ..plugins.BasePlugin import BasePluginMTL
 from ..core.services.DronePipelineService import DronePipelineService
 from ..utils.StringManager import StringManager
 from ..utils.Preferences import save_tool_prefs
 from ..utils.ToolKeys import ToolKey
-from ..utils.RegistryManager import RegistryManager
+from ..core.config.RegistryManager import RegistryManager
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..utils.DependenciesManager import DependenciesManager

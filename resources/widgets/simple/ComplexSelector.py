@@ -212,7 +212,8 @@ class ComplexSelector(QWidget):
         # ── 🔍 (file) ──
         if self._allow_file:
             self._btn_file = SimpleButtonWidget("🔍")
-            self._btn_file.setFixedWidth(32)
+            self._btn_file.setFixedWidth(30)
+            self._btn_file.setFixedHeight(32)
             self._btn_file.setToolTip(
                 "Selecionar arquivos" if self._multiple else "Selecionar arquivo"
             )
@@ -223,6 +224,7 @@ class ComplexSelector(QWidget):
         if self._allow_folder:
             self._btn_folder = SimpleButtonWidget("📁")
             self._btn_folder.setFixedWidth(30)
+            self._btn_folder.setFixedHeight(32)
             self._btn_folder.setToolTip(
                 "Selecionar pastas" if self._multiple else "Selecionar pasta"
             )
@@ -233,6 +235,7 @@ class ComplexSelector(QWidget):
         if self._mode_type == "input" and self._show_project_button:
             self._btn_project = SimpleButtonWidget("📄")
             self._btn_project.setFixedWidth(30)
+            self._btn_project.setFixedHeight(32)
             self._btn_project.setToolTip("Alternar para seleção de camada")
             self._btn_project.clicked.connect(self._on_project_clicked)
             layout.addWidget(self._btn_project, 0, Qt.AlignVCenter)
@@ -241,6 +244,7 @@ class ComplexSelector(QWidget):
         if self._show_origin_button:
             self._btn_origin = SimpleButtonWidget("📥")
             self._btn_origin.setFixedWidth(30)
+            self._btn_origin.setFixedHeight(32)
             self._btn_origin.setToolTip("Usar mesmo diretório da origem")
             self._btn_origin.clicked.connect(self._on_origin_clicked)
             layout.addWidget(self._btn_origin, 0, Qt.AlignVCenter)
@@ -249,6 +253,7 @@ class ComplexSelector(QWidget):
         if self._mode_type == "output" and self._show_suggest_button:
             self._btn_suggest = SimpleButtonWidget("🛠️")
             self._btn_suggest.setFixedWidth(30)
+            self._btn_suggest.setFixedHeight(32)
             self._btn_suggest.setToolTip("Usar pasta do projeto")
             self._btn_suggest.clicked.connect(self._on_suggest_clicked)
             layout.addWidget(self._btn_suggest, 0, Qt.AlignVCenter)
@@ -257,6 +262,7 @@ class ComplexSelector(QWidget):
         if self._show_explorer_button:
             self._btn_explorer = SimpleButtonWidget("➡️")
             self._btn_explorer.setFixedWidth(30)
+            self._btn_explorer.setFixedHeight(32)
             self._btn_explorer.setToolTip("Abrir localização no Explorer")
             self._btn_explorer.clicked.connect(self._open_explorer)
             layout.addWidget(self._btn_explorer, 0, Qt.AlignVCenter)

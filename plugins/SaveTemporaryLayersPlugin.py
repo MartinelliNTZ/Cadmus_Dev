@@ -128,7 +128,6 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                         "selection_mode": "folder",
                         "show_suggest_button": True,
                         "show_explorer_button": True,
-                        "subfolder": "android",
                         "show_suggest_button": True,
                         "mode_type": "output",
                     },

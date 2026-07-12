@@ -2,8 +2,7 @@
 import os
 import re
 from typing import List, Optional
-# nosec B406  # XML escape para gerar SVG, não para parsing
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape # nosec B406  # XML escape para gerar SVG, não para parsing
 from ..core.config.LogUtils import LogUtils
 from qgis.PyQt.QtGui import QColor
 from qgis.core import (

@@ -24,11 +24,11 @@ import requests
 
 from ..core.config.Security import Security
 from .BaseUtil import BaseUtil
-from .LicenseFileManager import LicenseFileManager
+from .RegistryFileManager import RegistryFileManager
 from .ToolKeys import ToolKey
 
 
-class LicenseManager(BaseUtil):
+class RegistryManager(BaseUtil):
     """
     Gerenciador de licença com cache mensal e renovação antecipada.
 
@@ -45,7 +45,7 @@ class LicenseManager(BaseUtil):
 
     def __init__(self, tool_key: str = ToolKey.UNTRACEABLE):
         super().__init__(tool_key)
-        self._file_mgr = LicenseFileManager(tool_key)
+        self._file_mgr = RegistryFileManager(tool_key)
 
     # ----------------------------------------------------------------
     # Public API
@@ -73,13 +73,13 @@ class LicenseManager(BaseUtil):
             return False
 
         license_key = (lic_data.get(
-            LicenseFileManager.FIELD_LICENSE_KEY) or "").strip()
+            RegistryFileManager.FIELD_LICENSE_KEY) or "").strip()
 
         if not license_key:
             self.logger.debug("Nenhuma chave de licença configurada")
             return False
 
-        expire_str = lic_data.get(LicenseFileManager.FIELD_EXPIRE_DATE, "")
+        expire_str = lic_data.get(RegistryFileManager.FIELD_EXPIRE_DATE, "")
         today = datetime.now().date()
 
         # --- Caso 1: Cache ativo com expiry válido ---
@@ -141,9 +141,9 @@ class LicenseManager(BaseUtil):
             }
 
         license_key = (lic_data.get(
-            LicenseFileManager.FIELD_LICENSE_KEY) or "").strip()
-        expire_str = lic_data.get(LicenseFileManager.FIELD_EXPIRE_DATE, "")
-        level = lic_data.get(LicenseFileManager.FIELD_LEVEL, 0)
+            RegistryFileManager.FIELD_LICENSE_KEY) or "").strip()
+        expire_str = lic_data.get(RegistryFileManager.FIELD_EXPIRE_DATE, "")
+        level = lic_data.get(RegistryFileManager.FIELD_LEVEL, 0)
 
         # Verifica validade do cache
         is_cached = self._file_mgr.validate_license(lic_data)
@@ -198,7 +198,7 @@ class LicenseManager(BaseUtil):
         today = datetime.now().date()
         new_expiry = today + timedelta(days=30)
 
-        lic_data = LicenseFileManager.build_license_dict(
+        lic_data = RegistryFileManager.build_license_dict(
             license_key=license_key,
             level=nivel,
             expire_date=new_expiry.strftime(self.DATE_FORMAT),
@@ -236,7 +236,7 @@ class LicenseManager(BaseUtil):
         Returns:
             tuple: (bool, int) — nivel 1-5 se válida, 0 se inválida
         """
-        result = LicenseManager._query_server(license_key)
+        result = RegistryManager._query_server(license_key)
 
         if result is not None:
             ativo = result.get("ativo", False)
@@ -297,7 +297,7 @@ class LicenseManager(BaseUtil):
         Returns:
             bool: True se a chave é válida, False caso contrário.
         """
-        result = LicenseManager._query_server(license_key)
+        result = RegistryManager._query_server(license_key)
 
         if result is not None:
             ativo = result.get("ativo", False)
@@ -324,15 +324,15 @@ class LicenseManager(BaseUtil):
 
         if is_valid:
             new_expiry = today + timedelta(days=30)
-            lic_data = LicenseFileManager.build_license_dict(
+            lic_data = RegistryFileManager.build_license_dict(
                 license_key=license_key,
                 level=1,
                 expire_date=new_expiry.strftime(self.DATE_FORMAT),
             )
             # Tenta carregar dados existentes para preservar nível
             existing = self._file_mgr.load_license()
-            if existing and isinstance(existing.get(LicenseFileManager.FIELD_LEVEL), int):
-                lic_data[LicenseFileManager.FIELD_LEVEL] = existing[LicenseFileManager.FIELD_LEVEL]
+            if existing and isinstance(existing.get(RegistryFileManager.FIELD_LEVEL), int):
+                lic_data[RegistryFileManager.FIELD_LEVEL] = existing[RegistryFileManager.FIELD_LEVEL]
 
             self._file_mgr.save_license(lic_data)
             self.logger.debug(
@@ -363,15 +363,15 @@ class LicenseManager(BaseUtil):
 
         if is_valid:
             new_expiry = today + timedelta(days=30)
-            lic_data = LicenseFileManager.build_license_dict(
+            lic_data = RegistryFileManager.build_license_dict(
                 license_key=license_key,
                 level=1,
                 expire_date=new_expiry.strftime(self.DATE_FORMAT),
             )
             # Tenta carregar dados existentes para preservar nível
             existing = self._file_mgr.load_license()
-            if existing and isinstance(existing.get(LicenseFileManager.FIELD_LEVEL), int):
-                lic_data[LicenseFileManager.FIELD_LEVEL] = existing[LicenseFileManager.FIELD_LEVEL]
+            if existing and isinstance(existing.get(RegistryFileManager.FIELD_LEVEL), int):
+                lic_data[RegistryFileManager.FIELD_LEVEL] = existing[RegistryFileManager.FIELD_LEVEL]
 
             self._file_mgr.save_license(lic_data)
             self.logger.debug(
@@ -396,6 +396,6 @@ class LicenseManager(BaseUtil):
             date ou None se inválida.
         """
         try:
-            return datetime.strptime(date_str, LicenseManager.DATE_FORMAT).date()
+            return datetime.strptime(date_str, RegistryManager.DATE_FORMAT).date()
         except (ValueError, TypeError):
             return None

@@ -21,7 +21,7 @@ from qgis.PyQt.QtWidgets import (
 from ...plugins.BaseDialog import BaseDialog
 from ...i18n.TranslationManager import STR
 from ...resources.styles.Styles import Styles
-from ...utils.LicenseManager import LicenseManager
+from ...utils.RegistryManager import RegistryManager
 from ..config.LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 
@@ -42,7 +42,7 @@ class LicenseDialog(BaseDialog):
         super().__init__(parent)
         self.iface = iface
         self.logger = LogUtils(tool=ToolKey.SETTINGS, class_name="LicenseDialog")
-        self._license_mgr = LicenseManager(tool_key=ToolKey.SETTINGS)
+        self._license_mgr = RegistryManager(tool_key=ToolKey.SETTINGS)
 
         self.setWindowTitle(STR.LICENSE_TITLE)
         self.setMinimumWidth(400)

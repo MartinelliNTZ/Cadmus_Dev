@@ -32,7 +32,7 @@ from .BaseUtil import BaseUtil
 from .ExplorerUtils import ExplorerUtils
 
 
-class LicenseFileManager(BaseUtil):
+class RegistryFileManager(BaseUtil):
     """
     Gerencia um arquivo de licença ofuscado com integridade HMAC.
 
@@ -349,14 +349,14 @@ class LicenseFileManager(BaseUtil):
             str: Assinatura HMAC em hexadecimal.
         """
         data_copy = dict(data)
-        data_copy.pop(LicenseFileManager.FIELD_SIGNATURE, None)
+        data_copy.pop(RegistryFileManager.FIELD_SIGNATURE, None)
 
         json_str = json.dumps(
             data_copy, ensure_ascii=False, separators=(",", ":"))
         json_bytes = json_str.encode("utf-8")
 
         sig = hmac.new(
-            LicenseFileManager._HMAC_KEY,
+            RegistryFileManager._HMAC_KEY,
             json_bytes,
             hashlib.sha256,
         ).hexdigest()
@@ -374,7 +374,7 @@ class LicenseFileManager(BaseUtil):
         Returns:
             bool: True se a assinatura é válida.
         """
-        expected = LicenseFileManager.generate_hmac(data)
+        expected = RegistryFileManager.generate_hmac(data)
         return hmac.compare_digest(expected, signature)
 
     # ----------------------------------------------------------------
@@ -413,10 +413,10 @@ class LicenseFileManager(BaseUtil):
         """
         from datetime import datetime
         return {
-            LicenseFileManager.FIELD_LICENSE_KEY: license_key,
-            LicenseFileManager.FIELD_LEVEL: level,
-            LicenseFileManager.FIELD_EXPIRE_DATE: expire_date,
-            LicenseFileManager.FIELD_CREATED_AT: datetime.now().isoformat(),
-            LicenseFileManager.FIELD_MACHINE_ID: machine_id,
-            LicenseFileManager.FIELD_VERSION: LicenseFileManager.LICENSE_VERSION,
+            RegistryFileManager.FIELD_LICENSE_KEY: license_key,
+            RegistryFileManager.FIELD_LEVEL: level,
+            RegistryFileManager.FIELD_EXPIRE_DATE: expire_date,
+            RegistryFileManager.FIELD_CREATED_AT: datetime.now().isoformat(),
+            RegistryFileManager.FIELD_MACHINE_ID: machine_id,
+            RegistryFileManager.FIELD_VERSION: RegistryFileManager.LICENSE_VERSION,
         }

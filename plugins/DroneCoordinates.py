@@ -5,7 +5,7 @@ from ..core.services.DronePipelineService import DronePipelineService
 from ..utils.StringManager import StringManager
 from ..utils.Preferences import save_tool_prefs
 from ..utils.ToolKeys import ToolKey
-from ..utils.LicenseManager import LicenseManager
+from ..utils.RegistryManager import RegistryManager
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..utils.DependenciesManager import DependenciesManager
@@ -52,7 +52,7 @@ class DroneCordinates(BasePluginMTL):
         )
 
         # Verifica licença — controla exibição de itens do relatório
-        license_mgr = LicenseManager(tool_key=self.TOOL_KEY)
+        license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
         is_license_valid = license_mgr.is_license_valid()
 
         # ====== PASTA MRK ======

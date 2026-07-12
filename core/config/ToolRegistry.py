@@ -8,7 +8,7 @@ from ...i18n.TranslationManager import STR
 from ...utils.StringManager import StringManager
 from ...utils.Preferences import Preferences
 from ..enum import ToolTypeEnum
-from ...utils.LicenseManager import LicenseManager
+from ...utils.RegistryManager import RegistryManager
 
 
 class ToolRegistry:
@@ -573,7 +573,7 @@ class ToolRegistry:
         atual for maior ou igual ao license_level da ferramenta.
         """
         try:
-            license_mgr = LicenseManager(ToolKey.SYSTEM)
+            license_mgr = RegistryManager(ToolKey.SYSTEM)
             lic_info = license_mgr.get_license_info()
             current_level = lic_info.get("nivel", 0)
 

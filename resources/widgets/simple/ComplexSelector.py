@@ -37,17 +37,17 @@ import os
 import subprocess
 from typing import Callable, Optional
 
-from PySide6.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget,
 )
-from PySide6.QtCore import Signal
+from qgis.PyQt.QtCore import pyqtSignal
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsProject
 
-from core.config.LogUtils import LogUtils
-from resources.widgets.SimpleButtonWidget import SimpleButtonWidget
-from utils.ExplorerUtils import ExplorerUtils
-from utils.ProjectUtils import ProjectUtils
+from ....core.config.LogUtils import LogUtils
+from ....resources.widgets.SimpleButtonWidget import SimpleButtonWidget
+from ....utils.ExplorerUtils import ExplorerUtils
+from ....utils.ProjectUtils import ProjectUtils
 
 
 class ComplexSelector(QWidget):
@@ -61,7 +61,7 @@ class ComplexSelector(QWidget):
     Em modo input, o 📄 alterna entre QLineEdit e QgsMapLayerComboBox.
     """
 
-    pathChanged = Signal(list)  # paths: list[str]
+    pathChanged = pyqtSignal(list)  # paths: list[str]
 
     def __init__(
         self,

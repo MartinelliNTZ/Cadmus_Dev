@@ -23,9 +23,7 @@ from ..i18n.TranslationManager import STR
 from ..utils.ToolKeys import ToolKey
 from ..utils.Preferences import Preferences
 from ..utils.ProjectUtils import ProjectUtils
-from ..utils.ExplorerUtils import ExplorerUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLineEdit, QPushButton
 
 
 
@@ -114,10 +112,27 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             )
         )
 
-        # ── Pasta de saída com 3 botões (PyQt5 nativo, sem PySide6) ──
-        output_layout, self.output_path, self._output_buttons = (
-            self._build_output_folder_selector()
+        # ── Pasta de saída com 📁 🛠️ ➡️ (GridComplexSelector via WidgetFactory) ──
+        output_layout, self.output_grid = (
+            WidgetFactory.create_grid_complex_selector(
+                specs={
+                    "output": {
+                        "label_text": f"{STR.OUTPUT_FOLDER}:",
+                        "placeholder": "Selecione a pasta de saída...",
+                        "allow_file": False,
+                        "allow_folder": True,
+                        "selection_mode": "folder",
+                        "show_suggest_button": True,
+                        "show_explorer_button": True,
+                        "mode_type": "input",
+                    },
+                },
+                parent=self,
+                separator_bottom=True,
+            )
         )
+        self.output_selector = self.output_grid["output"]
+        self.output_path = self.output_selector.edit  # compatibilidade
 
         # ── Botões de ação ──
         buttons_layout, self.action_buttons = (
@@ -141,93 +156,6 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             ]
         )
         self.logger.info("Interface da ferramenta construída com sucesso")
-
-    def _build_output_folder_selector(self):
-        """Constrói seletor de pasta com 📁 🛠️ ➡️ usando PyQt5."""
-        from ..resources.styles.Styles import Styles
-        from qgis.PyQt.QtWidgets import QVBoxLayout
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
-
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(4)
-
-        # Label
-        from qgis.PyQt.QtWidgets import QLabel
-
-        lbl = QLabel(f"{STR.OUTPUT_FOLDER}:")
-        lbl.setMinimumWidth(100)
-        row.addWidget(lbl)
-
-        # Line edit
-        path_edit = QLineEdit()
-        path_edit.setPlaceholderText("Selecione a pasta de saída...")
-        path_edit.setStyleSheet(Styles.input())
-        path_edit.setReadOnly(True)
-        row.addWidget(path_edit)
-
-        # 📁 folder button
-        btn_folder = QPushButton("📁")
-        btn_folder.setFixedWidth(32)
-        btn_folder.setToolTip("Selecionar pasta de saída")
-        btn_folder.clicked.connect(lambda: self._on_browse_folder(path_edit))
-        row.addWidget(btn_folder)
-
-        # 🛠️ suggest button
-        btn_suggest = QPushButton("🛠️")
-        btn_suggest.setFixedWidth(30)
-        btn_suggest.setToolTip("Usar pasta do projeto")
-        btn_suggest.clicked.connect(lambda: self._on_suggest_path(path_edit))
-        row.addWidget(btn_suggest)
-
-        # ➡️ explorer button
-        btn_explorer = QPushButton("➡️")
-        btn_explorer.setFixedWidth(30)
-        btn_explorer.setToolTip("Abrir localização no Explorer")
-        btn_explorer.clicked.connect(lambda: self._on_open_explorer(path_edit))
-        row.addWidget(btn_explorer)
-
-        layout.addLayout(row)
-        return layout, path_edit, (btn_folder, btn_suggest, btn_explorer)
-
-    def _on_browse_folder(self, path_edit):
-        """📁 Abre diálogo de selecionar pasta."""
-        initial_dir = path_edit.text() or ""
-        folder = ExplorerUtils.select_directory_dialog(
-            STR.SELECT_OUTPUT_FOLDER, initial_dir, self
-        )
-        if folder:
-            path_edit.setText(folder)
-
-    def _on_suggest_path(self, path_edit):
-        """🛠️ Sugere pasta do projeto."""
-        project = ProjectUtils.get_project_instance()
-        project_path = ProjectUtils.get_project_dir(project)
-        if project_path:
-            suggested = project_path
-            if os.path.isfile(project_path):
-                suggested = os.path.dirname(project_path)
-            path_edit.setText(suggested)
-            self.logger.info(f"Pasta do projeto sugerida: {suggested}")
-        else:
-            QgisMessageUtil.bar_warning(
-                self.iface,
-                "Salve o projeto primeiro para usar esta opção.",
-            )
-
-    def _on_open_explorer(self, path_edit):
-        """➡️ Abre Explorer no diretório."""
-        current = path_edit.text()
-        if current:
-            ExplorerUtils.open_folder(current, tool_key=self.TOOL_KEY)
-        else:
-            QgisMessageUtil.bar_warning(
-                self.iface,
-                "Selecione ou sugira uma pasta primeiro.",
-            )
 
     def _load_prefs(self):
         """Carrega preferências salvas."""

@@ -25,6 +25,7 @@ from ...resources.widgets.ReadOnlyFieldWidget import ReadOnlyFieldWidget
 from ...resources.widgets.DropdownSelectorWidget import DropdownSelectorWidget
 from ...resources.widgets.ColorButtonWidget import ColorButtonWidget
 from ...resources.widgets.CrsSelectorWidget import CrsSelectorWidget
+from ...resources.widgets.grid.GridComplexSelector import GridComplexSelector
 from ...i18n.TranslationManager import STR
 
 
@@ -661,7 +662,7 @@ class WidgetFactory:
         - Widget genÃ©rico e reutilizÃ¡vel (pode ser usado em mÃºltiplos plugins)
         - Suporta adicionar widgets e layouts dinamicamente
         - AnimaÃ§Ã£o suave na expansÃ£o/recolhimento
-        - Ãcone dinÃ¢mico (â†’ recolhido | â†“ expandido)
+        - Ãcone dinÃ¢mico (â†' recolhido | â†" expandido)
 
         Parameters
         ----------
@@ -1061,3 +1062,74 @@ class WidgetFactory:
 
         return label
 
+    @staticmethod
+    def create_grid_complex_selector(
+        *,
+        specs: dict,
+        title: str = None,
+        columns: int = 1,
+        grid_id: str = "",
+        parent=None,
+        separator_top: bool = False,
+        separator_bottom: bool = True,
+    ):
+        """
+        Cria um GridComplexSelector — grade de ComplexSelectors configurados
+        por dicionário, com suporte a parent linking e dynamic_parent.
+        É o ÚNICO ponto de acesso a ComplexSelectors via WidgetFactory.
+
+        Uso com 1 selector (caso comum):
+            layout, grid = WidgetFactory.create_grid_complex_selector(
+                specs={
+                    "Entrada": {
+                        "label_text": "Arquivo de entrada:",
+                        "allow_file": True,
+                        "allow_folder": False,
+                        "selection_mode": "file",
+                        "mode_type": "input",
+                        "show_project_button": True,
+                    },
+                },
+            )
+
+            grid["Entrada"].path()
+
+        Uso com parent linking:
+            layout, grid = WidgetFactory.create_grid_complex_selector(
+                specs={
+                    "Entrada": { ... },
+                    "Saída": {
+                        "mode_type": "output",
+                        "parent": "Entrada",
+                        "fixed_name": "resultado.gpkg",
+                        "show_suggest_button": True,
+                    },
+                },
+                title="Arquivos",
+            )
+
+            grid["Entrada"].path()
+            grid.use_origin("Saída")
+        """
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+
+        if separator_top:
+            layout.addWidget(WidgetFactory.create_separator())
+
+        widget = GridComplexSelector(
+            specs=specs,
+            title=title,
+            columns=columns,
+            grid_id=grid_id,
+            parent=parent,
+        )
+
+        widget.setStyleSheet(Styles.path_selector_widget())
+        layout.addWidget(widget)
+
+        if separator_bottom:
+            layout.addWidget(WidgetFactory.create_separator())
+
+        return layout, widget

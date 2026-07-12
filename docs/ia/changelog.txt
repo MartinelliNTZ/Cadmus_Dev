@@ -311,3 +311,18 @@
     cujo license_level é maior que o nível atual da licença (lido via LicenseManager.get_license_info())
   - Filtro executado ao final de ToolRegistry.__init__(), após validação de main_actions
   - SKILL_LICENSE.md atualizado para v4.0.0 com documentação do filtro
+2.3.52 11/07/2026
+[2.3.52.1][11/07/2026] SaveTemporaryLayersPlugin refatorado — substituído código manual UI (QPushButton, QLabel, QLineEdit, QHBoxLayout) por GridComplexSelector via WidgetFactory.create_grid_complex_selector():
+   - Removido _build_output_folder_selector() e handlers _on_browse_folder/_on_suggest_path/_on_open_explorer
+   - Removidos imports de QHBoxLayout, QLineEdit, QPushButton, QLabel, ExplorerUtils (morto)
+   - Plugin agora usa GridComplexSelector que encapsula 📁, 🛠️, ➡️ com lógica built-in via ComplexSelector
+   - Compatibilidade mantida via self.output_grid["output"].edit
+[2.3.52.2][11/07/2026] WidgetFactory: create_complex_selector() removido — ComplexSelector é privado do GridComplexSelector.
+    - Factory agora expõe APENAS create_grid_complex_selector() como único ponto de acesso
+    - import de ComplexSelector removido da WidgetFactory
+2.3.53 11/07/2026
+[2.3.53.1][11/07/2026] Corrigido ImportError 'Signal' em ComplexSelector.py:
+    - Substituído `from qgis.PyQt.QtCore import Signal` por `from qgis.PyQt.QtCore import pyqtSignal`
+    - Substituído `pathChanged = Signal(list)` por `pathChanged = pyqtSignal(list)`
+    - Causava falha no SaveTemporaryLayersPlugin ao executar ("cannot import name 'Signal' from 'qgis.PyQt.QtCore'")
+    - Nenhum outro arquivo no projeto usava `Signal` incorretamente

@@ -45,15 +45,15 @@ import os
 from functools import partial
 from typing import Callable, Optional
 
-from PySide6.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QGridLayout, QVBoxLayout, QLineEdit, QGroupBox,
 )
-from PySide6.QtCore import QTimer
+from qgis.PyQt.QtCore import QTimer
 from qgis.core import QgsProject
 
-from resources.widgets.simple.ComplexSelector import ComplexSelector
+from ....resources.widgets.simple.ComplexSelector import ComplexSelector
 
-from core.config.LogUtils import LogUtils
+from ....core.config.LogUtils import LogUtils
 
 
 class GridComplexSelector(QWidget):

@@ -7,16 +7,19 @@ UI:
   - InputFieldsWidget: prefixo + sufixo
   - DropdownSelectorWidget: extensões vetor (shp, gpkg, geojson, ...)
   - DropdownSelectorWidget: extensões raster (tif, jp2, png, ...)
-  - Output folder com 3 botões:
-      📁 selecionar pasta manualmente
-      🛠️ sugerir pasta do projeto
-      ➡️ abrir explorer
+  - Output folder
 
   Vetores salvos em <output>/vectors/
   Rasters salvos em <output>/rasters/
 """
 
 import os
+from pathlib import Path
+from qgis.core import (
+    QgsRasterFileWriter,
+    QgsRasterLayer,
+    QgsVectorLayer,
+)
 from ..plugins.BasePlugin import BasePluginMTL
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
@@ -24,6 +27,8 @@ from ..utils.ToolKeys import ToolKey
 from ..utils.Preferences import Preferences
 from ..utils.ProjectUtils import ProjectUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
+from ..utils.vector.VectorLayerSource import VectorLayerSource
+from ..utils.ExplorerUtils import ExplorerUtils
 
 
 class SaveTemporaryLayersPlugin(BasePluginMTL):
@@ -209,8 +214,6 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         vector_layers = []
         raster_layers = []
 
-        from qgis.core import QgsVectorLayer, QgsRasterLayer
-
         project = ProjectUtils.get_project_instance()
         if not project:
             self.logger.warning("Nenhum projeto QGIS aberto")
@@ -282,8 +285,8 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             project_path = ProjectUtils.get_project_dir(project)
             if project_path:
                 output_root = project_path
-                if os.path.isfile(project_path):
-                    output_root = os.path.dirname(project_path)
+                if ExplorerUtils.is_file(project_path):
+                    output_root = ExplorerUtils.resolve_initial_dir(project_path)
                 self.logger.info(f"Usando pasta do projeto: {output_root}")
             else:
                 self.logger.warning(
@@ -294,21 +297,24 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 )
                 return
 
-        # Garantir pastas
-        try:
-            os.makedirs(output_root, exist_ok=True)
-        except Exception as e:
-            self.logger.error(f"Erro ao criar pasta de saída: {e}")
+        # Garantir pastas via ExplorerUtils
+        if not ExplorerUtils.ensure_folder_exists(output_root, tool_key=self.TOOL_KEY):
+            self.logger.error(f"Erro ao criar pasta de saída: {output_root}")
             return
 
-        vectors_dir = os.path.join(output_root, self.VECTOR_SUBFOLDER)
-        rasters_dir = os.path.join(output_root, self.RASTER_SUBFOLDER)
-        try:
-            os.makedirs(vectors_dir, exist_ok=True)
-            os.makedirs(rasters_dir, exist_ok=True)
-        except Exception as e:
-            self.logger.error(f"Erro ao criar subpastas: {e}")
+        vectors_dir = Path(output_root) / self.VECTOR_SUBFOLDER
+        rasters_dir = Path(output_root) / self.RASTER_SUBFOLDER
+
+        if not ExplorerUtils.ensure_folder_exists(str(vectors_dir), tool_key=self.TOOL_KEY):
+            self.logger.error(f"Erro ao criar subpasta vectors: {vectors_dir}")
             return
+
+        if not ExplorerUtils.ensure_folder_exists(str(rasters_dir), tool_key=self.TOOL_KEY):
+            self.logger.error(f"Erro ao criar subpasta rasters: {rasters_dir}")
+            return
+
+        vectors_dir_str = str(vectors_dir)
+        rasters_dir_str = str(rasters_dir)
 
         # Obter valores
         values = self.fields_widget.get_values()
@@ -347,14 +353,11 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
 
         for layer_name, layer in vector_layers:
             filename = f"{prefix}{layer_name}{suffix}{vector_ext}"
-            filepath = self._unique_filepath(
-                os.path.join(vectors_dir, filename))
+            filepath = ExplorerUtils.get_unique_filepath(
+                str(Path(vectors_dir_str) / filename),
+                tool_key=self.TOOL_KEY,
+            )
             try:
-                from qgis.core import (
-                    QgsVectorFileWriter,
-                    QgsCoordinateTransformContext,
-                )
-
                 # ── Sair do modo edição se necessário ──
                 if layer.isEditable():
                     if layer.isModified():
@@ -372,24 +375,16 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                         self.logger.debug(
                             f"Camada '{layer_name}' saiu do modo edição sem alterações")
 
-                # ── Salvar arquivo no disco ──
-                write_options = QgsVectorFileWriter.SaveVectorOptions()
-                write_options.driverName = self._driver_for_ext(vector_ext)
-                write_options.fileEncoding = "UTF-8"
-
-                result = QgsVectorFileWriter.writeAsVectorFormatV3(
-                    layer, filepath, QgsCoordinateTransformContext(), write_options
+                # ── Salvar arquivo no disco via VectorLayerSource ──
+                saved_layer = VectorLayerSource.save_and_load_layer(
+                    layer,
+                    output_path=filepath,
+                    tool_key=self.TOOL_KEY,
+                    decision="overwrite",
                 )
 
-                if isinstance(result, tuple) and len(result) >= 2:
-                    error = result[0]
-                    error_msg = result[1]
-                else:
-                    error = result
-                    error_msg = ""
-
-                if error != QgsVectorFileWriter.NoError:
-                    error_msg_text = f"Erro ao salvar vetor '{layer_name}': {error_msg}"
+                if saved_layer is None:
+                    error_msg_text = f"Erro ao salvar vetor '{layer_name}'"
                     self.logger.error(error_msg_text)
                     errors.append(error_msg_text)
                     continue
@@ -407,12 +402,11 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
 
         for layer_name, layer in raster_layers:
             filename = f"{prefix}{layer_name}{suffix}{raster_ext}"
-            filepath = self._unique_filepath(
-                os.path.join(rasters_dir, filename))
+            filepath = ExplorerUtils.get_unique_filepath(
+                str(Path(rasters_dir_str) / filename),
+                tool_key=self.TOOL_KEY,
+            )
             try:
-                import shutil
-                from pathlib import Path
-
                 # ── Sair do modo edição se necessário ──
                 if layer.isEditable():
                     if layer.isModified():
@@ -435,21 +429,26 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 source_path = Path(source_file)
 
                 if source_path.exists() and source_path.is_file():
-                    # Camada com arquivo real → copiar para o destino
-                    shutil.copy2(str(source_path), filepath)
-                    self.logger.info(
-                        f"Raster copiado de '{source_path}' para '{filepath}'"
-                    )
+                    # Camada com arquivo real → copiar para o destino via ExplorerUtils
+                    if not ExplorerUtils.copy_file(
+                        str(source_path),
+                        filepath,
+                        tool_key=self.TOOL_KEY,
+                    ):
+                        err_msg = f"Erro ao copiar raster '{layer_name}'"
+                        self.logger.error(err_msg)
+                        errors.append(err_msg)
+                        continue
+
+                    self.logger.info(f"Raster copiado: {filepath}")
                 else:
                     # Camada sem arquivo real (memory raster) → usar writeRasterFile
-                    from qgis.core import QgsRasterFileWriter, QgsCoordinateTransformContext
-
                     file_writer = QgsRasterFileWriter(filepath)
                     write_result = file_writer.writeRasterLayer(
                         layer,
                         layer.extent(),
                         layer.crs(),
-                        QgsCoordinateTransformContext(),
+                        ProjectUtils.get_project_instance().transformContext(),
                     )
 
                     if write_result != 0:
@@ -478,14 +477,14 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             msg = (
                 f"Salvas: {saved_count} camada(s). "
                 f"Erros: {len(errors)}. "
-                f"Vetores em: {vectors_dir}, Rasters em: {rasters_dir}"
+                f"Vetores em: {vectors_dir_str}, Rasters em: {rasters_dir_str}"
             )
             self.logger.warning(msg)
             QgisMessageUtil.bar_warning(self.iface, msg)
         else:
             msg = (
                 f"{saved_count} camada(s) temporária(s) salva(s) com sucesso! "
-                f"Vetores em: {vectors_dir}, Rasters em: {rasters_dir}"
+                f"Vetores em: {vectors_dir_str}, Rasters em: {rasters_dir_str}"
             )
             self.logger.info(msg)
             QgisMessageUtil.bar_info(self.iface, msg)
@@ -493,10 +492,7 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
     def _replace_memory_layer(self, old_layer, filepath, layer_name):
         """Remove a camada memory e carrega a salva no mesmo lugar, com mesmo estilo."""
         try:
-            from qgis.core import QgsProject, QgsVectorLayer, QgsMapLayerRenderer
-            from qgis.PyQt.QtGui import QColor
-
-            project = QgsProject.instance()
+            project = ProjectUtils.get_project_instance()
             root = project.layerTreeRoot()
 
             # Capturar grupo pai, índice e estilo antes de remover
@@ -531,10 +527,10 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 new_layer.setRenderer(renderer.clone())
 
             # Remover camada memory do projeto
-            project.removeMapLayer(old_layer.id())
+            ProjectUtils.remove_layer_from_project(old_layer)
 
             # Adicionar nova camada sem inserir na root
-            project.addMapLayer(new_layer, False)
+            ProjectUtils.add_layer(new_layer, add_to_root=False, project=project)
 
             # Inserir no mesmo grupo/posição
             if parent_group:
@@ -560,13 +556,7 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         """Remove a camada raster temporária e carrega a salva no mesmo lugar,
         preservando o estilo (renderer) original."""
         try:
-            from qgis.core import QgsProject, QgsRasterLayer
-            from ..utils.raster.RasterLayerRendering import RasterLayerRendering
-            from ..utils.XmlUtil import XmlUtil
-            import tempfile
-            import os
-
-            project = QgsProject.instance()
+            project = ProjectUtils.get_project_instance()
             root = project.layerTreeRoot()
 
             # Capturar grupo pai e índice
@@ -578,24 +568,31 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 if parent_group:
                     insert_index = parent_group.children().index(old_node)
 
-            # ── Salvar estilo original como QML temporário ──
+            # ── Salvar estilo original como QML temporário via ExplorerUtils ──
             qml_temp = None
             try:
-                qml_fd, qml_temp = tempfile.mkstemp(
-                    suffix=".qml", prefix="raster_style_")
-                os.close(qml_fd)
-                style_saved = old_layer.saveNamedStyle(qml_temp)
-                if style_saved[0]:
-                    self.logger.debug(
-                        f"Estilo raster salvo em QML temporário: {qml_temp}"
-                    )
+                fd, qml_temp = ExplorerUtils.create_temp_file(
+                    suffix=".qml", prefix="raster_style_", tool_key=self.TOOL_KEY
+                )
+                if fd is not None:
+                    os.close(fd)
+                    style_saved = old_layer.saveNamedStyle(qml_temp)
+                    if style_saved[0]:
+                        self.logger.debug(
+                            f"Estilo raster salvo em QML temporário: {qml_temp}"
+                        )
+                    else:
+                        self.logger.debug(
+                            f"Não foi possível salvar estilo do raster: {style_saved[1]}"
+                        )
+                        ExplorerUtils.delete_file(qml_temp, ignore_errors=True)
+                        qml_temp = None
                 else:
-                    self.logger.debug(
-                        f"Não foi possível salvar estilo do raster: {style_saved[1]}"
-                    )
                     qml_temp = None
             except Exception as e:
                 self.logger.debug(f"Erro ao salvar estilo QML temporário: {e}")
+                if qml_temp:
+                    ExplorerUtils.delete_file(qml_temp, ignore_errors=True)
                 qml_temp = None
 
             self.logger.debug(
@@ -613,15 +610,12 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                     f"Não foi possível carregar o raster salvo: {filepath}"
                 )
                 # Limpar QML temporário
-                if qml_temp and os.path.exists(qml_temp):
-                    try:
-                        os.remove(qml_temp)
-                    except Exception:
-                        pass
+                if qml_temp:
+                    ExplorerUtils.delete_file(qml_temp, ignore_errors=True)
                 return False
 
             # ── Aplicar estilo original se existir ──
-            if qml_temp and os.path.exists(qml_temp):
+            if qml_temp:
                 try:
                     style_ok = new_layer.loadNamedStyle(qml_temp)
                     if style_ok:
@@ -636,16 +630,13 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 except Exception as e:
                     self.logger.debug(f"Erro ao aplicar estilo: {e}")
                 finally:
-                    try:
-                        os.remove(qml_temp)
-                    except Exception:
-                        pass
+                    ExplorerUtils.delete_file(qml_temp, ignore_errors=True)
 
             # Remover camada temporária do projeto
-            project.removeMapLayer(old_layer.id())
+            ProjectUtils.remove_layer_from_project(old_layer)
 
             # Adicionar nova camada sem inserir na root
-            project.addMapLayer(new_layer, False)
+            ProjectUtils.add_layer(new_layer, add_to_root=False, project=project)
 
             # Inserir no mesmo grupo/posição
             if parent_group:
@@ -666,40 +657,6 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 f"Erro ao substituir raster '{layer_name}': {e}"
             )
             return False
-
-    @staticmethod
-    def _unique_filepath(filepath: str) -> str:
-        """
-        Gera um caminho de arquivo único adicionando sufixo _1, _2, _3...
-        se o arquivo já existir.
-
-        Exemplo:
-            arquivo.gpkg → arquivo.gpkg (se não existir)
-            arquivo.gpkg → arquivo_1.gpkg (se existir)
-            arquivo_1.gpkg → arquivo_2.gpkg (se existir)
-        """
-        if not os.path.exists(filepath):
-            return filepath
-
-        base, ext = os.path.splitext(filepath)
-        counter = 1
-        while os.path.exists(f"{base}_{counter}{ext}"):
-            counter += 1
-        return f"{base}_{counter}{ext}"
-
-    @staticmethod
-    def _driver_for_ext(ext: str) -> str:
-        """Retorna o nome do driver GDAL para a extensão."""
-        driver_map = {
-            ".gpkg": "GPKG",
-            ".shp": "ESRI Shapefile",
-            ".geojson": "GeoJSON",
-            ".kml": "KML",
-            ".dxf": "DXF",
-            ".gml": "GML",
-            ".csv": "CSV",
-        }
-        return driver_map.get(ext, "GPKG")
 
 
 def run(iface):

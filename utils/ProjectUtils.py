@@ -524,6 +524,34 @@ class ProjectUtils(BaseUtil):
         return temp_layers
 
     @staticmethod
+    def _is_valid_file_path(file_path: str) -> bool:
+        """Verifica se uma string parece um caminho de arquivo valido no Windows.
+
+        Retorna False para URIs, sources de memory layer, XYZ tiles, etc.
+        """
+        if not file_path:
+            return False
+
+        # URIs com protocolo (https://, http://, etc.)
+        if "://" in file_path:
+            return False
+
+        # Sources com query string (type=xyz&..., Point?crs=..., etc.)
+        if "?" in file_path:
+            return False
+
+        # Sources que comecam com memory:
+        if file_path.startswith("memory:"):
+            return False
+
+        # Caminhos validos no Windows comecam com letra:, \\, ou sao relativos
+        # Se tem : e nao e C:\ etc, provavelmente e URI
+        if ":" in file_path and not file_path[1:3] == ":\\" and not file_path.startswith("\\\\"):
+            return False
+
+        return True
+
+    @staticmethod
     def get_temp_file_layers(
         project: Optional[QgsProject] = None,
         allow_temp_dir: bool = True,
@@ -572,7 +600,25 @@ class ProjectUtils(BaseUtil):
 
             # Extrair caminho do arquivo (remove |layername= etc)
             file_path = source.split("|")[0]
-            file_path_resolved = str(Path(file_path).resolve()).lower()
+
+            # Pular se nao parecer um caminho de arquivo real
+            if not ProjectUtils._is_valid_file_path(file_path):
+                if logger:
+                    logger.debug(
+                        f"  ignorando layer (nao parece path): name='{l.name()}', "
+                        f"file_path='{file_path}'"
+                    )
+                continue
+
+            try:
+                file_path_resolved = str(Path(file_path).resolve()).lower()
+            except (OSError, ValueError):
+                if logger:
+                    logger.debug(
+                        f"  ignorando layer (resolve falhou): name='{l.name()}', "
+                        f"file_path='{file_path}'"
+                    )
+                continue
 
             # Log detalhado para debug
             if logger:

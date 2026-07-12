@@ -6,7 +6,7 @@ import json
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 
@@ -471,6 +471,110 @@ class ExplorerUtils(BaseUtil):
             f"restore_extension_dot: nenhum arquivo '{flat_name}' encontrado em '{target_dir}'"
         )
         return None
+
+    @staticmethod
+    def copy_file(
+        source: str,
+        destination: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+        overwrite: bool = True,
+    ) -> bool:
+        """Copia um arquivo diretamente para o destino especificado (path completo)."""
+        logger = ExplorerUtils._get_logger(tool_key)
+        try:
+            if not source or not os.path.isfile(source):
+                logger.error(f"copy_file: arquivo origem invalido: {source}")
+                return False
+
+            if not destination:
+                logger.error("copy_file: caminho destino vazio")
+                return False
+
+            if os.path.exists(destination) and not overwrite:
+                logger.info(
+                    f"copy_file: destino ja existe (sem overwrite): {destination}"
+                )
+                return True
+
+            dst_dir = os.path.dirname(destination)
+            if dst_dir:
+                os.makedirs(dst_dir, exist_ok=True)
+
+            shutil.copy2(source, destination)
+            logger.info(
+                f"copy_file: '{os.path.basename(source)}' -> '{destination}'"
+            )
+            return True
+        except Exception as e:
+            logger.error(f"copy_file: erro ao copiar '{source}' -> '{destination}': {e}")
+            return False
+
+    @staticmethod
+    def get_unique_filepath(
+        filepath: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+    ) -> str:
+        """
+        Gera caminho unico adicionando sufixo _1, _2, _3... se o arquivo ja existir.
+
+        Exemplo:
+            arquivo.gpkg -> arquivo.gpkg (se nao existir)
+            arquivo.gpkg -> arquivo_1.gpkg (se existir)
+            arquivo_1.gpkg -> arquivo_2.gpkg (se existir)
+        """
+        logger = ExplorerUtils._get_logger(tool_key)
+        if not filepath:
+            logger.warning("get_unique_filepath: caminho vazio")
+            return ""
+        if not os.path.exists(filepath):
+            return filepath
+
+        base, ext = os.path.splitext(filepath)
+        counter = 1
+        while os.path.exists(f"{base}_{counter}{ext}"):
+            counter += 1
+        result = f"{base}_{counter}{ext}"
+        logger.debug(f"get_unique_filepath: '{filepath}' -> '{result}'")
+        return result
+
+    @staticmethod
+    def create_temp_file(
+        suffix: str = ".tmp",
+        prefix: str = "cadmus_tmp_",
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+    ) -> Tuple[Optional[int], Optional[str]]:
+        """Cria arquivo temporario no disco e retorna (fd, path)."""
+        logger = ExplorerUtils._get_logger(tool_key)
+        try:
+            fd, path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
+            logger.debug(f"create_temp_file: criado '{path}' (fd={fd})")
+            return fd, path
+        except Exception as e:
+            logger.error(f"create_temp_file: erro ao criar temp file: {e}")
+            return None, None
+
+    @staticmethod
+    def delete_file(
+        file_path: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+        ignore_errors: bool = True,
+    ) -> bool:
+        """Remove um arquivo do disco."""
+        logger = ExplorerUtils._get_logger(tool_key)
+        try:
+            if not file_path:
+                logger.warning("delete_file: caminho vazio")
+                return False
+            if not os.path.isfile(file_path):
+                logger.warning(f"delete_file: arquivo nao encontrado: '{file_path}'")
+                return False
+            os.remove(file_path)
+            logger.debug(f"delete_file: removido '{file_path}'")
+            return True
+        except Exception as e:
+            if not ignore_errors:
+                logger.error(f"delete_file: erro ao remover '{file_path}': {e}")
+            return False
 
     @staticmethod
     def scan_folder(

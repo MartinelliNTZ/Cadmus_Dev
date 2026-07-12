@@ -505,7 +505,7 @@ class ComplexSelector(QWidget):
         )
         try:
             if os.name == "nt":
-                os.startfile(target)  # type: ignore[attr-defined]
+                os.startfile(target)  # type: ignore[attr-defined]  # nosec B606  # Abre Explorer do Windows com caminho selecionado pelo usuario
 
         except Exception as e:
             self._logger.error(

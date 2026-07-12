@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
+import xml.etree.ElementTree as ET  # nosec B405  # defusedxml nao disponivel no QGIS 3.16; XML gerado internamente
+from xml.dom import minidom  # nosec B408  # usado apenas para pretty-print, nao para parsing externo
 from typing import Optional, Dict
 
 from ..utils.BaseUtil import BaseUtil
@@ -53,7 +53,7 @@ class XmlUtil(BaseUtil):
                               QML nao deve ter declaracao - use False.
         """
         rough_string = ET.tostring(root, encoding="unicode")
-        reparsed = minidom.parseString(rough_string)
+        reparsed = minidom.parseString(rough_string)  # nosec B318  # string gerada internamente por ET.tostring, nao externa
         result = reparsed.toprettyxml(indent="  ")
         if not with_declaration:
             # Remove a primeira linha <?xml version="1.0" ?> se presente
@@ -79,7 +79,7 @@ class XmlUtil(BaseUtil):
     def load_xml(file_path: str) -> Optional[ET.Element]:
         """Carrega um arquivo XML e retorna o elemento raiz."""
         try:
-            tree = ET.parse(file_path)
+            tree = ET.parse(file_path)  # nosec B314  # defusedxml nao disponivel; arquivos QML gerados internamente
             return tree.getroot()
         except Exception as e:
             logger.debug(f"load_xml: failed with error: {e}")

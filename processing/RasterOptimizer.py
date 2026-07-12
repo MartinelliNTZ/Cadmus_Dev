@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404  # Necessário para executar gdalinfo/gdaladdo
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -80,7 +80,7 @@ def _has_internal_overviews(raster_path):
     Retorna (tem_overviews: bool, níveis: list[str])
     """
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 B607  # gdalinfo é ferramenta do sistema, caminho controlado
             ["gdalinfo", raster_path],
             capture_output=True,
             text=True,
@@ -101,7 +101,7 @@ def _run_gdaladdo(cmd, raster_path, feedback_queue):
     """
     name = os.path.basename(raster_path)
     try:
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # nosec B603  # cmd construído com parâmetros controlados, sem shell=True
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -593,7 +593,7 @@ class RasterOptimizer(BaseProcessingAlgorithm):
         # Limpar overviews internos
         try:
             cmd = ["gdaladdo", "-clean", raster_path]
-            subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=120)
+            subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=120)  # nosec B603  # gdaladdo caminho fixo, sem shell=True
             feedback.pushInfo(
                 f"  Overviews internos removidos: {os.path.basename(raster_path)}"
             )

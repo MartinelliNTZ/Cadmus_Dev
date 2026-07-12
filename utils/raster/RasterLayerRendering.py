@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405  # defusedxml nao disponivel no QGIS 3.16; QML gerado internamente
 
 from typing import List, Optional
 

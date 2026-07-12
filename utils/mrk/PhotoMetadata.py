@@ -13,6 +13,7 @@ from ...core.config.LogUtils import LogUtils
 from ...core.enum import MetadataFieldKey
 from ...utils.ExplorerUtils import ExplorerUtils
 from ...utils.JsonUtil import JsonUtil
+from ...utils.ToolKeys import ToolKey
 from ...utils.vector.VectorLayerProjection import VectorLayerProjection
 from .CustomPhotosFieldsUtil import CustomPhotosFieldsUtil
 from .ExifUtil import ExifUtil

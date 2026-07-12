@@ -14,7 +14,8 @@ Uso:
 from typing import Dict, List, Tuple, Optional
 from ...core.enum import MetadataFieldKey
 from ..report.RangeMetadataManager import RangeMetadataManager
-
+from ..ToolKeys import ToolKey
+from ...core.config.LogUtils import LogUtils
 # Singleton do RangeMetadataManager
 _range_manager = RangeMetadataManager()
 

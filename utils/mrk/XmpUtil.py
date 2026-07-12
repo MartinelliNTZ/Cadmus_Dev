@@ -3,7 +3,7 @@
 
 import os
 from datetime import datetime
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree as ET  # nosec B405  # defusedxml nao disponivel no QGIS 3.16; XMP lido de arquivos confiaveis
 
 from ...core.config.LogUtils import LogUtils
 from ..ToolKeys import ToolKey
@@ -95,7 +95,7 @@ class XmpUtil:
         data = {}
 
         try:
-            root = ET.fromstring(xmp_text)
+            root = ET.fromstring(xmp_text)  # nosec B314  # defusedxml nao disponivel; XMP extraido de arquivos confiaveis
         except ET.ParseError as exc:
             data["xmp_erro"] = str(exc)
             return data

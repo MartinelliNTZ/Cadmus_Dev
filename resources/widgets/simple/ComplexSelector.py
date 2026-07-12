@@ -38,9 +38,9 @@ import subprocess
 from typing import Callable, Optional
 
 from qgis.PyQt.QtWidgets import (
-    QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget,
+    QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget, QSizePolicy,
 )
-from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtCore import pyqtSignal, Qt
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsProject
 
@@ -165,16 +165,20 @@ class ComplexSelector(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
+        # Trava a altura do widget inteiro para não esticar dentro de grids/forms externos
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+
         # Label
         self._label = QLabel(label_text)
         self._label.setFixedWidth(label_width)
+        self._label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         if tooltip:
             self._label.setToolTip(tooltip)
-        layout.addWidget(self._label)
+        layout.addWidget(self._label, 0, Qt.AlignVCenter)
 
         # ── QStackedWidget: página 0 = QLineEdit, página 1 = QgsMapLayerComboBox ──
         self._stack = QStackedWidget()
-        layout.addWidget(self._stack, 1)
+        layout.addWidget(self._stack, 1, Qt.AlignVCenter)
 
         # Página 0: QLineEdit
         self._edit = QLineEdit()
@@ -213,7 +217,7 @@ class ComplexSelector(QWidget):
                 "Selecionar arquivos" if self._multiple else "Selecionar arquivo"
             )
             self._btn_file.clicked.connect(self._browse_file)
-            layout.addWidget(self._btn_file)
+            layout.addWidget(self._btn_file, 0, Qt.AlignVCenter)
 
         # ── 📁 (folder) ──
         if self._allow_folder:
@@ -223,7 +227,7 @@ class ComplexSelector(QWidget):
                 "Selecionar pastas" if self._multiple else "Selecionar pasta"
             )
             self._btn_folder.clicked.connect(self._browse_folder)
-            layout.addWidget(self._btn_folder)
+            layout.addWidget(self._btn_folder, 0, Qt.AlignVCenter)
 
         # ── 📄 (project — só input, alterna entre line edit e combo) ──
         if self._mode_type == "input" and self._show_project_button:
@@ -231,7 +235,7 @@ class ComplexSelector(QWidget):
             self._btn_project.setFixedWidth(30)
             self._btn_project.setToolTip("Alternar para seleção de camada")
             self._btn_project.clicked.connect(self._on_project_clicked)
-            layout.addWidget(self._btn_project)
+            layout.addWidget(self._btn_project, 0, Qt.AlignVCenter)
 
         # ── 📥 (origin — só output com parent) ──
         if self._show_origin_button:
@@ -239,7 +243,7 @@ class ComplexSelector(QWidget):
             self._btn_origin.setFixedWidth(30)
             self._btn_origin.setToolTip("Usar mesmo diretório da origem")
             self._btn_origin.clicked.connect(self._on_origin_clicked)
-            layout.addWidget(self._btn_origin)
+            layout.addWidget(self._btn_origin, 0, Qt.AlignVCenter)
 
         # ── 🛠️ (suggested — só output) ──
         if self._mode_type == "output" and self._show_suggest_button:
@@ -247,7 +251,7 @@ class ComplexSelector(QWidget):
             self._btn_suggest.setFixedWidth(30)
             self._btn_suggest.setToolTip("Usar pasta do projeto")
             self._btn_suggest.clicked.connect(self._on_suggest_clicked)
-            layout.addWidget(self._btn_suggest)
+            layout.addWidget(self._btn_suggest, 0, Qt.AlignVCenter)
 
         # ── ➡️ (explorer — sempre visível por padrão) ──
         if self._show_explorer_button:
@@ -255,14 +259,14 @@ class ComplexSelector(QWidget):
             self._btn_explorer.setFixedWidth(30)
             self._btn_explorer.setToolTip("Abrir localização no Explorer")
             self._btn_explorer.clicked.connect(self._open_explorer)
-            layout.addWidget(self._btn_explorer)
+            layout.addWidget(self._btn_explorer, 0, Qt.AlignVCenter)
 
         # ── CRS embutido (ao lado dos botões) ──
         if self._crs_enable:
             from resources.widgets.crs.CrsSelectorWidget import CrsSelectorWidget
             self._crs_widget = CrsSelectorWidget(label=None, compact=True)
             self._crs_widget.setFixedWidth(150)
-            layout.addWidget(self._crs_widget)
+            layout.addWidget(self._crs_widget, 0, Qt.AlignVCenter)
 
     # ══════════════════════════════════════════════════════════════════
     # Display

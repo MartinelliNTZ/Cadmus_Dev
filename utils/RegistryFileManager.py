@@ -53,7 +53,7 @@ class RegistryFileManager(BaseUtil):
 
     LICENSE_VERSION: int = 1
     COMPRESSION: bool = True
-    LICENSE_FILENAME: str = "license.dat"
+    LICENSE_FILENAME: str = "A1GPCTR8.dat"
 
     # Nomes dos campos no dicionário
     FIELD_LICENSE_KEY: str = "license_key"

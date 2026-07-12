@@ -90,6 +90,7 @@ def _extract_rtk_level(record: Dict) -> float:
     Extrai o nível RTK de 1-5 como valor numérico para classificação.
     Usa o RangeMetadataManager para classificar o avg_std.
     """
+    logger = LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PqiUtil")
     # Tenta obter avg_std dos RTK STD
     rtk_stds = []
     for key in ["RtkStdLon", "RtkStdLat", "RtkStdHgt"]:
@@ -97,8 +98,8 @@ def _extract_rtk_level(record: Dict) -> float:
         if raw is not None:
             try:
                 rtk_stds.append(float(str(raw).replace(",", ".")))
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                logger.debug(f"_extract_rtk_level: falha ao converter {key}={raw}", error=str(e))
     if len(rtk_stds) >= 2:
         avg_std = sum(rtk_stds) / len(rtk_stds)
         level, _ = _range_manager.classify("rtk_effective_precision", avg_std)
@@ -158,11 +159,13 @@ def _extract_value(record: Dict, indicator: Dict) -> Optional[float]:
     - Busca direta por metadata_key.value
     - Transformações customizadas via value_extractor
     """
+    logger = LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PqiUtil")
     # Se tem extrator customizado, usa ele
     if "value_extractor" in indicator:
         try:
             return indicator["value_extractor"](record)
-        except Exception:
+        except Exception as e:
+            logger.debug("Falha ao executar value_extractor", error=str(e))
             return None
 
     # Busca padrão pela chave canônica
@@ -172,8 +175,8 @@ def _extract_value(record: Dict, indicator: Dict) -> Optional[float]:
         if raw is not None:
             try:
                 return float(str(raw).replace(",", "."))
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Falha ao converter valor {raw}", error=str(e))
 
     return None
 
@@ -220,11 +223,12 @@ class PqiUtil:
             - details: Lista de dicts com detalhes de cada indicador
                 [{"name": str, "level": int, "score_raw": float, "score_weighted": float, "threshold_msg": str}, ...]
         """
+        logger = LogUtils(tool=tool_key, class_name="PqiUtil")
         # Garante que RangeMetadataManager está carregado
         try:
             _range_manager.load()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Falha ao carregar RangeMetadataManager", error=str(e))
 
         details = []
         total_weighted_score = 0.0

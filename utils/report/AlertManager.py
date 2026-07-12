@@ -19,10 +19,12 @@ class AlertRecord:
     affected_count: int = 0  # Numero de imagens/voos afetados
     total_count: int = 0  # Total de imagens/voos analisados
     affected_pct: float = 0.0  # Percentual de itens afetados
-    threshold_value: Optional[float] = None  # Valor do limiar que disparou o alerta
+    # Valor do limiar que disparou o alerta
+    threshold_value: Optional[float] = None
     actual_value: Optional[float] = None  # Valor medido atual
     flight_ids: List[str] = field(default_factory=list)  # Voos afetados
-    photos: List[str] = field(default_factory=list)  # Fotos criticas (limitado)
+    # Fotos criticas (limitado)
+    photos: List[str] = field(default_factory=list)
 
 
 class AlertManager:
@@ -43,7 +45,8 @@ class AlertManager:
     SEVERITY_ALERT = "ALERTA"
     SEVERITY_INFO = "INFO"
 
-    SEVERITY_ORDER = {SEVERITY_CRITICAL: 0, SEVERITY_ALERT: 1, SEVERITY_INFO: 2}
+    SEVERITY_ORDER = {SEVERITY_CRITICAL: 0,
+                      SEVERITY_ALERT: 1, SEVERITY_INFO: 2}
 
     # ===================================================================
     # Metodos utilitarios para extracao de valores de resultados
@@ -120,7 +123,8 @@ class AlertManager:
             # Mapeia indicator_ref para MFK
             mfk_key = AlertManager._indicator_to_mfk(indicator)
             if mfk_key:
-                raw = AlertManager._get_field_from_result(r, f"level5_values.{mfk_key}")
+                raw = AlertManager._get_field_from_result(
+                    r, f"level5_values.{mfk_key}")
                 num = AlertManager._parse_num(raw)
                 if num is not None:
                     return num
@@ -188,7 +192,8 @@ class AlertManager:
         photos: Optional[List[str]] = None,
     ) -> AlertRecord:
         """Cria um AlertRecord com calculo automatico de percentual."""
-        pct = (affected_count / total_count * 100.0) if total_count > 0 else 0.0
+        pct = (affected_count / total_count *
+               100.0) if total_count > 0 else 0.0
         return AlertRecord(
             severity=severity,
             category=category,
@@ -340,7 +345,8 @@ class AlertManager:
         if not severity:
             # Tentar severity_rules com pct_gt
             rules = cfg.get("severity_rules", [])
-            pct = (field_value / total_images * 100.0) if total_images > 0 else 0.0
+            pct = (field_value / total_images *
+                   100.0) if total_images > 0 else 0.0
             for rule in rules:
                 rule_when = rule.get("when", {})
                 if rule_when.get("type") == "pct_gt":
@@ -410,18 +416,17 @@ class AlertManager:
 
         for r in results:
             val = AlertManager._get_value_from_result(r, cfg)
-            if val is None:
-                continue
 
             try:
                 level, _ = config.classify(indicator, val)
             except Exception:
-                continue
+                return None
 
             level_counts[level] += 1
             total_classified += 1
             level_photos[level].append(getattr(r, "filename", "unknown"))
-            level_flights[level].append(getattr(r, "flight_id", "unknown") or "unknown")
+            level_flights[level].append(
+                getattr(r, "flight_id", "unknown") or "unknown")
 
         if total_classified == 0:
             return None
@@ -469,7 +474,8 @@ class AlertManager:
                     level_counts.get(lvl, 0) for lvl in range(1, rule_level + 1)
                 )
                 pct = (
-                    (count / total_classified * 100.0) if total_classified > 0 else 0.0
+                    (count / total_classified *
+                     100.0) if total_classified > 0 else 0.0
                 )
                 if pct > min_pct:
                     match = True
@@ -544,12 +550,11 @@ class AlertManager:
                 val = AlertManager._get_value_from_result(
                     r, {"indicator_ref": indicator}
                 )
-                if val is None:
-                    continue
+
                 try:
                     level, _ = config.classify(indicator, val)
                 except Exception:
-                    continue
+                    return None
                 level_counts[level] += 1
                 total_classified += 1
 
@@ -592,7 +597,8 @@ class AlertManager:
 
             severity = rule.get("severity")
             total_affected = sum(
-                sum(cnt for lvl, cnt in s["level_counts"].items() if lvl <= rule_level)
+                sum(cnt for lvl,
+                    cnt in s["level_counts"].items() if lvl <= rule_level)
                 for s in indicator_stats.values()
             )
 
@@ -609,7 +615,8 @@ class AlertManager:
                     cnt for lvl, cnt in lvl_counts.items() if lvl <= rule_level
                 )
                 pct = (
-                    (count_poor / stats["total"] * 100.0) if stats["total"] > 0 else 0.0
+                    (count_poor / stats["total"] *
+                     100.0) if stats["total"] > 0 else 0.0
                 )
                 levels_raw = config.resolve_indicator_levels(indicator)
                 cutoff = (
@@ -630,7 +637,8 @@ class AlertManager:
                 total_count=total_classified,
                 threshold_value=(
                     AlertManager._parse_num(
-                        config.resolve_indicator_levels(indicators[0])[rule_level - 1]
+                        config.resolve_indicator_levels(indicators[0])[
+                            rule_level - 1]
                     )
                     if indicators
                     and config.resolve_indicator_levels(indicators[0])
@@ -699,7 +707,8 @@ class AlertManager:
             rtk_fixed_count + rtk_float_count + rtk_single_count + rtk_unknown_count
         )
         rtk_non_fixed_count = len(rtk_non_fixed_photos)
-        rtk_fixed_pct = (rtk_fixed_count / rtk_total * 100.0) if rtk_total > 0 else 0.0
+        rtk_fixed_pct = (rtk_fixed_count / rtk_total *
+                         100.0) if rtk_total > 0 else 0.0
         rtk_non_fixed_pct = (
             (rtk_non_fixed_count / rtk_total * 100.0) if rtk_total > 0 else 0.0
         )

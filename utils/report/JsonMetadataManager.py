@@ -389,7 +389,7 @@ class JsonMetadataManager:
                 try:
                     grouped[int(lvl)].append(str(key))
                 except Exception:
-                    continue
+                    return {}
             return {str(i): ", ".join(grouped.get(i, [])) or "-" for i in range(1, 6)}
 
         if ttype == "range_best":
@@ -413,7 +413,7 @@ class JsonMetadataManager:
             try:
                 cuts.append(MathUtils.parse_num(raw))
             except Exception:
-                continue
+                return {}
 
         if len(cuts) < 2:
             return {str(i): "-" for i in range(1, 6)}

@@ -34,7 +34,6 @@ Uso:
 from __future__ import annotations
 
 import os
-import subprocess
 from typing import Callable
 
 from qgis.PyQt.QtWidgets import (
@@ -507,9 +506,7 @@ class ComplexSelector(QWidget):
         try:
             if os.name == "nt":
                 os.startfile(target)  # type: ignore[attr-defined]
-            else:
-                subprocess.Popen(
-                    ["xdg-open", target], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
         except Exception as e:
             self._logger.error(
                 "Erro ao abrir Explorer",

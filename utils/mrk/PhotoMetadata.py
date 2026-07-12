@@ -590,7 +590,8 @@ class PhotoMetadata:
                         )
 
             except Exception as exc:
-                logger.warning(f"Falha ao extrair EXIF de {filename}: {exc}")
+                logger.warning(
+                    f"Falha ao extrair EXIF de {filename}: {exc}", code="EXIF_EXTRACT_ERROR")
 
         return skeleton
 
@@ -643,7 +644,8 @@ class PhotoMetadata:
                         record[k] = v
 
             except Exception as exc:
-                logger.warning(f"Falha ao extrair XMP de {filename}: {exc}")
+                logger.warning(
+                    f"Falha ao extrair XMP de {filename}: {exc}", code="XMP_EXTRACT_ERROR")
 
         return skeleton
 
@@ -691,7 +693,8 @@ class PhotoMetadata:
                                 break
 
         except Exception as exc:
-            logger.warning(f"Falha ao calcular campos custom: {exc}")
+            logger.warning(
+                f"Falha ao calcular campos custom: {exc}", code="CUSTOM_FIELDS_ERROR")
 
         return all_records
 
@@ -734,8 +737,10 @@ class PhotoMetadata:
             try:
                 JsonUtil.update_json(
                     json_path, {"first_photo_coord": coord_info})
-            except Exception:
-                pass
+            except Exception as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PhotoMetadata").debug(
+                    "Falha ao atualizar JSON do first_photo_coord", error=str(e)
+                )
 
         return coord_info
 
@@ -859,7 +864,10 @@ class PhotoMetadata:
             if ref_txt in ("S", "W"):
                 dec = -dec
             return dec
-        except Exception:
+        except Exception as e:
+            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PhotoMetadata").debug(
+                "_extract_gps_decimal_from_dms falhou", error=str(e)
+            )
             return None
 
     @staticmethod
@@ -873,7 +881,10 @@ class PhotoMetadata:
             return None
         try:
             return float(text)
-        except Exception:
+        except Exception as e:
+            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PhotoMetadata").debug(
+                "_to_float falhou", error=str(e)
+            )
             return None
 
     @staticmethod
@@ -885,8 +896,10 @@ class PhotoMetadata:
             return None
         try:
             return datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        except Exception:
-            pass
+        except Exception as e:
+            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PhotoMetadata").debug(
+                "_safe_parse_datetime falhou no formato", error=str(e)
+            )
         formats = [
             "%Y:%m:%d %H:%M:%S",
             "%Y-%m-%d %H:%M:%S",
@@ -900,6 +913,8 @@ class PhotoMetadata:
         for fmt in formats:
             try:
                 return datetime.strptime(str(raw), fmt)
-            except Exception:
-                pass
+            except Exception as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PhotoMetadata").debug(
+                    "_safe_parse_datetime strptime falhou", error=str(e)
+                )
         return None

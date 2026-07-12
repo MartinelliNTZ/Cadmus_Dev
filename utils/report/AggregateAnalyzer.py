@@ -1155,7 +1155,7 @@ class AggregateAnalyzer:
             try:
                 strip_id = int(float(strip))
             except Exception:
-                continue
+                return None
             strip_buckets[strip_id].append(r)
 
         strip_rows = []

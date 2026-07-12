@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-
 from .Strings_pt_BR import Strings_pt_BR
 
 

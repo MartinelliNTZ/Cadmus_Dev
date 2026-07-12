@@ -27,7 +27,8 @@ class AltimetriaTask(BaseTask):
     # EXECUÇÃO (chamado por BaseTask.run())
     # --------------------------------------------------
     def _run(self) -> bool:
-        logger = LogUtils(tool=self.tool_key, class_name=self.__class__.__name__)
+        logger = LogUtils(tool=self.tool_key,
+                          class_name=self.__class__.__name__)
         try:
             url = (
                 "https://api.opentopodata.org/v1/srtm90m"
@@ -37,7 +38,8 @@ class AltimetriaTask(BaseTask):
             # Validação de segurança: aceitar apenas esquemas http/https
             parsed = urlparse(url)
             if parsed.scheme.lower() not in ("http", "https"):
-                self.exception = Exception(f"Invalid URL scheme: {parsed.scheme}")
+                self.exception = Exception(
+                    f"Invalid URL scheme: {parsed.scheme}")
                 return False
 
             host = parsed.hostname
@@ -51,9 +53,11 @@ class AltimetriaTask(BaseTask):
 
             try:
                 if parsed.scheme.lower() == "https":
-                    conn = http.client.HTTPSConnection(host, port=port, timeout=15)
+                    conn = http.client.HTTPSConnection(
+                        host, port=port, timeout=15)
                 else:
-                    conn = http.client.HTTPConnection(host, port=port, timeout=15)
+                    conn = http.client.HTTPConnection(
+                        host, port=port, timeout=15)
                 conn.request(
                     "GET", path, headers={"User-Agent": "Cadmus-Altimetry-Task"}
                 )

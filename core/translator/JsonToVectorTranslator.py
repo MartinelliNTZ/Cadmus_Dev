@@ -29,7 +29,8 @@ class JsonToVectorTranslator:
 
     def __init__(self, tool_key: str = "json_translator"):
         self.tool_key = tool_key
-        self.logger = LogUtils(tool=tool_key, class_name="JsonToVectorTranslator")
+        self.logger = LogUtils(
+            tool=tool_key, class_name="JsonToVectorTranslator")
 
     def translate(
         self,
@@ -49,7 +50,8 @@ class JsonToVectorTranslator:
         records = JsonUtil.load_records(json_path)
 
         if not records:
-            raise ValueError(f"Nenhum registro encontrado no JSON: {json_path}")
+            raise ValueError(
+                f"Nenhum registro encontrado no JSON: {json_path}")
 
         # Determinar source - usar parâmetro ou tentar ler do JSON
         if source is None:
@@ -272,8 +274,10 @@ class JsonToVectorTranslator:
 
             if dms_lat is not None and dms_lon is not None:
                 # Tenta ref de sinal (GPSLatitudeRef / GPSLongitudeRef) se existir
-                ref_lat = record.get("GPSLatitudeRef") or record.get("GpsLatitudeRef")
-                ref_lon = record.get("GPSLongitudeRef") or record.get("GpsLongitudeRef")
+                ref_lat = record.get(
+                    "GPSLatitudeRef") or record.get("GpsLatitudeRef")
+                ref_lon = record.get("GPSLongitudeRef") or record.get(
+                    "GpsLongitudeRef")
                 if str(ref_lat or "").strip().upper() == "S":
                     dms_lat = -dms_lat
                 if str(ref_lon or "").strip().upper() == "W":
@@ -300,7 +304,7 @@ class JsonToVectorTranslator:
             return None
 
     @staticmethod
-    def _dms_tuple_to_float(value, logger = None) -> Optional[float]:
+    def _dms_tuple_to_float(value, logger=None) -> Optional[float]:
         """
         Converte tupla DMS do EXIF (ex: ((13,1), (5,1), (1583,100))) para
         graus decimais.

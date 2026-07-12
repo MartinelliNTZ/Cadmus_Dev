@@ -26,7 +26,6 @@ from ..utils.ProjectUtils import ProjectUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
 
 
-
 class SaveTemporaryLayersPlugin(BasePluginMTL):
     """
     Ferramenta para salvar camadas temporárias (memory) do projeto QGIS
@@ -124,7 +123,7 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                         "selection_mode": "folder",
                         "show_suggest_button": True,
                         "show_explorer_button": True,
-                        "subfolder":"android",
+                        "subfolder": "android",
                         "show_suggest_button": True,
                         "mode_type": "output",
                     },
@@ -234,10 +233,10 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         # Combinar (evitando duplicatas pelo layer.id())
         seen_ids = set()
         all_temp = []
-        for l in memory_layers + temp_file_layers:
-            if l.id() not in seen_ids:
-                seen_ids.add(l.id())
-                all_temp.append(l)
+        for ldat in memory_layers + temp_file_layers:
+            if ldat.id() not in seen_ids:
+                seen_ids.add(ldat.id())
+                all_temp.append(ldat)
 
         self.logger.debug(
             f"_get_temporary_layers: memory={len(memory_layers)}, "
@@ -354,8 +353,6 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 from qgis.core import (
                     QgsVectorFileWriter,
                     QgsCoordinateTransformContext,
-                    QgsProject,
-                    QgsVectorLayer,
                 )
 
                 # ── Sair do modo edição se necessário ──
@@ -414,7 +411,6 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 os.path.join(rasters_dir, filename))
             try:
                 import shutil
-                from qgis.core import QgsProject, QgsRasterLayer
                 from pathlib import Path
 
                 # ── Sair do modo edição se necessário ──

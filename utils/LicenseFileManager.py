@@ -94,7 +94,8 @@ class LicenseFileManager(BaseUtil):
             data[self.FIELD_SIGNATURE] = signature
 
             # Serializa JSON
-            json_str = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            json_str = json.dumps(
+                data, ensure_ascii=False, separators=(",", ":"))
 
             # Converte para bytes
             json_bytes = json_str.encode("utf-8")
@@ -143,7 +144,8 @@ class LicenseFileManager(BaseUtil):
         """
         file_path = self._get_file_path()
         if not os.path.isfile(file_path):
-            self.logger.debug(f"Arquivo de licença não encontrado: {file_path}")
+            self.logger.debug(
+                f"Arquivo de licença não encontrado: {file_path}")
             return None
 
         try:
@@ -170,13 +172,15 @@ class LicenseFileManager(BaseUtil):
 
             # Valida HMAC
             if self.FIELD_SIGNATURE not in data:
-                self.logger.warning("Licença sem assinatura HMAC", code="LIC_NO_SIG")
+                self.logger.warning(
+                    "Licença sem assinatura HMAC", code="LIC_NO_SIG")
                 return None
 
             stored_sig = data.pop(self.FIELD_SIGNATURE, "")
 
             if not self.verify_hmac(data, stored_sig):
-                self.logger.warning("Licença adulterada (HMAC inválido)", code="LIC_TAMPERED")
+                self.logger.warning(
+                    "Licença adulterada (HMAC inválido)", code="LIC_TAMPERED")
                 return None
 
             # Re-adiciona assinatura para consistência
@@ -259,7 +263,8 @@ class LicenseFileManager(BaseUtil):
                     self.logger.warning(f"Licença expirada em {expire_str}")
                     return False
             except (ValueError, TypeError):
-                self.logger.warning(f"Data de expiração inválida: {expire_str}")
+                self.logger.warning(
+                    f"Data de expiração inválida: {expire_str}")
                 return False
 
         # --- Level deve ser numérico ---
@@ -346,7 +351,8 @@ class LicenseFileManager(BaseUtil):
         data_copy = dict(data)
         data_copy.pop(LicenseFileManager.FIELD_SIGNATURE, None)
 
-        json_str = json.dumps(data_copy, ensure_ascii=False, separators=(",", ":"))
+        json_str = json.dumps(
+            data_copy, ensure_ascii=False, separators=(",", ":"))
         json_bytes = json_str.encode("utf-8")
 
         sig = hmac.new(

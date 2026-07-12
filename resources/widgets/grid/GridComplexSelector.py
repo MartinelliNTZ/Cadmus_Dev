@@ -86,7 +86,8 @@ class GridComplexSelector(QWidget):
     ):
         super().__init__(parent)
 
-        self._logger = LogUtils(tool="GridComplexSelector", class_name="GridComplexSelector")
+        self._logger = LogUtils(
+            tool="GridComplexSelector", class_name="GridComplexSelector")
 
         self._grid_id = grid_id or ""
         self._selectors: dict[str, ComplexSelector] = {}
@@ -122,7 +123,8 @@ class GridComplexSelector(QWidget):
             if meta.get("mode_type") == "output":
                 continue
             if callback is not None:
-                self._user_callbacks[label] = lambda paths, _label=label: callback(_label, paths)
+                self._user_callbacks[label] = lambda paths, _label=label: callback(
+                    _label, paths)
             else:
                 self._user_callbacks[label] = None
             if not getattr(selector, '_grid_wrapper_installed', False):
@@ -247,7 +249,8 @@ class GridComplexSelector(QWidget):
             clean_kwargs["show_suggest_button"] = True
             if parent_key:
                 clean_kwargs["parent_selector"] = parent_selector
-                clean_kwargs["show_origin_button"] = True  # ✅ Botão nativo ativado
+                # ✅ Botão nativo ativado
+                clean_kwargs["show_origin_button"] = True
 
         selector = ComplexSelector(parent=self, **clean_kwargs)
         self._selectors[label] = selector
@@ -265,7 +268,8 @@ class GridComplexSelector(QWidget):
             self._self_generated[label] = False
 
         if mode_type == "output" and parent_key and parent_selector:
-            self._connect_output_listener(label, parent_selector, dynamic_parent)
+            self._connect_output_listener(
+                label, parent_selector, dynamic_parent)
             # Conecta o botão 📥 nativo à lógica de origem
             selector.set_origin_callback(
                 partial(self._on_use_origin, label),
@@ -326,10 +330,12 @@ class GridComplexSelector(QWidget):
             and parent_type in ("file", "files")
         )
         if is_single_file:
-            child_selector.set_mode(allow_file=True, allow_folder=False, selection_mode="file")
+            child_selector.set_mode(
+                allow_file=True, allow_folder=False, selection_mode="file")
             child_selector.edit.setPlaceholderText("Arquivo de saída")
         else:
-            child_selector.set_mode(allow_file=False, allow_folder=True, selection_mode="folder")
+            child_selector.set_mode(
+                allow_file=False, allow_folder=True, selection_mode="folder")
             child_selector.edit.setPlaceholderText("Pasta de saída")
 
         self._logger.info(
@@ -460,7 +466,8 @@ class GridComplexSelector(QWidget):
             if not parent_path:
                 return
 
-            parent_dir = os.path.dirname(parent_path) if os.path.isfile(parent_path) else parent_path
+            parent_dir = os.path.dirname(parent_path) if os.path.isfile(
+                parent_path) else parent_path
             fixed_name = meta.get("fixed_name", "")
             suffix = meta.get("suffix", "")
             extension = meta.get("extension", "")
@@ -476,19 +483,23 @@ class GridComplexSelector(QWidget):
                 )
                 if is_single_file:
                     if suffix:
-                        parent_stem = os.path.splitext(os.path.basename(parent_path))[0]
-                        ext = extension if extension.startswith(".") else f".{extension}" if extension else ""
+                        parent_stem = os.path.splitext(
+                            os.path.basename(parent_path))[0]
+                        ext = extension if extension.startswith(
+                            ".") else f".{extension}" if extension else ""
                         output_name = f"{parent_stem}{suffix}{ext}" if extension else f"{parent_stem}{suffix}"
                     else:
                         output_name = fixed_name
                     output_path = os.path.join(parent_dir, output_name)
                     selector.set_path(output_path)
-                    selector.set_mode(allow_file=True, allow_folder=False, selection_mode="file")
+                    selector.set_mode(
+                        allow_file=True, allow_folder=False, selection_mode="file")
                     selector.edit.setPlaceholderText("Arquivo de saída")
                 else:
                     output_path = os.path.join(parent_path, "converted")
                     selector.set_path(output_path)
-                    selector.set_mode(allow_file=False, allow_folder=True, selection_mode="folder")
+                    selector.set_mode(
+                        allow_file=False, allow_folder=True, selection_mode="folder")
                     selector.edit.setPlaceholderText("Pasta de saída")
             else:
                 if parent_selector.is_folder_mode():
@@ -498,8 +509,10 @@ class GridComplexSelector(QWidget):
                 else:
                     output_name = fixed_name
                     if suffix and extension:
-                        parent_stem = os.path.splitext(os.path.basename(parent_path))[0]
-                        ext = extension if extension.startswith(".") else f".{extension}" if extension else ""
+                        parent_stem = os.path.splitext(
+                            os.path.basename(parent_path))[0]
+                        ext = extension if extension.startswith(
+                            ".") else f".{extension}" if extension else ""
                         output_name = f"{parent_stem}{suffix}{ext}"
                     elif extension and not os.path.splitext(fixed_name)[1]:
                         output_name = f"{fixed_name}.{extension}"

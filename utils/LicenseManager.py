@@ -72,7 +72,8 @@ class LicenseManager(BaseUtil):
             self.logger.debug("Nenhum cache de licença encontrado")
             return False
 
-        license_key = (lic_data.get(LicenseFileManager.FIELD_LICENSE_KEY) or "").strip()
+        license_key = (lic_data.get(
+            LicenseFileManager.FIELD_LICENSE_KEY) or "").strip()
 
         if not license_key:
             self.logger.debug("Nenhuma chave de licença configurada")
@@ -139,7 +140,8 @@ class LicenseManager(BaseUtil):
                 "days_remaining": -1,
             }
 
-        license_key = (lic_data.get(LicenseFileManager.FIELD_LICENSE_KEY) or "").strip()
+        license_key = (lic_data.get(
+            LicenseFileManager.FIELD_LICENSE_KEY) or "").strip()
         expire_str = lic_data.get(LicenseFileManager.FIELD_EXPIRE_DATE, "")
         level = lic_data.get(LicenseFileManager.FIELD_LEVEL, 0)
 

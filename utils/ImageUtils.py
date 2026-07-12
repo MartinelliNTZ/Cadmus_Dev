@@ -72,7 +72,8 @@ class ImageUtils(BaseUtil):
             return None
 
         if not os.path.isfile(file_path):
-            logger.error(f"photo_to_base64: arquivo não encontrado: '{file_path}'")
+            logger.error(
+                f"photo_to_base64: arquivo não encontrado: '{file_path}'")
             return None
 
         # ── Verifica extensão ────────────────────────────────────
@@ -88,7 +89,8 @@ class ImageUtils(BaseUtil):
             with open(file_path, "rb") as f:
                 image_bytes = f.read()
         except (IOError, OSError, PermissionError) as e:
-            logger.error(f"photo_to_base64: erro ao ler arquivo '{file_path}': {e}")
+            logger.error(
+                f"photo_to_base64: erro ao ler arquivo '{file_path}': {e}")
             return None
         except Exception as e:
             logger.exception(

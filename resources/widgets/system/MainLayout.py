@@ -431,6 +431,7 @@ class MainLayout(QVBoxLayout):
                     mapped = self._parent_dialog.mapFromGlobal(event.globalPos())
                     mapped_pos = QPoint(mapped.x(), mapped.y())
                 except Exception as e:
+                    logger.debug(f"handle_mouse_press: failed to map position with error: {e}")
                     mapped_pos = event.pos()
             else:
                 mapped_pos = event.pos()

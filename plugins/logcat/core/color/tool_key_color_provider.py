@@ -70,7 +70,6 @@ class ToolKeyColorProvider:
 
         return ToolKey.TOOL_KEY_COLORS.copy()
 
-
     def get_color(self, tool_key: str) -> str:
         """
         Retorna cor para a ferramenta.

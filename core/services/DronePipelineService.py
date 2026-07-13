@@ -58,6 +58,9 @@ class DronePipelineService:
         "apply_style_track": False,
     }
 
+    # Nível mínimo de licença exigido para gerar relatórios
+    LICENSE_LEVEL: int = 3
+
     # ── API PÚBLICA ────────────────────────────────────────────────
 
     @staticmethod
@@ -154,14 +157,14 @@ class DronePipelineService:
             try:
                 from ..config.RegistryManager import RegistryManager
                 license_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
-                if license_mgr.is_license_valid():
+                if license_mgr.has_minimum_level(DronePipelineService.LICENSE_LEVEL):
                     # Import lazy: ReportGenerationStep só é importado se houver licença
                     # Isso permite que o pipeline funcione em modo free sem o módulo
                     from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
                     steps.append(ReportGenerationStep())
                 else:
                     logger.warning(
-                        "Licença inválida — relatório não será gerado"
+                        f"Licença sem nível mínimo {DronePipelineService.LICENSE_LEVEL} — relatório não será gerado"
                     )
             except Exception as e:
                 logger.error(f"Falha ao verificar licença: {e}")
@@ -295,7 +298,7 @@ class DronePipelineService:
             try:
                 from ..config.RegistryManager import RegistryManager
                 license_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
-                if license_mgr.is_license_valid():
+                if license_mgr.has_minimum_level(DronePipelineService.LICENSE_LEVEL):
                     # Import lazy: ReportGenerationService só é importado se houver licença
                     # Permite que o pipeline funcione em modo free sem o módulo
                     from .ReportGenerationService import ReportGenerationService
@@ -304,7 +307,7 @@ class DronePipelineService:
                     ).generate_from_json(json_path)
                 else:
                     logger.warning(
-                        "Licença inválida — relatório não será gerado no pós-processamento"
+                        f"Licença sem nível mínimo {DronePipelineService.LICENSE_LEVEL} — relatório não será gerado no pós-processamento"
                     )
             except Exception as e:
                 logger.error(f"Falha ao gerar report: {e}")

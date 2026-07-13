@@ -17,6 +17,9 @@ class DroneCordinates(BasePluginMTL):
 
     TOOL_KEY = ToolKey.DRONE_COORDINATES
 
+    # Nível mínimo de licença exigido para funcionalidades premium (relatório, logo, título)
+    LICENSE_LEVEL: int = 3
+
     CHECKBOX_OPTIONS = {
         "recursive": STR.RECURSIVE_SEARCH,
         "use_mrk": STR.USE_MRK_DATA,
@@ -54,7 +57,7 @@ class DroneCordinates(BasePluginMTL):
         try:
             from ..core.config.RegistryManager import RegistryManager
             license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
-            is_license_valid = license_mgr.is_license_valid()
+            is_license_valid = license_mgr.has_minimum_level(self.LICENSE_LEVEL)
         except Exception as e:
             self.logger.error(
                 f"Erro ao verificar licença: {e}", code="LICENSE_CHECK_ERROR"

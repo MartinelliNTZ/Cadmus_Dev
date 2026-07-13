@@ -1,6 +1,6 @@
 ---
-description: 'Skill de gerenciamento de licença — LicenseFileManager, LicenseManager, LicenseDialog, integração com SettingsPlugin, filtro por license_level no ToolRegistry.'
-version: '4.0.0'
+description: 'Skill de gerenciamento de licença — RegistryManager, RegistryFileManager, LicenseDialog, integração com SettingsPlugin, filtro por license_level no ToolRegistry, verificação de nível mínimo para relatórios, build_distribution.'
+version: '5.0.0'
 ---
 
 # 🔐 SKILL: Gerenciamento de Licença
@@ -9,16 +9,20 @@ version: '4.0.0'
 
 O sistema de licença do Cadmus é composto por:
 
-1. **LicenseFileManager** (`utils/LicenseFileManager.py`) — persistência em arquivo ofuscado (`%TEMP%/cadmus/license.dat`) com HMAC e XOR
-2. **LicenseManager** (`utils/LicenseManager.py`) — lógica de validação via servidor Supabase, cache, renovação (usa LicenseFileManager internamente)
+1. **RegistryFileManager** (`core/config/RegistryFileManager.py`) — persistência em arquivo ofuscado (`%TEMP%/cadmus/A1GPCTR8.dat`) com HMAC e XOR
+2. **RegistryManager** (`core/config/RegistryManager.py`) — lógica de validação via servidor Supabase, cache, renovação, verificação de nível mínimo (usa RegistryFileManager internamente)
 3. **Security** (`core/config/Security.py`) — credenciais e URL do Supabase
 4. **LicenseDialog** (`resources/widgets/LicenseDialog.py`) — diálogo modal para gerenciamento visual
 5. **SettingsPlugin** — botão "Gerenciar Licença" que abre o LicenseDialog diretamente
 6. **ToolRegistry** — filtro automático de ferramentas por `license_level` baseado no nível atual da licença
+7. **DroneCoordinates** — constante `LICENSE_LEVEL = 3`; controla exibição de itens premium (logo, título, relatório) na UI; usa `has_minimum_level()` em vez de `is_license_valid()`
+8. **DronePipelineService** — constante `LICENSE_LEVEL = 3`; verifica nível mínimo antes de adicionar ReportGenerationStep
+9. **ReportMetadataPlugin** — constante `LICENSE_LEVEL = 3`; verifica nível mínimo antes de gerar relatórios
+10. **build_distribution.py** — empacota módulos em `.dist`; módulos de relatório só são importados se licença for válida
 
 ---
 
-## 🧠 LicenseManager — API Pública
+## 🧠 RegistryManager — API Pública
 
 ### `is_license_valid() -> bool`
 Verifica se a licença é válida com cache e renovação automática.
@@ -43,6 +47,19 @@ Valida a chave no servidor Supabase e salva. Retorna `{"success": bool, "message
 - Se inválida ou servidor offline: NÃO salva, retorna erro
 - Se válida: salva chave, status "active", expiry (+30 dias), nivel (1-5 numérico)
 
+### `get_level() -> int`
+Retorna o nível atual da licença (1-5). Retorna 0 se sem chave ou inválida.
+
+### `has_minimum_level(min_level: int) -> bool`
+Verifica se a licença é válida E tem nível >= `min_level`.
+
+```python
+from ..config.RegistryManager import RegistryManager
+license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
+if license_mgr.has_minimum_level(3):
+    # Só executa se licença válida e nível >= 3
+```
+
 ### `delete_license() -> None`
 Remove o arquivo de licença ofuscado do disco.
 
@@ -53,13 +70,16 @@ Remove o arquivo de licença ofuscado do disco.
 ### Externas
 - `requests` — usado para consultar a API REST do Supabase
 
+### Internas (core/config/)
+- `RegistryFileManager` — persistência em arquivo ofuscado
+- `Security` — credenciais do Supabase
+
 ### Internas (utils/)
-- `LicenseFileManager` — persistência em arquivo ofuscado
 - `BaseUtil` — classe base com logger
 - `ExplorerUtils` — resolução de pastas temporárias
 - `ToolKeys` — constantes de tool_key
 
-### Apenas bibliotecas padrão Python (LicenseFileManager)
+### Apenas bibliotecas padrão Python (RegistryFileManager)
 - `json`, `os`, `base64`, `hashlib`, `hmac`, `secrets`, `zlib`, `datetime`
 
 ---
@@ -129,13 +149,13 @@ Diálogo modal (`QDialog`) em `resources/widgets/LicenseDialog.py`:
 ### Fluxo de Salvamento
 1. Usuário digita chave
 2. Clica em 💾 Salvar
-3. `LicenseManager.save_license_key()` valida no Supabase
+3. `RegistryManager.save_license_key()` valida no Supabase
 4. Se válida: salva, modal sucesso, fecha diálogo
 5. Se inválida ou offline: modal aviso, não salva, diálogo permanece
 
 ### Fluxo de Apagar
 1. Usuário clica em 🗑️ REMOVE
-2. `LicenseManager.delete_license()` remove dados
+2. `RegistryManager.delete_license()` remove dados
 3. Display atualizado para "sem chave"
 
 ---
@@ -144,16 +164,16 @@ Diálogo modal (`QDialog`) em `resources/widgets/LicenseDialog.py`:
 
 - Botão "🔑 Gerenciar Licença" substitui o antigo InputFieldsWidget
 - Ao clicar: `from ..resources.widgets.LicenseDialog import LicenseDialog` + `dialog.exec_()`
-- Licença NÃO é mais salva em `_save_prefs()` — LicenseDialog salva diretamente via LicenseManager
+- Licença NÃO é mais salva em `_save_prefs()` — LicenseDialog salva diretamente via RegistryManager
 
 ---
 
-## 📦 Persistência (LicenseFileManager)
+## 📦 Persistência (RegistryFileManager)
 
 Os dados de licença são persistidos em arquivo ofuscado ao invés de Preferences.
 
 ### Arquivo
-`{TEMP}/cadmus/license.dat`
+`{TEMP}/cadmus/A1GPCTR8.dat`
 
 ### Pipeline de escrita
 ```
@@ -177,20 +197,20 @@ arquivo → Base64 decode → XOR keystream → zlib decompress → JSON → HMA
 | `signature` | str | HMAC-SHA256 hexadecimal |
 
 ### Integridade (HMAC)
-- Chave `_HMAC_KEY` (32 bytes aleatórios) — usada exclusivamente para assinatura
+- Chave `_HMAC_KEY` fixa (constante da classe) — usada exclusivamente para assinatura
 - Assinatura removida antes de recalcular; comparada com `hmac.compare_digest()`
 - Se HMAC não corresponder: licença considerada adulterada → None
 
 ### Ofuscação (XOR + SHA-256 keystream)
-- Chave `_SECRET_KEY` (32 bytes aleatórios) — usada para gerar keystream
+- Chave `_SECRET_KEY` fixa (constante da classe) — usada para gerar keystream
 - Keystream: `SHA256(SECRET_KEY + counter)` para counter=0,1,2... até tamanho necessário
 - XOR byte a byte com os dados comprimidos
 - Resultado codificado em Base64 (ascii)
 
 ### Chaves criptográficas
-- Geradas com `secrets.token_bytes(32)` na primeira inicialização
-- Duas chaves distintas: SECRET_KEY (keystream) e HMAC_KEY (assinatura)
+- Fixas na classe (`RegistryFileManager._SECRET_KEY` e `RegistryFileManager._HMAC_KEY`)
 - Permanecem em memória durante o ciclo de vida do plugin
+- **IMPORTANTE**: chaves NÃO podem mudar entre versões ou arquivos existentes ficarão ilegíveis
 
 ### Observações de segurança
 - **Arquivo ilegível** no Bloco de Notas (Base64 + XOR + compressão)
@@ -198,6 +218,106 @@ arquivo → Base64 decode → XOR keystream → zlib decompress → JSON → HMA
 - **Não utiliza bibliotecas externas** (apenas módulos nativos Python)
 - **Limitação**: XOR com SHA-256 é ofuscação, não substitui AES.
   Um atacante com engenharia reversa pode extrair as chaves do executável.
+
+---
+
+## 🎯 Verificação de Nível Mínimo para Relatórios
+
+Relatórios HTML exigem licença com nível >= 3.
+
+Cada ferramenta que exige nível mínimo de licença define sua própria constante `LICENSE_LEVEL`:
+
+- **DroneCoordinates**: `LICENSE_LEVEL = 3` — controla UI (logo, título, checkbox relatório)
+- **DronePipelineService**: `LICENSE_LEVEL = 3` — controla steps do pipeline
+- **ReportMetadataPlugin**: `LICENSE_LEVEL = 3` — controla geração manual de relatórios
+
+### DroneCoordinates._build_ui()
+
+No método `_build_ui()`, a verificação de licença controla quais elementos da UI são exibidos:
+
+```python
+class DroneCordinates(BasePluginMTL):
+    LICENSE_LEVEL: int = 3
+
+    def _build_ui(self, **kwargs):
+        ...
+        license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
+        is_license_valid = license_mgr.has_minimum_level(self.LICENSE_LEVEL)
+
+        # LOGO / IMAGE SELECTOR (só se licença válida)
+        if is_license_valid:
+            logo_layout, self.logo_selector = WidgetFactory.create_save_file_selector(...)
+            self.opts_collapsible.add_content_layout(logo_layout)
+
+        # PROJETO TITLE (só se licença válida)
+        if is_license_valid:
+            title_layout, self.title_input = WidgetFactory.create_input_fields_widget(...)
+            self.opts_collapsible.add_content_layout(title_layout)
+
+        # Monta checkboxes — remove generate_report se licença inválida
+        checkbox_options = dict(self.CHECKBOX_OPTIONS)
+        if not is_license_valid:
+            checkbox_options.pop("generate_report", None)
+```
+
+### DronePipelineService.execute()
+
+No método `execute()`, ao montar os steps do pipeline:
+
+```python
+class DronePipelineService:
+    LICENSE_LEVEL: int = 3
+
+    @staticmethod
+    def execute(...):
+        ...
+        from ..config.RegistryManager import RegistryManager
+        license_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
+        if license_mgr.has_minimum_level(DronePipelineService.LICENSE_LEVEL):
+            from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
+            steps.append(ReportGenerationStep())
+        else:
+            logger.warning(
+                f"Licença sem nível mínimo {DronePipelineService.LICENSE_LEVEL} — "
+                f"relatório não será gerado"
+            )
+```
+
+### DronePipelineService._on_pipeline_finished()
+
+No callback de sucesso, o mesmo padrão é repetido para gerar relatório no pós-processamento:
+
+```python
+if license_mgr.has_minimum_level(DronePipelineService.LICENSE_LEVEL):
+    from .ReportGenerationService import ReportGenerationService
+    report_payload = ReportGenerationService(
+        tool_key=ToolKey.DRONE_COORDINATES
+    ).generate_from_json(json_path)
+else:
+    logger.warning(
+        f"Licença sem nível mínimo {DronePipelineService.LICENSE_LEVEL} — "
+        f"relatório não será gerado no pós-processamento"
+    )
+```
+
+### ReportMetadataPlugin.execute_tool()
+
+No plugin manual de relatórios, o usuário vê um aviso se não tiver nível suficiente:
+
+```python
+class ReportMetadataPlugin(BasePluginMTL):
+    LICENSE_LEVEL: int = 3
+
+    def execute_tool(self):
+        ...
+        license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
+        if not license_mgr.has_minimum_level(self.LICENSE_LEVEL):
+            QgisMessageUtil.modal_warning(
+                self.iface,
+                f"Relatório requer licença nível {self.LICENSE_LEVEL} ou superior."
+            )
+            return
+```
 
 ---
 
@@ -226,7 +346,7 @@ Chamado automaticamente no final de `ToolRegistry.__init__()`, após a criação
 
 ```python
 def _filter_tools_by_license(self):
-    license_mgr = LicenseManager(ToolKey.SYSTEM)
+    license_mgr = RegistryManager(ToolKey.SYSTEM)
     lic_info = license_mgr.get_license_info()
     current_level = lic_info.get("nivel", 0)
 
@@ -254,13 +374,75 @@ divide_points_by_strips = Tool(
 
 ---
 
+## 📦 build_distribution.py
+
+O script `build_distribution.py` compila e empacota módulos em um arquivo `.dist`.
+
+### Módulos de relatório no MODULES
+
+O dicionário `MODULES` inclui os módulos de relatório para que sejam compilados:
+```python
+MODULES = {
+    "plugins": [
+        "PathExtensionPlugin.py",
+        "ReportMetadataPlugin.py",  # Plugin de relatório
+    ],
+    "core/services": [
+        "ReportGenerationService.py",  # Serviço de relatório
+    ],
+    "core/task": [
+        "ReportGenerationTask.py",
+    ],
+    "core/engine_tasks": [
+        "ReportGenerationStep.py",
+    ],
+    "utils/report": [
+        "__init__.py",
+        "AggregateAnalyzer.py",
+        "AlertManager.py",
+        ...
+    ],
+    ...
+}
+```
+
+### Mecanismo de proteção em modo free
+
+Embora os módulos estejam no `MODULES` e sejam compilados/empacotados, a proteção em modo free ocorre em **tempo de execução** via import lazy:
+
+1. Os imports dos módulos de relatório (`ReportGenerationService`, `ReportGenerationStep`) são feitos dentro de funções/métodos (não no topo do arquivo)
+2. Antes de cada import, uma verificação de licença é feita com `has_minimum_level(LICENSE_LEVEL)`
+3. Se a licença não for válida ou o nível for insuficiente, o import nunca acontece
+
+Isso significa que:
+- O **DronePipelineService** funciona completamente em modo free sem os módulos de relatório
+- O **ReportMetadataPlugin** abre a UI, mas o botão de gerar relatório exibe aviso se não tiver nível >= 3
+- O **build_distribution** pode compilar tudo sem problemas — a proteção está no runtime
+
+### Fluxo no modo free
+
+```
+DronePipelineService.execute()
+  → has_minimum_level(3)? → NÃO → log warning, pipeline sem ReportGenerationStep
+  → pipeline executa normalmente: fotos, coordenadas, vetorização
+  → relatório NÃO é gerado
+
+ReportMetadataPlugin.execute_tool()
+  → has_minimum_level(3)? → NÃO → modal warning "Relatório requer licença nível 3+"
+  → relatório NÃO é gerado
+```
+
+---
+
 ## 🚫 Proibições
 
 - **Nunca** importar `LicenseDialog` em WidgetFactory (diálogo não é widget)
-- **Nunca** manipular dados de licença manualmente — usar `LicenseManager`
+- **Nunca** manipular dados de licença manualmente — usar `RegistryManager`
 - **Nunca** exibir chave completa na UI — usar `key_preview` (4 primeiros chars + "****")
 - **Nunca** chamar `_query_server()` ou `_check_license()` diretamente — usar os métodos públicos
-- **Nunca** usar `Preferences` para dados de licença — usar `LicenseFileManager` via `LicenseManager`
+- **Nunca** usar `Preferences` para dados de licença — usar `RegistryFileManager` via `RegistryManager`
+- **Nunca** fazer import global de módulos de relatório — usar import lazy dentro de funções com verificação de licença
+- **Nunca** remover módulos de relatório do `build_distribution.MODULES` — a proteção é em runtime, não em compile time
 
 ---
 
@@ -271,5 +453,6 @@ divide_points_by_strips = Tool(
 | 2026-07-11 | 1.0.0 | Criação da skill |
 | 2026-07-11 | 1.0.1 | Renomeado LicenseDialogWidget → LicenseDialog; removido factory method do WidgetFactory; strings genéricas |
 | 2026-07-11 | 2.0.0 | Migração para validação via servidor Supabase; removido VALID_LICENSE_KEY local e tiers textuais; apenas nivel numérico 1-5 |
-| 2026-07-11 | 3.0.0 | Migração de persistência de Preferences para LicenseFileManager (arquivo ofuscado %TEMP%/cadmus/license.dat); removida dependência de Preferences |
+| 2026-07-11 | 3.0.0 | Migração de persistência de Preferences para RegistryFileManager (arquivo ofuscado %TEMP%/cadmus/A1GPCTR8.dat); removida dependência de Preferences |
 | 2026-07-11 | 4.0.0 | Adicionado atributo `license_level` em `Tool` e filtro `_filter_tools_by_license()` em `ToolRegistry`; ferramentas com `license_level` maior que o nível atual da licença são removidas da lista; `divide_points_by_strips` configurado com `license_level=1` |
+| 2026-07-13 | 5.0.0 | Adicionado método `get_level()` e `has_minimum_level()` no RegistryManager; constante `LICENSE_LEVEL=3` movida para cada ferramenta (DroneCoordinates, ReportMetadataPlugin e DronePipelineService); documentado build_distribution com proteção em runtime via import lazy |

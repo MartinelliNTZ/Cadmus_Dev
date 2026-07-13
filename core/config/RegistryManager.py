@@ -214,6 +214,35 @@ class RegistryManager(BaseUtil):
         )
         return {"success": True, "message": "Licença salva e validada com sucesso."}
 
+    def get_level(self) -> int:
+        """
+        Retorna o nível atual da licença.
+
+        Returns:
+            int: Nível 1-5 se licença válida, 0 se sem chave ou inválida.
+        """
+        lic_info = self.get_license_info()
+        return lic_info.get("nivel", 0)
+
+    def has_minimum_level(self, min_level: int) -> bool:
+        """
+        Verifica se o nível da licença atual é >= min_level.
+
+        A licença precisa ser válida (is_license_valid()) E ter nível
+        suficiente.
+
+        Args:
+            min_level: Nível mínimo exigido (ex: 3).
+
+        Returns:
+            bool: True se a licença é válida e tem nível >= min_level.
+        """
+        if not self.is_license_valid():
+            return False
+
+        current_level = self.get_level()
+        return current_level >= min_level
+
     def delete_license(self) -> None:
         """
         Remove o arquivo de licença ofuscado do disco.

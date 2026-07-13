@@ -4,7 +4,7 @@ from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from ...i18n.TranslationManager import STR
 
 
-class BottomActionButtonsWidget(QWidget):
+class ExecutionButtonsWidget(QWidget):
     """
     Widget padronizado de botões inferiores (Run / Close / Info).
     """

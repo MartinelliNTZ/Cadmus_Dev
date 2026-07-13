@@ -2,7 +2,7 @@
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
 from ....i18n.TranslationManager import STR
-from ....resources.widgets.SelectorWidget import SelectorWidget
+from ....resources.widgets.simple.SelectorWidget import SelectorWidget
 
 
 class DefaultProjectsFolderDialog(QDialog):

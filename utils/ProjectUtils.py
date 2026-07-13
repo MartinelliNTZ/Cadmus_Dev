@@ -8,6 +8,7 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsProject,
     QgsMapLayer,
+    QgsRasterLayer,
     QgsVectorLayer,
 )
 
@@ -452,20 +453,18 @@ class ProjectUtils(BaseUtil):
             logger.debug(
                 f"get_all_layers: total={len(layers)}, filter_type={layer_type}"
             )
-            from qgis.core import QgsRasterLayer
-            for l in layers:
-                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+            for layer in layers:
+                layer_type_str = "vector" if isinstance(layer, QgsVectorLayer) else "raster"
                 logger.debug(
-                    f"  layer: name='{l.name()}', provider='{l.providerType()}', "
+                    f"  layer: name='{layer.name()}', provider='{layer.providerType()}', "
                     f"type='{layer_type_str}', "
-                    f"valid={l.isValid()}"
+                    f"valid={layer.isValid()}"
                 )
 
         if layer_type == "vector":
-            return [l for l in layers if isinstance(l, QgsVectorLayer)]
+            return [layer for layer in layers if isinstance(layer, QgsVectorLayer)]
         elif layer_type == "raster":
-            from qgis.core import QgsRasterLayer
-            return [l for l in layers if isinstance(l, QgsRasterLayer)]
+            return [layer for layer in layers if isinstance(layer, QgsRasterLayer)]
 
         return layers
 
@@ -490,38 +489,65 @@ class ProjectUtils(BaseUtil):
         all_layers = list(resolved.mapLayers().values())
 
         temp_layers = [
-            l for l in all_layers
-            if l and l.isValid() and (l.providerType() or "") == provider_name
+            layer for layer in all_layers
+            if layer and layer.isValid() and (layer.providerType() or "") == provider_name
         ]
 
         if logger:
-            from qgis.core import QgsRasterLayer
             logger.debug(
                 f"get_temporary_layers: total={len(all_layers)}, "
                 f"provider='{provider_name}', encontradas={len(temp_layers)}"
             )
-            for l in temp_layers:
-                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+            for layer in temp_layers:
+                layer_type_str = "vector" if isinstance(layer, QgsVectorLayer) else "raster"
                 logger.debug(
-                    f"  temp_layer: name='{l.name()}', "
+                    f"  temp_layer: name='{layer.name()}', "
                     f"type='{layer_type_str}', "
-                    f"source='{l.source()}'"
+                    f"source='{layer.source()}'"
                 )
             if not temp_layers:
                 logger.debug(
                     "Nenhuma camada temporária encontrada. "
                     "Listando todas as camadas para debug:"
                 )
-                for l in all_layers:
-                    layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+                for layer in all_layers:
+                    layer_type_str = "vector" if isinstance(layer, QgsVectorLayer) else "raster"
                     logger.debug(
-                        f"  layer: name='{l.name()}', "
-                        f"provider='{l.providerType()}', "
-                        f"valid={l.isValid()}, "
+                        f"  layer: name='{layer.name()}', "
+                        f"provider='{layer.providerType()}', "
+                        f"valid={layer.isValid()}, "
                         f"type='{layer_type_str}'"
                     )
 
         return temp_layers
+
+    @staticmethod
+    def _is_valid_file_path(file_path: str) -> bool:
+        """Verifica se uma string parece um caminho de arquivo valido no Windows.
+
+        Retorna False para URIs, sources de memory layer, XYZ tiles, etc.
+        """
+        if not file_path:
+            return False
+
+        # URIs com protocolo (https://, http://, etc.)
+        if "://" in file_path:
+            return False
+
+        # Sources com query string (type=xyz&..., Point?crs=..., etc.)
+        if "?" in file_path:
+            return False
+
+        # Sources que comecam com memory:
+        if file_path.startswith("memory:"):
+            return False
+
+        # Caminhos validos no Windows comecam com letra:, \\, ou sao relativos
+        # Se tem : e nao e C:\ etc, provavelmente e URI
+        if ":" in file_path and not file_path[1:3] == ":\\" and not file_path.startswith("\\\\"):
+            return False
+
+        return True
 
     @staticmethod
     def get_temp_file_layers(
@@ -563,21 +589,39 @@ class ProjectUtils(BaseUtil):
         temp_marker = os.path.sep + "temp" + os.path.sep
 
         temp_file_layers = []
-        for l in all_layers:
-            if not l or not l.isValid():
+        for layer in all_layers:
+            if not layer or not layer.isValid():
                 continue
-            source = l.source() or ""
+            source = layer.source() or ""
             if not source:
                 continue
 
             # Extrair caminho do arquivo (remove |layername= etc)
             file_path = source.split("|")[0]
-            file_path_resolved = str(Path(file_path).resolve()).lower()
+
+            # Pular se nao parecer um caminho de arquivo real
+            if not ProjectUtils._is_valid_file_path(file_path):
+                if logger:
+                    logger.debug(
+                        f"  ignorando layer (nao parece path): name='{layer.name()}', "
+                        f"file_path='{file_path}'"
+                    )
+                continue
+
+            try:
+                file_path_resolved = str(Path(file_path).resolve()).lower()
+            except (OSError, ValueError):
+                if logger:
+                    logger.debug(
+                        f"  ignorando layer (resolve falhou): name='{layer.name()}', "
+                        f"file_path='{file_path}'"
+                    )
+                continue
 
             # Log detalhado para debug
             if logger:
                 logger.debug(
-                    f"  verificando layer: name='{l.name()}', "
+                    f"  verificando layer: name='{layer.name()}', "
                     f"file_path='{file_path}', "
                     f"resolved='{file_path_resolved}', "
                     f"temp_root='{temp_root}'"
@@ -591,21 +635,20 @@ class ProjectUtils(BaseUtil):
                 is_in_temp = file_path_resolved.startswith(temp_root)
 
             if is_in_temp:
-                temp_file_layers.append(l)
+                temp_file_layers.append(layer)
 
         if logger:
-            from qgis.core import QgsRasterLayer
             logger.debug(
                 f"get_temp_file_layers: total={len(all_layers)}, "
                 f"temp_root='{temp_root}', encontradas={len(temp_file_layers)}"
             )
-            for l in temp_file_layers:
-                layer_type_str = "vector" if isinstance(l, QgsVectorLayer) else "raster"
+            for layer in temp_file_layers:
+                layer_type_str = "vector" if isinstance(layer, QgsVectorLayer) else "raster"
                 logger.debug(
-                    f"  temp_file_layer: name='{l.name()}', "
+                    f"  temp_file_layer: name='{layer.name()}', "
                     f"type='{layer_type_str}', "
-                    f"provider='{l.providerType()}', "
-                    f"source='{l.source()}'"
+                    f"provider='{layer.providerType()}', "
+                    f"source='{layer.source()}'"
                 )
 
         return temp_file_layers

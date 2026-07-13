@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from ...core.config.LogUtils import LogUtils
-from ...i18n.TranslationManager import STR
+from ....core.config.LogUtils import LogUtils
+from ....i18n.TranslationManager import STR
 from qgis.PyQt.QtWidgets import QFrame, QLabel, QPushButton, QHBoxLayout
 from qgis.PyQt.QtCore import Qt, pyqtSignal, QPoint
 from qgis.PyQt.QtGui import QPixmap

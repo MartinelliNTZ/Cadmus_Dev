@@ -104,7 +104,8 @@ class CustomPhotosFieldsUtil:
     def _get_abs_speed(data: Dict, field_key: MetadataFieldKey, *legacy_keys) -> float:
         return abs(
             CustomPhotosFieldsUtil.safe_float(
-                CustomPhotosFieldsUtil._get(data, field_key, *legacy_keys, default=0.0)
+                CustomPhotosFieldsUtil._get(
+                    data, field_key, *legacy_keys, default=0.0)
             )
         )
 
@@ -116,7 +117,8 @@ class CustomPhotosFieldsUtil:
         Busca e converte para float seguro usando _get.
         """
         return CustomPhotosFieldsUtil.safe_float(
-            CustomPhotosFieldsUtil._get(data, field_key, *legacy_keys, default=default),
+            CustomPhotosFieldsUtil._get(
+                data, field_key, *legacy_keys, default=default),
             default=default if isinstance(default, (int, float)) else 0.0,
         )
 
@@ -159,8 +161,10 @@ class CustomPhotosFieldsUtil:
 
         try:
             return datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        except Exception:
-            pass
+        except (ValueError, TypeError) as e:
+            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="CustomPhotosFieldsUtil").debug(
+                "parse_datetime: fromisoformat falhou", error=str(e)
+            )
 
         formats = (
             "%Y:%m:%d %H:%M:%S",
@@ -175,7 +179,10 @@ class CustomPhotosFieldsUtil:
         for fmt in formats:
             try:
                 return datetime.strptime(raw, fmt)
-            except Exception:
+            except (ValueError, TypeError) as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="CustomPhotosFieldsUtil").debug(
+                    f"parse_datetime: strptime falhou com formato {fmt}", error=str(e)
+                )
                 continue
         return None
 
@@ -194,7 +201,8 @@ class CustomPhotosFieldsUtil:
                 MetadataFieldKey.UTC_AT_EXPOSURE.value,
                 data.get(MetadataFieldKey.UTC_AT_EXPOSURE.value),
             ),
-            (MetadataFieldKey.DT_FULL.value, data.get(MetadataFieldKey.DT_FULL.value)),
+            (MetadataFieldKey.DT_FULL.value, data.get(
+                MetadataFieldKey.DT_FULL.value)),
         )
         for source, value in candidates:
             parsed = CustomPhotosFieldsUtil.parse_datetime(value)
@@ -221,7 +229,8 @@ class CustomPhotosFieldsUtil:
             data, MetadataFieldKey.CAMERA_SERIAL_NUMBER, default="UNKNOWN"
         )
         dt, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(data)
-        date_str = dt.strftime("%Y-%m-%d") if dt is not None else "UNKNOWN_DATE"
+        date_str = dt.strftime(
+            "%Y-%m-%d") if dt is not None else "UNKNOWN_DATE"
         return f"{drone_sn[:8]}_{camera_sn[:8]}_{date_str}"
 
     @staticmethod
@@ -240,7 +249,8 @@ class CustomPhotosFieldsUtil:
 
         # 2. dt_diff
         dt_curr, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(curr_data)
-        dt_other, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(other_data)
+        dt_other, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(
+            other_data)
         if dt_curr is None or dt_other is None:
             return False
         dt_diff = abs((dt_curr - dt_other).total_seconds())
@@ -316,7 +326,8 @@ class CustomPhotosFieldsUtil:
             Tuple (sensor_width_mm, sensor_height_mm, focal_real_mm, img_w_px, img_h_px)
         """
         logger = CustomPhotosFieldsUtil._get_logger()
-        logger.debug(f"Obtendo parâmetros da câmera para foto com dados: {data}")
+        logger.debug(
+            f"Obtendo parâmetros da câmera para foto com dados: {data}")
 
         # Tenta obter modelo do drone/câmera
         model = CustomPhotosFieldsUtil._get(
@@ -431,7 +442,8 @@ class CustomPhotosFieldsUtil:
             data, MetadataFieldKey.RELATIVE_ALTITUDE, default=0
         )
         if h_m > 0:
-            logger.debug(f"_get_effective_height via RelativeAltitude: H={h_m:.4f}m")
+            logger.debug(
+                f"_get_effective_height via RelativeAltitude: H={h_m:.4f}m")
             return h_m
 
         # 3. Fallback: AbsoluteAltitude
@@ -439,7 +451,8 @@ class CustomPhotosFieldsUtil:
             data, MetadataFieldKey.ABSOLUTE_ALTITUDE, default=0
         )
         if h_m > 0:
-            logger.debug(f"_get_effective_height via AbsoluteAltitude: H={h_m:.4f}m")
+            logger.debug(
+                f"_get_effective_height via AbsoluteAltitude: H={h_m:.4f}m")
             return h_m
 
         logger.debug(
@@ -504,7 +517,8 @@ class CustomPhotosFieldsUtil:
             }
 
         dt_curr, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(data)
-        dt_other, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(other_data)
+        dt_other, _ = CustomPhotosFieldsUtil.resolve_capture_datetime(
+            other_data)
         if dt_curr is None or dt_other is None:
             prefix = f"{direction}_"
             return {
@@ -626,7 +640,8 @@ class CustomPhotosFieldsUtil:
             else max(gsd_x_cm, gsd_y_cm)
         )
         gsd_m_px = gsd_cm_px / 100
-        logger.debug(f"GSD final={gsd_cm_px:.4f} cm/pixel ({gsd_m_px:.6f} m/pixel)")
+        logger.debug(
+            f"GSD final={gsd_cm_px:.4f} cm/pixel ({gsd_m_px:.6f} m/pixel)")
 
         # Heat index
         sens_temp = CustomPhotosFieldsUtil._get_safe(
@@ -664,14 +679,17 @@ class CustomPhotosFieldsUtil:
             data, MetadataFieldKey.F_NUMBER, default=2.8
         )
 
-        motion_blur_risk = (speed_3d * exp_time / gsd_m_px) if gsd_m_px > 0 else 0.0
-        exposure_value_ev = math.log2(fnumber**2 / exp_time) if exp_time > 0 else 0.0
+        motion_blur_risk = (speed_3d * exp_time /
+                            gsd_m_px) if gsd_m_px > 0 else 0.0
+        exposure_value_ev = math.log2(
+            fnumber**2 / exp_time) if exp_time > 0 else 0.0
 
         # ── FOV (Field of View) ──────────────────────────────────────────
         # FOV = 2 * arctan(diagonal_sensor / (2 * focal_real))
         diagonal_sensor_mm = math.sqrt(sensor_w**2 + sensor_h**2)
         if focal > 0:
-            fov_degrees = 2 * math.degrees(math.atan(diagonal_sensor_mm / (2 * focal)))
+            fov_degrees = 2 * \
+                math.degrees(math.atan(diagonal_sensor_mm / (2 * focal)))
         else:
             fov_degrees = 0.0
         logger.debug(
@@ -701,7 +719,8 @@ class CustomPhotosFieldsUtil:
         )
         focus_distance_mm = focus_distance_m * 1000.0 if focus_distance_m > 0 else 0.0
         if focal > 0 and fnumber > 0 and coc_mm > 0 and focus_distance_mm > 0:
-            dof_mm = (2.0 * focus_distance_mm**2 * fnumber * coc_mm) / (focal**2)
+            dof_mm = (2.0 * focus_distance_mm**2 *
+                      fnumber * coc_mm) / (focal**2)
             dof_m = dof_mm / 1000.0
         else:
             dof_m = 0.0
@@ -821,7 +840,8 @@ class CustomPhotosFieldsUtil:
 
         displacement_dir = prev_dir if prev_dir is not None else flight_yaw
         yaw_alignment_error = min(
-            abs(flight_yaw - displacement_dir), 360 - abs(flight_yaw - displacement_dir)
+            abs(flight_yaw - displacement_dir), 360 -
+            abs(flight_yaw - displacement_dir)
         )
 
         return {
@@ -972,8 +992,9 @@ class CustomPhotosFieldsUtil:
         # Garante que RangeMetadataManager está carregado
         try:
             range_metadata_manager.load()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(
+                "Falha ao carregar RangeMetadataManager", error=str(e))
 
         # RTK Precision classificada pelo config.yaml (5 níveis: Excelente, Alta, Média, Baixa, Critica)
         rtk_flag = CustomPhotosFieldsUtil._get(data, MetadataFieldKey.RTK_FLAG)
@@ -1110,7 +1131,8 @@ class CustomPhotosFieldsUtil:
 
         # Flags
         abrupt_flag = (
-            1.0  # ratio default = 1.0 (sem mudança, atualizado no pós-processamento)
+            # ratio default = 1.0 (sem mudança, atualizado no pós-processamento)
+            1.0
         )
         ideal_overlap = pred_overlap >= CustomPhotosFieldsUtil.IDEAL_OVERLAP
 
@@ -1206,7 +1228,8 @@ class CustomPhotosFieldsUtil:
             MetadataFieldKey.CAPTURE_EFFICIENCY.value: round(
                 capture_efficiency, DECIMAL_PLACES
             ),
-            MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX.value: 0.0,  # placeholder, atualizado no pós-processamento
+            # placeholder, atualizado no pós-processamento
+            MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX.value: 0.0,
         }
 
     @staticmethod
@@ -1256,7 +1279,8 @@ class CustomPhotosFieldsUtil:
         xy_diff = 0.0
         if mrk_lat != 0.0 or mrk_lon != 0.0 or gps_lat != 0.0 or gps_lon != 0.0:
             xy_diff = round(
-                CustomPhotosFieldsUtil.haversine(mrk_lat, mrk_lon, gps_lat, gps_lon),
+                CustomPhotosFieldsUtil.haversine(
+                    mrk_lat, mrk_lon, gps_lat, gps_lon),
                 DECIMAL_PLACES,
             )
 
@@ -1303,7 +1327,8 @@ class CustomPhotosFieldsUtil:
                     "%Y:%m:%d %H:%M:%S"
                 )
             if data.get(MetadataFieldKey.DT_FULL.value) in (None, "", "None", "null"):
-                data[MetadataFieldKey.DT_FULL.value] = dt.strftime("%Y%m%d%H%M")
+                data[MetadataFieldKey.DT_FULL.value] = dt.strftime(
+                    "%Y%m%d%H%M")
             if data.get(MetadataFieldKey.DT_DATE.value) in (None, "", "None", "null"):
                 data[MetadataFieldKey.DT_DATE.value] = dt.strftime("%Y%m%d")
             if data.get(MetadataFieldKey.DT_TIME.value) in (None, "", "None", "null"):
@@ -1312,7 +1337,8 @@ class CustomPhotosFieldsUtil:
         # Ordenar por datetime
         sorted_items = sorted(
             metadata_dict.items(),
-            key=lambda x: cls.resolve_capture_datetime(x[1])[0] or datetime.max,
+            key=lambda x: cls.resolve_capture_datetime(x[1])[
+                0] or datetime.max,
         )
         logger.info(
             "Fallback de datetime aplicado no calculo custom",
@@ -1333,14 +1359,16 @@ class CustomPhotosFieldsUtil:
         for i, (filename, data) in enumerate(sorted_items):
             prev_item = sorted_items[i - 1] if i > 0 else None
             prev_prev_item = sorted_items[i - 2] if i > 1 else None
-            next_item = sorted_items[i + 1] if i < len(sorted_items) - 1 else None
+            next_item = sorted_items[i +
+                                     1] if i < len(sorted_items) - 1 else None
 
             prev_data = prev_item[1] if prev_item else None
             next_data = next_item[1] if next_item else None
 
             # Validações sequência
             valid_prev = cls.is_valid_sequence(data, prev_data)
-            valid_next = cls.is_valid_sequence(next_data, data) if next_data else False
+            valid_next = cls.is_valid_sequence(
+                next_data, data) if next_data else False
 
             # Logging de diagnóstico para sequência inválida
             if prev_data and not valid_prev:
@@ -1382,7 +1410,8 @@ class CustomPhotosFieldsUtil:
             # Outros
             gim_3d = cls._calculate_gimbal_3d(
                 data,
-                prev_seq.get("prev_displacement_direction") if valid_prev else None,
+                prev_seq.get(
+                    "prev_displacement_direction") if valid_prev else None,
             )
             quality = cls._calculate_quality_scores(
                 data,
@@ -1397,7 +1426,8 @@ class CustomPhotosFieldsUtil:
             )
 
             current_segment_dir = (
-                prev_seq.get("prev_displacement_direction") if valid_prev else None
+                prev_seq.get(
+                    "prev_displacement_direction") if valid_prev else None
             )
             trajectory_smoothness = 0.0
             if current_segment_dir is not None and prev_segment_dir is not None:
@@ -1464,7 +1494,8 @@ class CustomPhotosFieldsUtil:
                     prev_seq.get("prev_avg_velocity", 0.0), DECIMAL_PLACES
                 ),
                 MetadataFieldKey.DISPLACEMENT_DIRECTION.value: round(
-                    prev_seq.get("prev_displacement_direction", 0.0), DECIMAL_PLACES
+                    prev_seq.get("prev_displacement_direction",
+                                 0.0), DECIMAL_PLACES
                 ),
                 MetadataFieldKey.F_OVERLAP.value: round(
                     quality[MetadataFieldKey.F_OVERLAP.value], DECIMAL_PLACES
@@ -1523,14 +1554,18 @@ class CustomPhotosFieldsUtil:
         # Pós-processamento: PQI via PqiUtil e classifica AbruptChangeFlag
         try:
             range_metadata_manager.load()
-        except Exception:
-            pass
-        median_time = statistics.median(prev_time_values) if prev_time_values else 0.0
-        median_geo = statistics.median(prev_geo_values) if prev_geo_values else 0.0
+        except Exception as e:
+            logger.warning(
+                "Falha ao carregar RangeMetadataManager no pos-processamento", error=str(e))
+        median_time = statistics.median(
+            prev_time_values) if prev_time_values else 0.0
+        median_geo = statistics.median(
+            prev_geo_values) if prev_geo_values else 0.0
         for filename, item in result.items():
             # 1. Calcula PQI via PqiUtil (score orquestrado por indicadores com pesos)
             try:
-                pqi_score, pqi_details = PqiUtil.calculate(item, tool_key=tool_key)
+                pqi_score, pqi_details = PqiUtil.calculate(
+                    item, tool_key=tool_key)
                 item[MetadataFieldKey.PHOTOGRAMMETRY_QUALITY_INDEX.value] = pqi_score
             except Exception as exc:
                 logger.warning(f"Falha ao calcular PQI para {filename}: {exc}")
@@ -1540,7 +1575,8 @@ class CustomPhotosFieldsUtil:
             time_ratio = 1.0
             geo_ratio = 1.0
             if median_time > 0:
-                time_val = item.get(MetadataFieldKey.TIME_SINCE_PREVIOUS.value, 0.0)
+                time_val = item.get(
+                    MetadataFieldKey.TIME_SINCE_PREVIOUS.value, 0.0)
                 time_ratio = time_val / median_time if time_val > 0 else 1.0
             if median_geo > 0:
                 geo_val = item.get(

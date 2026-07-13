@@ -1,7 +1,7 @@
 bandit -r . -f html -o bandit-report.html
 flake8 . --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
 flake8 . --ignore=E501 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
-flake8 . --max-line-length=100 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
+flake8 . --max-line-length=500 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
 ferramentas = #                              tool_key                          tipo                            plugin_class / algorithm             categoria      resumo
     - 01: Exportar Todos os Layouts             EXPORT_ALL_LAYOUTS               DIALOG                           ExportAllLayoutsPlugin                LAYOUTS        Exporta todos os layouts (PDF/PNG) em livro; substitui produtos antigos
     - 02: Substituir Textos nos Layouts         REPLACE_IN_LAYOUTS               DIALOG                           ReplaceInLayoutsPlugin                LAYOUTS        Substitui textos nos layouts do projeto; alteração crítica no QGZ

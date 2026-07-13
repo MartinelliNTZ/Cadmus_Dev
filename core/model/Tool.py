@@ -18,6 +18,7 @@ class Tool:
         tooltip=None,
         order=100,
         show_in_toolbar=True,
+        license_level=None,
     ):
         self.logger = LogUtils(tool=ToolKey.SYSTEM, class_name="Tool")
 
@@ -31,6 +32,7 @@ class Tool:
         self.tooltip = tooltip
         self.order = order
         self.show_in_toolbar = show_in_toolbar
+        self.license_level = license_level
 
         self.action = None  # Será criado pelo MenuManager
 
@@ -40,5 +42,6 @@ class Tool:
             try:
                 self.action.triggered.disconnect()
             except Exception as e:
-                self.logger.error(f"Falha ao desconectar executor anterior: {e}")
+                self.logger.error(
+                    f"Falha ao desconectar executor anterior: {e}")
             self.action.triggered.connect(executor)

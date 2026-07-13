@@ -34,20 +34,20 @@ Uso:
 from __future__ import annotations
 
 import os
-import subprocess
-from typing import Callable, Optional
+from typing import Callable
 
-from PySide6.QtWidgets import (
-    QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget,
+from qgis.PyQt.QtWidgets import (
+    QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget, QSizePolicy,
 )
-from PySide6.QtCore import Signal
+from qgis.PyQt.QtCore import pyqtSignal, Qt
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsProject
 
-from core.config.LogUtils import LogUtils
-from resources.widgets.SimpleButtonWidget import SimpleButtonWidget
-from utils.ExplorerUtils import ExplorerUtils
-from utils.ProjectUtils import ProjectUtils
+from ....core.config.LogUtils import LogUtils
+from ....resources.widgets.SimpleButtonWidget import SimpleButtonWidget
+from ....resources.styles.Styles import Styles
+from ....utils.ExplorerUtils import ExplorerUtils
+from ....utils.ProjectUtils import ProjectUtils
 
 
 class ComplexSelector(QWidget):
@@ -61,7 +61,7 @@ class ComplexSelector(QWidget):
     Em modo input, o 📄 alterna entre QLineEdit e QgsMapLayerComboBox.
     """
 
-    pathChanged = Signal(list)  # paths: list[str]
+    pathChanged = pyqtSignal(list)  # paths: list[str]
 
     def __init__(
         self,
@@ -135,7 +135,8 @@ class ComplexSelector(QWidget):
         self._using_layer_combo: bool = False  # True = QgsMapLayerComboBox ativo
 
         # Logger
-        self._logger = LogUtils(tool="ComplexSelector", class_name="ComplexSelector")
+        self._logger = LogUtils(tool="ComplexSelector",
+                                class_name="ComplexSelector")
 
         # CRS embutido
         self._crs_enable = crs_enable
@@ -164,20 +165,25 @@ class ComplexSelector(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
+        # Trava a altura do widget inteiro para não esticar dentro de grids/forms externos
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+
         # Label
         self._label = QLabel(label_text)
         self._label.setFixedWidth(label_width)
+        self._label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         if tooltip:
             self._label.setToolTip(tooltip)
-        layout.addWidget(self._label)
+        layout.addWidget(self._label, 0, Qt.AlignVCenter)
 
         # ── QStackedWidget: página 0 = QLineEdit, página 1 = QgsMapLayerComboBox ──
         self._stack = QStackedWidget()
-        layout.addWidget(self._stack, 1)
+        layout.addWidget(self._stack, 1, Qt.AlignVCenter)
 
         # Página 0: QLineEdit
         self._edit = QLineEdit()
         self._edit.setPlaceholderText(placeholder)
+        self._edit.setStyleSheet(Styles.input())
         if tooltip:
             self._edit.setToolTip(tooltip)
         self._edit.textChanged.connect(self._on_edit_text_changed)
@@ -187,6 +193,7 @@ class ComplexSelector(QWidget):
         self._combo = QgsMapLayerComboBox()
         self._combo.setAllowEmptyLayer(True)
         self._combo.setFilters(self._layer_filters)
+        self._combo.setStyleSheet(Styles.map_layer_combobox())
         self._combo.setVisible(False)  # começa invisível
         self._combo.currentIndexChanged.connect(self._on_combo_layer_changed)
         self._stack.addWidget(self._combo)
@@ -205,61 +212,67 @@ class ComplexSelector(QWidget):
         # ── 🔍 (file) ──
         if self._allow_file:
             self._btn_file = SimpleButtonWidget("🔍")
-            self._btn_file.setFixedWidth(32)
+            self._btn_file.setFixedWidth(30)
+            self._btn_file.setFixedHeight(32)
             self._btn_file.setToolTip(
                 "Selecionar arquivos" if self._multiple else "Selecionar arquivo"
             )
             self._btn_file.clicked.connect(self._browse_file)
-            layout.addWidget(self._btn_file)
+            layout.addWidget(self._btn_file, 0, Qt.AlignVCenter)
 
         # ── 📁 (folder) ──
         if self._allow_folder:
             self._btn_folder = SimpleButtonWidget("📁")
             self._btn_folder.setFixedWidth(30)
+            self._btn_folder.setFixedHeight(32)
             self._btn_folder.setToolTip(
                 "Selecionar pastas" if self._multiple else "Selecionar pasta"
             )
             self._btn_folder.clicked.connect(self._browse_folder)
-            layout.addWidget(self._btn_folder)
+            layout.addWidget(self._btn_folder, 0, Qt.AlignVCenter)
 
         # ── 📄 (project — só input, alterna entre line edit e combo) ──
         if self._mode_type == "input" and self._show_project_button:
             self._btn_project = SimpleButtonWidget("📄")
             self._btn_project.setFixedWidth(30)
+            self._btn_project.setFixedHeight(32)
             self._btn_project.setToolTip("Alternar para seleção de camada")
             self._btn_project.clicked.connect(self._on_project_clicked)
-            layout.addWidget(self._btn_project)
+            layout.addWidget(self._btn_project, 0, Qt.AlignVCenter)
 
         # ── 📥 (origin — só output com parent) ──
         if self._show_origin_button:
             self._btn_origin = SimpleButtonWidget("📥")
             self._btn_origin.setFixedWidth(30)
+            self._btn_origin.setFixedHeight(32)
             self._btn_origin.setToolTip("Usar mesmo diretório da origem")
             self._btn_origin.clicked.connect(self._on_origin_clicked)
-            layout.addWidget(self._btn_origin)
+            layout.addWidget(self._btn_origin, 0, Qt.AlignVCenter)
 
         # ── 🛠️ (suggested — só output) ──
         if self._mode_type == "output" and self._show_suggest_button:
             self._btn_suggest = SimpleButtonWidget("🛠️")
             self._btn_suggest.setFixedWidth(30)
+            self._btn_suggest.setFixedHeight(32)
             self._btn_suggest.setToolTip("Usar pasta do projeto")
             self._btn_suggest.clicked.connect(self._on_suggest_clicked)
-            layout.addWidget(self._btn_suggest)
+            layout.addWidget(self._btn_suggest, 0, Qt.AlignVCenter)
 
         # ── ➡️ (explorer — sempre visível por padrão) ──
         if self._show_explorer_button:
             self._btn_explorer = SimpleButtonWidget("➡️")
             self._btn_explorer.setFixedWidth(30)
+            self._btn_explorer.setFixedHeight(32)
             self._btn_explorer.setToolTip("Abrir localização no Explorer")
             self._btn_explorer.clicked.connect(self._open_explorer)
-            layout.addWidget(self._btn_explorer)
+            layout.addWidget(self._btn_explorer, 0, Qt.AlignVCenter)
 
         # ── CRS embutido (ao lado dos botões) ──
         if self._crs_enable:
             from resources.widgets.crs.CrsSelectorWidget import CrsSelectorWidget
             self._crs_widget = CrsSelectorWidget(label=None, compact=True)
             self._crs_widget.setFixedWidth(150)
-            layout.addWidget(self._crs_widget)
+            layout.addWidget(self._crs_widget, 0, Qt.AlignVCenter)
 
     # ══════════════════════════════════════════════════════════════════
     # Display
@@ -311,7 +324,8 @@ class ComplexSelector(QWidget):
             self._emit_path_change()
             return
         if not self._multiple:
-            self._root_path = os.path.dirname(text) if os.path.isfile(text) else text
+            self._root_path = os.path.dirname(
+                text) if os.path.isfile(text) else text
             self._selected_list = [text]
             self._emit_path_change()
         else:
@@ -319,7 +333,8 @@ class ComplexSelector(QWidget):
             parts = [p for p in parts if p]
             if parts:
                 first = parts[0]
-                self._root_path = os.path.dirname(first) if os.path.isfile(first) else first
+                self._root_path = os.path.dirname(
+                    first) if os.path.isfile(first) else first
                 self._selected_list = parts
             else:
                 self._root_path = ""
@@ -335,7 +350,8 @@ class ComplexSelector(QWidget):
             src = layer.source()
             if src:
                 layer_path = src.split("|")[0] if "|" in src else src
-                self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
+                self._root_path = os.path.dirname(
+                    layer_path) if os.path.isfile(layer_path) else layer_path
                 self._selected_list = [layer_path]
                 self._emit_path_change()
 
@@ -348,14 +364,16 @@ class ComplexSelector(QWidget):
             self._emit_path_change()
             return
         if not self._multiple:
-            self._root_path = os.path.dirname(text) if os.path.isfile(text) else text
+            self._root_path = os.path.dirname(
+                text) if os.path.isfile(text) else text
             self._selected_list = [text]
         else:
             parts = [p.strip() for p in text.replace("; ", ";").split(";")]
             parts = [p for p in parts if p]
             if parts:
                 first = parts[0]
-                self._root_path = os.path.dirname(first) if os.path.isfile(first) else first
+                self._root_path = os.path.dirname(
+                    first) if os.path.isfile(first) else first
                 self._selected_list = parts
             else:
                 self._root_path = ""
@@ -381,7 +399,8 @@ class ComplexSelector(QWidget):
             self.on_browse_click()
 
         initial_dir = ExplorerUtils.resolve_initial_dir(
-            self._root_path or (self._selected_list[0] if self._selected_list else "")
+            self._root_path or (
+                self._selected_list[0] if self._selected_list else "")
         )
 
         if self._mode_type == "output":
@@ -422,7 +441,8 @@ class ComplexSelector(QWidget):
             self.on_browse_click()
 
         initial_dir = ExplorerUtils.resolve_initial_dir(
-            self._root_path or (self._selected_list[0] if self._selected_list else "")
+            self._root_path or (
+                self._selected_list[0] if self._selected_list else "")
         )
 
         if self._multiple:
@@ -485,9 +505,8 @@ class ComplexSelector(QWidget):
         )
         try:
             if os.name == "nt":
-                os.startfile(target)  # type: ignore[attr-defined]
-            else:
-                subprocess.Popen(["xdg-open", target], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                os.startfile(target)  # type: ignore[attr-defined]  # nosec B606  # Abre Explorer do Windows com caminho selecionado pelo usuario
+
         except Exception as e:
             self._logger.error(
                 "Erro ao abrir Explorer",
@@ -538,7 +557,8 @@ class ComplexSelector(QWidget):
             src = layer.source()
             if src:
                 layer_path = src.split("|")[0] if "|" in src else src
-                self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
+                self._root_path = os.path.dirname(
+                    layer_path) if os.path.isfile(layer_path) else layer_path
                 self._selected_list = [layer_path]
                 self._emit_path_change()
 
@@ -571,7 +591,8 @@ class ComplexSelector(QWidget):
             return
 
         parent_path = parent_paths[0]
-        parent_dir = os.path.dirname(parent_path) if os.path.isfile(parent_path) else parent_path
+        parent_dir = os.path.dirname(parent_path) if os.path.isfile(
+            parent_path) else parent_path
 
         suffix = self._suffix or ""
         extension = self._extension or ""
@@ -589,7 +610,8 @@ class ComplexSelector(QWidget):
         if subfolder:
             output_path = os.path.join(parent_dir, subfolder)
 
-        self._root_path = os.path.dirname(output_path) if os.path.isfile(output_path) else output_path
+        self._root_path = os.path.dirname(
+            output_path) if os.path.isfile(output_path) else output_path
         self._selected_list = [output_path]
         self._update_display()
         self._emit_path_change()
@@ -635,7 +657,8 @@ class ComplexSelector(QWidget):
         Gera path de saída: ProjectUtils.get_project_dir() + subfolder + fixed_name.
         Se file=False (folder mode), carrega parent_dir + subfolder.
         """
-        self._logger.info("🛠️ clicado (output)", code="COMPLEX_SUGGEST_CLICKED")
+        self._logger.info("🛠️ clicado (output)",
+                          code="COMPLEX_SUGGEST_CLICKED")
         # Força line edit mode
         self._ensure_line_edit_mode()
 
@@ -646,7 +669,8 @@ class ComplexSelector(QWidget):
         root_folder = ProjectUtils.get_project_dir(project) if project else ""
 
         if not root_folder:
-            self._logger.warning("Nenhum projeto ativo", code="COMPLEX_NO_PROJECT")
+            self._logger.warning("Nenhum projeto ativo",
+                                 code="COMPLEX_NO_PROJECT")
             return
 
         if self._subfolder:
@@ -658,7 +682,8 @@ class ComplexSelector(QWidget):
             # Se tem extensão e não está no fixed_name, adiciona
             output_name = self._fixed_name
             if self._extension and not os.path.splitext(output_name)[1]:
-                ext = self._extension if self._extension.startswith(".") else f".{self._extension}"
+                ext = self._extension if self._extension.startswith(
+                    ".") else f".{self._extension}"
                 output_name = f"{output_name}{ext}"
             output_path = os.path.join(output_dir, output_name)
         else:
@@ -730,7 +755,8 @@ class ComplexSelector(QWidget):
             return
 
         from resources.widgets.crs.CrsSearchDialog import CrsSearchDialog
-        dialog = CrsSearchDialog(parent=self.window() if self.window() else self)
+        dialog = CrsSearchDialog(
+            parent=self.window() if self.window() else self)
         if dialog.exec():
             epsg = dialog.selected_epsg
             if epsg:
@@ -786,7 +812,8 @@ class ComplexSelector(QWidget):
         """Define um path único e desativa combo."""
         self._using_layer_combo = False
         if path:
-            self._root_path = os.path.dirname(path) if os.path.isfile(path) else path
+            self._root_path = os.path.dirname(
+                path) if os.path.isfile(path) else path
             self._selected_list = [path]
         else:
             self._root_path = ""
@@ -799,7 +826,8 @@ class ComplexSelector(QWidget):
         self._using_layer_combo = False
         if paths:
             first = paths[0]
-            self._root_path = os.path.dirname(first) if os.path.isfile(first) else first
+            self._root_path = os.path.dirname(
+                first) if os.path.isfile(first) else first
             self._selected_list = list(paths)
         else:
             self._root_path = ""
@@ -897,7 +925,8 @@ class ComplexSelector(QWidget):
     @file_filter.setter
     def file_filter(self, value: str) -> None:
         self._file_filter = value
-        self._logger.info(f"file_filter: '{value}'", code="COMPLEX_FILE_FILTER_CHANGED")
+        self._logger.info(
+            f"file_filter: '{value}'", code="COMPLEX_FILE_FILTER_CHANGED")
 
     @property
     def edit(self) -> QLineEdit:

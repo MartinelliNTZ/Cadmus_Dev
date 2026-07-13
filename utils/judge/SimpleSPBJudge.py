@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 SimpleSPBJudge — Juiz Simplificado de Segmentação
 ==================================================
@@ -58,9 +57,11 @@ class SimpleSPBJudge:
         self, *, layer=None, source_path: str = "", tool_key: str = ToolKey.UNTRACEABLE
     ):
         self.layer = layer
-        self.source_path = source_path or (layer.source() if layer is not None else "")
+        self.source_path = source_path or (
+            layer.source() if layer is not None else "")
         self.tool_key = tool_key
-        self.logger = LogUtils(tool=tool_key, class_name=self.__class__.__name__)
+        self.logger = LogUtils(
+            tool=tool_key, class_name=self.__class__.__name__)
         self.JUDGEMENT_MODES = ["ANGLE", "DISTANCE"]
         self.JUDGEMENT_MODE = self.JUDGEMENT_MODES[0]
 
@@ -107,7 +108,8 @@ class SimpleSPBJudge:
             max_distance_meters=max_distance_meters,
         )
 
-        result_layer = self._create_memory_layer(layer, updates, field_name_map)
+        result_layer = self._create_memory_layer(
+            layer, updates, field_name_map)
 
         summary = {
             "total_points": len(ordered_points),
@@ -156,7 +158,8 @@ class SimpleSPBJudge:
 
         for i in range(1, n):
             p1, p2 = ordered_points[i - 1], ordered_points[i]
-            az = VectorLayerGeometry.calculate_point_azimuth(p1["point"], p2["point"])
+            az = VectorLayerGeometry.calculate_point_azimuth(
+                p1["point"], p2["point"])
             raw_az[i] = float(az) % 360.0
             distances[i] = VectorLayerGeometry.measure_distance_between_points(
                 p1["point"], p2["point"], crs
@@ -241,7 +244,8 @@ class SimpleSPBJudge:
 
             # calcula azimute instantâneo e variações antes de decidir o tipo de segmento
             if prev_segment_az is not None and next_segment_az is not None:
-                az_instant = MathUtils.circular_mean([prev_segment_az, next_segment_az])
+                az_instant = MathUtils.circular_mean(
+                    [prev_segment_az, next_segment_az])
             elif prev_segment_az is not None:
                 az_instant = prev_segment_az
             elif next_segment_az is not None:
@@ -380,7 +384,8 @@ class SimpleSPBJudge:
                     "point": point,
                 }
             )
-        ordered.sort(key=lambda x: (x["seq_id_sort"], x["timestamp"], x["fid"]))
+        ordered.sort(key=lambda x: (
+            x["seq_id_sort"], x["timestamp"], x["fid"]))
         self.logger.info(
             "Pontos carregados (simples)",
             valid=len(ordered),
@@ -398,10 +403,16 @@ class SimpleSPBJudge:
     def _build_sort_key(value):
         try:
             return (0, int(value))
-        except Exception:
+        except (ValueError, TypeError) as e:
+            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SimpleSPBJudge").debug(
+                "_build_sort_key: int falhou", error=str(e)
+            )
             try:
                 return (0, float(value))
-            except Exception:
+            except (ValueError, TypeError) as e2:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SimpleSPBJudge").debug(
+                    "_build_sort_key: float falhou", error=str(e2)
+                )
                 return (1, str(value or "").strip().lower())
 
     @staticmethod
@@ -413,8 +424,11 @@ class SimpleSPBJudge:
         if hasattr(value, "toSecsSinceEpoch"):
             try:
                 return float(value.toSecsSinceEpoch())
-            except Exception:
-                pass
+            except Exception as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SimpleSPBJudge").warning(
+                    "_parse_timestamp: toSecsSinceEpoch falhou", error=str(e)
+                )
+                return None
         if isinstance(value, datetime):
             return float(value.timestamp())
         if isinstance(value, (int, float)):
@@ -423,7 +437,8 @@ class SimpleSPBJudge:
         if not text:
             return None
         for parser in (
-            lambda x: datetime.fromisoformat(x.replace("Z", "+00:00")).timestamp(),
+            lambda x: datetime.fromisoformat(
+                x.replace("Z", "+00:00")).timestamp(),
             lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S").timestamp(),
             lambda x: datetime.strptime(x, "%d/%m/%Y %H:%M:%S").timestamp(),
             lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%S").timestamp(),
@@ -432,17 +447,25 @@ class SimpleSPBJudge:
         ):
             try:
                 return float(parser(text))
-            except Exception:
+            except (ValueError, TypeError) as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SimpleSPBJudge").debug(
+                    "_parse_timestamp: parser falhou", error=str(e)
+                )
                 continue
         digits = "".join(ch for ch in text if ch.isdigit())
         if len(digits) == 14:
             try:
                 return float(datetime.strptime(digits, "%Y%m%d%H%M%S").timestamp())
-            except Exception:
-                pass
+            except (ValueError, TypeError) as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SimpleSPBJudge").debug(
+                    "_parse_timestamp: formato 14 digitos falhou", error=str(e)
+                )
         try:
             return float(text)
-        except Exception:
+        except (ValueError, TypeError) as e:
+            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SimpleSPBJudge").debug(
+                "_parse_timestamp: float fallback falhou", error=str(e)
+            )
             return None
 
     @staticmethod
@@ -479,7 +502,8 @@ class SimpleSPBJudge:
             new_feature = QgsFeature(new_layer.fields())
             new_feature.setGeometry(feature.geometry())
             for field in feature.fields():
-                new_feature.setAttribute(field.name(), feature.attribute(field.name()))
+                new_feature.setAttribute(
+                    field.name(), feature.attribute(field.name()))
             for attr_key, attr_val in updates[fid].items():
                 resolved = field_name_map.get(attr_key, attr_key)
                 idx = new_layer.fields().lookupField(resolved)

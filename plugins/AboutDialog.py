@@ -28,22 +28,6 @@ class AboutDialog(BaseDialog):
             )
             self.logger.debug("AboutDialog _build_ui concluído")
 
-            logo_path = os.path.join(
-                os.path.dirname(__file__), "..", "resources", "icons", "mtl_agro.png"
-            )
-
-            if os.path.exists(logo_path):
-                image_layout, _ = WidgetFactory.create_image_widget(
-                    image_path=logo_path,
-                    fixed_height=160,
-                    parent=self,
-                    separator_bottom=True,
-                )
-                self.layout.addLayout(image_layout)
-                self.logger.debug(f"Logo adicionado: {logo_path}")
-            else:
-                self.logger.warning(f"Logo não encontrado: {logo_path}")
-
             lbl_title = WidgetFactory.create_label(
                 text=f"<h2>{STR.APP_NAME}</h2>",
                 bold=False,

@@ -273,3 +273,56 @@
   - Se inválida: checkbox_options copia CHECKBOX_OPTIONS e remove "generate_report"
   - _load_prefs() e _save_prefs() usam hasattr para acesso seguro a atributos opcionais
   - Nenhum conhecimento de license_key fora do LicenseManager
+2.3.50 11/07/2026
+[2.3.50.1][11/07/2026] LicenseManager expandido com API pública de gerenciamento:
+  - Adicionado get_license_info() → dict com has_key, key_preview, status, expiry, tier, level, is_active, days_remaining
+  - Adicionado save_license_key(license_key) → dict com success/message; salva APENAS se chave válida
+  - Adicionado delete_license() → remove todos os dados de licença das preferências
+  - Adicionado _validate_and_get_tier() → retorna (is_valid, tier) para suporte a níveis de licença
+  - Adicionado _tier_to_label() → converte tier code para label amigável (Básico, Profissional, Enterprise)
+  - Constantes LICENSE_TIER_BASIC, LICENSE_TIER_PRO, LICENSE_TIER_ENTERPRISE
+[2.3.50.2][11/07/2026] Criado LicenseDialogWidget em resources/widgets/LicenseDialogWidget.py:
+  - Diálogo modal (QDialog) com QLineEdit para chave, botão 🔑 para validar
+  - Grid de labels: Nível da Licença, Data de Expiração, Status (cores: verde=ativa, vermelho=inativa, cinza=sem chave)
+  - Botão 🗑️ Apagar Licença (delega para LicenseManager.delete_license())
+  - Botão 💾 Salvar (valida via LicenseManager.save_license_key(); se inválida exibe modal warning)
+  - Mensagens modais via QgisMessageUtil (modal_info/modal_warning)
+  - Logging via LogUtils com ToolKey.SETTINGS
+[2.3.50.3][11/07/2026] Adicionado WidgetFactory.create_license_dialog() em core/ui/WidgetFactory.py:
+  - Factory method que cria LicenseDialogWidget com iface e parent
+[2.3.50.4][11/07/2026] SettingsPlugin refatorado para usar botão + LicenseDialogWidget:
+  - Substituído InputFieldsWidget (license_key) por botão "🔑 Gerenciar Licença" via SimpleButtonWidget
+  - Botão abre LicenseDialogWidget via WidgetFactory.create_license_dialog()
+  - Licença não é mais salva em _save_prefs() — LicenseDialog salva diretamente via LicenseManager
+  - Adicionado método _open_license_dialog()
+[2.3.50.5][11/07/2026] Criada skill SKILL_LICENSE.md em docs/skills/:
+  - Documenta LicenseManager API, LicenseDialogWidget, integração SettingsPlugin, WidgetFactory
+  - Preferências utilizadas, fluxos de validação, proibições
+[2.3.50.6][11/07/2026] Adicionadas strings de licença em i18n/Strings_pt_BR.py:
+  - LICENSE_TITLE, LICENSE_KEY, LICENSE_LEVEL, LICENSE_EXPIRY, LICENSE_STATUS
+  - LICENSE_ACTIVE, LICENSE_INACTIVE, LICENSE_SAVE, LICENSE_DELETE, LICENSE_VALIDATE
+  - LICENSE_SAVED_SUCCESS, LICENSE_DELETED_SUCCESS, LICENSE_INVALID_KEY, LICENSE_EMPTY_KEY
+  - LICENSE_DAYS_REMAINING, LICENSE_NO_KEY, LICENSE_OPEN_DIALOG
+2.3.51 11/07/2026
+[2.3.51.1][11/07/2026] Adicionado atributo license_level em Tool e filtro por licença no ToolRegistry:
+  - Adicionado parâmetro `license_level` (default None) em core/model/Tool.__init__()
+  - Configurado `license_level=1` para divide_points_by_strips em ToolRegistry._create_tool_list()
+  - Adicionado método `_filter_tools_by_license()` em ToolRegistry que remove ferramentas
+    cujo license_level é maior que o nível atual da licença (lido via LicenseManager.get_license_info())
+  - Filtro executado ao final de ToolRegistry.__init__(), após validação de main_actions
+  - SKILL_LICENSE.md atualizado para v4.0.0 com documentação do filtro
+2.3.52 11/07/2026
+[2.3.52.1][11/07/2026] SaveTemporaryLayersPlugin refatorado — substituído código manual UI (QPushButton, QLabel, QLineEdit, QHBoxLayout) por GridComplexSelector via WidgetFactory.create_grid_complex_selector():
+   - Removido _build_output_folder_selector() e handlers _on_browse_folder/_on_suggest_path/_on_open_explorer
+   - Removidos imports de QHBoxLayout, QLineEdit, QPushButton, QLabel, ExplorerUtils (morto)
+   - Plugin agora usa GridComplexSelector que encapsula 📁, 🛠️, ➡️ com lógica built-in via ComplexSelector
+   - Compatibilidade mantida via self.output_grid["output"].edit
+[2.3.52.2][11/07/2026] WidgetFactory: create_complex_selector() removido — ComplexSelector é privado do GridComplexSelector.
+    - Factory agora expõe APENAS create_grid_complex_selector() como único ponto de acesso
+    - import de ComplexSelector removido da WidgetFactory
+2.3.53 11/07/2026
+[2.3.53.1][11/07/2026] Corrigido ImportError 'Signal' em ComplexSelector.py:
+    - Substituído `from qgis.PyQt.QtCore import Signal` por `from qgis.PyQt.QtCore import pyqtSignal`
+    - Substituído `pathChanged = Signal(list)` por `pathChanged = pyqtSignal(list)`
+    - Causava falha no SaveTemporaryLayersPlugin ao executar ("cannot import name 'Signal' from 'qgis.PyQt.QtCore'")
+    - Nenhum outro arquivo no projeto usava `Signal` incorretamente

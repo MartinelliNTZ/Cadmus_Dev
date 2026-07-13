@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext
-from ..task.altimetry_task import AltimetriaTask
+from ..task.AltimetryTask import AltimetriaTask
 from ...utils.JsonUtil import JsonUtil
 
 
@@ -85,7 +85,8 @@ class AltimetryStep(BaseStep):
                             data={"json_path": json_path},
                         )
 
-                    JsonUtil.update_json(json_path, {"altitude": float(result)})
+                    JsonUtil.update_json(
+                        json_path, {"altitude": float(result)})
                     self.logger.info(
                         "Altitude adicionada ao JSON de metadados",
                         data={"json_path": json_path, "altitude": result},
@@ -108,4 +109,5 @@ class AltimetryStep(BaseStep):
                     "altimetry_end": datetime.now().isoformat(),
                 })
             except Exception as e:
-                self.logger.warning(f"Erro ao salvar timestamp de falha no JSON: {e}")
+                self.logger.warning(
+                    f"Erro ao salvar timestamp de falha no JSON: {e}")

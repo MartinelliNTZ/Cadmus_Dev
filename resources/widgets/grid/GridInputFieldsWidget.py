@@ -12,7 +12,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtCore import pyqtSignal
 
 
-class InputFieldsWidget(QWidget):
+class GridInputFieldsWidget(QWidget):
     """
     Widget para múltiplos campos de input baseados em um dicionário.
 

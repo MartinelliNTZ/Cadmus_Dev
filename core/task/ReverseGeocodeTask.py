@@ -28,7 +28,8 @@ class ReverseGeocodeTask(BaseTask):
     # EXECUÇÃO (chamado por BaseTask.run())
     # --------------------------------------------------
     def _run(self) -> bool:
-        logger = LogUtils(tool=self.tool_key, class_name=self.__class__.__name__)
+        logger = LogUtils(tool=self.tool_key,
+                          class_name=self.__class__.__name__)
         try:
             url = (
                 "https://api.bigdatacloud.net/data/reverse-geocode-client"
@@ -39,7 +40,8 @@ class ReverseGeocodeTask(BaseTask):
             # Validação de segurança: aceitar apenas esquemas http/https
             parsed = urlparse(url)
             if parsed.scheme.lower() not in ("http", "https"):
-                self.exception = Exception(f"Invalid URL scheme: {parsed.scheme}")
+                self.exception = Exception(
+                    f"Invalid URL scheme: {parsed.scheme}")
                 return False
 
             # Follow redirects (max 5) using http.client and validate scheme on redirects
@@ -60,10 +62,13 @@ class ReverseGeocodeTask(BaseTask):
 
                 try:
                     if parsed.scheme.lower() == "https":
-                        conn = http.client.HTTPSConnection(host, port=port, timeout=15)
+                        conn = http.client.HTTPSConnection(
+                            host, port=port, timeout=15)
                     else:
-                        conn = http.client.HTTPConnection(host, port=port, timeout=15)
-                    conn.request("GET", path, headers={"User-Agent": "MTL-Tools-QGIS"})
+                        conn = http.client.HTTPConnection(
+                            host, port=port, timeout=15)
+                    conn.request("GET", path, headers={
+                                 "User-Agent": "MTL-Tools-QGIS"})
                     resp = conn.getresponse()
                     status = resp.status
 
@@ -164,7 +169,8 @@ class ReverseGeocodeTask(BaseTask):
             if not state:
                 state = data.get("principalSubdivision")
             if not any([municipio, state, country]):
-                self.exception = Exception("Dados administrativos indisponíveis")
+                self.exception = Exception(
+                    "Dados administrativos indisponíveis")
                 return False
 
             self.result = {

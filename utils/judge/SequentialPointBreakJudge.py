@@ -1229,10 +1229,16 @@ class SequentialPointBreakJudge:
     def _build_sort_key(value):
         try:
             return (0, int(value))
-        except Exception:
+        except (ValueError, TypeError) as e:
+            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SequentialPointBreakJudge").debug(
+                "_build_sort_key: int falhou", error=str(e)
+            )
             try:
                 return (0, float(value))
-            except Exception:
+            except (ValueError, TypeError) as e2:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SequentialPointBreakJudge").debug(
+                    "_build_sort_key: float falhou", error=str(e2)
+                )
                 return (1, str(value or "").strip().lower())
 
     @staticmethod
@@ -1242,8 +1248,11 @@ class SequentialPointBreakJudge:
         if hasattr(value, "toSecsSinceEpoch"):
             try:
                 return float(value.toSecsSinceEpoch())
-            except Exception:
-                pass
+            except Exception as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SequentialPointBreakJudge").warning(
+                    "_parse_timestamp: toSecsSinceEpoch falhou", error=str(e)
+                )
+                return None
         if isinstance(value, datetime):
             return float(value.timestamp())
         if isinstance(value, (int, float)):
@@ -1261,17 +1270,25 @@ class SequentialPointBreakJudge:
         ):
             try:
                 return float(parser(text))
-            except Exception:
+            except (ValueError, TypeError) as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SequentialPointBreakJudge").debug(
+                    "_parse_timestamp: parser falhou", error=str(e)
+                )
                 continue
         digits = "".join(ch for ch in text if ch.isdigit())
         if len(digits) == 14:
             try:
                 return float(datetime.strptime(digits, "%Y%m%d%H%M%S").timestamp())
-            except Exception:
-                pass
+            except (ValueError, TypeError) as e:
+                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SequentialPointBreakJudge").debug(
+                    "_parse_timestamp: formato 14 digitos falhou", error=str(e)
+                )
         try:
             return float(text)
-        except Exception:
+        except (ValueError, TypeError) as e:
+            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="SequentialPointBreakJudge").debug(
+                "_parse_timestamp: float fallback falhou", error=str(e)
+            )
             return None
 
     @staticmethod

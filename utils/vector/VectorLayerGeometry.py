@@ -112,6 +112,7 @@ class VectorLayerGeometry:
         crs: Optional[QgsCoordinateReferenceSystem] = None,
     ) -> float:
         """Mede distância entre pontos no CRS informado."""
+        logger = VectorLayerGeometry._get_logger()
         if point_a is None or point_b is None:
             return 0.0
 
@@ -122,8 +123,9 @@ class VectorLayerGeometry:
             distance_area.setEllipsoid(ellipsoid)
             try:
                 return float(distance_area.measureLine(point_a, point_b))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"Erro ao medir distância entre pontos: {e}")
+                return 0.0
 
         return math.hypot(point_b.x() - point_a.x(), point_b.y() - point_a.y())
 

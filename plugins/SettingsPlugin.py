@@ -52,7 +52,7 @@ class SettingsPlugin(BasePluginMTL):
         pref_button_layout, self.pref_button = WidgetFactory.create_simple_button(
             text=STR.OPEN_PREFERENCES_FOLDER,
             parent=self,
-            spacing=24,
+            spacing=2,
         )
         self.pref_button.clicked.connect(self._open_preferences_folder)
 
@@ -138,7 +138,6 @@ class SettingsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
-        self.geral_collapsable.add_content_layout(pref_button_layout)
 
         projects_layout, self.project_folder_selector = (
             WidgetFactory.create_path_selector(
@@ -149,25 +148,20 @@ class SettingsPlugin(BasePluginMTL):
                 separator_bottom=False,
             )
         )
+
         self.geral_collapsable.add_content_layout(projects_layout)
         self.geral_collapsable.add_content_layout(crs_layout)
         self.geral_collapsable.add_content_layout(lang_layout)
         self.geral_collapsable.add_content_layout(prec_layout)
         self.geral_collapsable.add_content_layout(thresh_layout)
+        self.geral_collapsable.add_content_layout(pref_button_layout)
 
-        license_layout, self.license_key_input = WidgetFactory.create_input_fields_widget(
-            fields_dict={
-                "license_key": {
-                    "title": "",
-                    "type": "text",
-                    "default": "",
-                    "show_label": False,
-                },
-            },
+        license_layout, self.license_btn = WidgetFactory.create_simple_button(
+            text="🔑",
             parent=self,
-            separator_top=False,
-            separator_bottom=False,
+            spacing=6,
         )
+        self.license_btn.clicked.connect(self._open_license_dialog)
         self.geral_collapsable.add_content_layout(license_layout)
 
         self.geral_collapsable.add_content_layout(toolbar_layout)
@@ -227,9 +221,11 @@ class SettingsPlugin(BasePluginMTL):
     def _load_prefs(self):
         """Carrega preferências salvas."""
         self.logger.debug("Carregando preferências")
-        self.prefer_VectorFields = Preferences.load_tool_prefs(ToolKey.VECTOR_FIELDS)
+        self.prefer_VectorFields = Preferences.load_tool_prefs(
+            ToolKey.VECTOR_FIELDS)
 
-        calc_method = self.system_preferences.get("calculation_method", STR.ELLIPSOIDAL)
+        calc_method = self.system_preferences.get(
+            "calculation_method", STR.ELLIPSOIDAL)
         if calc_method in self.CALCULATION_METHODS:
             self.radio_calc.set_selected_index(
                 self.CALCULATION_METHODS.index(calc_method)
@@ -241,24 +237,30 @@ class SettingsPlugin(BasePluginMTL):
             )
             self.radio_calc.set_selected_index(0)
 
-        selected_language = self.system_preferences.get("plugin_language", "none")
+        selected_language = self.system_preferences.get(
+            "plugin_language", "none")
         if selected_language in StringManager.AVAILABLE_LANGUAGES:
             self.lang_selector.set_selected_key(selected_language)
-            self.logger.debug(f"Idioma selecionado carregado: {selected_language}")
+            self.logger.debug(
+                f"Idioma selecionado carregado: {selected_language}")
         else:
-            self.logger.warning(f"Idioma inválido: {selected_language}, usando padrão")
+            self.logger.warning(
+                f"Idioma inválido: {selected_language}, usando padrão")
             self.lang_selector.set_selected_key("pt_BR")
 
         selected_crs_authid = self.system_preferences.get(
             "default_crs_authid", self.DEFAULT_CRS_AUTHID
         )
         if not self.crs_selector.set_crs_authid(selected_crs_authid):
-            self.logger.warning(f"SRC invalido: {selected_crs_authid}, usando padrao")
+            self.logger.warning(
+                f"SRC invalido: {selected_crs_authid}, usando padrao")
             self.crs_selector.set_crs_authid(self.DEFAULT_CRS_AUTHID)
-        self.logger.debug(f"SRC padrao carregado: {self.crs_selector.get_crs_authid()}")
+        self.logger.debug(
+            f"SRC padrao carregado: {self.crs_selector.get_crs_authid()}")
 
         if "async_threshold_features" in self.system_preferences:
-            thresh_feats = self.system_preferences.get("async_threshold_features", 1000)
+            thresh_feats = self.system_preferences.get(
+                "async_threshold_features", 1000)
         else:
             old_bytes = self.system_preferences.get("async_threshold_bytes")
             if old_bytes is not None:
@@ -273,7 +275,8 @@ class SettingsPlugin(BasePluginMTL):
             else (int(thresh_feats) if str(thresh_feats).isdigit() else 1000)
         )
         self.spin_threshold.setValue(thresh_value)
-        self.logger.debug(f"Limiar assíncrono carregado: {thresh_value} feições")
+        self.logger.debug(
+            f"Limiar assíncrono carregado: {thresh_value} feições")
 
         prec = self.system_preferences.get("vector_field_precision", 2)
         precision_value = (
@@ -282,7 +285,8 @@ class SettingsPlugin(BasePluginMTL):
             else (int(prec) if str(prec).isdigit() else 2)
         )
         self.spin_precision.setValue(precision_value)
-        self.logger.debug(f"Precisão de campos vetoriais carregada: {precision_value}")
+        self.logger.debug(
+            f"Precisão de campos vetoriais carregada: {precision_value}")
 
         self.area_fields_inputs.set_values(
             {
@@ -296,7 +300,8 @@ class SettingsPlugin(BasePluginMTL):
         )
 
         toolbar_visibility = MenuManager.normalize_toolbar_category_visibility(
-            self.system_preferences.get(MenuManager.TOOLBAR_VISIBILITY_PREF_KEY)
+            self.system_preferences.get(
+                MenuManager.TOOLBAR_VISIBILITY_PREF_KEY)
         )
         for category, checkbox in self.toolbar_category_checks.items():
             checkbox.setChecked(toolbar_visibility.get(category, True))
@@ -305,13 +310,8 @@ class SettingsPlugin(BasePluginMTL):
         if project_folder:
             self.project_folder_selector.set_path(project_folder)
 
-        self.license_key_input.set_values(
-            {
-                "license_key": self.system_preferences.get("license_key", ""),
-            }
-        )
-
-        self.calc_collapsable.set_expanded(self.preferences.get("calc_expanded", False))
+        self.calc_collapsable.set_expanded(
+            self.preferences.get("calc_expanded", False))
         self.geral_collapsable.set_expanded(
             self.preferences.get("geral_expanded", True)
         )
@@ -326,18 +326,21 @@ class SettingsPlugin(BasePluginMTL):
         self.system_preferences["calculation_method"] = selected_text
         selected_crs = self.crs_selector.get_crs()
         if not selected_crs or not selected_crs.isValid():
-            selected_crs = QgsCoordinateReferenceSystem(self.DEFAULT_CRS_AUTHID)
+            selected_crs = QgsCoordinateReferenceSystem(
+                self.DEFAULT_CRS_AUTHID)
             self.crs_selector.set_crs(selected_crs)
         self.system_preferences["default_crs_authid"] = selected_crs.authid()
         self.logger.debug(f"SRC padrao salvo: {selected_crs.authid()}")
 
         feats_value = int(self.spin_threshold.value())
         self.system_preferences["async_threshold_features"] = feats_value
-        self.logger.debug(f"Limiar assíncrono por feições salvo: {feats_value} feições")
+        self.logger.debug(
+            f"Limiar assíncrono por feições salvo: {feats_value} feições")
 
         precision_val = int(self.spin_precision.value())
         self.system_preferences["vector_field_precision"] = precision_val
-        self.logger.debug(f"Precisão de campos vetoriais salva: {precision_val} casas")
+        self.logger.debug(
+            f"Precisão de campos vetoriais salva: {precision_val} casas")
 
         selected_language = self.lang_selector.get_selected_key()
         if selected_language != "none":
@@ -346,7 +349,8 @@ class SettingsPlugin(BasePluginMTL):
         else:
             if "plugin_language" in self.system_preferences:
                 del self.system_preferences["plugin_language"]
-                self.logger.debug("Idioma selecionado removido para auto-detectar")
+                self.logger.debug(
+                    "Idioma selecionado removido para auto-detectar")
 
         toolbar_visibility = {
             category: bool(checkbox.isChecked())
@@ -366,9 +370,8 @@ class SettingsPlugin(BasePluginMTL):
             f"Categorias visiveis na toolbar salvas: {toolbar_visibility}"
         )
 
-        license_key = (self.license_key_input.get_value("license_key") or "").strip()
-        self.system_preferences["license_key"] = license_key
-        self.logger.debug(f"License key salva: {'***' if license_key else 'vazia'}")
+        # License não é mais salva via input_fields aqui; o LicenseDialog salva diretamente
+        # via LicenseManager.save_license_key(). Apenas garantimos que a preferência existe.
 
         paths = self.project_folder_selector.get_paths()
         self.preferences["projects_folder"] = paths[0] if paths else ""
@@ -385,7 +388,8 @@ class SettingsPlugin(BasePluginMTL):
                 self.iface,
                 STR.AREA_SUFFIXES_CANNOT_MATCH,
             )
-            self.logger.warning("Salvamento cancelado: sulfixos de area duplicados")
+            self.logger.warning(
+                "Salvamento cancelado: sulfixos de area duplicados")
             return False
 
         self.prefer_VectorFields["cartesian_suffix"] = cartesian_suffix
@@ -394,7 +398,8 @@ class SettingsPlugin(BasePluginMTL):
         self._persist_window_size()
         self.on_finish_plugin()
         Preferences.save_tool_prefs(ToolKey.SYSTEM, self.system_preferences)
-        Preferences.save_tool_prefs(ToolKey.VECTOR_FIELDS, self.prefer_VectorFields)
+        Preferences.save_tool_prefs(
+            ToolKey.VECTOR_FIELDS, self.prefer_VectorFields)
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.info(
             f"Preferências salvas:{self.system_preferences}==={self.preferences}"
@@ -406,7 +411,8 @@ class SettingsPlugin(BasePluginMTL):
                 from ..core.config.PyQtSignalManager import get_plugin_signal_hub
 
                 hub = get_plugin_signal_hub()
-                hub.toolbar_category_visibility_changed.emit(toolbar_visibility)
+                hub.toolbar_category_visibility_changed.emit(
+                    toolbar_visibility)
                 self.logger.debug(
                     "Sinal de alteração de visibilidade da toolbar emitido pelo SettingsPlugin"
                 )
@@ -436,6 +442,17 @@ class SettingsPlugin(BasePluginMTL):
         self.logger.info("Configurações aplicadas e salvas")
         self.close()
 
+    def _open_license_dialog(self):
+        """
+        Abre o diálogo de gerenciamento de licença.
+        A licença é salva/gerenciada pelo LicenseDialog diretamente via LicenseManager.
+        """
+        self.logger.debug("Abrindo diálogo de gerenciamento de licença")
+        from ..core.ui.LicenseDialog import LicenseDialog
+
+        dialog = LicenseDialog(iface=self.iface, parent=self)
+        dialog.exec_()
+
     def _open_preferences_folder(self):
         """Abre a pasta de preferências do Cadmus."""
         self.logger.debug("Abrindo pasta de preferências")
@@ -445,7 +462,8 @@ class SettingsPlugin(BasePluginMTL):
         if ExplorerUtils.open_folder(PREF_FOLDER, self.TOOL_KEY):
             self.logger.info(f"Abrindo pasta: {PREF_FOLDER}")
         else:
-            self.logger.warning(f"Pasta de preferências não encontrada: {PREF_FOLDER}")
+            self.logger.warning(
+                f"Pasta de preferências não encontrada: {PREF_FOLDER}")
             QgisMessageUtil.modal_warning(
                 iface=self.iface,
                 message=f"{STR.PREFERENCES_FOLDER_NOT_FOUND} {PREF_FOLDER}",

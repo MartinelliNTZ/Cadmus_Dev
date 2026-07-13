@@ -3,7 +3,7 @@
 
 import os
 from datetime import datetime
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree as ET  # nosec B405  # defusedxml nao disponivel no QGIS 3.16; XMP lido de arquivos confiaveis
 
 from ...core.config.LogUtils import LogUtils
 from ..ToolKeys import ToolKey
@@ -95,7 +95,7 @@ class XmpUtil:
         data = {}
 
         try:
-            root = ET.fromstring(xmp_text)
+            root = ET.fromstring(xmp_text)  # nosec B314  # defusedxml nao disponivel; XMP extraido de arquivos confiaveis
         except ET.ParseError as exc:
             data["xmp_erro"] = str(exc)
             return data
@@ -143,17 +143,21 @@ class XmpUtil:
         if not raw or raw.lower() in ("none", "null", "nan", "inf"):
             return value
 
+        logger = XmpUtil._get_logger()
         # Tenta int primeiro (se nao tiver ponto decimal)
         if "." not in raw:
             try:
                 return int(raw)
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                logger.debug(
+                    f"_to_numeric: int falhou para '{raw}'", error=str(e))
 
         # Tenta float
         try:
             return float(raw)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.debug(
+                f"_to_numeric: float falhou para '{raw}'", error=str(e))
             return value
 
     @staticmethod
@@ -189,10 +193,13 @@ class XmpUtil:
         # Data — usa MetadataFieldKey.DEWARP_DATE.value
         result[MetadataFieldKey.DEWARP_DATE.value] = parts[0].strip()
 
+        logger = XmpUtil._get_logger()
         # Valores numericos
         try:
             vals = list(map(float, parts[1].split(",")))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.debug(
+                f"parse_dewarp_string: falha ao converter valores numericos: '{parts[1]}'", error=str(e))
             return result
 
         # Mapeamento posicional usando MetadataFieldKey enum values
@@ -240,7 +247,8 @@ class XmpUtil:
             if canonical_name:
                 # Campo e autorizado - converte valor para numerico se possivel
                 if canonical_name not in sanitized:
-                    sanitized[canonical_name] = XmpUtil._to_numeric(field_value)
+                    sanitized[canonical_name] = XmpUtil._to_numeric(
+                        field_value)
             else:
                 # Campo nao e autorizado - registra rejeicao
                 rejected.append(field_name)
@@ -324,7 +332,8 @@ class XmpUtil:
                     # Os campos retornados por parse_dewarp_string sao nomes canonicos
                     # (ex.: DewarpDate, DewarpFocalX, ...) e serao mapeados corretamente
                     # pelo sanitize_field_name / _sanitize_metadata
-                    sanitized_dewarp = XmpUtil._sanitize_metadata(dewarp_parsed, logger)
+                    sanitized_dewarp = XmpUtil._sanitize_metadata(
+                        dewarp_parsed, logger)
                     sanitized_xmp.update(sanitized_dewarp)
 
             # Mescla dados sanitizados
@@ -332,7 +341,8 @@ class XmpUtil:
             return data
 
         except Exception as exc:
-            logger.error(f"Erro ao extrair metadata XMP de {image_path}: {exc}")
+            logger.error(
+                f"Erro ao extrair metadata XMP de {image_path}: {exc}")
             # Retorna pelo menos os metadados de arquivo (legalizados)
             return data
 

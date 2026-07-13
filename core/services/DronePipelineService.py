@@ -30,7 +30,7 @@ from ...utils.Preferences import Preferences
 from ...utils.ProjectUtils import ProjectUtils
 from ...utils.QgisMessageUtil import QgisMessageUtil
 from ...utils.ToolKeys import ToolKey
-from ...utils.LicenseManager import LicenseManager
+from ..config.RegistryManager import RegistryManager
 from ...utils.mrk.MetadataFields import MetadataFields
 from ...utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ...utils.vector.VectorLayerSource import VectorLayerSource
@@ -86,7 +86,8 @@ class DronePipelineService:
         Returns:
             True se o pipeline foi iniciado com sucesso
         """
-        logger = LogUtils(tool=ToolKey.DRONE_COORDINATES, class_name="DronePipelineService")
+        logger = LogUtils(tool=ToolKey.DRONE_COORDINATES,
+                          class_name="DronePipelineService")
         prefs = DronePipelineService._load_safe_prefs()
 
         # ── Carregar campos selecionados ──────────────────────────
@@ -122,9 +123,11 @@ class DronePipelineService:
         enable_xmp = apply_photos
         enable_custom = apply_photos and bool(selected_custom)
         project_title = prefs.get("project_title", "")
-        logo_path = prefs.get("logo_path", "") if prefs.get("logo_enabled", False) else ""
+        logo_path = prefs.get("logo_path", "") if prefs.get(
+            "logo_enabled", False) else ""
 
-        resolve_paths = [file_path] if (enable_mrk and file_path) else (paths or [])
+        resolve_paths = [file_path] if (
+            enable_mrk and file_path) else (paths or [])
 
         steps: list = [
             PhotoEnrichmentStep(
@@ -150,7 +153,7 @@ class DronePipelineService:
         ]
         should_generate_report = prefs.get("generate_report", True)
         if should_generate_report:
-            license_mgr = LicenseManager(tool_key=ToolKey.DRONE_COORDINATES)
+            license_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
             if license_mgr.is_license_valid():
                 steps.append(ReportGenerationStep())
             else:
@@ -161,21 +164,25 @@ class DronePipelineService:
         # ── Dados extras para callback (modo MRK) ─────────────────
         if file_path:
             base_name = os.path.splitext(os.path.basename(file_path))[0]
-            context.set_result("points_layer_name", f"{base_name}_{STR.POINTS}")
+            context.set_result("points_layer_name",
+                               f"{base_name}_{STR.POINTS}")
             context.set_result("track_layer_name", f"{base_name}_{STR.TRACK}")
             context.set_result(
                 "auto_points_output_path",
-                ExplorerUtils.build_suffixed_output_path(file_path, STR.POINTS.lower()),
+                ExplorerUtils.build_suffixed_output_path(
+                    file_path, STR.POINTS.lower()),
             )
             context.set_result(
                 "auto_track_output_path",
-                ExplorerUtils.build_suffixed_output_path(file_path, STR.TRACK.lower()),
+                ExplorerUtils.build_suffixed_output_path(
+                    file_path, STR.TRACK.lower()),
             )
             context.set_result("source_mrk_file", file_path)
 
         # ── Callbacks ─────────────────────────────────────────────
         def _on_finished(ctx: ExecutionContext):
-            DronePipelineService._on_pipeline_finished(iface, ctx, on_finished=on_finished)
+            DronePipelineService._on_pipeline_finished(
+                iface, ctx, on_finished=on_finished)
 
         def _on_error(errors):
             error_msg = str(errors[0]) if errors else "Erro desconhecido"
@@ -220,7 +227,8 @@ class DronePipelineService:
         Callback único de sucesso do pipeline.
         Gerencia pós-processamento: GPKG, QML, track layer, relatório.
         """
-        logger = LogUtils(tool=ToolKey.DRONE_COORDINATES, class_name="DronePipelineService")
+        logger = LogUtils(tool=ToolKey.DRONE_COORDINATES,
+                          class_name="DronePipelineService")
 
         layer = context.get_result("layer") or context.get("layer")
         if not layer or not layer.isValid():
@@ -249,8 +257,10 @@ class DronePipelineService:
         # ── Traço ─────────────────────────────────────────────────
         line_layer = None
         if points_layer and points_layer.isValid():
-            order_field = DronePipelineService._resolve_track_order_field(points_layer)
-            group_fields = DronePipelineService._resolve_track_group_fields(points_layer)
+            order_field = DronePipelineService._resolve_track_order_field(
+                points_layer)
+            group_fields = DronePipelineService._resolve_track_group_fields(
+                points_layer)
             line_layer = VectorLayerGeometry.create_line_layer_from_points(
                 list(points_layer.getFeatures()),
                 order_by_field=order_field,
@@ -287,7 +297,8 @@ class DronePipelineService:
 
         # ── Notificação ───────────────────────────────────────────
         if points_output_path:
-            QgisMessageUtil.bar_success(iface, STR.CONVERT_FILE_SUCCESS, duration=4)
+            QgisMessageUtil.bar_success(
+                iface, STR.CONVERT_FILE_SUCCESS, duration=4)
         else:
             QgisMessageUtil.bar_success(iface, STR.SUCCESS_MESSAGE)
 

@@ -6,7 +6,7 @@ import json
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 
@@ -54,7 +54,8 @@ class ExplorerUtils(BaseUtil):
     ) -> str:
         """Abre diálogo para selecionar UM arquivo existente."""
         from qgis.PyQt.QtWidgets import QFileDialog
-        path, _ = QFileDialog.getOpenFileName(parent, title, initial_dir, file_filter)
+        path, _ = QFileDialog.getOpenFileName(
+            parent, title, initial_dir, file_filter)
         return path or ""
 
     @staticmethod
@@ -66,7 +67,8 @@ class ExplorerUtils(BaseUtil):
     ) -> list:
         """Abre diálogo para selecionar MÚLTIPLOS arquivos existentes."""
         from qgis.PyQt.QtWidgets import QFileDialog
-        paths, _ = QFileDialog.getOpenFileNames(parent, title, initial_dir, file_filter)
+        paths, _ = QFileDialog.getOpenFileNames(
+            parent, title, initial_dir, file_filter)
         return list(paths)
 
     @staticmethod
@@ -78,7 +80,8 @@ class ExplorerUtils(BaseUtil):
     ) -> str:
         """Abre diálogo para selecionar UM arquivo de saída (salvar)."""
         from qgis.PyQt.QtWidgets import QFileDialog
-        path, _ = QFileDialog.getSaveFileName(parent, title, initial_dir, file_filter)
+        path, _ = QFileDialog.getSaveFileName(
+            parent, title, initial_dir, file_filter)
         return path or ""
 
     @staticmethod
@@ -258,11 +261,13 @@ class ExplorerUtils(BaseUtil):
                 file_name = f"{prefix}_{stamp}.json"
             output_path = os.path.join(temp_dir, file_name)
             with open(output_path, "w", encoding="utf-8") as fh:
-                json.dump(payload, fh, ensure_ascii=False, indent=2, default=str)
+                json.dump(payload, fh, ensure_ascii=False,
+                          indent=2, default=str)
             logger.info(f"create_temp_json: arquivo gerado em {output_path}")
             return output_path
         except Exception as e:
-            logger.error(f"create_temp_json: erro ao criar json temporario: {e}")
+            logger.error(
+                f"create_temp_json: erro ao criar json temporario: {e}")
             return ""
 
     @staticmethod
@@ -277,7 +282,8 @@ class ExplorerUtils(BaseUtil):
             os.makedirs(temp_root, exist_ok=True)
             return temp_root
         except Exception as e:
-            logger.error(f"get_cadmus_temp_root: erro ao criar pasta base: {e}")
+            logger.error(
+                f"get_cadmus_temp_root: erro ao criar pasta base: {e}")
             return tempfile.gettempdir()
 
     @staticmethod
@@ -321,7 +327,8 @@ class ExplorerUtils(BaseUtil):
         """Retorna pasta temporaria do Cadmus opcionalmente navegando por subpastas."""
         if not subfolders:
             return ExplorerUtils.get_cadmus_temp_root(tool_key)
-        joined = os.path.join(*[str(part) for part in subfolders if str(part).strip()])
+        joined = os.path.join(*[str(part)
+                              for part in subfolders if str(part).strip()])
         return ExplorerUtils.ensure_temp_subfolder(joined, tool_key=tool_key)
 
     @staticmethod
@@ -341,12 +348,13 @@ class ExplorerUtils(BaseUtil):
         source_json_path: str = "", default_stem: str = "report_metadata"
     ) -> str:
         """Monta sufixo amigavel para nome de HTML de report."""
-        json_stem = Path(source_json_path).stem if source_json_path else default_stem
+        json_stem = Path(
+            source_json_path).stem if source_json_path else default_stem
         return ExplorerUtils.sanitize_path_component(json_stem) or default_stem
 
     @staticmethod
     def build_temp_file_path(
-        tool_key = BaseUtil.TOOL_KEY_UNTRACEABLE,
+        tool_key=BaseUtil.TOOL_KEY_UNTRACEABLE,
         *subfolders: str,
         prefix: str = "cadmus",
         extension: str = ".tmp",
@@ -397,7 +405,8 @@ class ExplorerUtils(BaseUtil):
             )
             return True
         except PermissionError as e:
-            logger.error(f"rename_file: permissão negada ao renomear '{src}': {e}")
+            logger.error(
+                f"rename_file: permissão negada ao renomear '{src}': {e}")
             return False
         except Exception as e:
             logger.error(f"rename_file: erro ao renomear '{src}': {e}")
@@ -450,7 +459,8 @@ class ExplorerUtils(BaseUtil):
 
         target_dir = dirname if dirname else os.getcwd()
         if not os.path.isdir(target_dir):
-            logger.warning(f"restore_extension_dot: diretório inválido: '{target_dir}'")
+            logger.warning(
+                f"restore_extension_dot: diretório inválido: '{target_dir}'")
             return None
 
         try:
@@ -464,13 +474,121 @@ class ExplorerUtils(BaseUtil):
                         return file_path
                     return None
         except Exception as e:
-            logger.error(f"restore_extension_dot: erro ao listar diretório: {e}")
+            logger.error(
+                f"restore_extension_dot: erro ao listar diretório: {e}")
             return None
 
         logger.warning(
             f"restore_extension_dot: nenhum arquivo '{flat_name}' encontrado em '{target_dir}'"
         )
         return None
+
+    @staticmethod
+    def copy_file(
+        source: str,
+        destination: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+        overwrite: bool = True,
+    ) -> bool:
+        """Copia um arquivo diretamente para o destino especificado (path completo)."""
+        logger = ExplorerUtils._get_logger(tool_key)
+        try:
+            if not source or not os.path.isfile(source):
+                logger.error(f"copy_file: arquivo origem invalido: {source}")
+                return False
+
+            if not destination:
+                logger.error("copy_file: caminho destino vazio")
+                return False
+
+            if os.path.exists(destination) and not overwrite:
+                logger.info(
+                    f"copy_file: destino ja existe (sem overwrite): {destination}"
+                )
+                return True
+
+            dst_dir = os.path.dirname(destination)
+            if dst_dir:
+                os.makedirs(dst_dir, exist_ok=True)
+
+            shutil.copy2(source, destination)
+            logger.info(
+                f"copy_file: '{os.path.basename(source)}' -> '{destination}'"
+            )
+            return True
+        except Exception as e:
+            logger.error(
+                f"copy_file: erro ao copiar '{source}' -> '{destination}': {e}")
+            return False
+
+    @staticmethod
+    def get_unique_filepath(
+        filepath: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+    ) -> str:
+        """
+        Gera caminho unico adicionando sufixo _1, _2, _3... se o arquivo ja existir.
+
+        Exemplo:
+            arquivo.gpkg -> arquivo.gpkg (se nao existir)
+            arquivo.gpkg -> arquivo_1.gpkg (se existir)
+            arquivo_1.gpkg -> arquivo_2.gpkg (se existir)
+        """
+        logger = ExplorerUtils._get_logger(tool_key)
+        if not filepath:
+            logger.warning("get_unique_filepath: caminho vazio")
+            return ""
+        if not os.path.exists(filepath):
+            return filepath
+
+        base, ext = os.path.splitext(filepath)
+        counter = 1
+        while os.path.exists(f"{base}_{counter}{ext}"):
+            counter += 1
+        result = f"{base}_{counter}{ext}"
+        logger.debug(f"get_unique_filepath: '{filepath}' -> '{result}'")
+        return result
+
+    @staticmethod
+    def create_temp_file(
+        suffix: str = ".tmp",
+        prefix: str = "cadmus_tmp_",
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+    ) -> Tuple[Optional[int], Optional[str]]:
+        """Cria arquivo temporario no disco e retorna (fd, path)."""
+        logger = ExplorerUtils._get_logger(tool_key)
+        try:
+            fd, path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
+            logger.debug(f"create_temp_file: criado '{path}' (fd={fd})")
+            return fd, path
+        except Exception as e:
+            logger.error(f"create_temp_file: erro ao criar temp file: {e}")
+            return None, None
+
+    @staticmethod
+    def delete_file(
+        file_path: str,
+        tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
+        ignore_errors: bool = True,
+    ) -> bool:
+        """Remove um arquivo do disco."""
+        logger = ExplorerUtils._get_logger(tool_key)
+        try:
+            if not file_path:
+                logger.warning("delete_file: caminho vazio")
+                return False
+            if not os.path.isfile(file_path):
+                logger.warning(
+                    f"delete_file: arquivo nao encontrado: '{file_path}'")
+                return False
+            os.remove(file_path)
+            logger.debug(f"delete_file: removido '{file_path}'")
+            return True
+        except Exception as e:
+            if not ignore_errors:
+                logger.error(
+                    f"delete_file: erro ao remover '{file_path}': {e}")
+            return False
 
     @staticmethod
     def scan_folder(
@@ -499,7 +617,8 @@ class ExplorerUtils(BaseUtil):
                 else:
                     rec["type"] = "vector"
                 results.append(rec)
-        logger.info(f"scan_folder: encontrados {len(results)} arquivos em {folder}")
+        logger.info(
+            f"scan_folder: encontrados {len(results)} arquivos em {folder}")
         return results
 
     @staticmethod

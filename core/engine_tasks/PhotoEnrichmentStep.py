@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import os
 from typing import List, Optional
 
 from .BaseStep import BaseStep

@@ -105,15 +105,19 @@ class RasterMassSampler(BaseProcessingAlgorithm):
         self.logger.info("Iniciando amostragem massiva de rasters")
 
         pts = self.parameterAsSource(params, self.INPUT_POINTS, context)
-        rasters = self.parameterAsLayerList(params, self.INPUT_RASTERS, context)
-        open_output_folder = self.parameterAsBool(params, self.OPEN_OUTPUT_FOLDER, context)
+        rasters = self.parameterAsLayerList(
+            params, self.INPUT_RASTERS, context)
+        open_output_folder = self.parameterAsBool(
+            params, self.OPEN_OUTPUT_FOLDER, context)
         display_help = self.parameterAsBool(params, self.DISPLAY_HELP, context)
 
         if not pts:
-            self.logger.error("Camada de pontos nao informada", code="NO_INPUT_POINTS")
+            self.logger.error("Camada de pontos nao informada",
+                              code="NO_INPUT_POINTS")
             raise ValueError("Camada de pontos de entrada nao encontrada.")
         if not rasters:
-            self.logger.error("Nenhum raster informado", code="NO_INPUT_RASTERS")
+            self.logger.error("Nenhum raster informado",
+                              code="NO_INPUT_RASTERS")
             raise ValueError("Nenhum raster de entrada informado.")
 
         output_crs = self.parameterAsCrs(params, self.OUTPUT_CRS, context)
@@ -146,7 +150,8 @@ class RasterMassSampler(BaseProcessingAlgorithm):
             params, self.OUTPUT, context, out_fields, pts.wkbType(), sink_crs
         )
         if not sink:
-            self.logger.error("Falha ao criar sink de saida", code="SINK_CREATE_FAILED")
+            self.logger.error("Falha ao criar sink de saida",
+                              code="SINK_CREATE_FAILED")
             raise RuntimeError("Nao foi possivel criar o sink de saida.")
 
         # Amostragem incremental com progresso e cancelamento
@@ -159,12 +164,14 @@ class RasterMassSampler(BaseProcessingAlgorithm):
         for feat in pts.getFeatures():
             # Verifica cancelamento
             if feedback.isCanceled():
-                self.logger.warning(f"Processamento cancelado pelo usuario apos {processed} pontos")
+                self.logger.warning(
+                    f"Processamento cancelado pelo usuario apos {processed} pontos")
                 break
 
             geom = feat.geometry()
             if geom is None or geom.isEmpty():
-                self.logger.debug(f"Ponto {feat.id()} ignorado: geometria vazia")
+                self.logger.debug(
+                    f"Ponto {feat.id()} ignorado: geometria vazia")
                 continue
 
             out_feat = QgsFeature(out_fields)
@@ -288,7 +295,8 @@ class RasterMassSampler(BaseProcessingAlgorithm):
             for f in pts.fields():
                 out_fields.append(f)
         except Exception as e:
-            self.logger.error(f"Erro ao construir campos de saida a partir dos pontos: {e}")
+            self.logger.error(
+                f"Erro ao construir campos de saida a partir dos pontos: {e}")
             if isinstance(pts, QgsFields):
                 for f in pts:
                     out_fields.append(f)
@@ -334,7 +342,8 @@ class RasterMassSampler(BaseProcessingAlgorithm):
         try:
             effective_pts_crs = pts.sourceCrs()
             if not effective_pts_crs.isValid():
-                self.logger.warning("CRS da camada de pontos nao e valido, transformacoes serao identity")
+                self.logger.warning(
+                    "CRS da camada de pontos nao e valido, transformacoes serao identity")
                 effective_pts_crs = None
         except Exception as e:
             self.logger.error(f"Erro ao obter CRS da camada de pontos: {e}")

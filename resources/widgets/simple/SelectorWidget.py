@@ -12,10 +12,10 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
 )
 from qgis.PyQt.QtCore import pyqtSignal
-from ...core.config.LogUtils import LogUtils
-from ...i18n.TranslationManager import STR
-from ...utils.ProjectUtils import ProjectUtils
-from ...utils.StringManager import StringManager
+from ....core.config.LogUtils import LogUtils
+from ....i18n.TranslationManager import STR
+from ....utils.ProjectUtils import ProjectUtils
+from ....utils.StringManager import StringManager
 
 # Logger do widget
 logger = LogUtils(tool="widgets", class_name="SelectorWidget")

@@ -4,10 +4,10 @@ from qgis.PyQt.QtWidgets import QLayout, QWidget
 from qgis.PyQt.QtCore import Qt, QPoint
 from qgis.PyQt.QtGui import QCursor
 from typing import Optional
-from ..styles.Styles import Styles
-from .ScrollWidget import ScrollWidget
-from ...core.config.LogUtils import LogUtils
-from ...utils.ToolKeys import ToolKey
+from ...styles.Styles import Styles
+from ..ScrollWidget import ScrollWidget
+from ....core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
 
 logger = LogUtils(
     tool=ToolKey.CADMUS_PLUGIN, class_name="MainLayout", level=LogUtils.DEBUG
@@ -431,6 +431,7 @@ class MainLayout(QVBoxLayout):
                     mapped = self._parent_dialog.mapFromGlobal(event.globalPos())
                     mapped_pos = QPoint(mapped.x(), mapped.y())
                 except Exception as e:
+                    logger.debug(f"handle_mouse_press: failed to map position with error: {e}")
                     mapped_pos = event.pos()
             else:
                 mapped_pos = event.pos()

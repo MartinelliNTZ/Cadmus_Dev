@@ -708,14 +708,6 @@ class Strings_pt_BR:
     INACTIVE = "Inativa"
     VALIDATE = "Validar"
 
-    # Distribution / BuildDistribution
-    DIST_INSTALL_PACKAGE = "📦 Instalar Pacote"
-    DIST_SELECT_PACKAGE = "Selecionar pacote de distribuição Cadmus"
-    DIST_PACKAGE_FILTER = "Pacote Cadmus (*.cadmus_dist)"
-    DIST_INSTALL_SUCCESS = "Pacote instalado com sucesso."
-    DIST_INSTALL_FAIL = "Falha ao instalar pacote."
-    DIST_LICENSE_BLOCKED = "Esta ferramenta requer uma licença ativa. Gerencie sua licença em Configurações."
-
     # plugins/SaveTemporaryLayersPlugin.py
     SAVE_TEMPORARY_LAYER_TITLE = "Salvar Temporárias"
     SAVE_TEMPORARY_LAYER_TOOLTIP = "Salva camadas temporárias (memory) do projeto em arquivos permanentes no disco"

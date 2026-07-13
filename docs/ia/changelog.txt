@@ -320,22 +320,6 @@
 [2.3.52.2][11/07/2026] WidgetFactory: create_complex_selector() removido — ComplexSelector é privado do GridComplexSelector.
     - Factory agora expõe APENAS create_grid_complex_selector() como único ponto de acesso
     - import de ComplexSelector removido da WidgetFactory
-2.3.54 13/07/2026
-[2.3.54.1][13/07/2026] Criado sistema de distribuição ofuscada (BuildDistribution):
-   - scripts/BuildDistribution.py: Script de build que ofusca classes com PyArmor,
-     remove .py originais e empacota em .cadmus_dist
-   - core/config/DistributionInstaller.py: Instalador que desempacota .cadmus_dist
-     nas pastas corretas e instala chave de licença via RegistryManager
-   - core/ui/RegistryDialog.py: Adicionado botão "📦 Instalar Pacote" com seletor
-     de arquivo .cadmus_dist via QFileDialog
-   - plugins/PathExtensionPlugin.py: Bloqueado por licença — verifica DistributionInstaller
-     antes de executar, exibe modal se licença inválida
-   - i18n/Strings_pt_BR.py: Adicionadas strings DIST_INSTALL_PACKAGE, DIST_SELECT_PACKAGE,
-     DIST_PACKAGE_FILTER, DIST_INSTALL_SUCCESS, DIST_INSTALL_FAIL, DIST_LICENSE_BLOCKED
-   - tasks/TASK_BUILD_DISTRIBUTION.md: Documentação do sistema
-   - Chave padrão do sistema: 7N1V9-2S1H9-5G9K4
-   - Apenas PathExtensionPlugin bloqueado por enquanto (define-se em plugins/)
-
 2.3.53 11/07/2026
 [2.3.53.1][11/07/2026] Corrigido ImportError 'Signal' em ComplexSelector.py:
     - Substituído `from qgis.PyQt.QtCore import Signal` por `from qgis.PyQt.QtCore import pyqtSignal`

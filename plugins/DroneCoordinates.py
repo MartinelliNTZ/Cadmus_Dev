@@ -1,4 +1,4 @@
-﻿﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import os
 from ..plugins.BasePlugin import BasePluginMTL
 from ..core.services.DronePipelineService import DronePipelineService

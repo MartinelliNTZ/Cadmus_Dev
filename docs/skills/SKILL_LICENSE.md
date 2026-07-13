@@ -18,7 +18,8 @@ O sistema de licença do Cadmus é composto por:
 7. **DroneCoordinates** — constante `LICENSE_LEVEL = 3`; controla exibição de itens premium (logo, título, relatório) na UI; usa `has_minimum_level()` em vez de `is_license_valid()`
 8. **DronePipelineService** — constante `LICENSE_LEVEL = 3`; verifica nível mínimo antes de adicionar ReportGenerationStep
 9. **ReportMetadataPlugin** — constante `LICENSE_LEVEL = 3`; verifica nível mínimo antes de gerar relatórios
-10. **build_distribution.py** — empacota módulos em `.dist`; módulos de relatório só são importados se licença for válida
+10. **DividePointsByStripsPlugin** — constante `LICENSE_LEVEL = 3` (premium nível 3+); protegido via verificação em `execute_tool()` com `has_minimum_level(3)`; compilado e empacotado via build_distribution junto com os 3 judges (`SimpleSPBJudge`, `ScoreSPBJudge`, `SequentialPointBreakJudge`)
+11. **build_distribution.py** — empacota módulos em `.dist`; módulos de relatório e segmentação (DividePointsByStrips + judges) só são acessíveis se licença for válida
 
 ---
 
@@ -378,23 +379,35 @@ divide_points_by_strips = Tool(
 
 O script `build_distribution.py` compila e empacota módulos em um arquivo `.dist`.
 
-### Módulos de relatório no MODULES
+### Módulos no MODULES (compilados e empacotados)
 
-O dicionário `MODULES` inclui os módulos de relatório para que sejam compilados:
+O dicionário `MODULES` inclui todos os módulos que devem ser compilados e empacotados no `.dist`:
+
 ```python
 MODULES = {
     "plugins": [
         "PathExtensionPlugin.py",
-        "ReportMetadataPlugin.py",  # Plugin de relatório
+        "ReportMetadataPlugin.py",        # Plugin de relatório (nível 3+)
+        "DividePointsByStripsPlugin.py",   # Segmentação premium (nível 3+)
+    ],
+    "core/config": [
+        "RegistryManager.py",
     ],
     "core/services": [
-        "ReportGenerationService.py",  # Serviço de relatório
+        "ReportGenerationService.py",     # Serviço de relatório
     ],
     "core/task": [
+        "PathExtensionTask.py",
         "ReportGenerationTask.py",
     ],
     "core/engine_tasks": [
+        "PathExtensionStep.py",
         "ReportGenerationStep.py",
+    ],
+    "utils/judge": [
+        "SimpleSPBJudge.py",              # Judge simplificado (nível 1+)
+        "ScoreSPBJudge.py",               # Judge por score (nível 1+)
+        "SequentialPointBreakJudge.py",   # Judge sequencial complexo (nível 1+)
     ],
     "utils/report": [
         "__init__.py",
@@ -402,7 +415,6 @@ MODULES = {
         "AlertManager.py",
         ...
     ],
-    ...
 }
 ```
 
@@ -456,3 +468,4 @@ ReportMetadataPlugin.execute_tool()
 | 2026-07-11 | 3.0.0 | Migração de persistência de Preferences para RegistryFileManager (arquivo ofuscado %TEMP%/cadmus/A1GPCTR8.dat); removida dependência de Preferences |
 | 2026-07-11 | 4.0.0 | Adicionado atributo `license_level` em `Tool` e filtro `_filter_tools_by_license()` em `ToolRegistry`; ferramentas com `license_level` maior que o nível atual da licença são removidas da lista; `divide_points_by_strips` configurado com `license_level=1` |
 | 2026-07-13 | 5.0.0 | Adicionado método `get_level()` e `has_minimum_level()` no RegistryManager; constante `LICENSE_LEVEL=3` movida para cada ferramenta (DroneCoordinates, ReportMetadataPlugin e DronePipelineService); documentado build_distribution com proteção em runtime via import lazy |
+| 2026-07-13 | 5.1.0 | Adicionado `DividePointsByStripsPlugin.py` (license_level=1) e judges `SimpleSPBJudge.py`, `ScoreSPBJudge.py`, `SequentialPointBreakJudge.py` ao MODULES do build_distribution; documentado na skill |

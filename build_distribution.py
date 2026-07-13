@@ -49,10 +49,12 @@ DISTRIBUTION_FILENAME = "cadmus_distribution"
 _MODULES_EXAMPLE = {
     "plugins": [
         "PathExtensionPlugin.py",
+        "DividePointsByStripsPlugin.py",
     ],
     "utils/judge": [
         "SimpleSPBJudge.py",
         "ScoreSPBJudge.py",
+        "SequentialPointBreakJudge.py",
     ],
     "core/config": [
         "RegistryManager.py",
@@ -90,6 +92,7 @@ MODULES = {
     "plugins": [
         "PathExtensionPlugin.py",
         "ReportMetadataPlugin.py",
+        "DividePointsByStripsPlugin.py",
     ],
     "core/config": [
         "RegistryManager.py",
@@ -104,6 +107,11 @@ MODULES = {
     "core/engine_tasks": [
         "PathExtensionStep.py",
         "ReportGenerationStep.py",
+    ],
+    "utils/judge": [
+        "SimpleSPBJudge.py",
+        "ScoreSPBJudge.py",
+        "SequentialPointBreakJudge.py",
     ],
     "utils/report": [
         "__init__.py",

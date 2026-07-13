@@ -33,6 +33,9 @@ class DividePointsByStripsPlugin(BasePluginMTL):
     PREF_SELECTED_OUTPUT_FIELDS = "selected_output_fields"
     PREF_JUDGE_MODE = "judge_mode"
     REQUIRED_OUTPUT_FIELD = "shot_id"
+
+    # Nível mínimo de licença exigido para usar esta ferramenta
+    LICENSE_LEVEL: int = 3
     PATH_MODES = [STR.CURVE, STR.STRAIGHT, STR.BOTH_PATH]
     JUDGE_MODES = {"Complexo": "complex", "Simples": "simple", "Score": "score"}
 
@@ -822,6 +825,16 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         # O campo ID continua obrigatório para ordenação, mas tempo agora é opcional.
         if not field_id:
             QgisMessageUtil.bar_warning(self.iface, STR.SELECT_REQUIRED_FIELDS)
+            return
+
+        # Verifica se a licença tem nível mínimo exigido para usar esta ferramenta
+        from ..core.config.RegistryManager import RegistryManager
+        license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
+        if not license_mgr.has_minimum_level(self.LICENSE_LEVEL):
+            QgisMessageUtil.modal_warning(
+                self.iface,
+                "Segmentação de tiros requer licença nível 3 ou superior."
+            )
             return
 
         self.logger.info(

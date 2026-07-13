@@ -26,7 +26,7 @@ from ..config.LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 
 
-class LicenseDialog(BaseDialog):
+class RegistryDialog(BaseDialog):
     """
     Diálogo modal para gerenciamento de licença.
 
@@ -92,23 +92,23 @@ class LicenseDialog(BaseDialog):
         grid.setSpacing(6)
         grid.setContentsMargins(0, 4, 0, 4)
 
-        lbl_level_title = QLabel(f"{STR.LEVEL}:")
-        lbl_level_title.setStyleSheet("font-weight: bold;")
+        self._lbl_level_title = QLabel(f"{STR.LEVEL}:")
+        self._lbl_level_title.setStyleSheet("font-weight: bold;")
         self._lbl_level = QLabel("-")
-        grid.addWidget(lbl_level_title, 0, 0)
+        grid.addWidget(self._lbl_level_title, 0, 0)
         grid.addWidget(self._lbl_level, 0, 1)
 
-        lbl_expiry_title = QLabel(f"{STR.EXPIRATION_DATE}:")
-        lbl_expiry_title.setStyleSheet("font-weight: bold;")
+        self._lbl_expiry_title = QLabel(f"{STR.EXPIRATION_DATE}:")
+        self._lbl_expiry_title.setStyleSheet("font-weight: bold;")
         self._lbl_expiry = QLabel("-")
-        grid.addWidget(lbl_expiry_title, 1, 0)
+        grid.addWidget(self._lbl_expiry_title, 1, 0)
         grid.addWidget(self._lbl_expiry, 1, 1)
 
-        lbl_status_title = QLabel(f"{STR.STATUS}:")
-        lbl_status_title.setStyleSheet("font-weight: bold;")
+        self._lbl_status_title = QLabel(f"{STR.STATUS}:")
+        self._lbl_status_title.setStyleSheet("font-weight: bold;")
         self._lbl_status = QLabel(STR.INACTIVE)
         self._lbl_status.setStyleSheet("color: gray;")
-        grid.addWidget(lbl_status_title, 2, 0)
+        grid.addWidget(self._lbl_status_title, 2, 0)
         grid.addWidget(self._lbl_status, 2, 1)
 
         layout.addWidget(grid_w)
@@ -197,6 +197,11 @@ class LicenseDialog(BaseDialog):
         nivel = info.get("nivel", 0)
         self._lbl_level.setText(str(nivel) if is_valid and nivel > 0 else "")
         self._lbl_expiry.setText(info.get("expiry") if is_valid else "")
+
+        # Show/hide title labels based on whether a license exists
+        self._lbl_level_title.setVisible(is_valid)
+        self._lbl_expiry_title.setVisible(is_valid)
+        self._lbl_status_title.setVisible(is_valid)
 
         if is_valid:
             self.setWindowTitle(STR.LICENSE_TITLE)

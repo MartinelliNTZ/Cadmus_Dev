@@ -448,9 +448,9 @@ class SettingsPlugin(BasePluginMTL):
         A licença é salva/gerenciada pelo LicenseDialog diretamente via LicenseManager.
         """
         self.logger.debug("Abrindo diálogo de gerenciamento de licença")
-        from ..core.ui.LicenseDialog import LicenseDialog
+        from ..core.ui.RegistryDialog import RegistryDialog
 
-        dialog = LicenseDialog(iface=self.iface, parent=self)
+        dialog = RegistryDialog(iface=self.iface, parent=self)
         dialog.exec_()
 
     def _open_preferences_folder(self):

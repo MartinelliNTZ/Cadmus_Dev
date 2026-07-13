@@ -6,6 +6,7 @@ Diálogo modal com:
 - QLineEdit para inserir chave + botão 🔑 para validar
 - Grid de labels: nível, validade, status
 - Botão Apagar Licença
+- Botão Instalar Pacote (.cadmus_dist)
 - Botão Salvar
 """
 
@@ -17,12 +18,14 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QGridLayout,
     QWidget,
+    QFileDialog,
 )
 from ...plugins.BaseDialog import BaseDialog
 from ...i18n.TranslationManager import STR
 from ...resources.styles.Styles import Styles
 from ..config.RegistryManager import RegistryManager
 from ..config.LogUtils import LogUtils
+from ..config.DistributionInstaller import DistributionInstaller
 from ...utils.ToolKeys import ToolKey
 
 
@@ -35,6 +38,7 @@ class RegistryDialog(BaseDialog):
     - Botão 🔑 para validar
     - Grid: Nível, Validade, Status
     - Botão Apagar Licença
+    - Botão Instalar Pacote .cadmus_dist
     - Botão Salvar + Fechar
     """
 
@@ -43,6 +47,7 @@ class RegistryDialog(BaseDialog):
         self.iface = iface
         self.logger = LogUtils(tool=ToolKey.SETTINGS, class_name="LicenseDialog")
         self._license_mgr = RegistryManager(tool_key=ToolKey.SETTINGS)
+        self._dist_installer = DistributionInstaller(tool_key=ToolKey.SETTINGS)
 
         self.setWindowTitle(STR.LICENSE_TITLE)
         self.setMinimumWidth(400)
@@ -55,6 +60,7 @@ class RegistryDialog(BaseDialog):
         self._lbl_status = None
         self._btn_delete = None
         self._btn_save = None
+        self._btn_install = None
 
         self._build_ui()
         self._refresh()
@@ -118,6 +124,11 @@ class RegistryDialog(BaseDialog):
         self._btn_delete.clicked.connect(self._on_delete)
         layout.addWidget(self._btn_delete)
 
+        # Botão Instalar Pacote
+        self._btn_install = QPushButton(STR.DIST_INSTALL_PACKAGE)
+        self._btn_install.clicked.connect(self._on_install_package)
+        layout.addWidget(self._btn_install)
+
         # Botões Salvar + Fechar
         btn_row = QHBoxLayout()
         btn_row.addStretch()
@@ -175,6 +186,40 @@ class RegistryDialog(BaseDialog):
                     message=result.get("message", STR.LICENSE_INVALID_KEY),
                     title=STR.LICENSE_TITLE,
                 )
+
+    def _on_install_package(self):
+        """
+        Abre seletor de arquivo para instalar pacote .cadmus_dist.
+        """
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            STR.DIST_SELECT_PACKAGE,
+            "",
+            STR.DIST_PACKAGE_FILTER,
+        )
+
+        if not file_path:
+            return
+
+        self.logger.info(f"Instalando pacote: {file_path}")
+
+        from ...utils.QgisMessageUtil import QgisMessageUtil
+
+        result = self._dist_installer.install(file_path)
+
+        if result.get("success"):
+            QgisMessageUtil.modal_info(
+                self.iface,
+                message=result.get("message", STR.DIST_INSTALL_SUCCESS),
+                title=STR.LICENSE_TITLE,
+            )
+            self._refresh()
+        else:
+            QgisMessageUtil.modal_warning(
+                self.iface,
+                message=result.get("message", STR.DIST_INSTALL_FAIL),
+                title=STR.LICENSE_TITLE,
+            )
 
     def _on_delete(self):
         self._license_mgr.delete_license()

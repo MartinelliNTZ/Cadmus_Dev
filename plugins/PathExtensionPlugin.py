@@ -8,6 +8,7 @@ from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..i18n.TranslationManager import STR
 from ..utils.ToolKeys import ToolKey
 from ..utils.Preferences import Preferences
+from ..core.config.DistributionInstaller import DistributionInstaller
 
 
 class PathExtensionPlugin(BasePluginMTL):
@@ -124,6 +125,10 @@ class PathExtensionPlugin(BasePluginMTL):
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
 
     def execute_tool(self):
+        # Verifica licença antes de executar
+        if not self._check_license():
+            return
+
         self.logger.info("Iniciando processamento: PathExtension")
 
         layer = self.layer_input.current_layer()
@@ -174,6 +179,31 @@ class PathExtensionPlugin(BasePluginMTL):
 
         engine.start()
         self.logger.info("Pipeline assíncrona iniciada")
+
+    def _check_license(self) -> bool:
+        """
+        Verifica se há uma licença ativa para executar esta ferramenta.
+
+        Returns:
+            bool: True se a licença é válida, False caso contrário.
+        """
+        try:
+            installer = DistributionInstaller(tool_key=self.TOOL_KEY)
+            validation = installer.validate_installation()
+            if not validation.get("license_valid", False):
+                self.logger.warning("Tentativa de execução sem licença ativa")
+                from ..utils.QgisMessageUtil import QgisMessageUtil
+                QgisMessageUtil.modal_warning(
+                    self.iface,
+                    message=STR.DIST_LICENSE_BLOCKED,
+                    title=STR.PATH_EXTENSION_TITLE,
+                )
+                return False
+            return True
+        except Exception as e:
+            self.logger.error(f"Erro ao verificar licença: {e}", exc_info=True)
+            # Em caso de erro na verificação, bloqueia por segurança
+            return False
 
     def _on_pipeline_finished(self, context):
         super()._on_pipeline_finished(context)

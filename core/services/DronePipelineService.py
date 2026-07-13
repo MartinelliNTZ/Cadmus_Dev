@@ -293,10 +293,19 @@ class DronePipelineService:
         report_payload = None
         if json_path and Preferences.load_tool_prefs(ToolKey.DRONE_COORDINATES).get("generate_report", False):
             try:
-                from .ReportGenerationService import ReportGenerationService
-                report_payload = ReportGenerationService(
-                    tool_key=ToolKey.DRONE_COORDINATES
-                ).generate_from_json(json_path)
+                from ..config.RegistryManager import RegistryManager
+                license_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
+                if license_mgr.is_license_valid():
+                    # Import lazy: ReportGenerationService só é importado se houver licença
+                    # Permite que o pipeline funcione em modo free sem o módulo
+                    from .ReportGenerationService import ReportGenerationService
+                    report_payload = ReportGenerationService(
+                        tool_key=ToolKey.DRONE_COORDINATES
+                    ).generate_from_json(json_path)
+                else:
+                    logger.warning(
+                        "Licença inválida — relatório não será gerado no pós-processamento"
+                    )
             except Exception as e:
                 logger.error(f"Falha ao gerar report: {e}")
 

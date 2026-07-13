@@ -89,9 +89,13 @@ _MODULES_EXAMPLE = {
 MODULES = {
     "plugins": [
         "PathExtensionPlugin.py",
+        "ReportMetadataPlugin.py",
     ],
     "core/config": [
         "RegistryManager.py",
+    ],
+    "core/services": [
+        "ReportGenerationService.py",
     ],
     "core/task": [
         "PathExtensionTask.py",

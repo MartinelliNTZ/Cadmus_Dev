@@ -8,7 +8,6 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QComboBox, QSizePolicy
 
 from ..core.ui.WidgetFactory import WidgetFactory
-from ..core.services.ReportGenerationService import ReportGenerationService
 from ..i18n.TranslationManager import STR
 from ..resources.IconManager import IconManager as im
 from ..plugins.BasePlugin import BasePluginMTL
@@ -358,6 +357,10 @@ class ReportMetadataPlugin(BasePluginMTL):
             return
 
         try:
+            # Import lazy: ReportGenerationService só é importado quando necessário
+            # Permite que o plugin funcione em modo free sem o módulo
+            from ..core.services.ReportGenerationService import ReportGenerationService
+
             payload = ReportGenerationService(tool_key=self.TOOL_KEY).generate_from_json(
                 selected_json
             )

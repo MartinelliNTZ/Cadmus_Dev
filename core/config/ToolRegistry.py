@@ -8,7 +8,6 @@ from ...i18n.TranslationManager import STR
 from ...utils.StringManager import StringManager
 from ...utils.Preferences import Preferences
 from ..enum import ToolTypeEnum
-from .RegistryManager import RegistryManager
 
 
 class ToolRegistry:
@@ -571,11 +570,16 @@ class ToolRegistry:
         """
         Remove ferramentas cujo license_level é maior que o nível atual da licença.
 
+        Lazy import de RegistryManager — se não existir (versão premium),
+        todas as ferramentas ficam visíveis.
+
         Ferramentas com license_level=None (padrão) não são filtradas.
         Ferramentas com license_level >= 1 só ficam visíveis se o nível da licença
         atual for maior ou igual ao license_level da ferramenta.
         """
         try:
+            # Lazy import — versão premium não tem RegistryManager
+            from .RegistryManager import RegistryManager
             license_mgr = RegistryManager(ToolKey.SYSTEM)
             lic_info = license_mgr.get_license_info()
             current_level = lic_info.get("nivel", 0)

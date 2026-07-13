@@ -5,7 +5,6 @@ from ..core.services.DronePipelineService import DronePipelineService
 from ..utils.StringManager import StringManager
 from ..utils.Preferences import save_tool_prefs
 from ..utils.ToolKeys import ToolKey
-from ..core.config.RegistryManager import RegistryManager
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..utils.DependenciesManager import DependenciesManager
@@ -52,8 +51,15 @@ class DroneCordinates(BasePluginMTL):
         )
 
         # Verifica licença — controla exibição de itens do relatório
-        license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
-        is_license_valid = license_mgr.is_license_valid()
+        try:
+            from ..core.config.RegistryManager import RegistryManager
+            license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
+            is_license_valid = license_mgr.is_license_valid()
+        except Exception as e:
+            self.logger.error(
+                f"Erro ao verificar licença: {e}", code="LICENSE_CHECK_ERROR"
+            )
+            is_license_valid = False
 
         # ====== PASTA MRK ======
         folder_layout, self.folder_selector = WidgetFactory.create_path_selector(

@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-LicenseDialog — Diálogo de gerenciamento de licença
-====================================================
+LicenseDialog — Diálogo de gerenciamento de licença e distribuição
+===================================================================
 Diálogo modal com:
 - QLineEdit para inserir chave + botão 🔑 para validar
 - Grid de labels: nível, validade, status
 - Botão Apagar Licença
 - Botão Salvar
+- GridComplexSelector para selecionar arquivo .dist de distribuição
+  e restaurar as classes compiladas nas pastas corretas,
+  opcionalmente aplicando chave de licença contida no pacote.
 """
 
 from qgis.PyQt.QtWidgets import (
@@ -18,23 +21,27 @@ from qgis.PyQt.QtWidgets import (
     QGridLayout,
     QWidget,
 )
+from qgis.PyQt.QtCore import Qt
 from ...plugins.BaseDialog import BaseDialog
 from ...i18n.TranslationManager import STR
 from ...resources.styles.Styles import Styles
 from ..config.RegistryManager import RegistryManager
 from ..config.LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
+from ..ui.WidgetFactory import WidgetFactory
 
 
 class RegistryDialog(BaseDialog):
     """
-    Diálogo modal para gerenciamento de licença.
+    Diálogo modal para gerenciamento de licença e restauração de distribuição.
 
     Layout:
     - QLineEdit para inserir chave
     - Botão 🔑 para validar
     - Grid: Nível, Validade, Status
     - Botão Apagar Licença
+    - GridComplexSelector para selecionar arquivo .dist
+    - Botão Restaurar
     - Botão Salvar + Fechar
     """
 
@@ -55,6 +62,8 @@ class RegistryDialog(BaseDialog):
         self._lbl_status = None
         self._btn_delete = None
         self._btn_save = None
+        self._dist_grid = None
+        self._btn_restore = None
 
         self._build_ui()
         self._refresh()
@@ -117,6 +126,29 @@ class RegistryDialog(BaseDialog):
         self._btn_delete = QPushButton(f"🗑️ {STR.REMOVE}")
         self._btn_delete.clicked.connect(self._on_delete)
         layout.addWidget(self._btn_delete)
+
+        # GridComplexSelector para selecionar arquivo .dist
+        dist_layout, self._dist_grid = WidgetFactory.create_grid_complex_selector(
+            specs={
+                "Distribuição": {
+                    "label_text": "📦 Arquivo de distribuição (.dist):",
+                    "file_filter": "Distribuição Cadmus (*.dist);;Todos os arquivos (*)",
+                    "mode_type": "input",
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "multiple": False,
+                    "show_project_button": False,
+                },
+            },
+            title="Restaurar Distribuição",
+            columns=1,
+        )
+        layout.addLayout(dist_layout)
+
+        # Botão Restaurar
+        self._btn_restore = QPushButton("📦 Restaurar")
+        self._btn_restore.clicked.connect(self._on_restore_distribution)
+        layout.addWidget(self._btn_restore)
 
         # Botões Salvar + Fechar
         btn_row = QHBoxLayout()
@@ -186,6 +218,118 @@ class RegistryDialog(BaseDialog):
             message=STR.LICENSE_DELETED_SUCCESS,
             title=STR.LICENSE_TITLE,
         )
+
+    def _on_restore_distribution(self):
+        """
+        Restaura as classes .pyc do arquivo .dist selecionado
+        para as pastas corretas. Se o pacote contiver uma chave
+        de licença, ela é aplicada automaticamente.
+        """
+        from ...utils.QgisMessageUtil import QgisMessageUtil
+
+        # Obtém o caminho do arquivo do GridComplexSelector
+        dist_selector = self._dist_grid.get("Distribuição")
+        if not dist_selector:
+            QgisMessageUtil.modal_warning(
+                self.iface,
+                message="Seletor de distribuição não encontrado.",
+                title="Restaurar Distribuição",
+            )
+            return
+
+        file_paths = dist_selector.get_paths()
+        if not file_paths or not file_paths[0]:
+            QgisMessageUtil.modal_warning(
+                self.iface,
+                message="Selecione um arquivo .dist primeiro.",
+                title="Restaurar Distribuição",
+            )
+            return
+
+        file_path = file_paths[0]
+
+        import os
+        import json
+        import zipfile
+        from pathlib import Path
+
+        plugin_root = Path(__file__).resolve().parent.parent.parent
+
+        try:
+            with zipfile.ZipFile(file_path, "r") as zf:
+                # Lê o manifest
+                if "manifest.json" not in zf.namelist():
+                    QgisMessageUtil.modal_warning(
+                        self.iface,
+                        message="Pacote inválido: manifest.json não encontrado.",
+                        title="Restaurar Distribuição",
+                    )
+                    return
+
+                manifest_data = zf.read("manifest.json")
+                manifest = json.loads(manifest_data)
+
+                # Restaura cada módulo
+                modules_info = manifest.get("modules", {})
+                restored_count = 0
+
+                for directory, filenames in modules_info.items():
+                    target_dir = plugin_root / directory
+                    target_dir.mkdir(parents=True, exist_ok=True)
+
+                    for filename in filenames:
+                        arcname = f"{directory}/{filename}"
+                        if arcname in zf.namelist():
+                            data = zf.read(arcname)
+                            dest_path = target_dir / filename
+                            with open(str(dest_path), "wb") as f:
+                                f.write(data)
+                            restored_count += 1
+                            self.logger.debug(
+                                f"Restaurado: {directory}/{filename}"
+                            )
+
+                # Aplica chave de licença se existir no pacote
+                package_key = manifest.get("key", "").strip()
+                if package_key:
+                    self.logger.info(
+                        f"Chave de licença encontrada no pacote: "
+                        f"{package_key[:4]}****"
+                    )
+                    self._input_key.setText(package_key)
+                    # Salva a chave automaticamente
+                    result = self._license_mgr.save_license_key(package_key)
+                    if result.get("success"):
+                        self.logger.info("Licença do pacote aplicada com sucesso")
+                    else:
+                        self.logger.warning(
+                            f"Falha ao aplicar licença do pacote: "
+                            f"{result.get('message')}"
+                        )
+                    self._refresh()
+
+                QgisMessageUtil.modal_info(
+                    self.iface,
+                    message=(
+                        f"Distribuição restaurada com sucesso!\n\n"
+                        f"{restored_count} arquivo(s) restaurado(s).\n"
+                        f"{'Licença aplicada automaticamente.' if package_key else ''}\n\n"
+                        f"Reinicie o QGIS para carregar as classes."
+                    ),
+                    title="Restaurar Distribuição",
+                )
+
+        except Exception as exc:
+            self.logger.error(
+                "Falha ao restaurar distribuição",
+                code="DIST_RESTORE_ERR",
+                error=str(exc),
+            )
+            QgisMessageUtil.modal_warning(
+                self.iface,
+                message=f"Erro ao restaurar distribuição: {exc}",
+                title="Restaurar Distribuição",
+            )
 
     def _refresh(self):
         info = self._license_mgr.get_license_info()

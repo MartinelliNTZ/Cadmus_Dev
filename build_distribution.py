@@ -72,6 +72,9 @@ MODULES = {
     "plugins": [
         "PathExtensionPlugin.py",
     ],
+    "core/config": [
+        "RegistryManager.py",
+    ],
 }
 # ======================================================================
 

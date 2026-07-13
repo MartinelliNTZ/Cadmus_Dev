@@ -10,6 +10,9 @@ Diálogo modal com:
 - GridComplexSelector para selecionar arquivo .dist de distribuição
   e restaurar as classes compiladas nas pastas corretas,
   opcionalmente aplicando chave de licença contida no pacote.
+
+Lazy import de RegistryManager: se a classe foi compilada/removida
+(versão premium), o diálogo funciona sem licença.
 """
 
 from qgis.PyQt.QtWidgets import (
@@ -21,11 +24,9 @@ from qgis.PyQt.QtWidgets import (
     QGridLayout,
     QWidget,
 )
-from qgis.PyQt.QtCore import Qt
 from ...plugins.BaseDialog import BaseDialog
 from ...i18n.TranslationManager import STR
 from ...resources.styles.Styles import Styles
-from ..config.RegistryManager import RegistryManager
 from ..config.LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 from ..ui.WidgetFactory import WidgetFactory
@@ -49,7 +50,10 @@ class RegistryDialog(BaseDialog):
         super().__init__(parent)
         self.iface = iface
         self.logger = LogUtils(tool=ToolKey.SETTINGS, class_name="LicenseDialog")
-        self._license_mgr = RegistryManager(tool_key=ToolKey.SETTINGS)
+
+        # Lazy import de RegistryManager — se foi compilado/removido = versão premium
+        self._license_mgr = self._init_license_mgr()
+        self._premium = self._license_mgr is None
 
         self.setWindowTitle(STR.LICENSE_TITLE)
         self.setMinimumWidth(400)
@@ -67,6 +71,21 @@ class RegistryDialog(BaseDialog):
 
         self._build_ui()
         self._refresh()
+
+    @staticmethod
+    def _init_license_mgr():
+        """
+        Tenta importar RegistryManager com lazy/try.
+        Se falhar (classe compilada/removida em distribuição), retorna None.
+        None significa versão premium → não precisa de licença.
+        """
+        try:
+            from ..config.RegistryManager import RegistryManager
+            return RegistryManager(tool_key=ToolKey.SETTINGS)
+        except ImportError:
+            return None
+        except Exception:
+            return None
 
     # ----------------------------------------------------------------
     # UI
@@ -177,6 +196,17 @@ class RegistryDialog(BaseDialog):
         self._do_save(show_message=True)
 
     def _do_save(self, show_message: bool):
+        if self._license_mgr is None:
+            # Premium — não precisa de licença
+            from ...utils.QgisMessageUtil import QgisMessageUtil
+            QgisMessageUtil.modal_info(
+                self.iface,
+                message="Versão premium — licença não necessária.",
+                title=STR.LICENSE_TITLE,
+            )
+            self.accept()
+            return
+
         key = self._input_key.text().strip()
         if not key:
             self._refresh()
@@ -209,6 +239,8 @@ class RegistryDialog(BaseDialog):
                 )
 
     def _on_delete(self):
+        if self._license_mgr is None:
+            return
         self._license_mgr.delete_license()
         self._input_key.clear()
         self._refresh()
@@ -248,7 +280,6 @@ class RegistryDialog(BaseDialog):
 
         file_path = file_paths[0]
 
-        import os
         import json
         import zipfile
         from pathlib import Path
@@ -291,7 +322,7 @@ class RegistryDialog(BaseDialog):
 
                 # Aplica chave de licença se existir no pacote
                 package_key = manifest.get("key", "").strip()
-                if package_key:
+                if package_key and self._license_mgr is not None:
                     self.logger.info(
                         f"Chave de licença encontrada no pacote: "
                         f"{package_key[:4]}****"
@@ -332,6 +363,27 @@ class RegistryDialog(BaseDialog):
             )
 
     def _refresh(self):
+        if self._license_mgr is None:
+            # Premium — esconde campos de licença
+            self.setWindowTitle(STR.LICENSE_TITLE)
+            self._lbl_level_title.setVisible(False)
+            self._lbl_level.setVisible(False)
+            self._lbl_expiry_title.setVisible(False)
+            self._lbl_expiry.setVisible(False)
+            self._lbl_status_title.setVisible(False)
+            self._lbl_status.setVisible(False)
+            self._btn_delete.setVisible(False)
+            self._btn_save.setVisible(False)
+            self._btn_validate.setVisible(False)
+            self._input_key.setVisible(False)
+            self._lbl_level_title.setParent(None)
+            self._lbl_level.setParent(None)
+            self._lbl_expiry_title.setParent(None)
+            self._lbl_expiry.setParent(None)
+            self._lbl_status_title.setParent(None)
+            self._lbl_status.setParent(None)
+            return
+
         info = self._license_mgr.get_license_info()
 
         has_key = info.get("has_key", False)

@@ -150,7 +150,7 @@ class ImageUtils(BaseUtil):
         data_uri: str,
         tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
     ) -> Optional[bytes]:
-        """Converte uma string base64 (com ou sem data URI) de volta para bytes.
+        """Converte uma string base64 (com ou sem data URI) de volta para bytes..
 
         Args:
             data_uri: String base64, podendo conter prefixo ``data:...;base64,``.

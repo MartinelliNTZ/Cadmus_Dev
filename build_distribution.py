@@ -65,6 +65,12 @@ _MODULES_EXAMPLE = {
         "DronePipelineService.py",
         "ReportGenerationService.py",
     ],
+    "core/task": [
+        "PathExtensionTask.py",
+    ],
+    "core/engine_tasks": [
+        "PathExtensionStep.py",
+    ],
 }
 
 # Módulos ativos para compilação
@@ -74,6 +80,12 @@ MODULES = {
     ],
     "core/config": [
         "RegistryManager.py",
+    ],
+    "core/task": [
+        "PathExtensionTask.py",
+    ],
+    "core/engine_tasks": [
+        "PathExtensionStep.py",
     ],
 }
 # ======================================================================

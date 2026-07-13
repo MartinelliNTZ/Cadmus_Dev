@@ -216,7 +216,7 @@ class ToolRegistry:
             tooltip=STR.LOGCAT_TOOLTIP,
             order=20,
             show_in_toolbar=True,
-            license_level=3
+            license_level=3,
         )
         tools.append(logcat)
 
@@ -395,7 +395,9 @@ class ToolRegistry:
             icon=im.icon(im.SAVE_TEMPORARY_LAYER),
             category=self.FOLDER,
             tool_type=ToolTypeEnum.DIALOG,
-            main_action=self._main_action_prefs.get(ToolKey.SAVE_TEMPORARY_LAYER, False),
+            main_action=self._main_action_prefs.get(
+                ToolKey.SAVE_TEMPORARY_LAYER, False
+            ),
             executor=self._make_plugin_executor("...plugins.SaveTemporaryLayersPlugin"),
             tooltip=STR.SAVE_TEMPORARY_LAYER_TOOLTIP,
             order=70,
@@ -414,7 +416,7 @@ class ToolRegistry:
             tooltip=STR.PATH_EXTENSION_TOOLTIP,
             order=70,
             show_in_toolbar=True,
-            license_level=3
+            license_level=3,
         )
         tools.append(path_extension)
 
@@ -460,7 +462,7 @@ class ToolRegistry:
             tooltip=STR.REPORT_METADATA_TOOLTIP,
             order=30,
             show_in_toolbar=True,
-            license_level=1
+            license_level=1,
         )
         tools.append(report_metadata)
 
@@ -568,38 +570,52 @@ class ToolRegistry:
 
     def _filter_tools_by_license(self):
         """
-        Remove ferramentas cujo license_level é maior que o nível atual da licença.
+        Filtra ferramentas premium com base na existência e nível da licença.
 
-        Lazy import de RegistryManager — se não existir (versão premium),
-        todas as ferramentas ficam visíveis.
+        Lógica:
+        1. Se NÃO houver licença válida → remove TODAS as ferramentas com
+           license_level definido (premium)
+        2. Se houver licença válida → mantém apenas ferramentas cujo
+           license_level seja menor ou igual ao nível atual da licença.
+           Ferramentas com license_level maior que o nível atual são removidas.
 
-        Ferramentas com license_level=None (padrão) não são filtradas.
-        Ferramentas com license_level >= 1 só ficam visíveis se o nível da licença
-        atual for maior ou igual ao license_level da ferramenta.
+        Ferramentas com license_level=None (padrão, gratuitas) nunca são filtradas.
         """
         try:
-            # Lazy import — versão premium não tem RegistryManager
             from .RegistryManager import RegistryManager
+
             license_mgr = RegistryManager(ToolKey.SYSTEM)
+            is_valid = license_mgr.is_license_valid()
             lic_info = license_mgr.get_license_info()
             current_level = lic_info.get("nivel", 0)
+        except Exception:
+            # RegistryManager não existe (versão sem módulo de licença)
+            # → assume licença inválida e filtra premium
+            is_valid = False
+            current_level = 0
 
-            before = len(self.tools)
+        before = len(self.tools)
+
+        if not is_valid:
+            # Sem licença válida → só ferramentas gratuitas
+            self.tools = [tool for tool in self.tools if tool.license_level is None]
+        else:
+            # Com licença válida → respeita o nível
             self.tools = [
                 tool
                 for tool in self.tools
                 if tool.license_level is None or current_level >= tool.license_level
             ]
-            filtered = before - len(self.tools)
-            if filtered > 0:
-                self.logger.info(
-                    f"[_filter_tools_by_license] Filtradas {filtered} ferramentas "
-                    f"por nível de licença (nível atual: {current_level})"
-                )
-        except Exception as e:
-            self.logger.error(
-                f"[_filter_tools_by_license] Erro ao filtrar ferramentas: {e}",
+
+        filtered = before - len(self.tools)
+        if filtered > 0:
+            self.logger.info(
+                f"[_filter_tools_by_license] Filtradas {filtered} ferramentas "
+                f"(licença {'ausente/inválida' if not is_valid else 'nível insuficiente: '
+                f'nível atual={current_level}'})"
             )
+        else:
+            self.logger.info("[_filter_tools_by_license] Nenhuma ferramenta filtrada")
 
     def _make_plugin_executor(self, module_path: str, run_func: str = "run"):
         """

@@ -21,7 +21,6 @@ from ..engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..engine_tasks.ExecutionContext import ExecutionContext
 from ..engine_tasks.PhotoEnrichmentStep import PhotoEnrichmentStep
 from ..engine_tasks.JsonVectorizationStep import JsonVectorizationStep
-from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
 from ..engine_tasks.ReverseGeocodeStep import ReverseGeocodeStep
 from ..engine_tasks.AltimetryStep import AltimetryStep
 from ...i18n.TranslationManager import STR
@@ -156,6 +155,9 @@ class DronePipelineService:
                 from ..config.RegistryManager import RegistryManager
                 license_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
                 if license_mgr.is_license_valid():
+                    # Import lazy: ReportGenerationStep só é importado se houver licença
+                    # Isso permite que o pipeline funcione em modo free sem o módulo
+                    from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
                     steps.append(ReportGenerationStep())
                 else:
                     logger.warning(

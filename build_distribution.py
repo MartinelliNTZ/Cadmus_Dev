@@ -67,9 +67,22 @@ _MODULES_EXAMPLE = {
     ],
     "core/task": [
         "PathExtensionTask.py",
+        "ReportGenerationTask.py",
     ],
     "core/engine_tasks": [
         "PathExtensionStep.py",
+        "ReportGenerationStep.py",
+    ],
+    "utils/report": [
+        "__init__.py",
+        "AggregateAnalyzer.py",
+        "AlertManager.py",
+        "FlightAggregator.py",
+        "IMGMetadata.py",
+        "JsonMetadataManager.py",
+        "RangeMetadataManager.py",
+        "RenderEngine.py",
+        "ReportPapelineManager.py",
     ],
 }
 
@@ -83,12 +96,32 @@ MODULES = {
     ],
     "core/task": [
         "PathExtensionTask.py",
+        "ReportGenerationTask.py",
     ],
     "core/engine_tasks": [
         "PathExtensionStep.py",
+        "ReportGenerationStep.py",
+    ],
+    "utils/report": [
+        "__init__.py",
+        "AggregateAnalyzer.py",
+        "AlertManager.py",
+        "FlightAggregator.py",
+        "IMGMetadata.py",
+        "JsonMetadataManager.py",
+        "RangeMetadataManager.py",
+        "RenderEngine.py",
+        "ReportPapelineManager.py",
     ],
 }
 # ======================================================================
+
+# Arquivos estáticos que são copiados diretamente para o .dist (sem compilação)
+# Esses arquivos NÃO são removidos após o empacotamento
+STATIC_FILES = [
+    "resources/reports/config.yaml",
+    "resources/reports/template.html",
+]
 
 # Caminhos conhecidos do Python do QGIS (prioridade da versão mais recente)
 _QGIS_PYTHON_CANDIDATES = [
@@ -259,6 +292,7 @@ class BuildDistribution:
         O arquivo contém:
         - manifest.json (metadados + chave de licença opcional)
         - Os .pyc com seus caminhos relativos
+        - Arquivos estáticos (config.yaml, template.html, etc.)
 
         Returns:
             bool: True se OK.
@@ -276,8 +310,10 @@ class BuildDistribution:
                         "version": 1,
                         "key": DISTRIBUTION_KEY if DISTRIBUTION_KEY else "",
                         "modules": {},
+                        "static_files": [],
                     }
 
+                    # Adiciona .pyc compilados
                     for directory, files in modules.items():
                         dir_path = self._root / directory
                         manifest["modules"][directory] = []
@@ -288,6 +324,16 @@ class BuildDistribution:
                                 zf.write(str(pyc_path), arcname)
                                 manifest["modules"][directory].append(pyc_path.name)
                                 print(f"[BuildDistribution]   + {arcname}")
+
+                    # Adiciona arquivos estáticos (sem compilação)
+                    for rel_path in STATIC_FILES:
+                        full_path = self._root / rel_path
+                        if full_path.exists():
+                            zf.write(str(full_path), rel_path)
+                            manifest["static_files"].append(rel_path)
+                            print(f"[BuildDistribution]   + {rel_path} (estático)")
+                        else:
+                            print(f"[BuildDistribution]   AVISO: Estático não encontrado: {rel_path}")
 
                     # Escreve manifest.json no ZIP
                     zf.writestr("manifest.json", json.dumps(manifest, indent=2))

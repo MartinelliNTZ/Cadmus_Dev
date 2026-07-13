@@ -320,6 +320,10 @@ class RegistryDialog(BaseDialog):
                                 f"Restaurado: {directory}/{filename}"
                             )
 
+                # Re-inicializa _license_mgr — agora RegistryManager está disponível
+                self._license_mgr = self._init_license_mgr()
+                self._premium = self._license_mgr is None
+
                 # Aplica chave de licença se existir no pacote
                 package_key = manifest.get("key", "").strip()
                 if package_key and self._license_mgr is not None:
@@ -338,6 +342,11 @@ class RegistryDialog(BaseDialog):
                             f"{result.get('message')}"
                         )
                     self._refresh()
+                elif package_key and self._license_mgr is None:
+                    self.logger.warning(
+                        "Chave encontrada no pacote mas RegistryManager "
+                        "não pôde ser carregado após restauração"
+                    )
 
                 QgisMessageUtil.modal_info(
                     self.iface,
@@ -349,6 +358,7 @@ class RegistryDialog(BaseDialog):
                     ),
                     title="Restaurar Distribuição",
                 )
+                self._refresh()
 
         except Exception as exc:
             self.logger.error(
@@ -363,6 +373,7 @@ class RegistryDialog(BaseDialog):
             )
 
     def _refresh(self):
+        self.logger.info(f"Iniciando refresh{self._license_mgr}")
         if self._license_mgr is None:
             # Premium — esconde campos de licença
             self.setWindowTitle(STR.LICENSE_TITLE)
@@ -382,6 +393,7 @@ class RegistryDialog(BaseDialog):
             self._lbl_expiry.setParent(None)
             self._lbl_status_title.setParent(None)
             self._lbl_status.setParent(None)
+            self.logger.info(f"Licensa nao encontrada {self._license_mgr}")
             return
 
         info = self._license_mgr.get_license_info()
@@ -393,6 +405,7 @@ class RegistryDialog(BaseDialog):
         nivel = info.get("nivel", 0)
         self._lbl_level.setText(str(nivel) if is_valid and nivel > 0 else "")
         self._lbl_expiry.setText(info.get("expiry") if is_valid else "")
+        self.logger.info(f"Debug has license: {has_key} license manager: {self._license_mgr}, is_valid: {is_valid},is active: {is_active}, info: {info}, nivel: {nivel}")
 
         # Show/hide title labels based on whether a license exists
         self._lbl_level_title.setVisible(is_valid)

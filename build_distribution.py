@@ -164,6 +164,8 @@ class BuildDistribution:
         """
         Compila um arquivo .py para .pyc e remove o original.
 
+        Se um .pyc antigo existir, ele é removido antes da compilação.
+
         Args:
             rel_path: Caminho relativo ao root_dir.
 
@@ -180,6 +182,11 @@ class BuildDistribution:
             return False
 
         dest_pyc = source.with_suffix(".pyc")
+
+        # Remove .pyc antigo se existir
+        if dest_pyc.exists():
+            dest_pyc.unlink()
+            print(f"[BuildDistribution] .pyc antigo removido: {dest_pyc.relative_to(self._root)}")
 
         qgis_python = _find_qgis_python()
         if qgis_python:

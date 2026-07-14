@@ -1,4 +1,5 @@
 bandit -r . -f html -o bandit-report.html
+python -m bandit -r . -f html -o bandit-report.html
 flake8 . --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
 flake8 . --ignore=E501 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt
 flake8 . --max-line-length=500 --exclude=.git,__pycache__,build,dist,docs,.vscode,.idea > erros_plugin.txt

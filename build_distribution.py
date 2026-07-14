@@ -35,7 +35,7 @@ from core.services.PackageManager import PackageManager
 
 # Chave de licença opcional incorporada no pacote de distribuição
 # Se vazia "", nenhuma chave é adicionada
-DISTRIBUTION_KEY = "7N1V9-2S1H9-5G9K4"
+DISTRIBUTION_KEY = "6U5D9-4H0J8-6P1U4"
 VERSION = "3.0.0"
 
 # Nome do arquivo de saída (sem extensão) — extensão .dist

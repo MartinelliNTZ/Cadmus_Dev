@@ -35,14 +35,17 @@ from core.services.PackageManager import PackageManager
 # Chave de licença opcional incorporada no pacote de distribuição
 # Se vazia "", nenhuma chave é adicionada
 DISTRIBUTION_KEY = "7N1V9-2S1H9-5G9K4"
+VERSION = "3.0.0"
 
 # Nome do arquivo de saída (sem extensão) — extensão .dist
-DISTRIBUTION_FILENAME = "cadmus_distribution"
+DISTRIBUTION_FILENAME = f"Cadmus_package_{VERSION}_dist"
 
 # Nome do arquivo de distribuição com fontes .py (gerado antes da compilação)
-SOURCE_DISTRIBUTION_FILENAME = "cadmus_distribution_src"
+SOURCE_DISTRIBUTION_FILENAME = f"Cadmus_package_{VERSION}_src"
 # Nome do arquivo de distribuição com .pyc compilados (gerado após compilação)
-PYC_DISTRIBUTION_FILENAME = "cadmus_distribution_pyc"
+PYC_DISTRIBUTION_FILENAME = f"Cadmus_package_{VERSION}_pyc"
+
+ZIP_FILENAME = f"Cadmus-{VERSION}.zip"  # Nome do arquivo ZIP final (opcional)
 
 # ======================================================================
 # Módulos a serem compilados na execução direta
@@ -180,11 +183,12 @@ class BuildDistribution:
     def build(self, modules: dict | None = None) -> bool:
         """
         Executa o pipeline completo:
-          1. Empacota os .py originais em um .dist de fonte (antes de compilar)
-          2. Compila todos os módulos para .pyc
-          3. Remove os originais .py
-          4. Empacota os .pyc em um segundo .dist
-          5. Remove os .pyc (plugin para de funcionar)
+          1. Remove todos os diretórios __pycache__ do projeto
+          2. Empacota os .py originais em um .dist de fonte (antes de compilar)
+          3. Compila todos os módulos para .pyc
+          4. Remove os originais .py
+          5. Empacota os .pyc em um segundo .dist
+          6. Remove os .pyc (plugin para de funcionar)
 
         Args:
             modules: Dicionário de módulos. Se None, usa MODULES.
@@ -198,6 +202,9 @@ class BuildDistribution:
         print("=" * 55)
         print("  BuildDistribution — Pipeline completo (2 distribuições)")
         print("=" * 55)
+
+        # 0. Remover todos os __pycache__ do projeto
+        self._remove_pycache()
 
         # 1. Empacotar .py originais em .dist de fonte (antes da compilação)
         source_ok = self._package_source(modules)
@@ -221,6 +228,9 @@ class BuildDistribution:
 
         # 4. Remover .pyc (plugin para de funcionar)
         self._remove_pyc(modules)
+
+        # 5. Remover novamente __pycache__ (caso a compilação tenha gerado novos)
+        self._remove_pycache()
 
         print("=" * 55)
         print(f"  BUILD CONCLUÍDO: {compile_ok} módulo(s) compilado(s)")
@@ -379,6 +389,40 @@ class BuildDistribution:
             print(f"[BuildDistribution] Chave incorporada: {DISTRIBUTION_KEY}")
 
         return ok
+
+    def _remove_pycache(self):
+        """
+        Remove recursivamente todos os diretórios __pycache__ e todo o
+        seu conteúdo a partir do diretório raiz do projeto.
+        """
+        print("[BuildDistribution] Removendo diretórios __pycache__...")
+        removed = 0
+        for pycache_dir in self._root.rglob("__pycache__"):
+            if pycache_dir.is_dir():
+                try:
+                    # Remove todos os arquivos dentro do __pycache__
+                    for item in pycache_dir.iterdir():
+                        if item.is_dir():
+                            # Remove subdiretórios recursivamente
+                            for sub_item in item.rglob("*"):
+                                if sub_item.is_file():
+                                    sub_item.unlink()
+                            item.rmdir()
+                        else:
+                            item.unlink()
+                    # Remove o próprio diretório __pycache__
+                    pycache_dir.rmdir()
+                    print(
+                        f"[BuildDistribution]   __pycache__ removido: "
+                        f"{pycache_dir.relative_to(self._root)}"
+                    )
+                    removed += 1
+                except OSError as exc:
+                    print(
+                        f"[BuildDistribution]   ERRO ao remover "
+                        f"{pycache_dir.relative_to(self._root)}: {exc}"
+                    )
+        print(f"[BuildDistribution] {removed} diretório(s) __pycache__ removido(s).")
 
     def _remove_pyc(self, modules: dict):
         """

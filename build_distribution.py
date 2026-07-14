@@ -25,6 +25,7 @@ import py_compile
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional, Union, Tuple
 
 from core.services.PackageManager import PackageManager
 
@@ -182,7 +183,7 @@ class BuildDistribution:
     e remove os .pyc, deixando o plugin desabilitado até restaurar.
     """
 
-    def __init__(self, root_dir: str | Path | None = None):
+    def __init__(self, root_dir: Union[str, Path] = None):
         """
         Args:
             root_dir: Diretório raiz do projeto.
@@ -196,7 +197,7 @@ class BuildDistribution:
     # API pública
     # ------------------------------------------------------------------
 
-    def build(self, modules: dict | None = None) -> bool:
+    def build(self, modules: Optional[dict] = None) -> bool:
         """
         Executa o pipeline completo:
           1. Atualiza metadata.txt e AboutDialog.py com a versão em VERSION
@@ -328,7 +329,7 @@ class BuildDistribution:
         )
         return True
 
-    def compile_modules(self, modules: dict | None = None) -> tuple[int, int]:
+    def compile_modules(self, modules: Optional[dict] = None) -> Tuple[int, int]:
         """
         Compila todos os módulos definidos em um dicionário.
 

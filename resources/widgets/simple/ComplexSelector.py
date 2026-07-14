@@ -975,7 +975,7 @@ class ComplexSelector(QWidget):
             btn.setVisible(value)
             btn.setEnabled(value)
 
-    def set_mode(self, *, allow_file: bool | None = None, allow_folder: bool | None = None, selection_mode: str | None = None):
+    def set_mode(self, *, allow_file: Optional[bool] = None, allow_folder: Optional[bool] = None, selection_mode: Optional[str] = None):
         if allow_file is not None:
             self.allow_file = allow_file
         if allow_folder is not None:

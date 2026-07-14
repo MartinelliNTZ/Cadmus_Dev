@@ -47,7 +47,7 @@ import tempfile
 import zlib
 import zipfile
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 # Chaves usadas para criptografar/descriptografar a chave no manifest
 # (mesmo mecanismo do RegistryFileManager, sem depender dele diretamente
@@ -146,12 +146,12 @@ class PackageManager:
 
     @staticmethod
     def create_package(
-        dist_path: str | Path,
+        dist_path: Union[str, Path],
         modules: dict,
         static_files: list,
-        root_dir: str | Path | None = None,
+        root_dir: Union[str, Path] = None,
         key: str = "",
-        manifest_extra: dict | None = None,
+        manifest_extra: Optional[dict] = None,
     ) -> bool:
         """
         Cria um arquivo .dist (ZIP) com os módulos e arquivos estáticos
@@ -249,9 +249,9 @@ class PackageManager:
 
     @staticmethod
     def install_package(
-        dist_path: str | Path,
-        plugin_root: str | Path,
-        on_key_callback: Callable[[str], None] | None = None,
+        dist_path: Union[str, Path],
+        plugin_root: Union[str, Path],
+        on_key_callback: Optional[Callable[[str], None]] = None,
         logger=None,
     ) -> dict:
         """

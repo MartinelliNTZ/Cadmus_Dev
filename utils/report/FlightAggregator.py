@@ -269,111 +269,143 @@ class FlightAggregator:
             )
 
         # Velocidade (km/h e m/s)
-        speed_kmh = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.SPEED_3D_KMH.value, "speed_3d_kmh"]
+        speed_kmh = [
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.SPEED_3D_KMH.value, "speed_3d_kmh"]
+                )
             )
-            if v is not None:
-                speed_kmh.append(v)
+            is not None
+        ]
 
         # Temperatura do sensor
-        sensor_temps = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.SENSOR_TEMPERATURE.value, "sensor_temp_c"]
+        sensor_temps = [
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.SENSOR_TEMPERATURE.value, "sensor_temp_c"]
+                )
             )
-            if v is not None:
-                sensor_temps.append(v)
+            is not None
+        ]
 
         # LRF Target Distance (exclui valores zerados - sem alvo adquirido)
-        lrf_dists = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.LRF_TARGET_DISTANCE.value, "lrf_target_distance"]
+        lrf_dists = [
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.LRF_TARGET_DISTANCE.value, "lrf_target_distance"]
+                )
             )
-            if v is not None and v > 0:
-                lrf_dists.append(v)
+            is not None
+            and v > 0
+        ]
 
         # Altitudes
-        rel_alts = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.RELATIVE_ALTITUDE.value, "relative_altitude"]
+        rel_alts = [
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.RELATIVE_ALTITUDE.value, "relative_altitude"]
+                )
             )
-            if v is not None:
-                rel_alts.append(v)
-
-        abs_alts = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.ABSOLUTE_ALTITUDE.value, "absolute_altitude"]
+            is not None
+        ]
+        abs_alts = [
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.ABSOLUTE_ALTITUDE.value, "absolute_altitude"]
+                )
             )
-            if v is not None:
-                abs_alts.append(v)
+            is not None
+        ]
 
         # ISO, White Balance CCT, Exposure
-        isos = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it,
-                [
-                    MFK.ISO_SPEED_RATINGS.value,
-                    "iso",
-                    MFK.RECOMMENDED_EXPOSURE_INDEX.value,
-                ],
+        isos = [
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it,
+                    [
+                        MFK.ISO_SPEED_RATINGS.value,
+                        "iso",
+                        MFK.RECOMMENDED_EXPOSURE_INDEX.value,
+                    ],
+                )
             )
-            if v is not None:
-                isos.append(v)
-
-        wb_ccts = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.WHITE_BALANCE_CCT.value, "white_balance_cct"]
+            is not None
+        ]
+        wb_ccts = [
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.WHITE_BALANCE_CCT.value, "white_balance_cct"]
+                )
             )
-            if v is not None:
-                wb_ccts.append(v)
-
-        exposures = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.EXPOSURE_TIME.value, "exposure_time"]
+            is not None
+        ]
+        exposures = [
+            v
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.EXPOSURE_TIME.value, "exposure_time"]
+                )
             )
-            if v is not None and v > 0:
-                exposures.append(v)
+            is not None
+            and v > 0
+        ]
 
         # Atitude do drone (roll, yaw, pitch)
-        dist3d_prev = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.DISTANCE_3D_PREVIOUS.value, "distance_3d_previous"]
+        dist3d_prev = [
+            abs(v)
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.DISTANCE_3D_PREVIOUS.value, "distance_3d_previous"]
+                )
             )
-            if v is not None:
-                dist3d_prev.append(abs(v))
-
-        rolls = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.FLIGHT_ROLL_DEGREE.value, "flight_roll_degree"]
+            is not None
+        ]
+        rolls = [
+            abs(v)
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.FLIGHT_ROLL_DEGREE.value, "flight_roll_degree"]
+                )
             )
-            if v is not None:
-                rolls.append(abs(v))
-
-        yaws = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.FLIGHT_YAW_DEGREE.value, "flight_yaw_degree"]
+            is not None
+        ]
+        yaws = [
+            abs(v)
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.FLIGHT_YAW_DEGREE.value, "flight_yaw_degree"]
+                )
             )
-            if v is not None:
-                yaws.append(abs(v))
-
-        pitches = []
-        for it in items:
-            v = FlightAggregator._get_numeric(
-                it, [MFK.FLIGHT_PITCH_DEGREE.value, "flight_pitch_degree"]
+            is not None
+        ]
+        pitches = [
+            abs(v)
+            for it in items
+            if (
+                v := FlightAggregator._get_numeric(
+                    it, [MFK.FLIGHT_PITCH_DEGREE.value, "flight_pitch_degree"]
+                )
             )
-            if v is not None:
-                pitches.append(abs(v))
+            is not None
+        ]
 
         # Altitude do solo (absoluta - relativa)
         solo_altitude = None

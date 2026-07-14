@@ -314,6 +314,7 @@ class RegistryDialog(BaseDialog):
                     "Chave encontrada no pacote mas RegistryManager "
                     "não pôde ser carregado após restauração"
                 )
+            #self._refresh()
 
         # Delega para PackageManager
         result = PackageManager.install_package(

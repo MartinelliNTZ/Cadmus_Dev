@@ -445,7 +445,11 @@ class VectorLayerGeometry:
                 logger.error(f"Erro ao ordenar grupo {group_key}: {e}")
                 continue
 
-            vertices = [xy for feat in group if (xy := _extract_xy(feat))]
+            vertices = []
+            for feat in group:
+                xy = _extract_xy(feat)
+                if xy is not None:
+                    vertices.append(xy)
 
             if len(vertices) < max(2, min_vertices_per_line):
                 logger.debug(f"Grupo {group_key} ignorado: {len(vertices)} vértice(s)")

@@ -193,7 +193,7 @@ class PackageManager:
                     # Criptografa a chave se fornecida
                     if key:
                         manifest["key_enc"] = _pm_encrypt_key(key)
-                        print(f"[PackageManager] Chave criptografada no manifest")
+                        print("[PackageManager] Chave criptografada no manifest")
 
                     # Adiciona módulos
                     for rel_dir, filenames in modules.items():
@@ -236,7 +236,7 @@ class PackageManager:
             size_kb = dist_path.stat().st_size // 1024
             print(f"[PackageManager] Pacote gerado: {dist_path.name} ({size_kb} KB)")
             if key:
-                print(f"[PackageManager] Chave protegida incorporada no manifest")
+                print("[PackageManager] Chave protegida incorporada no manifest")
             return True
 
         except Exception as exc:

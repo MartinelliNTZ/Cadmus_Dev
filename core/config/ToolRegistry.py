@@ -610,7 +610,7 @@ class ToolRegistry:
         filtered = before - len(self.tools)
         if filtered > 0:
             self.logger.info(
-                f"{filtered} ferramentas  { is_valid }nível atual={current_level})"
+                f"{filtered} ferramentas  {is_valid}nível atual={current_level})"
             )
         else:
             self.logger.info("[_filter_tools_by_license] Nenhuma ferramenta filtrada")

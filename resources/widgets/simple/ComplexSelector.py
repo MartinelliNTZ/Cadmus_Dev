@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import os
 from typing import Callable
+from typing import Optional
 
 from qgis.PyQt.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget, QSizePolicy,
@@ -269,11 +270,13 @@ class ComplexSelector(QWidget):
 
         # ── CRS embutido (ao lado dos botões) ──
         if self._crs_enable:
-            from resources.widgets.crs.CrsSelectorWidget import CrsSelectorWidget
+            """
+            Precisa implementar
+            import CrsSelectorWidget
             self._crs_widget = CrsSelectorWidget(label=None, compact=True)
             self._crs_widget.setFixedWidth(150)
             layout.addWidget(self._crs_widget, 0, Qt.AlignVCenter)
-
+            """
     # ══════════════════════════════════════════════════════════════════
     # Display
     # ══════════════════════════════════════════════════════════════════
@@ -723,7 +726,10 @@ class ComplexSelector(QWidget):
             self._auto_detect_crs()
 
     def _auto_detect_crs(self):
-        """Detecta CRS automaticamente ou pergunta para forçar (só input)."""
+        path = self.path()
+        if not path or not os.path.isfile(path):
+            return
+        """Detecta CRS automaticamente ou pergunta para forçar (só input).
         path = self.path()
         if not path or not os.path.isfile(path):
             return
@@ -762,7 +768,8 @@ class ComplexSelector(QWidget):
             if epsg:
                 LasLayerProjection.save_mdata(path, epsg)
                 self._crs_widget.set_crs(epsg)
-                self._crs_widget.setToolTip(f"CRS forçado: {epsg}")
+                self._crs_widget.setToolTip(f"CRS forçado: {epsg}")"""
+        return
 
     # ══════════════════════════════════════════════════════════════════
     # API Pública

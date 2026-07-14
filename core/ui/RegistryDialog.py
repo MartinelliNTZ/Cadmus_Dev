@@ -308,7 +308,7 @@ class RegistryDialog(BaseDialog):
                         f"Falha ao aplicar licença do pacote: "
                         f"{result.get('message')}"
                     )
-                #elf._refresh()
+
             else:
                 self.logger.warning(
                     "Chave encontrada no pacote mas RegistryManager "
@@ -334,7 +334,7 @@ class RegistryDialog(BaseDialog):
                 message=result["message"],
                 title="Restaurar Distribuição",
             )
-            #self._refresh()
+
         else:
             QgisMessageUtil.modal_warning(
                 self.iface,

@@ -2,7 +2,9 @@
 import os
 import re
 from typing import List, Optional
-from xml.sax.saxutils import escape # nosec B406  # XML escape para gerar SVG, não para parsing
+from xml.sax.saxutils import (
+    escape,
+)  # nosec B406  # XML escape para gerar SVG, não para parsing
 from ..core.config.LogUtils import LogUtils
 from qgis.PyQt.QtGui import QColor
 from qgis.core import (
@@ -22,6 +24,7 @@ from qgis.core import (
 )
 from .ToolKeys import ToolKey
 from .BaseUtil import BaseUtil
+
 logger = LogUtils(tool="Untraceable", class_name="SVGUtils")
 
 
@@ -88,8 +91,7 @@ class SVGUtils(BaseUtil):
                     )
                     continue
 
-            prepared.append(
-                {"feature": QgsFeature(feature), "geometry": geometry})
+            prepared.append({"feature": QgsFeature(feature), "geometry": geometry})
 
         logger.debug(
             f"collect_features_for_svg preparou {len(prepared)} feicoes para '{layer.name()}'"
@@ -228,8 +230,7 @@ class SVGUtils(BaseUtil):
             ]
         if wkb_type == QgsWkbTypes.MultiPoint:
             return [
-                SVGUtils.point_svg(point, offset_x, offset_y,
-                                   scale, symbol_style)
+                SVGUtils.point_svg(point, offset_x, offset_y, scale, symbol_style)
                 for point in geometry.asMultiPoint()
             ]
         if wkb_type == QgsWkbTypes.LineString:
@@ -240,8 +241,7 @@ class SVGUtils(BaseUtil):
             ]
         if wkb_type == QgsWkbTypes.MultiLineString:
             return [
-                SVGUtils.line_svg(line, offset_x, offset_y,
-                                  scale, symbol_style)
+                SVGUtils.line_svg(line, offset_x, offset_y, scale, symbol_style)
                 for line in geometry.asMultiPolyline()
             ]
         if wkb_type == QgsWkbTypes.Polygon:
@@ -252,8 +252,7 @@ class SVGUtils(BaseUtil):
             ]
         if wkb_type == QgsWkbTypes.MultiPolygon:
             return [
-                SVGUtils.polygon_svg(
-                    polygon, offset_x, offset_y, scale, symbol_style)
+                SVGUtils.polygon_svg(polygon, offset_x, offset_y, scale, symbol_style)
                 for polygon in geometry.asMultiPolygon()
             ]
         return []
@@ -263,8 +262,7 @@ class SVGUtils(BaseUtil):
         path_parts = []
         for ring in polygon:
             path_parts.append(
-                SVGUtils.ring_to_path(
-                    ring, offset_x, offset_y, scale, close=True)
+                SVGUtils.ring_to_path(ring, offset_x, offset_y, scale, close=True)
             )
         path_data = "".join(path_parts)
         return (
@@ -279,8 +277,7 @@ class SVGUtils(BaseUtil):
 
     @staticmethod
     def line_svg(line, offset_x, offset_y, scale, symbol_style):
-        path_data = SVGUtils.ring_to_path(
-            line, offset_x, offset_y, scale, close=False)
+        path_data = SVGUtils.ring_to_path(line, offset_x, offset_y, scale, close=False)
         return (
             f'<path d="{path_data}" fill="none" '
             f'stroke="{symbol_style["stroke"]}" '
@@ -323,8 +320,7 @@ class SVGUtils(BaseUtil):
             y_value = point.y()
 
         pixel_x = (x_value - offset_x) * scale + SVGUtils.MARGIN
-        pixel_y = SVGUtils.SVG_SIZE - SVGUtils.MARGIN - \
-            (y_value - offset_y) * scale
+        pixel_y = SVGUtils.SVG_SIZE - SVGUtils.MARGIN - (y_value - offset_y) * scale
         return pixel_x, pixel_y
 
     @staticmethod
@@ -364,8 +360,7 @@ class SVGUtils(BaseUtil):
         if symbol is None:
             return SVGUtils.default_symbol_style(geometry)
 
-        fill_color = SVGUtils.qcolor_to_svg(
-            getattr(symbol, "color", lambda: None)())
+        fill_color = SVGUtils.qcolor_to_svg(getattr(symbol, "color", lambda: None)())
         opacity = float(getattr(symbol, "opacity", lambda: 1.0)() or 1.0)
         stroke_color = fill_color or SVGUtils.DEFAULT_STROKE_COLOR
         stroke_opacity = opacity
@@ -374,8 +369,7 @@ class SVGUtils(BaseUtil):
 
         try:
             symbol_layer = (
-                symbol.symbolLayer(
-                    0) if symbol.symbolLayerCount() > 0 else None
+                symbol.symbolLayer(0) if symbol.symbolLayerCount() > 0 else None
             )
         except Exception as e:
             logger.debug(f"symbol_style_for_feature: failed with error: {e}")
@@ -422,10 +416,8 @@ class SVGUtils(BaseUtil):
                 fill_color = SVGUtils.DEFAULT_FILL_COLOR
 
         show_border = True if style is None else style.get("show_border", True)
-        configured_border_color = None if style is None else style.get(
-            "border_color")
-        configured_border_width = None if style is None else style.get(
-            "border_width")
+        configured_border_color = None if style is None else style.get("border_color")
+        configured_border_width = None if style is None else style.get("border_width")
         border_width = configured_border_width
         if border_width is None or float(border_width) < 0:
             border_width = SVGUtils.default_border_width_for_geometry(geometry)
@@ -460,8 +452,7 @@ class SVGUtils(BaseUtil):
         tool_key: str = ToolKey.UNTRACEABLE,
     ) -> List[str]:
         logger = SVGUtils._get_logger(tool_key)
-        label_settings = SVGUtils.resolve_label_settings(
-            layer, tool_key=tool_key)
+        label_settings = SVGUtils.resolve_label_settings(layer, tool_key=tool_key)
         if not label_settings:
             return []
 
@@ -531,13 +522,11 @@ class SVGUtils(BaseUtil):
             if settings is not None and getattr(settings, "fieldName", ""):
                 return settings
 
-        fallback = SVGUtils._read_label_settings_from_custom_properties(
-            layer, logger)
+        fallback = SVGUtils._read_label_settings_from_custom_properties(layer, logger)
         if fallback is not None:
             return fallback
 
-        logger.debug(
-            "Nao foi possivel resolver configuracao de rotulo da camada")
+        logger.debug("Nao foi possivel resolver configuracao de rotulo da camada")
         return None
 
     @staticmethod
@@ -553,18 +542,15 @@ class SVGUtils(BaseUtil):
                 )
                 return None
         except Exception as e:
-            logger.warning(
-                f"Falha ao obter settings(provider_id) do labeling: {e}")
+            logger.warning(f"Falha ao obter settings(provider_id) do labeling: {e}")
             return None
 
     @staticmethod
     def _read_label_settings_from_custom_properties(layer, logger):
-        field_name = str(layer.customProperty(
-            "labeling/fieldName", "") or "").strip()
+        field_name = str(layer.customProperty("labeling/fieldName", "") or "").strip()
         if not field_name:
             try:
-                display_expression = str(
-                    layer.displayExpression() or "").strip()
+                display_expression = str(layer.displayExpression() or "").strip()
             except Exception as e:
                 logger.debug(
                     f"_read_label_settings_from_custom_properties: failed with error: {e}"
@@ -646,12 +632,10 @@ class SVGUtils(BaseUtil):
 
         try:
             expression_text = (
-                SVGUtils._label_setting_value(
-                    label_settings, "fieldName", "") or ""
+                SVGUtils._label_setting_value(label_settings, "fieldName", "") or ""
             )
             is_expression = bool(
-                SVGUtils._label_setting_value(
-                    label_settings, "isExpression", False)
+                SVGUtils._label_setting_value(label_settings, "isExpression", False)
             )
             if not expression_text:
                 return None
@@ -834,8 +818,7 @@ class SVGUtils(BaseUtil):
                 try:
                     return SVGUtils.qcolor_to_svg(method())
                 except Exception as e:
-                    logger.debug(
-                        f"extract_symbol_color: failed with error: {e}")
+                    logger.debug(f"extract_symbol_color: failed with error: {e}")
                     continue
         return None
 
@@ -849,8 +832,7 @@ class SVGUtils(BaseUtil):
                     if value > 0:
                         return value
                 except Exception as e:
-                    logger.debug(
-                        f"extract_symbol_number: failed with error: {e}")
+                    logger.debug(f"extract_symbol_number: failed with error: {e}")
                     continue
         return fallback
 
@@ -872,8 +854,7 @@ class SVGUtils(BaseUtil):
         candidate = os.path.join(output_folder, f"{base_name}.svg")
         counter = 1
         while os.path.exists(candidate):
-            candidate = os.path.join(
-                output_folder, f"{base_name}_{counter}.svg")
+            candidate = os.path.join(output_folder, f"{base_name}_{counter}.svg")
             counter += 1
         return candidate
 

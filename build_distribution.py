@@ -183,12 +183,13 @@ class BuildDistribution:
     def build(self, modules: dict | None = None) -> bool:
         """
         Executa o pipeline completo:
-          1. Remove todos os diretórios __pycache__ do projeto
-          2. Empacota os .py originais em um .dist de fonte (antes de compilar)
-          3. Compila todos os módulos para .pyc
-          4. Remove os originais .py
-          5. Empacota os .pyc em um segundo .dist
-          6. Remove os .pyc (plugin para de funcionar)
+          1. Atualiza metadata.txt e AboutDialog.py com a versão em VERSION
+          2. Remove todos os diretórios __pycache__ do projeto
+          3. Empacota os .py originais em um .dist de fonte (antes de compilar)
+          4. Compila todos os módulos para .pyc
+          5. Remove os originais .py
+          6. Empacota os .pyc em um segundo .dist
+          7. Remove os .pyc (plugin para de funcionar)
 
         Args:
             modules: Dicionário de módulos. Se None, usa MODULES.
@@ -203,10 +204,13 @@ class BuildDistribution:
         print("  BuildDistribution — Pipeline completo (2 distribuições)")
         print("=" * 55)
 
-        # 0. Remover todos os __pycache__ do projeto
+        # 0. Atualizar arquivos de versão (metadata.txt e AboutDialog.py)
+        self._update_version_files()
+
+        # 1. Remover todos os __pycache__ do projeto
         self._remove_pycache()
 
-        # 1. Empacotar .py originais em .dist de fonte (antes da compilação)
+        # 2. Empacotar .py originais em .dist de fonte (antes da compilação)
         source_ok = self._package_source(modules)
         if not source_ok:
             print(
@@ -214,22 +218,22 @@ class BuildDistribution:
             )
             return False
 
-        # 2. Compilar e remover .py
+        # 3. Compilar e remover .py
         compile_ok, compile_fail = self.compile_modules(modules)
         if compile_fail > 0:
             print("[BuildDistribution] ERRO: Falha na compilação. Abortando.")
             return False
 
-        # 3. Empacotar .pyc em .dist
+        # 4. Empacotar .pyc em .dist
         package_ok = self._package(modules)
         if not package_ok:
             print("[BuildDistribution] ERRO: Falha no empacotamento.")
             return False
 
-        # 4. Remover .pyc (plugin para de funcionar)
+        # 5. Remover .pyc (plugin para de funcionar)
         self._remove_pyc(modules)
 
-        # 5. Remover novamente __pycache__ (caso a compilação tenha gerado novos)
+        # 6. Remover novamente __pycache__ (caso a compilação tenha gerado novos)
         self._remove_pycache()
 
         print("=" * 55)
@@ -389,6 +393,68 @@ class BuildDistribution:
             print(f"[BuildDistribution] Chave incorporada: {DISTRIBUTION_KEY}")
 
         return ok
+
+    def _update_version_files(self):
+        """
+        Atualiza a versão nos arquivos metadata.txt e AboutDialog.py
+        com base no valor da constante VERSION definida neste script.
+        """
+        import re
+        from datetime import date
+
+        print(f"[BuildDistribution] Atualizando versão para {VERSION}...")
+
+        # --- metadata.txt ---
+        metadata_path = self._root / "metadata.txt"
+        if metadata_path.exists():
+            content = metadata_path.read_text(encoding="utf-8")
+            # Substitui version=QUALQUER_COISA no metadata.txt
+            new_content = re.sub(
+                r'^version=.*$',
+                f'version={VERSION}',
+                content,
+                count=1,
+                flags=re.MULTILINE,
+            )
+            if new_content != content:
+                metadata_path.write_text(new_content, encoding="utf-8")
+                print(f"[BuildDistribution]   metadata.txt -> version={VERSION}")
+            else:
+                print(f"[BuildDistribution]   metadata.txt já está em version={VERSION}")
+        else:
+            print("[BuildDistribution]   AVISO: metadata.txt não encontrado.")
+
+        # --- plugins/AboutDialog.py ---
+        about_path = self._root / "plugins" / "AboutDialog.py"
+        if about_path.exists():
+            content = about_path.read_text(encoding="utf-8")
+
+            # Substitui a versão no AboutDialog (ex: 2.0.7 -> 3.0.0)
+            # A linha se parece com:  f"<b>{STR.VERSION}:</b> 2.0.7<br>"
+            new_content = re.sub(
+                r'(STR\.VERSION.*?</b>\s*)\d+\.\d+\.\d+',
+                rf'\g<1>{VERSION}',
+                content,
+                count=1,
+            )
+
+            # Atualiza a data para a data atual
+            today = date.today()
+            date_str = f"{today.day:02d} / {today.month:02d} / {today.year}"
+            new_content = re.sub(
+                r'(STR\.UPDATED_ON.*?</b>\s*)\d+\s*/\s*\d+\s*/\s*\d+',
+                r'\g<1>' + date_str,
+                new_content,
+                count=1,
+            )
+
+            if new_content != content:
+                about_path.write_text(new_content, encoding="utf-8")
+                print(f"[BuildDistribution]   AboutDialog.py -> version={VERSION}, updated={date_str}")
+            else:
+                print(f"[BuildDistribution]   AboutDialog.py já está atualizado.")
+        else:
+            print("[BuildDistribution]   AVISO: plugins/AboutDialog.py não encontrado.")
 
     def _remove_pycache(self):
         """

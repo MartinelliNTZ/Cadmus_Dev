@@ -91,6 +91,22 @@ _MODULES_EXAMPLE = {
         "ReportPapelineManager.py",
     ],
 }
+ZIP_PACKAGES = [
+    "core",
+    "i18n",
+    "plugins",
+    "processing",
+    "resources",
+    "utils",
+    "__init__.py",
+    "cadmus_plugin.py",
+    "icon.png",
+    "LICENSE",
+    "metadata.txt",
+    "NOTICE",
+    "resources.py",
+    "resources.qrc",
+]
 
 # Módulos ativos para compilação
 MODULES = {
@@ -190,6 +206,8 @@ class BuildDistribution:
           5. Remove os originais .py
           6. Empacota os .pyc em um segundo .dist
           7. Remove os .pyc (plugin para de funcionar)
+          8. Remove novamente __pycache__
+          9. Cria o pacote ZIP final com ZIP_PACKAGES
 
         Args:
             modules: Dicionário de módulos. Se None, usa MODULES.
@@ -236,10 +254,17 @@ class BuildDistribution:
         # 6. Remover novamente __pycache__ (caso a compilação tenha gerado novos)
         self._remove_pycache()
 
+        # 7. Criar o pacote ZIP final com todos os arquivos do plugin
+        zip_ok = self._create_zip()
+        if not zip_ok:
+            print("[BuildDistribution] ERRO: Falha na criação do ZIP.")
+            return False
+
         print("=" * 55)
         print(f"  BUILD CONCLUÍDO: {compile_ok} módulo(s) compilado(s)")
         print(f"  Pacote fonte (.py):     {SOURCE_DISTRIBUTION_FILENAME}.dist")
         print(f"  Pacote compilado (.pyc): {PYC_DISTRIBUTION_FILENAME}.dist")
+        print(f"  Pacote ZIP:              {ZIP_FILENAME}")
         print("=" * 55)
         print("  O plugin agora está desabilitado.")
         print("  Para restaurar, use Configurações → 🔑")
@@ -511,6 +536,66 @@ class BuildDistribution:
                     except OSError as exc:
                         print(f"[BuildDistribution]   ERRO ao remover .pyc: {exc}")
         print(f"[BuildDistribution] {removed} .pyc removido(s).")
+
+    # ------------------------------------------------------------------
+    # Empacotamento ZIP (.zip)
+    # ------------------------------------------------------------------
+
+    def _create_zip(self) -> bool:
+        """
+        Cria um arquivo ZIP com todos os arquivos e diretórios
+        listados em ZIP_PACKAGES dentro de uma pasta "Cadmus/",
+        excluindo os arquivos .dist e o próprio ZIP gerado anteriormente.
+
+        Returns:
+            bool: True se OK.
+        """
+        import zipfile
+
+        zip_path = self._root / ZIP_FILENAME
+        print(f"[BuildDistribution] Criando ZIP: {zip_path}")
+
+        try:
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for item in ZIP_PACKAGES:
+                    item_path = self._root / item
+                    if not item_path.exists():
+                        print(
+                            f"[BuildDistribution]   AVISO: {item} não encontrado, ignorando."
+                        )
+                        continue
+
+                    if item_path.is_dir():
+                        # Adiciona diretório recursivamente dentro da pasta "Cadmus"
+                        for file_path in item_path.rglob("*"):
+                            if file_path.is_file():
+                                # Pula arquivos .dist e o próprio .zip
+                                if file_path.suffix in (".dist",) or file_path.name == ZIP_FILENAME:
+                                    continue
+                                # O caminho interno no ZIP começa com "Cadmus/"
+                                arcname = Path("Cadmus") / file_path.relative_to(self._root)
+                                zf.write(file_path, arcname)
+                                print(
+                                    f"[BuildDistribution]   ZIP adicionado: {arcname}"
+                                )
+                    else:
+                        # Arquivo individual dentro da pasta "Cadmus"
+                        arcname = Path("Cadmus") / item_path.relative_to(self._root)
+                        zf.write(item_path, arcname)
+                        print(
+                            f"[BuildDistribution]   ZIP adicionado: {arcname}"
+                        )
+
+            size_mb = zip_path.stat().st_size / (1024 * 1024)
+            print(
+                f"[BuildDistribution] ZIP criado com sucesso: {zip_path.name} "
+                f"({size_mb:.2f} MB) — conteúdo dentro de 'Cadmus/'"
+            )
+            return True
+
+        except Exception as exc:
+            print(f"[BuildDistribution] ERRO ao criar ZIP: {exc}")
+            return False
 
     # ------------------------------------------------------------------
     # Compilação

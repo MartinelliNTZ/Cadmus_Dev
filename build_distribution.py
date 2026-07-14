@@ -22,14 +22,11 @@ Uso programático:
 
 import os
 import py_compile
-import shutil
 import subprocess
 import sys
-import zipfile
-import tempfile
-import json
 from pathlib import Path
 
+from core.services.PackageManager import PackageManager
 
 # ======================================================================
 # CONSTANTES
@@ -172,7 +169,9 @@ class BuildDistribution:
             root_dir: Diretório raiz do projeto.
                       Se None, usa o diretório onde este script está.
         """
-        self._root = Path(root_dir).resolve() if root_dir else Path(__file__).resolve().parent
+        self._root = (
+            Path(root_dir).resolve() if root_dir else Path(__file__).resolve().parent
+        )
 
     # ------------------------------------------------------------------
     # API pública
@@ -203,7 +202,9 @@ class BuildDistribution:
         # 1. Empacotar .py originais em .dist de fonte (antes da compilação)
         source_ok = self._package_source(modules)
         if not source_ok:
-            print("[BuildDistribution] ERRO: Falha no empacotamento da fonte. Abortando.")
+            print(
+                "[BuildDistribution] ERRO: Falha no empacotamento da fonte. Abortando."
+            )
             return False
 
         # 2. Compilar e remover .py
@@ -258,14 +259,18 @@ class BuildDistribution:
         # Remove .pyc antigo se existir
         if dest_pyc.exists():
             dest_pyc.unlink()
-            print(f"[BuildDistribution] .pyc antigo removido: {dest_pyc.relative_to(self._root)}")
+            print(
+                f"[BuildDistribution] .pyc antigo removido: {dest_pyc.relative_to(self._root)}"
+            )
 
         qgis_python = _find_qgis_python()
         if qgis_python:
             ok = self._compile_with_qgis_python(qgis_python, source, dest_pyc)
         else:
-            print("[BuildDistribution] Aviso: Python do QGIS não encontrado.",
-                  "Usando Python atual. O .pyc pode não ser carregado pelo QGIS.")
+            print(
+                "[BuildDistribution] Aviso: Python do QGIS não encontrado.",
+                "Usando Python atual. O .pyc pode não ser carregado pelo QGIS.",
+            )
             ok = self._compile_with_current_python(source, dest_pyc)
 
         if not ok:
@@ -278,8 +283,10 @@ class BuildDistribution:
             print(f"[BuildDistribution] ERRO ao remover .py: {exc}")
             return False
 
-        print(f"[BuildDistribution] OK — {rel_path} -> {dest_pyc.relative_to(self._root)} "
-              f"({dest_pyc.stat().st_size // 1024} KB)")
+        print(
+            f"[BuildDistribution] OK — {rel_path} -> {dest_pyc.relative_to(self._root)} "
+            f"({dest_pyc.stat().st_size // 1024} KB)"
+        )
         return True
 
     def compile_modules(self, modules: dict | None = None) -> tuple[int, int]:
@@ -315,139 +322,63 @@ class BuildDistribution:
     def _package_source(self, modules: dict) -> bool:
         """
         Empacota os arquivos .py originais em um .dist de fonte (antes da compilação).
-
-        O arquivo contém:
-        - manifest.json (metadados + chave de licença opcional)
-        - Os .py originais com seus caminhos relativos
-        - Arquivos estáticos (config.yaml, template.html, etc.)
+        Delega a criação do pacote para PackageManager.create_package().
 
         Returns:
             bool: True se OK.
         """
         dist_path = self._root / f"{SOURCE_DISTRIBUTION_FILENAME}.dist"
-        print(f"[BuildDistribution] Empacotando distribuição de fonte (.py): {dist_path}")
+        print(
+            f"[BuildDistribution] Empacotando distribuição de fonte (.py): {dist_path}"
+        )
 
-        try:
-            with tempfile.TemporaryDirectory(prefix="cadmus_src_") as tmp_dir:
-                tmp_zip = os.path.join(tmp_dir, "dist.zip")
+        # Prepara módulos como {diretorio_relativo: [arquivos.py]}
+        # PackageManager.resolve os caminhos usando root_dir
+        modules_prepared = {
+            directory: [Path(f).name for f in files]
+            for directory, files in modules.items()
+        }
 
-                with zipfile.ZipFile(tmp_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-                    # Manifest
-                    manifest = {
-                        "version": 1,
-                        "type": "source",
-                        "key": DISTRIBUTION_KEY if DISTRIBUTION_KEY else "",
-                        "modules": {},
-                        "static_files": [],
-                    }
-
-                    # Adiciona .py originais
-                    for directory, files in modules.items():
-                        dir_path = self._root / directory
-                        manifest["modules"][directory] = []
-                        for filename in files:
-                            py_path = dir_path / filename
-                            if py_path.exists():
-                                arcname = f"{directory}/{py_path.name}"
-                                zf.write(str(py_path), arcname)
-                                manifest["modules"][directory].append(py_path.name)
-                                print(f"[BuildDistribution]   + {arcname}")
-
-                    # Adiciona arquivos estáticos
-                    for rel_path in STATIC_FILES:
-                        full_path = self._root / rel_path
-                        if full_path.exists():
-                            zf.write(str(full_path), rel_path)
-                            manifest["static_files"].append(rel_path)
-                            print(f"[BuildDistribution]   + {rel_path} (estático)")
-                        else:
-                            print(f"[BuildDistribution]   AVISO: Estático não encontrado: {rel_path}")
-
-                    # Escreve manifest.json no ZIP
-                    zf.writestr("manifest.json", json.dumps(manifest, indent=2))
-
-                # Copia para o destino final
-                if dist_path.exists():
-                    os.remove(dist_path)
-                shutil.copy2(tmp_zip, dist_path)
-
-            size_kb = dist_path.stat().st_size // 1024
-            print(f"[BuildDistribution] Pacote fonte gerado: {dist_path.name} ({size_kb} KB)")
-            return True
-
-        except Exception as exc:
-            print(f"[BuildDistribution] ERRO no empacotamento da fonte: {exc}")
-            return False
+        return PackageManager.create_package(
+            dist_path=dist_path,
+            modules=modules_prepared,
+            static_files=STATIC_FILES,
+            root_dir=self._root,
+            key=DISTRIBUTION_KEY,
+            manifest_extra={"type": "source"},
+        )
 
     def _package(self, modules: dict) -> bool:
         """
         Empacota os .pyc gerados em um arquivo .dist (formato ZIP).
-
-        O arquivo contém:
-        - manifest.json (metadados + chave de licença opcional)
-        - Os .pyc com seus caminhos relativos
-        - Arquivos estáticos (config.yaml, template.html, etc.)
+        Delega a criação do pacote para PackageManager.create_package().
 
         Returns:
             bool: True se OK.
         """
         dist_path = self._root / f"{PYC_DISTRIBUTION_FILENAME}.dist"
-        print(f"[BuildDistribution] Empacotando distribuição compilada (.pyc): {dist_path}")
+        print(
+            f"[BuildDistribution] Empacotando distribuição compilada (.pyc): {dist_path}"
+        )
 
-        try:
-            with tempfile.TemporaryDirectory(prefix="cadmus_dist_") as tmp_dir:
-                tmp_zip = os.path.join(tmp_dir, "dist.zip")
+        # Prepara módulos com extensão .pyc
+        modules_prepared = {
+            directory: [Path(f).with_suffix(".pyc").name for f in files]
+            for directory, files in modules.items()
+        }
 
-                with zipfile.ZipFile(tmp_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-                    # Manifest
-                    manifest = {
-                        "version": 1,
-                        "key": DISTRIBUTION_KEY if DISTRIBUTION_KEY else "",
-                        "modules": {},
-                        "static_files": [],
-                    }
+        ok = PackageManager.create_package(
+            dist_path=dist_path,
+            modules=modules_prepared,
+            static_files=STATIC_FILES,
+            root_dir=self._root,
+            key=DISTRIBUTION_KEY,
+        )
 
-                    # Adiciona .pyc compilados
-                    for directory, files in modules.items():
-                        dir_path = self._root / directory
-                        manifest["modules"][directory] = []
-                        for filename in files:
-                            pyc_path = dir_path / Path(filename).with_suffix(".pyc").name
-                            if pyc_path.exists():
-                                arcname = f"{directory}/{pyc_path.name}"
-                                zf.write(str(pyc_path), arcname)
-                                manifest["modules"][directory].append(pyc_path.name)
-                                print(f"[BuildDistribution]   + {arcname}")
+        if ok and DISTRIBUTION_KEY:
+            print(f"[BuildDistribution] Chave incorporada: {DISTRIBUTION_KEY}")
 
-                    # Adiciona arquivos estáticos (sem compilação)
-                    for rel_path in STATIC_FILES:
-                        full_path = self._root / rel_path
-                        if full_path.exists():
-                            zf.write(str(full_path), rel_path)
-                            manifest["static_files"].append(rel_path)
-                            print(f"[BuildDistribution]   + {rel_path} (estático)")
-                        else:
-                            print(f"[BuildDistribution]   AVISO: Estático não encontrado: {rel_path}")
-
-                    # Escreve manifest.json no ZIP
-                    zf.writestr("manifest.json", json.dumps(manifest, indent=2))
-
-                # Copia para o destino final
-                if dist_path.exists():
-                    os.remove(dist_path)
-                shutil.copy2(tmp_zip, dist_path)
-
-            size_kb = dist_path.stat().st_size // 1024
-            print(f"[BuildDistribution] Pacote gerado: {dist_path.name} ({size_kb} KB)")
-
-            if DISTRIBUTION_KEY:
-                print(f"[BuildDistribution] Chave incorporada: {DISTRIBUTION_KEY}")
-
-            return True
-
-        except Exception as exc:
-            print(f"[BuildDistribution] ERRO no empacotamento: {exc}")
-            return False
+        return ok
 
     def _remove_pyc(self, modules: dict):
         """
@@ -463,7 +394,9 @@ class BuildDistribution:
                 if pyc_path.exists():
                     try:
                         pyc_path.unlink()
-                        print(f"[BuildDistribution]   .pyc removido: {directory}/{pyc_path.name}")
+                        print(
+                            f"[BuildDistribution]   .pyc removido: {directory}/{pyc_path.name}"
+                        )
                         removed += 1
                     except OSError as exc:
                         print(f"[BuildDistribution]   ERRO ao remover .pyc: {exc}")
@@ -494,7 +427,9 @@ class BuildDistribution:
 
         result = subprocess.run(
             [python_exe, "-c", script],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
             cwd=str(self._root),
         )
 
@@ -509,8 +444,10 @@ class BuildDistribution:
             return False
 
         if dest_pyc.exists():
-            print(f"[BuildDistribution] .pyc gerado: {dest_pyc.relative_to(self._root)} "
-                  f"({dest_pyc.stat().st_size // 1024} KB)")
+            print(
+                f"[BuildDistribution] .pyc gerado: {dest_pyc.relative_to(self._root)} "
+                f"({dest_pyc.stat().st_size // 1024} KB)"
+            )
         return True
 
     def _compile_with_current_python(self, source: Path, dest_pyc: Path) -> bool:
@@ -529,8 +466,10 @@ class BuildDistribution:
             return False
 
         if dest_pyc.exists():
-            print(f"[BuildDistribution] .pyc gerado: {dest_pyc.relative_to(self._root)} "
-                  f"({dest_pyc.stat().st_size // 1024} KB)")
+            print(
+                f"[BuildDistribution] .pyc gerado: {dest_pyc.relative_to(self._root)} "
+                f"({dest_pyc.stat().st_size // 1024} KB)"
+            )
         return True
 
     @property

@@ -30,6 +30,7 @@ from ...resources.styles.Styles import Styles
 from ..config.LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 from ..ui.WidgetFactory import WidgetFactory
+from ..services.PackageManager import PackageManager
 
 
 class RegistryDialog(BaseDialog):
@@ -81,6 +82,7 @@ class RegistryDialog(BaseDialog):
         """
         try:
             from ..config.RegistryManager import RegistryManager
+
             return RegistryManager(tool_key=ToolKey.SETTINGS)
         except ImportError:
             return None
@@ -199,6 +201,7 @@ class RegistryDialog(BaseDialog):
         if self._license_mgr is None:
             # Premium — não precisa de licença
             from ...utils.QgisMessageUtil import QgisMessageUtil
+
             QgisMessageUtil.modal_info(
                 self.iface,
                 message="Versão premium — licença não necessária.",
@@ -212,6 +215,7 @@ class RegistryDialog(BaseDialog):
             self._refresh()
             if show_message:
                 from ...utils.QgisMessageUtil import QgisMessageUtil
+
                 QgisMessageUtil.modal_warning(
                     self.iface,
                     message=STR.LICENSE_EMPTY_KEY,
@@ -224,6 +228,7 @@ class RegistryDialog(BaseDialog):
 
         if show_message:
             from ...utils.QgisMessageUtil import QgisMessageUtil
+
             if result.get("success"):
                 QgisMessageUtil.modal_info(
                     self.iface,
@@ -245,6 +250,7 @@ class RegistryDialog(BaseDialog):
         self._input_key.clear()
         self._refresh()
         from ...utils.QgisMessageUtil import QgisMessageUtil
+
         QgisMessageUtil.modal_info(
             self.iface,
             message=STR.LICENSE_DELETED_SUCCESS,
@@ -253,11 +259,13 @@ class RegistryDialog(BaseDialog):
 
     def _on_restore_distribution(self):
         """
-        Restaura as classes .pyc do arquivo .dist selecionado
-        para as pastas corretas. Se o pacote contiver uma chave
-        de licença, ela é aplicada automaticamente.
+        Restaura as classes do arquivo .dist selecionado para as pastas
+        corretas. Delega a instalação para PackageManager.install_package().
+        Se o pacote contiver uma chave de licença, ela é aplicada
+        automaticamente via callback.
         """
         from ...utils.QgisMessageUtil import QgisMessageUtil
+        from pathlib import Path
 
         # Obtém o caminho do arquivo do GridComplexSelector
         dist_selector = self._dist_grid.get("Distribuição")
@@ -279,96 +287,57 @@ class RegistryDialog(BaseDialog):
             return
 
         file_path = file_paths[0]
-
-        import json
-        import zipfile
-        from pathlib import Path
-
         plugin_root = Path(__file__).resolve().parent.parent.parent
 
-        try:
-            with zipfile.ZipFile(file_path, "r") as zf:
-                # Lê o manifest
-                if "manifest.json" not in zf.namelist():
-                    QgisMessageUtil.modal_warning(
-                        self.iface,
-                        message="Pacote inválido: manifest.json não encontrado.",
-                        title="Restaurar Distribuição",
-                    )
-                    return
-
-                manifest_data = zf.read("manifest.json")
-                manifest = json.loads(manifest_data)
-
-                # Restaura cada módulo
-                modules_info = manifest.get("modules", {})
-                restored_count = 0
-
-                for directory, filenames in modules_info.items():
-                    target_dir = plugin_root / directory
-                    target_dir.mkdir(parents=True, exist_ok=True)
-
-                    for filename in filenames:
-                        arcname = f"{directory}/{filename}"
-                        if arcname in zf.namelist():
-                            data = zf.read(arcname)
-                            dest_path = target_dir / filename
-                            with open(str(dest_path), "wb") as f:
-                                f.write(data)
-                            restored_count += 1
-                            self.logger.debug(
-                                f"Restaurado: {directory}/{filename}"
-                            )
-
-                # Re-inicializa _license_mgr — agora RegistryManager está disponível
-                self._license_mgr = self._init_license_mgr()
-                self._premium = self._license_mgr is None
-
-                # Aplica chave de licença se existir no pacote
-                package_key = manifest.get("key", "").strip()
-                if package_key and self._license_mgr is not None:
-                    self.logger.info(
-                        f"Chave de licença encontrada no pacote: "
-                        f"{package_key[:4]}****"
-                    )
-                    self._input_key.setText(package_key)
-                    # Salva a chave automaticamente
-                    result = self._license_mgr.save_license_key(package_key)
-                    if result.get("success"):
-                        self.logger.info("Licença do pacote aplicada com sucesso")
-                    else:
-                        self.logger.warning(
-                            f"Falha ao aplicar licença do pacote: "
-                            f"{result.get('message')}"
-                        )
-                    self._refresh()
-                elif package_key and self._license_mgr is None:
-                    self.logger.warning(
-                        "Chave encontrada no pacote mas RegistryManager "
-                        "não pôde ser carregado após restauração"
-                    )
-
-                QgisMessageUtil.modal_info(
-                    self.iface,
-                    message=(
-                        f"Distribuição restaurada com sucesso!\n\n"
-                        f"{restored_count} arquivo(s) restaurado(s).\n"
-                        f"{'Licença aplicada automaticamente.' if package_key else ''}\n\n"
-                        f"Reinicie o QGIS para carregar as classes."
-                    ),
-                    title="Restaurar Distribuição",
-                )
-                self._refresh()
-
-        except Exception as exc:
-            self.logger.error(
-                "Falha ao restaurar distribuição",
-                code="DIST_RESTORE_ERR",
-                error=str(exc),
+        # Callback para aplicar chave de licença
+        def _on_key(key: str):
+            self.logger.info(
+                f"Chave de licença encontrada no pacote: " f"{key[:4]}****"
             )
+            self._input_key.setText(key)
+            # Re-inicializa _license_mgr — agora RegistryManager está disponível
+            self._license_mgr = self._init_license_mgr()
+            self._premium = self._license_mgr is None
+
+            if self._license_mgr is not None:
+                result = self._license_mgr.save_license_key(key)
+                if result.get("success"):
+                    self.logger.info("Licença do pacote aplicada com sucesso")
+                else:
+                    self.logger.warning(
+                        f"Falha ao aplicar licença do pacote: "
+                        f"{result.get('message')}"
+                    )
+                self._refresh()
+            else:
+                self.logger.warning(
+                    "Chave encontrada no pacote mas RegistryManager "
+                    "não pôde ser carregado após restauração"
+                )
+
+        # Delega para PackageManager
+        result = PackageManager.install_package(
+            dist_path=file_path,
+            plugin_root=plugin_root,
+            on_key_callback=_on_key,
+            logger=self.logger,
+        )
+
+        if result["success"]:
+            # Re-inicializa _license_mgr
+            self._license_mgr = self._init_license_mgr()
+            self._premium = self._license_mgr is None
+
+            QgisMessageUtil.modal_info(
+                self.iface,
+                message=result["message"],
+                title="Restaurar Distribuição",
+            )
+            self._refresh()
+        else:
             QgisMessageUtil.modal_warning(
                 self.iface,
-                message=f"Erro ao restaurar distribuição: {exc}",
+                message=result["message"],
                 title="Restaurar Distribuição",
             )
 
@@ -405,7 +374,9 @@ class RegistryDialog(BaseDialog):
         nivel = info.get("nivel", 0)
         self._lbl_level.setText(str(nivel) if is_valid and nivel > 0 else "")
         self._lbl_expiry.setText(info.get("expiry") if is_valid else "")
-        self.logger.info(f"Debug has license: {has_key} license manager: {self._license_mgr}, is_valid: {is_valid},is active: {is_active}, info: {info}, nivel: {nivel}")
+        self.logger.info(
+            f"Debug has license: {has_key} license manager: {self._license_mgr}, is_valid: {is_valid},is active: {is_active}, info: {info}, nivel: {nivel}"
+        )
 
         # Show/hide title labels based on whether a license exists
         self._lbl_level_title.setVisible(is_valid)

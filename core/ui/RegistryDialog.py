@@ -308,13 +308,13 @@ class RegistryDialog(BaseDialog):
                         f"Falha ao aplicar licença do pacote: "
                         f"{result.get('message')}"
                     )
-                self._refresh()
+                #elf._refresh()
             else:
                 self.logger.warning(
                     "Chave encontrada no pacote mas RegistryManager "
                     "não pôde ser carregado após restauração"
                 )
-            #self._refresh()
+            self._refresh()
 
         # Delega para PackageManager
         result = PackageManager.install_package(
@@ -334,13 +334,14 @@ class RegistryDialog(BaseDialog):
                 message=result["message"],
                 title="Restaurar Distribuição",
             )
-            self._refresh()
+            #self._refresh()
         else:
             QgisMessageUtil.modal_warning(
                 self.iface,
                 message=result["message"],
                 title="Restaurar Distribuição",
             )
+        self._refresh()
 
     def _refresh(self):
         self.logger.info(f"Iniciando refresh{self._license_mgr}")

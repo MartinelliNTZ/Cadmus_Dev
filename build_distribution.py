@@ -42,6 +42,11 @@ DISTRIBUTION_KEY = "7N1V9-2S1H9-5G9K4"
 # Nome do arquivo de saída (sem extensão) — extensão .dist
 DISTRIBUTION_FILENAME = "cadmus_distribution"
 
+# Nome do arquivo de distribuição com fontes .py (gerado antes da compilação)
+SOURCE_DISTRIBUTION_FILENAME = "cadmus_distribution_src"
+# Nome do arquivo de distribuição com .pyc compilados (gerado após compilação)
+PYC_DISTRIBUTION_FILENAME = "cadmus_distribution_pyc"
+
 # ======================================================================
 # Módulos a serem compilados na execução direta
 # ======================================================================
@@ -175,7 +180,12 @@ class BuildDistribution:
 
     def build(self, modules: dict | None = None) -> bool:
         """
-        Executa o pipeline completo: compilar → remover .py → empacotar → remover .pyc.
+        Executa o pipeline completo:
+          1. Empacota os .py originais em um .dist de fonte (antes de compilar)
+          2. Compila todos os módulos para .pyc
+          3. Remove os originais .py
+          4. Empacota os .pyc em um segundo .dist
+          5. Remove os .pyc (plugin para de funcionar)
 
         Args:
             modules: Dicionário de módulos. Se None, usa MODULES.
@@ -187,27 +197,34 @@ class BuildDistribution:
             modules = MODULES
 
         print("=" * 55)
-        print("  BuildDistribution — Pipeline completo")
+        print("  BuildDistribution — Pipeline completo (2 distribuições)")
         print("=" * 55)
 
-        # 1. Compilar e remover .py
+        # 1. Empacotar .py originais em .dist de fonte (antes da compilação)
+        source_ok = self._package_source(modules)
+        if not source_ok:
+            print("[BuildDistribution] ERRO: Falha no empacotamento da fonte. Abortando.")
+            return False
+
+        # 2. Compilar e remover .py
         compile_ok, compile_fail = self.compile_modules(modules)
         if compile_fail > 0:
             print("[BuildDistribution] ERRO: Falha na compilação. Abortando.")
             return False
 
-        # 2. Empacotar .pyc em .dist
+        # 3. Empacotar .pyc em .dist
         package_ok = self._package(modules)
         if not package_ok:
             print("[BuildDistribution] ERRO: Falha no empacotamento.")
             return False
 
-        # 3. Remover .pyc (plugin para de funcionar)
+        # 4. Remover .pyc (plugin para de funcionar)
         self._remove_pyc(modules)
 
         print("=" * 55)
         print(f"  BUILD CONCLUÍDO: {compile_ok} módulo(s) compilado(s)")
-        print(f"  Pacote: {DISTRIBUTION_FILENAME}.dist")
+        print(f"  Pacote fonte (.py):     {SOURCE_DISTRIBUTION_FILENAME}.dist")
+        print(f"  Pacote compilado (.pyc): {PYC_DISTRIBUTION_FILENAME}.dist")
         print("=" * 55)
         print("  O plugin agora está desabilitado.")
         print("  Para restaurar, use Configurações → 🔑")
@@ -295,6 +312,73 @@ class BuildDistribution:
     # Empacotamento (.dist)
     # ------------------------------------------------------------------
 
+    def _package_source(self, modules: dict) -> bool:
+        """
+        Empacota os arquivos .py originais em um .dist de fonte (antes da compilação).
+
+        O arquivo contém:
+        - manifest.json (metadados + chave de licença opcional)
+        - Os .py originais com seus caminhos relativos
+        - Arquivos estáticos (config.yaml, template.html, etc.)
+
+        Returns:
+            bool: True se OK.
+        """
+        dist_path = self._root / f"{SOURCE_DISTRIBUTION_FILENAME}.dist"
+        print(f"[BuildDistribution] Empacotando distribuição de fonte (.py): {dist_path}")
+
+        try:
+            with tempfile.TemporaryDirectory(prefix="cadmus_src_") as tmp_dir:
+                tmp_zip = os.path.join(tmp_dir, "dist.zip")
+
+                with zipfile.ZipFile(tmp_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+                    # Manifest
+                    manifest = {
+                        "version": 1,
+                        "type": "source",
+                        "key": DISTRIBUTION_KEY if DISTRIBUTION_KEY else "",
+                        "modules": {},
+                        "static_files": [],
+                    }
+
+                    # Adiciona .py originais
+                    for directory, files in modules.items():
+                        dir_path = self._root / directory
+                        manifest["modules"][directory] = []
+                        for filename in files:
+                            py_path = dir_path / filename
+                            if py_path.exists():
+                                arcname = f"{directory}/{py_path.name}"
+                                zf.write(str(py_path), arcname)
+                                manifest["modules"][directory].append(py_path.name)
+                                print(f"[BuildDistribution]   + {arcname}")
+
+                    # Adiciona arquivos estáticos
+                    for rel_path in STATIC_FILES:
+                        full_path = self._root / rel_path
+                        if full_path.exists():
+                            zf.write(str(full_path), rel_path)
+                            manifest["static_files"].append(rel_path)
+                            print(f"[BuildDistribution]   + {rel_path} (estático)")
+                        else:
+                            print(f"[BuildDistribution]   AVISO: Estático não encontrado: {rel_path}")
+
+                    # Escreve manifest.json no ZIP
+                    zf.writestr("manifest.json", json.dumps(manifest, indent=2))
+
+                # Copia para o destino final
+                if dist_path.exists():
+                    os.remove(dist_path)
+                shutil.copy2(tmp_zip, dist_path)
+
+            size_kb = dist_path.stat().st_size // 1024
+            print(f"[BuildDistribution] Pacote fonte gerado: {dist_path.name} ({size_kb} KB)")
+            return True
+
+        except Exception as exc:
+            print(f"[BuildDistribution] ERRO no empacotamento da fonte: {exc}")
+            return False
+
     def _package(self, modules: dict) -> bool:
         """
         Empacota os .pyc gerados em um arquivo .dist (formato ZIP).
@@ -307,8 +391,8 @@ class BuildDistribution:
         Returns:
             bool: True se OK.
         """
-        dist_path = self._root / f"{DISTRIBUTION_FILENAME}.dist"
-        print(f"[BuildDistribution] Empacotando distribuição: {dist_path}")
+        dist_path = self._root / f"{PYC_DISTRIBUTION_FILENAME}.dist"
+        print(f"[BuildDistribution] Empacotando distribuição compilada (.pyc): {dist_path}")
 
         try:
             with tempfile.TemporaryDirectory(prefix="cadmus_dist_") as tmp_dir:

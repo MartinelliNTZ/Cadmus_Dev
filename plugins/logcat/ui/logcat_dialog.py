@@ -29,6 +29,14 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal, QModelIndex
 
 
+def _qt_header_stretch():
+    """Compatibilidade Qt5/Qt6: retorna Stretch."""
+    try:
+        return QHeaderView.ResizeMode.Stretch
+    except AttributeError:
+        return QHeaderView.Stretch
+
+
 def _qt_item_is_user_checkable():
     """Compatibilidade Qt5/Qt6: retorna ItemIsUserCheckable."""
     try:
@@ -254,7 +262,7 @@ class LogcatDialog(QDialog):
 
         # Ajustar tamanho de linhas
         header = self.table_view.horizontalHeader()
-        header.setSectionResizeMode(4, QHeaderView.Stretch)
+        header.setSectionResizeMode(4, _qt_header_stretch())
         header.setSortIndicatorShown(True)  # Mostrar indicador de sort
 
         # Conectar clique duplo para abrir detalhe

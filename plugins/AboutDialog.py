@@ -2,6 +2,16 @@
 import os
 from qgis.PyQt.QtCore import Qt
 from ..core.config.LogUtils import LogUtils
+
+
+def _qt_text_browser_interaction():
+    """Compatibilidade Qt5/Qt6: retorna TextBrowserInteraction."""
+    try:
+        return Qt.TextInteractionFlag.TextBrowserInteraction
+    except AttributeError:
+        return Qt.TextBrowserInteraction
+
+
 from .BaseDialog import BaseDialog
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..utils.ToolKeys import ToolKey
@@ -54,7 +64,7 @@ class AboutDialog(BaseDialog):
                 word_wrap=True,
                 parent=self,
                 text_format=Qt.TextFormat.RichText,
-                text_interaction_flags=Qt.TextBrowserInteraction,
+                text_interaction_flags=_qt_text_browser_interaction(),
                 open_external_links=True,
                 alignment=Qt.AlignmentFlag.AlignCenter,
             )

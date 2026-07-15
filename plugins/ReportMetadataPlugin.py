@@ -7,6 +7,14 @@ from qgis.core import QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QComboBox, QSizePolicy
 
+
+def _qt_adjust_to_minimum_contents_length_with_icon():
+    """Compatibilidade Qt5/Qt6: retorna AdjustToMinimumContentsLengthWithIcon."""
+    try:
+        return QComboBox.AdjustToMinimumContentsLengthWithIcon
+    except AttributeError:
+        return QComboBox.AdjustToMinimumContentsLengthWithIcon
+
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..resources.IconManager import IconManager as im
@@ -111,7 +119,7 @@ class ReportMetadataPlugin(BasePluginMTL):
             combo = self.json_selector.combo()
             if isinstance(combo, QComboBox):
                 # Evita que o maior texto do JSON force largura minima gigante.
-                combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+                combo.setSizeAdjustPolicy(_qt_adjust_to_minimum_contents_length_with_icon())
                 combo.setMinimumContentsLength(24)
                 combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 combo.setMaximumWidth(520)

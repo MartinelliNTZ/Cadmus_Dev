@@ -29,6 +29,14 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal, QModelIndex
 
 
+def _qt_item_is_user_checkable():
+    """Compatibilidade Qt5/Qt6: retorna ItemIsUserCheckable."""
+    try:
+        return Qt.ItemFlag.ItemIsUserCheckable
+    except AttributeError:
+        return Qt.ItemIsUserCheckable
+
+
 def _exec_dialog(dialog):
     """Compatibilidade Qt5/Qt6: executa dialog de forma unificada."""
     if hasattr(dialog, "exec_"):
@@ -543,7 +551,7 @@ class LogcatDialog(QDialog):
         list_widget = QListWidget()
         for value in unique_values:
             item = QListWidgetItem(value)
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setFlags(item.flags() | _qt_item_is_user_checkable())
             item.setCheckState(Qt.CheckState.Checked if value in current_filter else Qt.CheckState.Unchecked)
             list_widget.addItem(item)
 

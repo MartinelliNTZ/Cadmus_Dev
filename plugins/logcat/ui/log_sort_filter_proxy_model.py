@@ -8,6 +8,14 @@ Permite ordenar por qualquer coluna em ordem crescente/decrescente.
 from qgis.PyQt.QtCore import Qt, QSortFilterProxyModel, QModelIndex
 
 
+def _qt_case_insensitive():
+    """Compatibilidade Qt5/Qt6: retorna CaseInsensitive."""
+    try:
+        return Qt.CaseSensitivity.CaseInsensitive
+    except AttributeError:
+        return Qt.CaseInsensitive
+
+
 class LogSortFilterProxyModel(QSortFilterProxyModel):
     """
     Proxy model que adiciona suporte a sort e filter à tabela de logs.
@@ -17,8 +25,8 @@ class LogSortFilterProxyModel(QSortFilterProxyModel):
         """Inicializa o proxy model."""
         super().__init__(parent)
         # Configurar sort
-        self.setSortCaseSensitivity(Qt.CaseInsensitive)
-        self.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.setSortCaseSensitivity(_qt_case_insensitive())
+        self.setFilterCaseSensitivity(_qt_case_insensitive())
         # Suportar sort por múltiplas colunas
         self.setRecursiveFilteringEnabled(True)
 

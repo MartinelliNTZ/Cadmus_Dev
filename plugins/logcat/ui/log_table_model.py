@@ -16,6 +16,32 @@ def _qt_display_role():
         return Qt.ItemDataRole.DisplayRole
     except AttributeError:
         return Qt.DisplayRole
+
+
+def _qt_foreground_role():
+    """Compatibilidade Qt5/Qt6: retorna ForegroundRole."""
+    try:
+        return Qt.ItemDataRole.ForegroundRole
+    except AttributeError:
+        return Qt.ForegroundRole
+
+
+def _qt_tool_tip_role():
+    """Compatibilidade Qt5/Qt6: retorna ToolTipRole."""
+    try:
+        return Qt.ItemDataRole.ToolTipRole
+    except AttributeError:
+        return Qt.ToolTipRole
+
+
+def _qt_user_role():
+    """Compatibilidade Qt5/Qt6: retorna UserRole."""
+    try:
+        return Qt.ItemDataRole.UserRole
+    except AttributeError:
+        return Qt.UserRole
+
+
 from qgis.PyQt.QtGui import QColor
 from ..core.model.log_entry import LogEntry
 from ..core.color.class_color_provider import ClassColorProvider
@@ -178,7 +204,7 @@ class LogTableModel(QAbstractTableModel):
                 return QVariant(text)
 
             # Cor de texto (level - fonte colorida, não fundo)
-            if role == Qt.ForegroundRole and col_name == "level":
+            if role == _qt_foreground_role() and col_name == "level":
                 try:
                     color = self._get_level_color(entry.level)
                     return QVariant(QColor(color))
@@ -187,7 +213,7 @@ class LogTableModel(QAbstractTableModel):
                     return QVariant()
 
             # Cor de texto (tool) - usando ClassColorProvider para determinismo
-            if role == Qt.ForegroundRole and col_name == "tool":
+            if role == _qt_foreground_role() and col_name == "tool":
                 try:
                     color = self._color_provider.get_color(entry.tool)
                     return QVariant(QColor(color))
@@ -196,7 +222,7 @@ class LogTableModel(QAbstractTableModel):
                     return QVariant()
 
             # Cor de texto (class) - usando ClassColorProvider para determinismo
-            if role == Qt.ForegroundRole and col_name == "class_name":
+            if role == _qt_foreground_role() and col_name == "class_name":
                 try:
                     color = self._color_provider.get_color(entry.class_name)
                     return QVariant(QColor(color))
@@ -205,7 +231,7 @@ class LogTableModel(QAbstractTableModel):
                     return QVariant()
 
             # Tooltip com informação completa (construir string segura)
-            if role == Qt.ToolTipRole:
+            if role == _qt_tool_tip_role():
                 try:
                     details = f"{entry.ts} | {entry.level} | {entry.tool} | {entry.class_name}\n{entry.msg}"
                     return QVariant(details)
@@ -214,7 +240,7 @@ class LogTableModel(QAbstractTableModel):
                     return QVariant()
 
             # User role para acesso programático (retornar entry diretamente)
-            if role == Qt.UserRole:
+            if role == _qt_user_role():
                 return entry  # Retornar diretamente, não em QVariant
 
             return QVariant()

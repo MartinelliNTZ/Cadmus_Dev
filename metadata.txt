@@ -21,6 +21,24 @@ tracker=https://github.com/MartinelliNTZ/Cadmus/issues
 
 
 changelog=
+    3.0.0
+        - New tool: VectorToSvgPlugin - Exporta camada vetorial ativa para arquivo SVG estilizado
+        - New tool: CreateProjectPlugin - Cria estrutura padrão de projeto (pastas, basemap, CRS) em nova pasta
+        - New tool: RasterWeightedAverage - Calcula média ponderada entre múltiplos rasters (com reamostragem)
+        - New tool: GridGenerator - Gera camada de grade regular (linhas ou polígonos) na extensão definida
+        - New tool: RasterOptimizer - Otimiza/comprime rasters (pirâmides, tiling, compressão)
+        - New tool: NdviCalculator - Calcula índice de vegetação NDVI a partir de bandas RED/NIR
+        - New tool: RgbMosaicCreator - Monta mosaico RGB a partir de bandas separadas
+        - New tool: RgbStyleStandardizer - Aplica estilo padronizado (rampa de cor) a bandas RGB
+        - New tool: PathExtensionPlugin - Gera extensão/continuação de linha a partir do último segmento de uma trilha
+        - New tool: SaveTemporaryLayersPlugin - Salva camadas temporárias (memória) para arquivos permanentes
+        - New tool: NdreCalculator - Calcula índice NDRE (Red Edge) a partir de bandas NIR/Red Edge
+        - New tool: GliCalculator - Calcula o índice de vegetação GLI (Green Leaf Index)
+        - Fixed bugs in VectorFieldsCalculator
+        - Complete restructuring of the photo metadata extraction system in DroneCoordinates tool
+        - Improvements to the DroneCoordinates system: better photo metadata handling, more reliable file matching, enhanced performance
+        - Multiple bug fixes across various tools
+        - Improvements to several Processing Provider tools
     2.3.0
         - Partially translated to German
         - Fixed vector field calculation: for geographic CRS, automatically calculates both modes (ellipsoidal and Cartesian); for projected CRS, respects the mode selected in preferences

@@ -157,7 +157,7 @@ class SettingsPlugin(BasePluginMTL):
         self.geral_collapsable.add_content_layout(pref_button_layout)
 
         license_layout, self.license_btn = WidgetFactory.create_simple_button(
-            text="🔑",
+            text="_",
             parent=self,
             spacing=6,
         )

@@ -18,6 +18,15 @@ def _qt_wa_transparent():
     except AttributeError:
         return Qt.WA_TransparentForMouseEvents
 
+
+def _global_pos(event):
+    """Compatibilidade Qt5/Qt6: Qt5 usa event.globalPos(),
+    Qt6 usa event.globalPosition().toPoint()."""
+    if hasattr(event, "globalPosition"):
+        return event.globalPosition().toPoint()
+    return event.globalPos()
+
+
 logger = LogUtils(
     tool=ToolKey.CADMUS_PLUGIN, class_name="MainLayout", level=LogUtils.DEBUG
 )
@@ -58,14 +67,12 @@ class BorderHitWidget(QWidget):
 
     def enterEvent(self, event):
         try:
-            #   logger.debug(f"BorderHitWidget.enterEvent: edge={self._edge}")
             self._layout._update_cursor(self._edge)
         except Exception as e:
             logger.error(f"BorderHitWidget.enterEvent error: {e}")
 
     def leaveEvent(self, event):
         try:
-            # logger.debug(f"BorderHitWidget.leaveEvent: edge={self._edge}")
             self._layout._update_cursor(None)
             QApplication.restoreOverrideCursor()
         except Exception as e:
@@ -73,7 +80,6 @@ class BorderHitWidget(QWidget):
 
     def mousePressEvent(self, event):
         try:
-            # logger.debug(f"BorderHitWidget.mousePressEvent: edge={self._edge}")
             self._layout._start_resize_from_edge(event, self._edge)
             event.accept()
         except Exception as e:
@@ -90,7 +96,6 @@ class BorderHitWidget(QWidget):
 
     def mouseReleaseEvent(self, event):
         try:
-            # logger.debug(f"BorderHitWidget.mouseReleaseEvent: edge={self._edge}")
             self._layout._end_resize()
             event.accept()
         except Exception as e:
@@ -374,7 +379,7 @@ class MainLayout(QVBoxLayout):
         try:
             self._resize_active = True
             self._resize_edge = edge
-            self._last_pos = event.globalPos()
+            self._last_pos = _global_pos(event)
         except Exception as e:
             logger.debug(f"_start_resize_from_edge: failed with error: {e}")
 
@@ -384,7 +389,7 @@ class MainLayout(QVBoxLayout):
                 self._resize_active and self._resize_edge and self._last_pos and self._parent_dialog
             ):
                 return
-            delta = event.globalPos() - self._last_pos
+            delta = _global_pos(event) - self._last_pos
             new_rect = self._parent_dialog.geometry()
             if "top" in self._resize_edge:
                 new_rect.setTop(new_rect.top() + delta.y())
@@ -398,7 +403,7 @@ class MainLayout(QVBoxLayout):
                 new_rect.width() >= self._parent_dialog.minimumWidth() and new_rect.height() >= self._parent_dialog.minimumHeight()
             ):
                 self._parent_dialog.setGeometry(new_rect)
-                self._last_pos = event.globalPos()
+                self._last_pos = _global_pos(event)
         except Exception as e:
             logger.debug(f"_perform_resize_move: failed with error: {e}")
 
@@ -437,7 +442,7 @@ class MainLayout(QVBoxLayout):
             mapped_pos = None
             if self._parent_dialog:
                 try:
-                    mapped = self._parent_dialog.mapFromGlobal(event.globalPos())
+                    mapped = self._parent_dialog.mapFromGlobal(_global_pos(event))
                     mapped_pos = QPoint(mapped.x(), mapped.y())
                 except Exception as e:
                     logger.debug(f"handle_mouse_press: failed to map position with error: {e}")
@@ -449,7 +454,7 @@ class MainLayout(QVBoxLayout):
             if edge:
                 self._resize_active = True
                 self._resize_edge = edge
-                self._last_pos = event.globalPos()
+                self._last_pos = _global_pos(event)
                 event.accept()
                 return True
         return False
@@ -460,7 +465,7 @@ class MainLayout(QVBoxLayout):
         mapped_pos = None
         if self._parent_dialog:
             try:
-                mapped = self._parent_dialog.mapFromGlobal(event.globalPos())
+                mapped = self._parent_dialog.mapFromGlobal(_global_pos(event))
                 mapped_pos = QPoint(mapped.x(), mapped.y())
             except Exception as e:
                 logger.debug(f"handle_mouse_move: failed with error: {e}")
@@ -477,7 +482,7 @@ class MainLayout(QVBoxLayout):
         if (
             self._resize_active and self._resize_edge and self._last_pos and self._parent_dialog
         ):
-            delta = event.globalPos() - self._last_pos
+            delta = _global_pos(event) - self._last_pos
             new_rect = self._parent_dialog.geometry()
 
             if "top" in self._resize_edge:
@@ -494,7 +499,7 @@ class MainLayout(QVBoxLayout):
                 new_rect.width() >= self._parent_dialog.minimumWidth() and new_rect.height() >= self._parent_dialog.minimumHeight()
             ):
                 self._parent_dialog.setGeometry(new_rect)
-                self._last_pos = event.globalPos()
+                self._last_pos = _global_pos(event)
 
     def handle_mouse_release(self, event):
         """Finaliza resize ao soltar o mouse."""

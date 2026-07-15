@@ -119,14 +119,14 @@ class AppBarWidget(QFrame):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_pos = event.globalPos() - self.window().frameGeometry().topLeft()
+            self._drag_pos = event.globalPosition().toPoint() - self.window().frameGeometry().topLeft()
             event.accept()
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if self._drag_pos and event.buttons() & Qt.MouseButton.LeftButton:
-            self.window().move(event.globalPos() - self._drag_pos)
+            self.window().move(event.globalPosition().toPoint() - self._drag_pos)
             event.accept()
         else:
             super().mouseMoveEvent(event)

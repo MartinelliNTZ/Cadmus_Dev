@@ -354,8 +354,6 @@ class SettingsPlugin(BasePluginMTL):
             f"Categorias visiveis na toolbar salvas: {toolbar_visibility}"
         )
 
-
-
         paths = self.project_folder_selector.get_paths()
         self.preferences["projects_folder"] = paths[0] if paths else ""
 

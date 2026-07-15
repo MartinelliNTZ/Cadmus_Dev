@@ -2,6 +2,10 @@
 import os
 from qgis.PyQt.QtCore import Qt
 from ..core.config.LogUtils import LogUtils
+from .BaseDialog import BaseDialog
+from ..core.ui.WidgetFactory import WidgetFactory
+from ..utils.ToolKeys import ToolKey
+from ..i18n.TranslationManager import STR
 
 
 def _qt_text_browser_interaction():
@@ -10,12 +14,6 @@ def _qt_text_browser_interaction():
         return Qt.TextInteractionFlag.TextBrowserInteraction
     except AttributeError:
         return Qt.TextBrowserInteraction
-
-
-from .BaseDialog import BaseDialog
-from ..core.ui.WidgetFactory import WidgetFactory
-from ..utils.ToolKeys import ToolKey
-from ..i18n.TranslationManager import STR
 
 
 class AboutDialog(BaseDialog):
@@ -80,10 +78,22 @@ class AboutDialog(BaseDialog):
 
             social_links = [
                 ("GitHub", IM.GITHUB, "https://github.com/MartinelliNTZ"),
-                ("LinkedIn", IM.LINKEDIN, "https://www.linkedin.com/in/matheus-martinelli-a82149108"),
-                ("Instagram", IM.INSTAGRAM, "https://www.instagram.com/matheusmartinelli00"),
+                (
+                    "LinkedIn",
+                    IM.LINKEDIN,
+                    "https://www.linkedin.com/in/matheus-martinelli-a82149108",
+                ),
+                (
+                    "Instagram",
+                    IM.INSTAGRAM,
+                    "https://www.instagram.com/matheusmartinelli00",
+                ),
                 ("E-mail", IM.EMAIL, "mailto:martinelli.matheus11@gmail.com"),
-                ("Buy Me a Coffee", IM.BUY_ME_A_COFFEE, "https://buymeacoffee.com/martinelliNTZ"),
+                (
+                    "Buy Me a Coffee",
+                    IM.BUY_ME_A_COFFEE,
+                    "https://buymeacoffee.com/martinelliNTZ",
+                ),
             ]
 
             social_layout = QHBoxLayout()

@@ -3,6 +3,9 @@ from qgis.PyQt.QtWidgets import QDialog, QSizeGrip
 
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt
+import os
+from typing import Optional
+from ..core.ui.WidgetFactory import WidgetFactory
 
 
 # Compatibilidade Qt5/Qt6: Qt5 usa Qt.{attr}, Qt6 usa Qt.WindowType.{attr}
@@ -18,11 +21,6 @@ def _qt_widget_attr(name):
         return getattr(Qt.WidgetAttribute, name)
     except AttributeError:
         return getattr(Qt, name)
-
-
-import os
-from typing import Optional
-from ..core.ui.WidgetFactory import WidgetFactory
 
 
 class BaseDialog(QDialog):
@@ -68,14 +66,19 @@ class BaseDialog(QDialog):
             self, title=title, enable_scroll=enable_scroll, icon_path="cadmus_icon.png"
         )
         # Garantir que o MainLayout seja sempre criado. Usar PLUGIN_NAME como fallback.
-        self.setWindowFlags(_qt_window_type("Dialog") | _qt_window_type("FramelessWindowHint"))
+        self.setWindowFlags(
+            _qt_window_type("Dialog") | _qt_window_type("FramelessWindowHint")
+        )
         self.setAttribute(_qt_widget_attr("WA_TranslucentBackground"), True)
         # Tamanho mínimo padrão: 300x300 (persistido em preferências)
         self.setMinimumSize(*minimum_size)
         # Size grip (resize visual indicator)
         self.size_grip = QSizeGrip(self.layout._frame)
         self.size_grip.setFixedSize(16, 16)
-        self.layout.addWidget(self.size_grip, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
+        self.layout.addWidget(
+            self.size_grip,
+            alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight,
+        )
         # Ícone nao ta funcionando, talvez por causa do frameless. Tentar setar ícone do aplicativo como fallback
         icon_path = os.path.join(
             os.path.dirname(__file__), "..", "resources", "icons", icon_path

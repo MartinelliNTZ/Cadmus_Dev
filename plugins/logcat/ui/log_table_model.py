@@ -8,6 +8,9 @@ Nenhuma lógica de UI aqui - apenas model puro.
 
 from typing import List, Optional
 from qgis.PyQt.QtCore import Qt, QAbstractTableModel, QModelIndex, QVariant
+from qgis.PyQt.QtGui import QColor
+from ..core.model.log_entry import LogEntry
+from ..core.color.class_color_provider import ClassColorProvider
 
 
 # Compatibilidade Qt5/Qt6: Qt5 usa Qt.DisplayRole, Qt6 usa Qt.ItemDataRole.DisplayRole
@@ -40,11 +43,6 @@ def _qt_user_role():
         return Qt.ItemDataRole.UserRole
     except AttributeError:
         return Qt.UserRole
-
-
-from qgis.PyQt.QtGui import QColor
-from ..core.model.log_entry import LogEntry
-from ..core.color.class_color_provider import ClassColorProvider
 
 
 class LogTableModel(QAbstractTableModel):
@@ -175,7 +173,9 @@ class LogTableModel(QAbstractTableModel):
         if role != _qt_display_role():
             return QVariant()
 
-        if orientation == Qt.Orientation.Horizontal and 0 <= section < len(self.COLUMNS):
+        if orientation == Qt.Orientation.Horizontal and 0 <= section < len(
+            self.COLUMNS
+        ):
             return QVariant(self.COLUMNS[section][0])
 
         if orientation == Qt.Orientation.Vertical:

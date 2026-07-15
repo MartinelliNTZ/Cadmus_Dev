@@ -569,8 +569,7 @@ class ToolRegistry:
             return None
 
     def _filter_tools_by_reg(self):
-        
-    
+
         try:
             from .RegistryManager import RegistryManager
 

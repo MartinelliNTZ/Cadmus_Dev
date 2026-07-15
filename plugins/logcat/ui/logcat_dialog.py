@@ -5,6 +5,7 @@ Diálogo principal do Logcat.
 Ferramenta de visualização, análise e filtragem de logs em tempo real.
 Inspirada no Logcat do Android Studio.
 """
+
 from pathlib import Path
 from typing import Optional, List
 import os
@@ -27,6 +28,15 @@ from qgis.PyQt.QtWidgets import (
     QListWidgetItem,
 )
 from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal, QModelIndex
+from ..core.model.log_entry import LogEntry
+from ..core.model.log_session_manager import LogSessionManager
+from ..core.io.log_loader import LogLoader
+from ..core.io.log_file_watcher import LogFileWatcher
+from ..core.filter.log_filter_engine import LogFilterEngine
+from .log_table_model import LogTableModel
+from .log_detail_dialog import LogDetailDialog
+from .log_multiple_detail_dialog import LogMultipleDetailDialog
+from .log_sort_filter_proxy_model import LogSortFilterProxyModel
 
 
 def _qt_header_stretch():
@@ -50,17 +60,6 @@ def _exec_dialog(dialog):
     if hasattr(dialog, "exec_"):
         return dialog.exec_()
     return dialog.exec()
-
-
-from ..core.model.log_entry import LogEntry
-from ..core.model.log_session_manager import LogSessionManager
-from ..core.io.log_loader import LogLoader
-from ..core.io.log_file_watcher import LogFileWatcher
-from ..core.filter.log_filter_engine import LogFilterEngine
-from .log_table_model import LogTableModel
-from .log_detail_dialog import LogDetailDialog
-from .log_multiple_detail_dialog import LogMultipleDetailDialog
-from .log_sort_filter_proxy_model import LogSortFilterProxyModel
 
 
 class LogcatDialog(QDialog):
@@ -249,7 +248,9 @@ class LogcatDialog(QDialog):
         self.table_view = QTableView()
         self.table_view.setModel(self.proxy_model)
         self.table_view.setSortingEnabled(True)  # Habilitar sort via header
-        self.table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_view.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
         self.table_view.setSelectionMode(
             QAbstractItemView.SelectionMode.MultiSelection
         )  # Multi-seleção
@@ -327,7 +328,8 @@ class LogcatDialog(QDialog):
         if self.current_session:
             for i in range(self.combo_sessions.count()):
                 if (
-                    self.combo_sessions.itemData(i).log_file_path == self.current_session.log_file_path
+                    self.combo_sessions.itemData(i).log_file_path
+                    == self.current_session.log_file_path
                 ):
                     self.combo_sessions.setCurrentIndex(
                         i
@@ -560,7 +562,11 @@ class LogcatDialog(QDialog):
         for value in unique_values:
             item = QListWidgetItem(value)
             item.setFlags(item.flags() | _qt_item_is_user_checkable())
-            item.setCheckState(Qt.CheckState.Checked if value in current_filter else Qt.CheckState.Unchecked)
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if value in current_filter
+                else Qt.CheckState.Unchecked
+            )
             list_widget.addItem(item)
 
         # Criar dialog
@@ -615,7 +621,8 @@ class LogcatDialog(QDialog):
         """Restaura posição anterior do scroll de forma confiável."""
         try:
             if (
-                hasattr(self, "_saved_scroll_value") and self._saved_scroll_value is not None
+                hasattr(self, "_saved_scroll_value")
+                and self._saved_scroll_value is not None
             ):
                 scrollbar = self.table_view.verticalScrollBar()
                 saved_val = (
@@ -918,7 +925,8 @@ class LogcatDialog(QDialog):
                     self.file_watcher.stop()
                 except Exception as e:
                     self._logger.warning(
-                        f"Erro ao parar file_watcher durante closeEvent: {str(e)}", exc_info=True
+                        f"Erro ao parar file_watcher durante closeEvent: {str(e)}",
+                        exc_info=True,
                     )
                 self.file_watcher = None
 
@@ -928,7 +936,8 @@ class LogcatDialog(QDialog):
                     self.update_timer.stop()
             except Exception as e:
                 self._logger.warning(
-                    f"Erro ao parar update_timer durante closeEvent: {str(e)}", exc_info=True
+                    f"Erro ao parar update_timer durante closeEvent: {str(e)}",
+                    exc_info=True,
                 )
 
             # PRIORIDADE 2b: Parar debounce timer
@@ -946,7 +955,8 @@ class LogcatDialog(QDialog):
                 self.file_changed.disconnect()
             except Exception as e:
                 self._logger.warning(
-                    f"Erro ao desconectar file_changed durante closeEvent: {str(e)}", exc_info=True
+                    f"Erro ao desconectar file_changed durante closeEvent: {str(e)}",
+                    exc_info=True,
                 )
 
             # PRIORIDADE 4: Limpar dados em memória

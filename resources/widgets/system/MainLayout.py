@@ -302,15 +302,18 @@ class MainLayout(QVBoxLayout):
         if pos.x() < self._resize_border and pos.y() < self._resize_border:
             return "top-left"
         elif (
-            pos.x() > rect.width() - self._resize_border and pos.y() < self._resize_border
+            pos.x() > rect.width() - self._resize_border
+            and pos.y() < self._resize_border
         ):
             return "top-right"
         elif (
-            pos.x() < self._resize_border and pos.y() > rect.height() - self._resize_border
+            pos.x() < self._resize_border
+            and pos.y() > rect.height() - self._resize_border
         ):
             return "bottom-left"
         elif (
-            pos.x() > rect.width() - self._resize_border and pos.y() > rect.height() - self._resize_border
+            pos.x() > rect.width() - self._resize_border
+            and pos.y() > rect.height() - self._resize_border
         ):
             return "bottom-right"
         elif pos.x() < self._resize_border:
@@ -386,7 +389,10 @@ class MainLayout(QVBoxLayout):
     def _perform_resize_move(self, event):
         try:
             if not (
-                self._resize_active and self._resize_edge and self._last_pos and self._parent_dialog
+                self._resize_active
+                and self._resize_edge
+                and self._last_pos
+                and self._parent_dialog
             ):
                 return
             delta = _global_pos(event) - self._last_pos
@@ -400,7 +406,8 @@ class MainLayout(QVBoxLayout):
             if "right" in self._resize_edge:
                 new_rect.setRight(new_rect.right() + delta.x())
             if (
-                new_rect.width() >= self._parent_dialog.minimumWidth() and new_rect.height() >= self._parent_dialog.minimumHeight()
+                new_rect.width() >= self._parent_dialog.minimumWidth()
+                and new_rect.height() >= self._parent_dialog.minimumHeight()
             ):
                 self._parent_dialog.setGeometry(new_rect)
                 self._last_pos = _global_pos(event)
@@ -445,7 +452,9 @@ class MainLayout(QVBoxLayout):
                     mapped = self._parent_dialog.mapFromGlobal(_global_pos(event))
                     mapped_pos = QPoint(mapped.x(), mapped.y())
                 except Exception as e:
-                    logger.debug(f"handle_mouse_press: failed to map position with error: {e}")
+                    logger.debug(
+                        f"handle_mouse_press: failed to map position with error: {e}"
+                    )
                     mapped_pos = event.pos()
             else:
                 mapped_pos = event.pos()
@@ -480,7 +489,10 @@ class MainLayout(QVBoxLayout):
         self._update_cursor(edge)
 
         if (
-            self._resize_active and self._resize_edge and self._last_pos and self._parent_dialog
+            self._resize_active
+            and self._resize_edge
+            and self._last_pos
+            and self._parent_dialog
         ):
             delta = _global_pos(event) - self._last_pos
             new_rect = self._parent_dialog.geometry()
@@ -496,7 +508,8 @@ class MainLayout(QVBoxLayout):
 
             # Respeita tamanho mínimo
             if (
-                new_rect.width() >= self._parent_dialog.minimumWidth() and new_rect.height() >= self._parent_dialog.minimumHeight()
+                new_rect.width() >= self._parent_dialog.minimumWidth()
+                and new_rect.height() >= self._parent_dialog.minimumHeight()
             ):
                 self._parent_dialog.setGeometry(new_rect)
                 self._last_pos = _global_pos(event)

@@ -80,7 +80,7 @@ pre {
         <div class="metrics-title">
             Metrics:<br>
         </div>
-        Total lines of code: <span id="loc">50270</span><br>
+        Total lines of code: <span id="loc">50457</span><br>
         Total lines skipped (#nosec): <span id="nosec">0</span>
     </div>
 </div>
@@ -122,20 +122,20 @@ pre {
     <b>Confidence: </b>HIGH<br>
     <b>CWE: </b><a href="https://cwe.mitre.org/data/definitions/78.html" target="_blank">CWE-78</a><br>
     <b>File: </b><a href=".\build_distribution.py" target="_blank">.\build_distribution.py</a><br>
-    <b>Line number: </b>624<br>
+    <b>Line number: </b>627<br>
     <b>More info: </b><a href="https://bandit.readthedocs.io/en/1.9.4/plugins/b603_subprocess_without_shell_equals_true.html" target="_blank">https://bandit.readthedocs.io/en/1.9.4/plugins/b603_subprocess_without_shell_equals_true.html</a><br>
 
 <div class="code">
 <pre>
-623	
-624	        result = subprocess.run(
-625	            [python_exe, &quot;-c&quot;, script],
-626	            capture_output=True,
-627	            text=True,
-628	            timeout=60,
-629	            cwd=str(self._root),
-630	        )
-631	
+626	
+627	        result = subprocess.run(
+628	            [python_exe, &quot;-c&quot;, script],
+629	            capture_output=True,
+630	            text=True,
+631	            timeout=60,
+632	            cwd=str(self._root),
+633	        )
+634	
 </pre>
 </div>
 

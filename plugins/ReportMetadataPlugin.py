@@ -7,14 +7,6 @@ from qgis.core import QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QComboBox, QSizePolicy
 
-
-def _qt_adjust_to_minimum_contents_length_with_icon():
-    """Compatibilidade Qt5/Qt6: retorna AdjustToMinimumContentsLengthWithIcon."""
-    try:
-        return QComboBox.AdjustToMinimumContentsLengthWithIcon
-    except AttributeError:
-        return QComboBox.AdjustToMinimumContentsLengthWithIcon
-
 from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..resources.IconManager import IconManager as im
@@ -26,6 +18,14 @@ from ..utils.ToolKeys import ToolKey
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.mrk.MetadataFields import MetadataFields
+
+
+def _qt_adjust_to_minimum_contents_length_with_icon():
+    """Compatibilidade Qt5/Qt6: retorna AdjustToMinimumContentsLengthWithIcon."""
+    try:
+        return QComboBox.AdjustToMinimumContentsLengthWithIcon
+    except AttributeError:
+        return QComboBox.AdjustToMinimumContentsLengthWithIcon
 
 
 class ReportMetadataPlugin(BasePluginMTL):
@@ -77,10 +77,12 @@ class ReportMetadataPlugin(BasePluginMTL):
         )
         self.open_json_button.clicked.connect(self._open_json_folder)
 
-        open_reports_layout, self.open_reports_button = WidgetFactory.create_simple_button(
-            text=STR.OPEN_REPORTS_FOLDER,
-            parent=self,
-            spacing=8,
+        open_reports_layout, self.open_reports_button = (
+            WidgetFactory.create_simple_button(
+                text=STR.OPEN_REPORTS_FOLDER,
+                parent=self,
+                spacing=8,
+            )
         )
         self.open_reports_button.clicked.connect(self._open_reports_folder)
 
@@ -119,9 +121,13 @@ class ReportMetadataPlugin(BasePluginMTL):
             combo = self.json_selector.combo()
             if isinstance(combo, QComboBox):
                 # Evita que o maior texto do JSON force largura minima gigante.
-                combo.setSizeAdjustPolicy(_qt_adjust_to_minimum_contents_length_with_icon())
+                combo.setSizeAdjustPolicy(
+                    _qt_adjust_to_minimum_contents_length_with_icon()
+                )
                 combo.setMinimumContentsLength(24)
-                combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                combo.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+                )
                 combo.setMaximumWidth(520)
 
             for btn in (
@@ -214,7 +220,9 @@ class ReportMetadataPlugin(BasePluginMTL):
     # ─────────────────────────────────────────────────────────
     def _vectorize_from_json(self):
         """Gera camada vetorial de pontos e rastro a partir do JSON selecionado."""
-        selected_json = self.json_selector.get_selected_key() if self.json_selector else ""
+        selected_json = (
+            self.json_selector.get_selected_key() if self.json_selector else ""
+        )
         if not selected_json:
             QgisMessageUtil.modal_warning(self.iface, STR.SELECT_FILE)
             return
@@ -248,7 +256,9 @@ class ReportMetadataPlugin(BasePluginMTL):
             )
 
             if not layer or not layer.isValid():
-                raise RuntimeError("Falha ao criar camada vetorial via JsonToVectorTranslator")
+                raise RuntimeError(
+                    "Falha ao criar camada vetorial via JsonToVectorTranslator"
+                )
 
             # Reordenar campos alfabeticamente
             sorted_layer = VectorLayerAttributes.reorder_fields_alphabetically(layer)
@@ -270,6 +280,7 @@ class ReportMetadataPlugin(BasePluginMTL):
 
         except Exception as e:
             import traceback
+
             tb_str = traceback.format_exc()
             self.logger.error(
                 f"Erro ao vetorizar voo: {e}\nTraceback:\n{tb_str}",
@@ -279,7 +290,7 @@ class ReportMetadataPlugin(BasePluginMTL):
     def _resolve_layer_name(self, json_path: str) -> str:
         """Resolve o nome da layer a partir do titulo do JSON ou nome do arquivo."""
         try:
-            with open(json_path, 'r', encoding='utf-8') as f:
+            with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             titulo = data.get("titulo", "")
             if titulo:
@@ -294,7 +305,7 @@ class ReportMetadataPlugin(BasePluginMTL):
     def _resolve_source(self, json_path: str) -> str:
         """Resolve a fonte de coordenadas do JSON."""
         try:
-            with open(json_path, 'r', encoding='utf-8') as f:
+            with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return data.get("source", "mrk+photo")
         except Exception as e:
@@ -316,7 +327,10 @@ class ReportMetadataPlugin(BasePluginMTL):
                 QgsProject.instance().addMapLayer(vl_line)
                 self.logger.info(
                     "Rastro criado com sucesso",
-                    data={"layer_name": vl_line.name(), "features": vl_line.featureCount()},
+                    data={
+                        "layer_name": vl_line.name(),
+                        "features": vl_line.featureCount(),
+                    },
                 )
         except Exception as e:
             self.logger.error(f"Falha ao gerar camada de rastro: {e}")
@@ -347,7 +361,10 @@ class ReportMetadataPlugin(BasePluginMTL):
             ),
         ]
         for a, b in pairs:
-            if layer.fields().lookupField(a) != -1 and layer.fields().lookupField(b) != -1:
+            if (
+                layer.fields().lookupField(a) != -1
+                and layer.fields().lookupField(b) != -1
+            ):
                 return [a, b]
         return None
 
@@ -355,7 +372,9 @@ class ReportMetadataPlugin(BasePluginMTL):
     # EXECUTAR (GERAR RELATORIO)
     # ─────────────────────────────────────────────────────────
     def execute_tool(self):
-        selected_json = self.json_selector.get_selected_key() if self.json_selector else ""
+        selected_json = (
+            self.json_selector.get_selected_key() if self.json_selector else ""
+        )
         if not selected_json:
             QgisMessageUtil.modal_warning(self.iface, STR.SELECT_FILE)
             return
@@ -370,11 +389,11 @@ class ReportMetadataPlugin(BasePluginMTL):
         try:
             # Verifica se a licença tem nível mínimo 3 para gerar relatórios
             from ..core.config.RegistryManager import RegistryManager
+
             lic_mgr = RegistryManager(tool_key=self.TOOL_KEY)
             if not lic_mgr.has_minimum_level(self.REGISTRY_LEVEL):
                 QgisMessageUtil.modal_warning(
-                    self.iface,
-                    "Relatório requer licença nível 3 ou superior."
+                    self.iface, "Relatório requer licença nível 3 ou superior."
                 )
                 return
 
@@ -382,9 +401,9 @@ class ReportMetadataPlugin(BasePluginMTL):
             # Permite que o plugin funcione em modo free sem o módulo
             from ..core.services.ReportGenerationService import ReportGenerationService
 
-            payload = ReportGenerationService(tool_key=self.TOOL_KEY).generate_from_json(
-                selected_json
-            )
+            payload = ReportGenerationService(
+                tool_key=self.TOOL_KEY
+            ).generate_from_json(selected_json)
             html_path = payload.get("html_path", "")
             if html_path:
                 if not ExplorerUtils.open_file(html_path, self.TOOL_KEY):
@@ -399,8 +418,11 @@ class ReportMetadataPlugin(BasePluginMTL):
             )
         except Exception as e:
             import traceback
+
             tb_str = traceback.format_exc()
-            self.logger.error(f"Erro ao gerar relatorio via plugin: {e}\nTraceback:\n{tb_str}")
+            self.logger.error(
+                f"Erro ao gerar relatorio via plugin: {e}\nTraceback:\n{tb_str}"
+            )
             QgisMessageUtil.modal_error(self.iface, f"{STR.ERROR}: {e}")
 
 

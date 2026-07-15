@@ -460,12 +460,8 @@ class Strings_pt_BR:
     PROJECT_FOLDER_ALREADY_EXISTS = "A pasta do projeto ja existe:"
     PROJECT_FOLDER_CREATE_ERROR = "Nao foi possivel criar a estrutura do projeto:"
     PROJECT_FILE_CREATE_ERROR = "Nao foi possivel criar o projeto QGIS:"
-    PROJECT_DEFAULT_FOLDER_PREPARE_ERROR = (
-        "Nao foi possivel preparar a pasta padrao:"
-    )
-    PROJECT_DEFAULT_FOLDER_ACCESS_ERROR = (
-        "Nao foi possivel acessar a pasta padrao:"
-    )
+    PROJECT_DEFAULT_FOLDER_PREPARE_ERROR = "Nao foi possivel preparar a pasta padrao:"
+    PROJECT_DEFAULT_FOLDER_ACCESS_ERROR = "Nao foi possivel acessar a pasta padrao:"
     CURRENT_PROJECT_SAVE_TO_NEW_DESTINATION_ERROR = (
         "O QGIS nao conseguiu salvar o projeto atual no novo destino."
     )
@@ -610,16 +606,12 @@ class Strings_pt_BR:
     SELECT_POINT_VECTOR_LAYER = "Selecione uma camada vetorial de pontos."
     SELECT_FILE_BASED_POINT_LAYER = "Selecione uma camada de pontos baseada em arquivo."
     SELECT_REQUIRED_FIELDS = "Selecione os campos obrigatórios de ID e timestamp."
-    SAVE_AND_STOP_EDITING_LAYER = "Salve e encerre a edição da camada antes de executar esta ferramenta."
-    SHOT_SEGMENTATION_COMPLETED = (
-        "Segmentação concluída. Pontos: {total_points} | Tiros: {total_shots} | Válidos: {valid_shots} | Inválidos: {invalid_shots}"
+    SAVE_AND_STOP_EDITING_LAYER = (
+        "Salve e encerre a edição da camada antes de executar esta ferramenta."
     )
-    SHOT_SEGMENTATION_BUFFER_COMPLETED = (
-        "Segmentação concluída no buffer de edição. Pontos: {total_points} | Tiros: {total_shots} | Válidos: {valid_shots} | Inválidos: {invalid_shots}"
-    )
-    DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
-        "A interface foi criada. A rotina de divisão por faixas será implementada na próxima etapa."
-    )
+    SHOT_SEGMENTATION_COMPLETED = "Segmentação concluída. Pontos: {total_points} | Tiros: {total_shots} | Válidos: {valid_shots} | Inválidos: {invalid_shots}"
+    SHOT_SEGMENTATION_BUFFER_COMPLETED = "Segmentação concluída no buffer de edição. Pontos: {total_points} | Tiros: {total_shots} | Válidos: {valid_shots} | Inválidos: {invalid_shots}"
+    DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = "A interface foi criada. A rotina de divisão por faixas será implementada na próxima etapa."
 
     # processing/RasterOptimizer.py
     RASTER_OPTIMIZER_TITLE = "Otimizar Raster (Overviews)"
@@ -687,7 +679,9 @@ class Strings_pt_BR:
 
     # plugins/PathExtensionPlugin.py
     PATH_EXTENSION_TITLE = "Remover/Restaurar Extensão"
-    PATH_EXTENSION_TOOLTIP = "Remove ou restaura a extensão de arquivos nos paths das feições"
+    PATH_EXTENSION_TOOLTIP = (
+        "Remove ou restaura a extensão de arquivos nos paths das feições"
+    )
     MODE_REMOVE = "Remover extensão"
     MODE_RESTORE = "Restaurar extensão"
     MODE_ZIP = "Zipar arquivos"
@@ -710,7 +704,9 @@ class Strings_pt_BR:
 
     # plugins/SaveTemporaryLayersPlugin.py
     SAVE_TEMPORARY_LAYER_TITLE = "Salvar Temporárias"
-    SAVE_TEMPORARY_LAYER_TOOLTIP = "Salva camadas temporárias (memory) do projeto em arquivos permanentes no disco"
+    SAVE_TEMPORARY_LAYER_TOOLTIP = (
+        "Salva camadas temporárias (memory) do projeto em arquivos permanentes no disco"
+    )
     PREFIX = "Prefixo"
     SUFFIX = "Sufixo"
     EXTENSION_VECTOR = "Extensão Vetor"

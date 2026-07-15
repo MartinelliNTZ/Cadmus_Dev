@@ -7,7 +7,7 @@ from ..utils.Preferences import Preferences
 from ..utils.ToolKeys import ToolKey
 from ..utils.ExplorerUtils import ExplorerUtils
 from ..core.ui.WidgetFactory import WidgetFactory
-from ..i18n.TranslationManager import STR
+from ..i18n.TranslationManager import STR, TranslationManager
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..core.config.MenuManager import MenuManager
 
@@ -221,11 +221,9 @@ class SettingsPlugin(BasePluginMTL):
     def _load_prefs(self):
         """Carrega preferências salvas."""
         self.logger.debug("Carregando preferências")
-        self.prefer_VectorFields = Preferences.load_tool_prefs(
-            ToolKey.VECTOR_FIELDS)
+        self.prefer_VectorFields = Preferences.load_tool_prefs(ToolKey.VECTOR_FIELDS)
 
-        calc_method = self.system_preferences.get(
-            "calculation_method", STR.ELLIPSOIDAL)
+        calc_method = self.system_preferences.get("calculation_method", STR.ELLIPSOIDAL)
         if calc_method in self.CALCULATION_METHODS:
             self.radio_calc.set_selected_index(
                 self.CALCULATION_METHODS.index(calc_method)
@@ -237,30 +235,24 @@ class SettingsPlugin(BasePluginMTL):
             )
             self.radio_calc.set_selected_index(0)
 
-        selected_language = self.system_preferences.get(
-            "plugin_language", "none")
+        selected_language = self.system_preferences.get("plugin_language", "none")
         if selected_language in StringManager.AVAILABLE_LANGUAGES:
             self.lang_selector.set_selected_key(selected_language)
-            self.logger.debug(
-                f"Idioma selecionado carregado: {selected_language}")
+            self.logger.debug(f"Idioma selecionado carregado: {selected_language}")
         else:
-            self.logger.warning(
-                f"Idioma inválido: {selected_language}, usando padrão")
+            self.logger.warning(f"Idioma inválido: {selected_language}, usando padrão")
             self.lang_selector.set_selected_key("pt_BR")
 
         selected_crs_authid = self.system_preferences.get(
             "default_crs_authid", self.DEFAULT_CRS_AUTHID
         )
         if not self.crs_selector.set_crs_authid(selected_crs_authid):
-            self.logger.warning(
-                f"SRC invalido: {selected_crs_authid}, usando padrao")
+            self.logger.warning(f"SRC invalido: {selected_crs_authid}, usando padrao")
             self.crs_selector.set_crs_authid(self.DEFAULT_CRS_AUTHID)
-        self.logger.debug(
-            f"SRC padrao carregado: {self.crs_selector.get_crs_authid()}")
+        self.logger.debug(f"SRC padrao carregado: {self.crs_selector.get_crs_authid()}")
 
         if "async_threshold_features" in self.system_preferences:
-            thresh_feats = self.system_preferences.get(
-                "async_threshold_features", 1000)
+            thresh_feats = self.system_preferences.get("async_threshold_features", 1000)
         else:
             old_bytes = self.system_preferences.get("async_threshold_bytes")
             if old_bytes is not None:
@@ -275,8 +267,7 @@ class SettingsPlugin(BasePluginMTL):
             else (int(thresh_feats) if str(thresh_feats).isdigit() else 1000)
         )
         self.spin_threshold.setValue(thresh_value)
-        self.logger.debug(
-            f"Limiar assíncrono carregado: {thresh_value} feições")
+        self.logger.debug(f"Limiar assíncrono carregado: {thresh_value} feições")
 
         prec = self.system_preferences.get("vector_field_precision", 2)
         precision_value = (
@@ -285,8 +276,7 @@ class SettingsPlugin(BasePluginMTL):
             else (int(prec) if str(prec).isdigit() else 2)
         )
         self.spin_precision.setValue(precision_value)
-        self.logger.debug(
-            f"Precisão de campos vetoriais carregada: {precision_value}")
+        self.logger.debug(f"Precisão de campos vetoriais carregada: {precision_value}")
 
         self.area_fields_inputs.set_values(
             {
@@ -300,8 +290,7 @@ class SettingsPlugin(BasePluginMTL):
         )
 
         toolbar_visibility = MenuManager.normalize_toolbar_category_visibility(
-            self.system_preferences.get(
-                MenuManager.TOOLBAR_VISIBILITY_PREF_KEY)
+            self.system_preferences.get(MenuManager.TOOLBAR_VISIBILITY_PREF_KEY)
         )
         for category, checkbox in self.toolbar_category_checks.items():
             checkbox.setChecked(toolbar_visibility.get(category, True))
@@ -310,8 +299,7 @@ class SettingsPlugin(BasePluginMTL):
         if project_folder:
             self.project_folder_selector.set_path(project_folder)
 
-        self.calc_collapsable.set_expanded(
-            self.preferences.get("calc_expanded", False))
+        self.calc_collapsable.set_expanded(self.preferences.get("calc_expanded", False))
         self.geral_collapsable.set_expanded(
             self.preferences.get("geral_expanded", True)
         )
@@ -326,21 +314,18 @@ class SettingsPlugin(BasePluginMTL):
         self.system_preferences["calculation_method"] = selected_text
         selected_crs = self.crs_selector.get_crs()
         if not selected_crs or not selected_crs.isValid():
-            selected_crs = QgsCoordinateReferenceSystem(
-                self.DEFAULT_CRS_AUTHID)
+            selected_crs = QgsCoordinateReferenceSystem(self.DEFAULT_CRS_AUTHID)
             self.crs_selector.set_crs(selected_crs)
         self.system_preferences["default_crs_authid"] = selected_crs.authid()
         self.logger.debug(f"SRC padrao salvo: {selected_crs.authid()}")
 
         feats_value = int(self.spin_threshold.value())
         self.system_preferences["async_threshold_features"] = feats_value
-        self.logger.debug(
-            f"Limiar assíncrono por feições salvo: {feats_value} feições")
+        self.logger.debug(f"Limiar assíncrono por feições salvo: {feats_value} feições")
 
         precision_val = int(self.spin_precision.value())
         self.system_preferences["vector_field_precision"] = precision_val
-        self.logger.debug(
-            f"Precisão de campos vetoriais salva: {precision_val} casas")
+        self.logger.debug(f"Precisão de campos vetoriais salva: {precision_val} casas")
 
         selected_language = self.lang_selector.get_selected_key()
         if selected_language != "none":
@@ -349,8 +334,7 @@ class SettingsPlugin(BasePluginMTL):
         else:
             if "plugin_language" in self.system_preferences:
                 del self.system_preferences["plugin_language"]
-                self.logger.debug(
-                    "Idioma selecionado removido para auto-detectar")
+                self.logger.debug("Idioma selecionado removido para auto-detectar")
 
         toolbar_visibility = {
             category: bool(checkbox.isChecked())
@@ -388,8 +372,7 @@ class SettingsPlugin(BasePluginMTL):
                 self.iface,
                 STR.AREA_SUFFIXES_CANNOT_MATCH,
             )
-            self.logger.warning(
-                "Salvamento cancelado: sulfixos de area duplicados")
+            self.logger.warning("Salvamento cancelado: sulfixos de area duplicados")
             return False
 
         self.prefer_VectorFields["cartesian_suffix"] = cartesian_suffix
@@ -398,8 +381,7 @@ class SettingsPlugin(BasePluginMTL):
         self._persist_window_size()
         self.on_finish_plugin()
         Preferences.save_tool_prefs(ToolKey.SYSTEM, self.system_preferences)
-        Preferences.save_tool_prefs(
-            ToolKey.VECTOR_FIELDS, self.prefer_VectorFields)
+        Preferences.save_tool_prefs(ToolKey.VECTOR_FIELDS, self.prefer_VectorFields)
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.info(
             f"Preferências salvas:{self.system_preferences}==={self.preferences}"
@@ -411,8 +393,7 @@ class SettingsPlugin(BasePluginMTL):
                 from ..core.config.PyQtSignalManager import get_plugin_signal_hub
 
                 hub = get_plugin_signal_hub()
-                hub.toolbar_category_visibility_changed.emit(
-                    toolbar_visibility)
+                hub.toolbar_category_visibility_changed.emit(toolbar_visibility)
                 self.logger.debug(
                     "Sinal de alteração de visibilidade da toolbar emitido pelo SettingsPlugin"
                 )
@@ -439,6 +420,13 @@ class SettingsPlugin(BasePluginMTL):
             ),
         )
 
+        # Recarregar strings de tradução com o novo idioma
+        TranslationManager.reload_strings()
+        self.logger.info(
+            f"TranslationManager recarregado com locale: "
+            f"{self.system_preferences.get('plugin_language', 'pt_BR')}"
+        )
+
         self.logger.info("Configurações aplicadas e salvas")
         self.close()
 
@@ -462,8 +450,7 @@ class SettingsPlugin(BasePluginMTL):
         if ExplorerUtils.open_folder(PREF_FOLDER, self.TOOL_KEY):
             self.logger.info(f"Abrindo pasta: {PREF_FOLDER}")
         else:
-            self.logger.warning(
-                f"Pasta de preferências não encontrada: {PREF_FOLDER}")
+            self.logger.warning(f"Pasta de preferências não encontrada: {PREF_FOLDER}")
             QgisMessageUtil.modal_warning(
                 iface=self.iface,
                 message=f"{STR.PREFERENCES_FOLDER_NOT_FOUND} {PREF_FOLDER}",

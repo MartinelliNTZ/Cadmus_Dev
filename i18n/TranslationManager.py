@@ -19,11 +19,19 @@ class TranslationManager:
     ALEMAO = "de"
     FRANCES = "fr"
 
-    def __init__(self):
+    def __init__(self, locale_override=None):
+        """
+        Inicializa o TranslationManager.
 
+        Args:
+            locale_override: Se fornecido, usa este locale em vez de carregar das prefs.
+                             Usado pelo método reload() para recarregar com novo locale.
+        """
         self.logger = LogUtils(tool=ToolKey.SYSTEM, class_name="TranslationManager")
         self.system_prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-        self.locale = self.system_prefs.get("plugin_language", None)  # ex: 'pt_BR'
+        self.locale = locale_override or self.system_prefs.get(
+            "plugin_language", None
+        )  # ex: 'pt_BR'
 
         if not self.locale:
             self.logger.debug(
@@ -34,16 +42,36 @@ class TranslationManager:
 
         if self.locale == self.INGLES:
             self.STR = Strings_en()
-
         elif self.locale == self.ESPANHOL:
-            self.STR = Strings_es()  # fallback
-        if self.locale == self.ALEMAO:
-            self.STR = Strings_de()  # fallback
+            self.STR = Strings_es()
+        elif self.locale == self.ALEMAO:
+            self.STR = Strings_de()
+        elif self.locale == self.FRANCES:
+            self.STR = Strings_pt_BR()  # fallback: francês ainda não implementado
         else:
             self.STR = Strings_pt_BR()
         self.logger.info(
             f"TranslationManager inicializado com locale: {self.locale}, idioma: {self.lang}"
         )
+
+    @staticmethod
+    def reload_strings():
+        """
+        Recarrega o singleton TM, STR e LOCALE com base nas preferências atuais.
+
+        Use este método após salvar um novo idioma no SettingsPlugin para que
+        a mudança tenha efeito imediato em toda a aplicação.
+
+        Exemplo:
+            from i18n.TranslationManager import TranslationManager, STR, LOCALE
+            TranslationManager.reload_strings()
+            # Agora STR e LOCALE refletem o novo idioma
+        """
+        global TM, STR, LOCALE
+        TM = TranslationManager()
+        STR = TM.STR
+        LOCALE = TM.locale
+        TM.logger.info(f"TranslationManager recarregado com locale: {LOCALE}")
 
 
 TM = TranslationManager()

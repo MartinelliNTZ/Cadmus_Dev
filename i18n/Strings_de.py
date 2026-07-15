@@ -118,8 +118,12 @@ class Strings_de(Strings_pt_BR):
     # Common option labels
     CASE_SENSITIVE = "Groß-/Kleinschreibung beachten"
     FULL_LABEL_REPLACE = "Gesamten Label-Inhalt ersetzen, wenn Text gefunden wird"
-    LOAD_ONLY_MISSING_FILES = "Nur Dateien laden, die noch NICHT im Projekt geladen sind"
-    PRESERVE_FOLDER_STRUCTURE = "Gruppen entsprechend der Ordner-/Unterordnerstruktur erstellen"
+    LOAD_ONLY_MISSING_FILES = (
+        "Nur Dateien laden, die noch NICHT im Projekt geladen sind"
+    )
+    PRESERVE_FOLDER_STRUCTURE = (
+        "Gruppen entsprechend der Ordner-/Unterordnerstruktur erstellen"
+    )
     DO_NOT_GROUP_LAST_FOLDER = "Letzten Ordner nicht gruppieren"
     CREATE_PROJECT_BACKUP_IF_SAVED = (
         "Projektsicherung erstellen, bevor geladen wird (nur wenn gespeichert)"
@@ -130,14 +134,18 @@ class Strings_de(Strings_pt_BR):
     ERROR_LAYER_NOT_FOUND = "Fehler: Layer nicht gefunden."
     SELECT_VALID_FOLDER = "Bitte einen gültigen Ordner auswählen."
     SELECT_AT_LEAST_ONE_FILE_TYPE = "Bitte mindestens einen Dateityp auswählen."
-    SELECT_AT_LEAST_ONE_EXPORT_FORMAT = "Bitte mindestens ein Format auswählen (PDF oder PNG)"
+    SELECT_AT_LEAST_ONE_EXPORT_FORMAT = (
+        "Bitte mindestens ein Format auswählen (PDF oder PNG)"
+    )
     SELECT_VALID_LINE_LAYER = "Bitte einen gültigen Linienlayer auswählen."
     INVALID_SOURCE_LAYER = "Ungültiger Quelllayer"
     INVALID_TARGET_LAYER = "Ungültiger Ziellayer"
     INVALID_INPUT_LAYER = "Ungültiger Eingabelayer."
     FINAL_LAYER_NOT_FOUND = "Fehler: Finaler Layer im Kontext nicht gefunden."
     BUFFER_CANNOT_BE_ZERO = "Puffer darf nicht 0 sein"
-    ASYNC_STARTED = "Hintergrundausführung gestartet. Fortschritt im Protokoll verfolgen."
+    ASYNC_STARTED = (
+        "Hintergrundausführung gestartet. Fortschritt im Protokoll verfolgen."
+    )
     ASYNC_START_ERROR = "Fehler beim Starten der asynchronen Ausführung:"
     ASYNC_FINISHED = "Asynchrone Ausführung abgeschlossen."
     ASYNC_EXECUTION_ERROR = "Fehler bei der asynchronen Ausführung:"
@@ -157,7 +165,9 @@ class Strings_de(Strings_pt_BR):
     PROJECT_BACKUP_INFO = "Sicherung: Es wird eine Kopie des Projekts (.qgz) im Ordner 'backup' neben der Projektdatei erstellt."
     LAYER_MUST_BE_EDITABLE = "Der Layer muss sich im Bearbeitungsmodus befinden"
     NO_ATTRIBUTE_SELECTED = "Kein Attribut ausgewählt"
-    ATTRIBUTES_COPIED_SUCCESS = "Attribute erfolgreich kopiert (Änderungen nicht gespeichert)"
+    ATTRIBUTES_COPIED_SUCCESS = (
+        "Attribute erfolgreich kopiert (Änderungen nicht gespeichert)"
+    )
     REQUIRED_LIBRARY = "Erforderliche Bibliothek"
     PYPDF2_REQUIRED_MESSAGE = "Zum Zusammenführen von PDFs muss das Paket PyPDF2 installiert werden.\n\nJetzt installieren?"
     PILLOW_REQUIRED_MESSAGE = "Zum Zusammenführen von PNGs zu PDF muss das Paket Pillow installiert werden.\n\nJetzt installieren?"
@@ -208,7 +218,9 @@ class Strings_de(Strings_pt_BR):
     DEPENDENCY = "Abhängigkeit"
     INSTALLED_SUCCESSFULLY = "erfolgreich installiert."
     SUCCESS = "Erfolg"
-    INSTALL_DEPENDENCY_FAILED = "Installation der Bibliothek konnte nicht gestartet werden."
+    INSTALL_DEPENDENCY_FAILED = (
+        "Installation der Bibliothek konnte nicht gestartet werden."
+    )
     KML_FIELDS_REMOVED_SUCCESS = "KML-Felder erfolgreich entfernt"
     NO_KML_FIELDS_FOUND = "Keine KML-Felder zum Entfernen gefunden"
     ERROR_REMOVING_KML_FIELDS = "Fehler beim Entfernen der KML-Felder:"
@@ -260,9 +272,7 @@ class Strings_de(Strings_pt_BR):
     INPUT_MASK_POLYGON_LAYER = "Maskenlayer (Polygon)"
     CLIP_PER_EACH_POLYGON = "Pro Polygon zuschneiden"
     APPLY_CORRECTION_BUFFER_PIXEL_1_1 = "Korrekturpuffer anwenden (Pixel * 1,1)"
-    RASTER_FOLDER_OR_SELECT_RASTER_LAYERS = (
-        "Rasterordner oder Rasterlayer auswählen"
-    )
+    RASTER_FOLDER_OR_SELECT_RASTER_LAYERS = "Rasterordner oder Rasterlayer auswählen"
     QGIS_RASTER_LAYERS_OR_SELECT_RASTER_FOLDER = (
         "QGIS-Rasterlayer oder Rasterordner auswählen"
     )
@@ -271,9 +281,7 @@ class Strings_de(Strings_pt_BR):
         "Kein Ausgabeordner angegeben. Temporären Ordner wird verwendet:"
     )
     INVALID_FOLDER = "Ungültiger Ordner"
-    NO_RASTER_FOUND_IN_SPECIFIED_FOLDER = (
-        "Kein Raster im angegebenen Ordner gefunden."
-    )
+    NO_RASTER_FOUND_IN_SPECIFIED_FOLDER = "Kein Raster im angegebenen Ordner gefunden."
     INVALID_RASTER_IGNORED = "Ungültiges Raster übersprungen"
     PROCESSING_RASTER_DIFFERENCE_BY_FOLDER_OR_LAYERS = (
         "Rasterdifferenz nach Ordner/Layern wird verarbeitet..."
@@ -333,10 +341,10 @@ class Strings_de(Strings_pt_BR):
     INPUT_LAYER = "Eingabelayer"
     EXCLUDE_FIELDS_OPTIONAL = "Felder ausschließen (optional)"
     PRECISION_DECIMAL_PLACES = "Genauigkeit (Dezimalstellen)"
-    LOAD_CSV_AUTOMATICALLY_AFTER_EXECUTION = (
-        "CSV nach der Ausführung automatisch laden"
+    LOAD_CSV_AUTOMATICALLY_AFTER_EXECUTION = "CSV nach der Ausführung automatisch laden"
+    FORCE_CSV_PTBR_FORMAT = (
+        "CSV im PT-BR-Format erzwingen (Semikolon und Komma verwenden)"
     )
-    FORCE_CSV_PTBR_FORMAT = "CSV im PT-BR-Format erzwingen (Semikolon und Komma verwenden)"
     CALCULATE = "Berechnen"
     OUTPUT_CSV_FILE = "CSV-Ausgabedatei"
     INVALID_LAYER = "Ungültiger Layer."
@@ -464,13 +472,9 @@ class Strings_de(Strings_pt_BR):
         "und die Unterordner vectors und rasters erstellt."
     )
     DEFAULT_PROJECTS_FOLDER_TITLE = "Standard-Projektordner"
-    DEFAULT_PROJECTS_FOLDER_PROMPT = (
-        "Legen Sie den Standardordner fest, in dem neue Cadmus-Projekte erstellt werden."
-    )
+    DEFAULT_PROJECTS_FOLDER_PROMPT = "Legen Sie den Standardordner fest, in dem neue Cadmus-Projekte erstellt werden."
     PROJECT_NAME_TITLE = "Neues Projekt"
-    PROJECT_NAME_PROMPT = (
-        "Geben Sie den Projektnamen ein. Bei Leerlasse wird der vorgeschlagene Name verwendet."
-    )
+    PROJECT_NAME_PROMPT = "Geben Sie den Projektnamen ein. Bei Leerlasse wird der vorgeschlagene Name verwendet."
     PROJECT_NAME_LABEL = "Projektname"
     PROJECTS_DEFAULT_FOLDER_MISSING = (
         "Es wurde kein Standardordner für Projekte festgelegt.\n\n"
@@ -490,9 +494,7 @@ class Strings_de(Strings_pt_BR):
         "QGIS konnte das aktuelle Projekt nicht am neuen Speicherort speichern."
     )
     NEW_PROJECT_FILE_WRITE_ERROR = "QGIS konnte die neue .qgz-Datei nicht schreiben."
-    OPEN_NEW_QGIS_WINDOW_ERROR = (
-        "Das Projekt wurde erstellt, aber es konnte kein neues QGIS-Fenster geöffnet werden."
-    )
+    OPEN_NEW_QGIS_WINDOW_ERROR = "Das Projekt wurde erstellt, aber es konnte kein neues QGIS-Fenster geöffnet werden."
     PROJECT_CREATED_TITLE = "Projekt erstellt"
     PROJECT_CREATED_SUCCESS = "Projekt '{project_name}' erfolgreich erstellt"
     PROJECT_CREATED_OPENED_NEW_WINDOW = (
@@ -629,9 +631,7 @@ class Strings_de(Strings_pt_BR):
         "organisiert Betriebs- und Sensitivitätsparameter\n"
         "und lässt die Ausführung für die nächste Implementierungsphase bereit."
     )
-    DIVIDE_POINTS_BY_STRIPS_INTRO = (
-        "Konfigurieren Sie den Punktlayer und die Anfangsparameter für die Streifenaufteilung."
-    )
+    DIVIDE_POINTS_BY_STRIPS_INTRO = "Konfigurieren Sie den Punktlayer und die Anfangsparameter für die Streifenaufteilung."
     OPERATIONAL_PARAMETERS = "Betriebsparameter"
     SENSITIVITY_PARAMETERS = "Sensitivitätsparameter"
     UNIQUE_SEQUENTIAL_ID_FIELD = "Eindeutiges/fortlaufendes ID-Feld"
@@ -639,24 +639,24 @@ class Strings_de(Strings_pt_BR):
     EXPECTED_POINT_FREQUENCY_SECONDS = "Erwartete Punktfrequenz (s)"
     EXPECTED_LATERAL_WIDTH_METERS = "Erwartete Seitenbreite (m)"
     AZIMUTH_MOVING_WINDOW = "Azimut-Mittelungsfenster"
-    LIGHT_AZIMUTH_DEVIATION_THRESHOLD = "Leichter Schwellenwert für Azimutabweichung (Grad)"
-    SEVERE_AZIMUTH_DEVIATION_THRESHOLD = "Starker Schwellenwert für Azimutabweichung (Grad)"
+    LIGHT_AZIMUTH_DEVIATION_THRESHOLD = (
+        "Leichter Schwellenwert für Azimutabweichung (Grad)"
+    )
+    SEVERE_AZIMUTH_DEVIATION_THRESHOLD = (
+        "Starker Schwellenwert für Azimutabweichung (Grad)"
+    )
     MINIMUM_BREAK_SCORE = "Mindestpunktzahl für Unterbrechung"
     MINIMUM_POINT_COUNT = "Minimale Punktanzahl"
     TIME_TOLERANCE_MULTIPLIER = "Zeittoleranz (Multiplikator)"
     SELECT_POINT_VECTOR_LAYER = "Bitte einen Punkt-Vektorlayer auswählen."
     SELECT_FILE_BASED_POINT_LAYER = "Bitte einen dateibasierten Punktlayer auswählen."
-    SELECT_REQUIRED_FIELDS = "Bitte wählen Sie die erforderlichen ID- und Zeitstempelfelder aus."
+    SELECT_REQUIRED_FIELDS = (
+        "Bitte wählen Sie die erforderlichen ID- und Zeitstempelfelder aus."
+    )
     SAVE_AND_STOP_EDITING_LAYER = "Speichern Sie die Ebene und beenden Sie den Editiermodus, bevor Sie dieses Werkzeug ausführen."
-    SHOT_SEGMENTATION_COMPLETED = (
-        "Segmentierung abgeschlossen. Punkte: {total_points} | Streifen: {total_shots} | Gültig: {valid_shots} | Ungültig: {invalid_shots}"
-    )
-    SHOT_SEGMENTATION_BUFFER_COMPLETED = (
-        "Segmentierung im Editierpuffer abgeschlossen. Punkte: {total_points} | Streifen: {total_shots} | Gültig: {valid_shots} | Ungültig: {invalid_shots}"
-    )
-    DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
-        "Die Oberfläche ist bereit. Die Streifenaufteilung wird in der nächsten Phase implementiert."
-    )
+    SHOT_SEGMENTATION_COMPLETED = "Segmentierung abgeschlossen. Punkte: {total_points} | Streifen: {total_shots} | Gültig: {valid_shots} | Ungültig: {invalid_shots}"
+    SHOT_SEGMENTATION_BUFFER_COMPLETED = "Segmentierung im Editierpuffer abgeschlossen. Punkte: {total_points} | Streifen: {total_shots} | Gültig: {valid_shots} | Ungültig: {invalid_shots}"
+    DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = "Die Oberfläche ist bereit. Die Streifenaufteilung wird in der nächsten Phase implementiert."
 
     # processing/RasterOptimizer.py
     RASTER_OPTIMIZER_TITLE = "Raster optimieren (Overviews)"

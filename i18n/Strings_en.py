@@ -466,12 +466,8 @@ class Strings_en(Strings_pt_BR):
     PROJECT_FOLDER_ALREADY_EXISTS = "The project folder already exists:"
     PROJECT_FOLDER_CREATE_ERROR = "Could not create the project structure:"
     PROJECT_FILE_CREATE_ERROR = "Could not create the QGIS project:"
-    PROJECT_DEFAULT_FOLDER_PREPARE_ERROR = (
-        "Could not prepare the default folder:"
-    )
-    PROJECT_DEFAULT_FOLDER_ACCESS_ERROR = (
-        "Could not access the default folder:"
-    )
+    PROJECT_DEFAULT_FOLDER_PREPARE_ERROR = "Could not prepare the default folder:"
+    PROJECT_DEFAULT_FOLDER_ACCESS_ERROR = "Could not access the default folder:"
     CURRENT_PROJECT_SAVE_TO_NEW_DESTINATION_ERROR = (
         "QGIS could not save the current project to the new destination."
     )
@@ -596,7 +592,9 @@ class Strings_en(Strings_pt_BR):
 
     # plugins/SaveTemporaryLayersPlugin.py
     SAVE_TEMPORARY_LAYER_TITLE = "Save Temporary Layers"
-    SAVE_TEMPORARY_LAYER_TOOLTIP = "Saves temporary (memory) layers from the project to permanent files on disk"
+    SAVE_TEMPORARY_LAYER_TOOLTIP = (
+        "Saves temporary (memory) layers from the project to permanent files on disk"
+    )
     EXTENSION_VECTOR = "Vector extension"
     EXTENSION_RASTER = "Raster extension"
     VECTORS_FOLDER = "Vectors folder"
@@ -634,16 +632,12 @@ class Strings_en(Strings_pt_BR):
     SELECT_POINT_VECTOR_LAYER = "Select a point vector layer."
     SELECT_FILE_BASED_POINT_LAYER = "Select a file-based point layer."
     SELECT_REQUIRED_FIELDS = "Select the required ID and timestamp fields."
-    SAVE_AND_STOP_EDITING_LAYER = "Save and stop editing the layer before running this tool."
-    SHOT_SEGMENTATION_COMPLETED = (
-        "Segmentation completed. Points: {total_points} | Shots: {total_shots} | Valid: {valid_shots} | Invalid: {invalid_shots}"
+    SAVE_AND_STOP_EDITING_LAYER = (
+        "Save and stop editing the layer before running this tool."
     )
-    SHOT_SEGMENTATION_BUFFER_COMPLETED = (
-        "Segmentation completed in the edit buffer. Points: {total_points} | Shots: {total_shots} | Valid: {valid_shots} | Invalid: {invalid_shots}"
-    )
-    DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
-        "The interface is ready. The strip division routine will be implemented in the next stage."
-    )
+    SHOT_SEGMENTATION_COMPLETED = "Segmentation completed. Points: {total_points} | Shots: {total_shots} | Valid: {valid_shots} | Invalid: {invalid_shots}"
+    SHOT_SEGMENTATION_BUFFER_COMPLETED = "Segmentation completed in the edit buffer. Points: {total_points} | Shots: {total_shots} | Valid: {valid_shots} | Invalid: {invalid_shots}"
+    DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = "The interface is ready. The strip division routine will be implemented in the next stage."
 
     # processing/RasterOptimizer.py
     RASTER_OPTIMIZER_TITLE = "Optimize Raster (Overviews)"

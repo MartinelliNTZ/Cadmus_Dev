@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 from qgis.PyQt.QtCore import QCoreApplication, QProcess
+from qgis.PyQt.QtWidgets import QFileDialog
 from typing import Optional
 from qgis.core import QgsProject
 from ..core.config.LogUtils import LogUtils
@@ -153,7 +154,7 @@ def run_restart_qgis(iface) -> None:
             return
 
         # Solicitar caminho do arquivo
-        save_path, _ = iface.getSaveFileName(
+        save_path, _ = QFileDialog.getSaveFileName(
             iface.mainWindow(), "Salvar Projeto", "", "Projetos QGIS (*.qgz)"
         )
 

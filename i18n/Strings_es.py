@@ -468,13 +468,9 @@ class Strings_es(Strings_pt_BR):
         "y las subcarpetas vectors y rasters."
     )
     DEFAULT_PROJECTS_FOLDER_TITLE = "Carpeta predeterminada de proyectos"
-    DEFAULT_PROJECTS_FOLDER_PROMPT = (
-        "Defina la carpeta predeterminada donde se crearán los nuevos proyectos de Cadmus."
-    )
+    DEFAULT_PROJECTS_FOLDER_PROMPT = "Defina la carpeta predeterminada donde se crearán los nuevos proyectos de Cadmus."
     PROJECT_NAME_TITLE = "Nuevo proyecto"
-    PROJECT_NAME_PROMPT = (
-        "Ingrese el nombre del proyecto. Si se deja en blanco, se usará el nombre sugerido."
-    )
+    PROJECT_NAME_PROMPT = "Ingrese el nombre del proyecto. Si se deja en blanco, se usará el nombre sugerido."
     PROJECT_NAME_LABEL = "Nombre del proyecto"
     PROJECTS_DEFAULT_FOLDER_MISSING = (
         "No se ha definido ninguna carpeta predeterminada para proyectos.\n\n"
@@ -591,7 +587,9 @@ class Strings_es(Strings_pt_BR):
     # plugins/PathExtensionPlugin.py
     PATH = "Path"
     PATH_EXTENSION_TITLE = "Quitar/Restaurar Extensión"
-    PATH_EXTENSION_TOOLTIP = "Quita o restaura la extensión de archivos en las rutas de las entidades"
+    PATH_EXTENSION_TOOLTIP = (
+        "Quita o restaura la extensión de archivos en las rutas de las entidades"
+    )
     MODE_REMOVE = "Quitar extensión"
     MODE_RESTORE = "Restaurar extensión"
     MODE_ZIP = "Comprimir archivos"
@@ -634,9 +632,7 @@ class Strings_es(Strings_pt_BR):
         "organiza los parámetros operativos y de sensibilidad\n"
         "y deja la ejecución lista para la siguiente fase."
     )
-    DIVIDE_POINTS_BY_STRIPS_INTRO = (
-        "Configure la capa de puntos y los parámetros iniciales de la división por franjas."
-    )
+    DIVIDE_POINTS_BY_STRIPS_INTRO = "Configure la capa de puntos y los parámetros iniciales de la división por franjas."
     OPERATIONAL_PARAMETERS = "Parámetros Operativos"
     SENSITIVITY_PARAMETERS = "Parámetros de Sensibilidad"
     UNIQUE_SEQUENTIAL_ID_FIELD = "Campo ID único/secuencial"
@@ -652,16 +648,12 @@ class Strings_es(Strings_pt_BR):
     SELECT_POINT_VECTOR_LAYER = "Seleccione una capa vectorial de puntos."
     SELECT_FILE_BASED_POINT_LAYER = "Seleccione una capa de puntos basada en archivo."
     SELECT_REQUIRED_FIELDS = "Seleccione los campos obligatorios de ID y timestamp."
-    SAVE_AND_STOP_EDITING_LAYER = "Guarde y cierre la edición de la capa antes de ejecutar esta herramienta."
-    SHOT_SEGMENTATION_COMPLETED = (
-        "Segmentación finalizada. Puntos: {total_points} | Tiros: {total_shots} | Válidos: {valid_shots} | Inválidos: {invalid_shots}"
+    SAVE_AND_STOP_EDITING_LAYER = (
+        "Guarde y cierre la edición de la capa antes de ejecutar esta herramienta."
     )
-    SHOT_SEGMENTATION_BUFFER_COMPLETED = (
-        "Segmentación finalizada en el buffer de edición. Puntos: {total_points} | Tiros: {total_shots} | Válidos: {valid_shots} | Inválidos: {invalid_shots}"
-    )
-    DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
-        "La interfaz está lista. La rutina de división por franjas se implementará en la siguiente etapa."
-    )
+    SHOT_SEGMENTATION_COMPLETED = "Segmentación finalizada. Puntos: {total_points} | Tiros: {total_shots} | Válidos: {valid_shots} | Inválidos: {invalid_shots}"
+    SHOT_SEGMENTATION_BUFFER_COMPLETED = "Segmentación finalizada en el buffer de edición. Puntos: {total_points} | Tiros: {total_shots} | Válidos: {valid_shots} | Inválidos: {invalid_shots}"
+    DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = "La interfaz está lista. La rutina de división por franjas se implementará en la siguiente etapa."
 
     # processing/RasterOptimizer.py
     RASTER_OPTIMIZER_TITLE = "Optimizar Raster (Overviews)"

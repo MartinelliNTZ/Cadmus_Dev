@@ -42,12 +42,12 @@ class ScrollWidget(QScrollArea):
         self.setStyleSheet(Styles.scroll_area())
 
         # Ativa suavização de scroll
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
         # Remove borda padrão
-        self.setFrameShape(QScrollArea.NoFrame)
-        self.setFrameShadow(QScrollArea.Plain)
+        self.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.setFrameShadow(QScrollArea.Shadow.Plain)
 
         # Ativa rastreamento de mouse para propagar eventos de resize
         self.setMouseTracking(True)

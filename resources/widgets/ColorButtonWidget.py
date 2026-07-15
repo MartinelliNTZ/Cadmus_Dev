@@ -49,34 +49,34 @@ class ColorButtonWidget(QWidget):
 
         self._title_label = QLabel(self._title)
         self._title_label.setObjectName("color_button_title")
-        self._title_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self._title_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         layout.addWidget(self._title_label)
-        layout.setAlignment(self._title_label, Qt.AlignVCenter)
+        layout.setAlignment(self._title_label, Qt.AlignmentFlag.AlignVCenter)
 
         self._button = QgsColorButton()
         self._button.setObjectName("color_button_picker")
         self._button.setAllowOpacity(True)
         self._button.setToolTip(self._tooltip)
-        self._button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self._button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self._button.colorChanged.connect(self._on_color_changed)
         layout.addWidget(self._button)
-        layout.setAlignment(self._button, Qt.AlignVCenter)
+        layout.setAlignment(self._button, Qt.AlignmentFlag.AlignVCenter)
 
         self._value_input = QLineEdit("#ffffff")
         self._value_input.setObjectName("color_button_hex_input")
-        self._value_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._value_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._value_input.editingFinished.connect(self._on_hex_edited)
         layout.addWidget(self._value_input, 1)
-        layout.setAlignment(self._value_input, Qt.AlignVCenter)
+        layout.setAlignment(self._value_input, Qt.AlignmentFlag.AlignVCenter)
 
         self._copy_button = QPushButton()
         self._copy_button.setObjectName("color_button_copy")
         self._copy_button.setToolTip("Copiar valor hexadecimal")
-        self._copy_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self._copy_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self._copy_button.clicked.connect(self._copy_hex_value)
         self._copy_button.setIcon(self._resolve_copy_icon())
         layout.addWidget(self._copy_button)
-        layout.setAlignment(self._copy_button, Qt.AlignVCenter)
+        layout.setAlignment(self._copy_button, Qt.AlignmentFlag.AlignVCenter)
 
         layout.setStretch(2, 1)
 
@@ -86,9 +86,9 @@ class ColorButtonWidget(QWidget):
 
     def _update_value_label(self, color: QColor):
         if color.alpha() < 255:
-            text = color.name(QColor.HexArgb)
+            text = color.name(QColor.NameFormat.HexArgb)
         else:
-            text = color.name(QColor.HexRgb)
+            text = color.name(QColor.NameFormat.HexRgb)
         self._value_input.setText(text)
 
     def _on_hex_edited(self):
@@ -116,7 +116,7 @@ class ColorButtonWidget(QWidget):
         if os.path.exists(icon_path):
             return QIcon(icon_path)
 
-        return self.style().standardIcon(QStyle.SP_DialogSaveButton)
+        return self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton)
 
     def set_color(self, color: QColor):
         self._button.setColor(color)

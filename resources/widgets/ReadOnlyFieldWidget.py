@@ -94,10 +94,10 @@ class ReadOnlyFieldWidget(QWidget):
             le.setReadOnly(True)
             le.setText("" if value is None else str(value))
             le.setMinimumWidth(120)
-            le.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            le.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
             btn = QPushButton(btn_title)
-            btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             # bind copy for this key
             btn.clicked.connect(self._make_copy_callback(key))
 
@@ -121,7 +121,7 @@ class ReadOnlyFieldWidget(QWidget):
             btn_layout.setContentsMargins(0, 0, 0, 0)
             btn_layout.addStretch()
             btn_all = QPushButton(title_button_copy_all)
-            btn_all.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            btn_all.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             btn_all.clicked.connect(self._copy_all)
             btn_layout.addWidget(btn_all)
             self._main_layout.addLayout(btn_layout)

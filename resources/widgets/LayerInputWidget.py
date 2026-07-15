@@ -171,7 +171,7 @@ class LayerInputWidget(QWidget):
         if not layer:
             return False
 
-        if self._filters & QgsMapLayerProxyModel.VectorLayer:
+        if self._filters & QgsMapLayerProxyModel.Filter.VectorLayer:
             return isinstance(layer, QgsVectorLayer)
 
         return True

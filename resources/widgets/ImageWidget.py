@@ -36,14 +36,14 @@ class ImageWidget(QWidget):
         # Layout horizontal para centralizar a imagem
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.label = QLabel()
-        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.label)
 
         # Política de tamanho: expande horizontalmente, altura fixa
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setFixedHeight(fixed_height)
 
         self._load_image()
@@ -60,7 +60,7 @@ class ImageWidget(QWidget):
             return
 
         # Redimensiona mantendo a proporção para caber na altura definida
-        scaled_pixmap = pixmap.scaledToHeight(self.fixed_height, Qt.SmoothTransformation)
+        scaled_pixmap = pixmap.scaledToHeight(self.fixed_height, Qt.TransformationMode.SmoothTransformation)
         self.label.setPixmap(scaled_pixmap)
 
     def mousePressEvent(self, event):

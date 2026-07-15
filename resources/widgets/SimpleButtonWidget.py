@@ -40,5 +40,5 @@ class SimpleButtonWidget(QPushButton):
 
         # Configurar política de tamanho: largura expande, altura fixa
         from ...resources.styles.Styles import Styles
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setFixedHeight(Styles.BUTTON_HEIGHT)

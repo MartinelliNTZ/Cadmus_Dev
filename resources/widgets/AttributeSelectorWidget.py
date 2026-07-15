@@ -41,7 +41,7 @@ class AttributeSelectorWidget(QWidget):
         layout.addWidget(self.chk_all)
 
         self.list_widget = QListWidget()
-        self.list_widget.setSelectionMode(QListWidget.ExtendedSelection)
+        self.list_widget.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         layout.addWidget(self.list_widget)
 
         btn_layout = QHBoxLayout()
@@ -60,8 +60,8 @@ class AttributeSelectorWidget(QWidget):
         # bindings
         self.chk_all.toggled.connect(self._on_chk_all_toggled)
 
-        self.btn_select.clicked.connect(lambda: self._set_check_state(Qt.Checked))
-        self.btn_unselect.clicked.connect(lambda: self._set_check_state(Qt.Unchecked))
+        self.btn_select.clicked.connect(lambda: self._set_check_state(Qt.CheckState.Checked))
+        self.btn_unselect.clicked.connect(lambda: self._set_check_state(Qt.CheckState.Unchecked))
         self.btn_invert.clicked.connect(self._invert_selection)
 
     # ------------------------------------------------------------------
@@ -73,7 +73,7 @@ class AttributeSelectorWidget(QWidget):
 
         for name in field_names:
             item = QListWidgetItem(name)
-            item.setCheckState(Qt.Checked)
+            item.setCheckState(Qt.CheckState.Checked)
             self.list_widget.addItem(item)
 
     def get_selected_fields(self):
@@ -83,7 +83,7 @@ class AttributeSelectorWidget(QWidget):
         return [
             self.list_widget.item(i).text()
             for i in range(self.list_widget.count())
-            if self.list_widget.item(i).checkState() == Qt.Checked
+            if self.list_widget.item(i).checkState() == Qt.CheckState.Checked
         ]
 
     def use_all_fields(self) -> bool:
@@ -121,5 +121,5 @@ class AttributeSelectorWidget(QWidget):
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
             item.setCheckState(
-                Qt.Unchecked if item.checkState() == Qt.Checked else Qt.Checked
+                Qt.CheckState.Unchecked if item.checkState() == Qt.CheckState.Checked else Qt.CheckState.Checked
             )

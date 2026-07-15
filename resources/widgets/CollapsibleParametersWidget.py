@@ -102,7 +102,7 @@ class CollapsibleParametersWidget(QWidget):
         self._header_button = QPushButton()
         self._header_button.setObjectName("collapsible_header_btn")
         self._header_button.setFlat(True)
-        self._header_button.setCursor(Qt.PointingHandCursor)
+        self._header_button.setCursor(Qt.CursorShape.PointingHandCursor)
         header_layout.addWidget(self._header_button)
 
         main_layout.addWidget(header)
@@ -231,7 +231,7 @@ class CollapsibleParametersWidget(QWidget):
         self._animation.setDuration(200)
         self._animation.setStartValue(self._content_container.maximumHeight())
         self._animation.setEndValue(target_height)
-        self._animation.setEasingCurve(QEasingCurve.InOutQuad)
+        self._animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
         self._animation.finished.connect(self._on_animation_finished)
         self._animation.start()
 

@@ -35,6 +35,8 @@ class Strings_en(Strings_pt_BR):
     AUTO_DETECT = "Auto-detect"
 
     # Common labels
+    PRECISION = "Precision"
+    CONTINUE_ANYWAY = "Continue anyway"
     MENU_SYSTEM = "System"
     MENU_LAYOUTS = "Layouts"
     MENU_FOLDER = "Folder"
@@ -372,10 +374,15 @@ class Strings_en(Strings_pt_BR):
     USE_MRK_DATA = "Get MRK data"
     PHOTOS_METADATA = "Match with photo metadata"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "To match with photo metadata, the Pillow package is required.\n\nWould you like to install it now?"
+    GENERATE_REPORT = "Generate report"
     MRK_FOLDER = "MRK folder:"
     SAVE_POINTS_CHECKBOX = "Save MRK points to file?"
     SAVE_IN = "Save to:"
     SAVE_TRACK_CHECKBOX = "Save track to file?"
+    USE_LOGO = "Use logo?"
+    LOGO_LABEL = "Logo:"
+    PROJECT_TITLE = "Project Title"
+    PROJECT_TITLE_HINT = "E.g.: Farm Name"
     APPLY_STYLE_POINTS = "Apply style (QML) to points?"
     QML_POINTS = "Points QML:"
     APPLY_STYLE_TRACK = "Apply style (QML) to track?"
@@ -393,6 +400,11 @@ class Strings_en(Strings_pt_BR):
     OPEN_REPORTS_FOLDER = "Open reports folder"
     OPEN_JSONS_FOLDER = "Open JSON folder"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Generate Vector Without MRK"
+    VETORIZE_FLIGHT = "Vectorize flight"
+    VETORIZE_FLIGHT_TOOLTIP = (
+        "Generates point and track vector layers from the selected metadata JSON.\n"
+        "Equivalent to running the drone coordinate pipeline using only the JSON."
+    )
     NO_JSON_FOUND = "No temporary JSON files were found."
 
     # plugins/SettingsPlugin.py
@@ -402,6 +414,16 @@ class Strings_en(Strings_pt_BR):
         "Allows configuring the default vector calculation method,\n"
         "field precision, and feature threshold\n"
         "for asynchronous processing."
+    )
+    GENERAL = "General"
+    DEFAULT_CRS = "Default CRS"
+    PROJECTS_FOLDER = "Projects folder"
+    TOOLBAR_VISIBLE_CATEGORIES = "Toolbar - Visible Categories"
+    VECTOR_CALCULATIONS_PLUGIN = "Vector Calculations Plugin"
+    CARTESIAN_SUFFIX = "Cartesian suffix"
+    ELLIPSOIDAL_SUFFIX = "Ellipsoidal suffix"
+    AREA_SUFFIXES_CANNOT_MATCH = (
+        "Cartesian and ellipsoidal suffixes cannot be the same."
     )
     ELLIPSOIDAL = "Ellipsoidal"
     CARTESIAN = "Cartesian"
@@ -420,6 +442,48 @@ class Strings_en(Strings_pt_BR):
 
     # plugins/LoadFolderLayers.py
     LOAD_FOLDER_LAYERS_TITLE = "Load Folder Layers"
+    CREATE_PROJECT_TITLE = "New Project"
+    CREATE_PROJECT_TOOLTIP = (
+        "Creates a new project structure in a dedicated folder.\n"
+        "If no default folder is set, prompts for that path,\n"
+        "then creates the project folder, the .qgz file,\n"
+        "and the vectors/rasters subfolders."
+    )
+    DEFAULT_PROJECTS_FOLDER_TITLE = "Default projects folder"
+    DEFAULT_PROJECTS_FOLDER_PROMPT = (
+        "Set the default folder where new Cadmus projects will be created."
+    )
+    PROJECT_NAME_TITLE = "New project"
+    PROJECT_NAME_PROMPT = (
+        "Enter the project name. If left blank, the suggested name will be used."
+    )
+    PROJECT_NAME_LABEL = "Project name"
+    PROJECTS_DEFAULT_FOLDER_MISSING = (
+        "No default project folder has been set.\n\n"
+        "Would you like to set a default folder now?"
+    )
+    PROJECTS_DEFAULT_FOLDER_MISSING_TITLE = "Default folder not set"
+    PROJECT_FOLDER_ALREADY_EXISTS = "The project folder already exists:"
+    PROJECT_FOLDER_CREATE_ERROR = "Could not create the project structure:"
+    PROJECT_FILE_CREATE_ERROR = "Could not create the QGIS project:"
+    PROJECT_DEFAULT_FOLDER_PREPARE_ERROR = (
+        "Could not prepare the default folder:"
+    )
+    PROJECT_DEFAULT_FOLDER_ACCESS_ERROR = (
+        "Could not access the default folder:"
+    )
+    CURRENT_PROJECT_SAVE_TO_NEW_DESTINATION_ERROR = (
+        "QGIS could not save the current project to the new destination."
+    )
+    NEW_PROJECT_FILE_WRITE_ERROR = "QGIS could not write the new .qgz file."
+    OPEN_NEW_QGIS_WINDOW_ERROR = (
+        "The project was created, but a new QGIS window could not be opened."
+    )
+    PROJECT_CREATED_TITLE = "Project created"
+    PROJECT_CREATED_SUCCESS = "Project '{project_name}' created successfully"
+    PROJECT_CREATED_OPENED_NEW_WINDOW = (
+        "Project '{project_name}' created and opened in a new window"
+    )
     LOAD_FOLDER_LAYERS_TOOLTIP = (
         "Batch loads vector and raster files from a folder\n"
         "and its subfolders into the QGIS project.\n"
@@ -490,6 +554,8 @@ class Strings_en(Strings_pt_BR):
         "Displays general information about the plugin,\n"
         "such as version, author, and project context."
     )
+    LAYER_NOT_EDITABLE_ASK = "Layer '{layer_name}' is not in edit mode.\n\nWould you like to enable editing now?"
+    LAYER_NOW_EDITABLE = "Layer switched to edit mode automatically."
     VECTOR_FIELDS_TITLE = "Calculate Vector Fields"
     VECTOR_FIELDS_TOOLTIP = (
         "Automatically calculates vector fields such as area,\n"
@@ -503,6 +569,46 @@ class Strings_en(Strings_pt_BR):
         "The tool only runs when the layer is already in edit mode\n"
         "and never saves or leaves edit mode."
     )
+
+    # plugins/PathExtensionPlugin.py
+    PATH = "Path"
+    PATH_EXTENSION_TITLE = "Remove/Restore Extension"
+    PATH_EXTENSION_TOOLTIP = "Removes or restores file extensions in feature paths"
+    MODE_REMOVE = "Remove extension"
+    MODE_RESTORE = "Restore extension"
+    MODE_ZIP = "Zip files"
+    MODE_UNZIP = "Unzip files"
+
+    # License
+    LICENSE_TITLE = "Manage License"
+    LICENSE_SAVED_SUCCESS = "License saved and validated successfully."
+    LICENSE_DELETED_SUCCESS = "License removed successfully."
+    LICENSE_INVALID_KEY = "Invalid license key."
+    LICENSE_EMPTY_KEY = "Enter a license key."
+    LICENSE_NO_KEY = "no key"
+    EXPIRATION_DATE = "Expiration date"
+    REMAINING_DAYS = "remaining days"
+    STATUS = "Status"
+    LEVEL = "Level"
+    ACTIVE = "Active"
+    INACTIVE = "Inactive"
+    VALIDATE = "Validate"
+
+    # plugins/SaveTemporaryLayersPlugin.py
+    SAVE_TEMPORARY_LAYER_TITLE = "Save Temporary Layers"
+    SAVE_TEMPORARY_LAYER_TOOLTIP = "Saves temporary (memory) layers from the project to permanent files on disk"
+    EXTENSION_VECTOR = "Vector extension"
+    EXTENSION_RASTER = "Raster extension"
+    VECTORS_FOLDER = "Vectors folder"
+    RASTERS_FOLDER = "Rasters folder"
+    SEPARATOR = "Separator"
+    VECTOR_EXTENSIONS = "Vector extensions"
+    RASTER_EXTENSIONS = "Raster extensions"
+    OUTPUT_CONFIG = "Output Configuration"
+    CONVERTER_FILE_TYPE = "File Type"
+    SELECT_OUTPUT_FOLDER = "Select Output Folder"
+
+    # plugins/DividePointsByStripsPlugin.py
     DIVIDE_POINTS_BY_STRIPS_TITLE = "Split Point Vector by Strips"
     DIVIDE_POINTS_BY_STRIPS_TOOLTIP = (
         "Prepares the configuration used to segment a point layer into strips.\n"
@@ -538,3 +644,70 @@ class Strings_en(Strings_pt_BR):
     DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
         "The interface is ready. The strip division routine will be implemented in the next stage."
     )
+
+    # processing/RasterOptimizer.py
+    RASTER_OPTIMIZER_TITLE = "Optimize Raster (Overviews)"
+    RASTER_OPTIMIZER_TOOLTIP = (
+        "Creates or rebuilds pyramids (overviews) in TIFF rasters.\n"
+        "Allows selecting a folder with rasters or individual layers,\n"
+        "choosing overview levels, resampling method,\n"
+        "and compression algorithm (LZW, DEFLATE, ZSTD)."
+    )
+    INPUT_RASTER_LAYERS = "Input Raster Layers"
+    INPUT_RASTER_FOLDER = "Raster Folder"
+    OVERVIEW_LEVELS = "Overview Levels"
+    RESAMPLING_METHOD = "Resampling Method"
+    COMPRESS_OVERVIEW = "Overview Compression"
+    PREDICTOR = "Predictor"
+    ZLEVEL = "ZLevel (compression)"
+    DELETE_EXISTING_OVERVIEWS = "Delete existing overviews before recreating"
+    OVERVIEWS_CREATED_SUCCESS = "Overviews created/updated successfully."
+    OVERVIEWS_ERROR = "Error creating overviews: {error}"
+    RASTER_OPTIMIZER_COMPLETED = "Raster optimization completed."
+    USE_RECURSIVE_SEARCH = "Include subfolders"
+    SEARCHING_RASTERS = "Searching for rasters..."
+    BIGTIFF_YES = "Force BIGTIFF (required for files >4GB)"
+    RGB_MOSAIC_CREATOR_TITLE = "RGB Mosaic Creator"
+    INPUT_RASTER_RED_BAND = "Red Band Raster (R)"
+    INPUT_RASTER_GREEN_BAND = "Green Band Raster (G)"
+    INPUT_RASTER_BLUE_BAND = "Blue Band Raster (B)"
+    BAND_RED_LABEL = "Band R"
+    BAND_GREEN_LABEL = "Band G"
+    BAND_BLUE_LABEL = "Band B"
+    CREATE_ALPHA_BAND = "Create alpha band for NoData"
+    ALPHA_NODATA_VALUE = "NoData value for alpha"
+    RGB_COMPOSITE = "RGB Composite"
+    NDVI_CALCULATOR_TITLE = "NDVI Calculator"
+    INPUT_RASTER_NIR = "Near Infrared Raster (NIR)"
+    INPUT_RASTER_RED = "Red Raster (RED)"
+    BAND_NIR = "Band NIR"
+    BAND_RED = "Band RED"
+    SENTINEL_BANDS_INFO = "Sentinel-2: Band 8 (NIR) and Band 4 (Red)"
+    LANDSAT_BANDS_INFO = (
+        "Landsat 8/9: Band 5 (NIR) and Band 4 (Red) | "
+        "Landsat 5/7: Band 4 (NIR) and Band 3 (Red)"
+    )
+    NDVI = "NDVI"
+    NDRE_CALCULATOR_TITLE = "NDRE Calculator (Red Edge)"
+    INPUT_RASTER_NIR_NDRE = "Near Infrared Raster (NIR) for NDRE"
+    INPUT_RASTER_REDEDGE = "Red Edge Raster (RedEdge)"
+    BAND_REDEDGE = "Band RedEdge"
+    NDRE = "NDRE"
+    GLI_CALCULATOR_TITLE = "GLI Calculator (Green Leaf Index)"
+    INPUT_RASTER_RGB_GLI = "Input RGB raster (3 or 4 bands)"
+    GLI = "GLI"
+    GLI_STYLE_PATH = "GLI QML style path"
+    GLI_INTERPRETATION = (
+        "GLI value interpretation:\n"
+        "  -1.0 to 0.0  : Bare soil, water, non-vegetated surfaces\n"
+        "   0.0 to 0.2  : Sparse or stressed vegetation\n"
+        "   0.2 to 0.5  : Moderate vegetation\n"
+        "   0.5 to 1.0  : Dense and healthy vegetation"
+    )
+    RGB_STYLE_STANDARDIZER_TITLE = "Standardize RGB Style (Percentile)"
+    INPUT_RASTER_RGB = "Input RGB Raster"
+    RGB_STANDARDIZER_OUTPUT = "Standardized RGB Raster"
+    SEGMENTATION_MODE = "Segmentation Mode"
+    CURVE = "Curve"
+    STRAIGHT = "Straight"
+    BOTH_PATH = "Both"

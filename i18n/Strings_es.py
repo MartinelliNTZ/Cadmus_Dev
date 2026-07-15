@@ -3,7 +3,7 @@ from .Strings_pt_BR import Strings_pt_BR
 
 
 class Strings_es(Strings_pt_BR):
-    """ "Strings for Spanish (es)"""
+    """Strings for Spanish (es)"""
 
     # General
     APP_NAME = "Cadmus"
@@ -35,6 +35,8 @@ class Strings_es(Strings_pt_BR):
     AUTO_DETECT = "Auto-detectar"
 
     # Common labels
+    PRECISION = "Precisión"
+    CONTINUE_ANYWAY = "Continuar de todas formas"
     MENU_SYSTEM = "Sistema"
     MENU_LAYOUTS = "Layouts"
     MENU_FOLDER = "Carpeta"
@@ -203,12 +205,6 @@ class Strings_es(Strings_pt_BR):
         "¿Convertir solo las entidades seleccionadas a multipart?"
     )
     CONVERT_ALL_FEATURES_TO_MULTIPART = "¿Convertir todas las entidades a multipart?"
-    KML_FIELDS_REMOVED_SUCCESS = "Campos KML eliminados correctamente"
-    NO_KML_FIELDS_FOUND = "No se encontraron campos KML para eliminar"
-    ERROR_REMOVING_KML_FIELDS = "Error al eliminar campos KML:"
-
-    RASTERS = "Rasters"
-    INPUT_POINTS = "Puntos de entrada"
 
     # Dependencies
     INSTALLING_DEPENDENCY = "Instalando dependencia..."
@@ -217,6 +213,12 @@ class Strings_es(Strings_pt_BR):
     INSTALLED_SUCCESSFULLY = "instalada correctamente."
     SUCCESS = "Éxito"
     INSTALL_DEPENDENCY_FAILED = "No se pudo iniciar la instalación de la biblioteca."
+    KML_FIELDS_REMOVED_SUCCESS = "Campos KML eliminados correctamente"
+    NO_KML_FIELDS_FOUND = "No se encontraron campos KML para eliminar"
+    ERROR_REMOVING_KML_FIELDS = "Error al eliminar campos KML:"
+    RANGE = "Rango"
+    RASTERS = "Rasters"
+    INPUT_POINTS = "Puntos de entrada"
     REPROJECT_OUTPUT_LAYER_OPTIONAL = "Reproyectar capa de salida (opcional)"
     SAMPLED_VALUES = "Valores_Muestreados"
     OPEN_OUTPUT_FOLDER = "Abrir carpeta de salida"
@@ -225,6 +227,7 @@ class Strings_es(Strings_pt_BR):
     NONE = "None"
     FILE_SAVED_IN = "Archivo guardado en:"
     RASTER_MASS_SAMPLER_TITLE = "Muestreo Masivo de Rasters"
+    RASTER_WEIGHTED_AVERAGE_TITLE = "Media Ponderada de Rasters"
     RASTER_MASS_CLIPPER_TITLE = "Recorte Masivo de Rasters"
     RASTER_MASS_SAMPLER_TOOLTIP = (
         "Ejecuta el muestreo por lotes de varios rasters sobre una capa vectorial.\n"
@@ -237,6 +240,27 @@ class Strings_es(Strings_pt_BR):
         "con soporte para recorte por entidad, buffer de correccion y carpeta de salida."
     )
     RASTER_DIFFERENCE_STATISTICS_TITLE = "Procesar Diferencia de Rasters"
+    VECTOR_TO_SVG_TITLE = "Conversor de Vector a SVG"
+    VECTOR_TO_SVG_TOOLTIP = (
+        "Exporta una capa vectorial del proyecto a SVG.\n"
+        "Permite configurar fondo, borde y etiqueta,\n"
+        "además de generar un único archivo o un SVG\n"
+        "separado por cada entidad."
+    )
+    VECTOR_LAYER_LABEL = "Capa Vectorial"
+    BACKGROUND_COLOR = "Color de Fondo"
+    BORDER_COLOR = "Color del Borde"
+    BORDER_WIDTH = "Grosor del Borde"
+    LABEL_COLOR = "Color de la Etiqueta"
+    LABEL_SIZE = "Tamaño de la Etiqueta"
+    SELECT_FILL_COLOR = "Seleccione el color de relleno"
+    SELECT_BORDER_COLOR = "Seleccione el color del borde"
+    SELECT_LABEL_COLOR = "Seleccione el color de la etiqueta"
+    TRANSPARENT_BACKGROUND = "Fondo transparente"
+    SHOW_BORDER = "Mostrar borde"
+    SHOW_LABEL = "Mostrar etiqueta"
+    GENERATE_SVG_FOR_EACH_FEATURE = "Generar SVG para cada entidad"
+    SVGS_GENERATED_SUCCESS = "SVG(s) generado(s) con éxito."
     INPUT_MASK_POLYGON_LAYER = "Capa máscara (polígono)"
     CLIP_PER_EACH_POLYGON = "Recortar por cada polígono"
     APPLY_CORRECTION_BUFFER_PIXEL_1_1 = "Aplicar buffer de corrección (pixel * 1.1)"
@@ -283,7 +307,6 @@ class Strings_es(Strings_pt_BR):
     RASTER = "Raster"
     STATISTICS = "Estadísticas"
     VECTOR = "Vector"
-    RANGE = "Rango"
     INTERVAL = "Intervalo"
     GEOMETRY_LINE_FROM_POINTS_TITLE = "Línea de Diferencia entre Puntos"
     POINT_LAYER_MODE1_FIRST_LAYER_MODE2 = (
@@ -369,10 +392,15 @@ class Strings_es(Strings_pt_BR):
     USE_MRK_DATA = "Obtener datos MRK"
     PHOTOS_METADATA = "Cruzar con metadatos de fotos"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Para cruzar con metadatos de fotos es necesario instalar el paquete Pillow.\n\n¿Desea instalarlo ahora?"
+    GENERATE_REPORT = "Generar informe"
     MRK_FOLDER = "Carpeta MRK:"
     SAVE_POINTS_CHECKBOX = "¿Guardar puntos MRK en archivo?"
     SAVE_IN = "Guardar en:"
     SAVE_TRACK_CHECKBOX = "¿Guardar trayectoria en archivo?"
+    USE_LOGO = "¿Usar logotipo?"
+    LOGO_LABEL = "Logotipo:"
+    PROJECT_TITLE = "Título del Proyecto"
+    PROJECT_TITLE_HINT = "Ej: Finca Esperanza"
     APPLY_STYLE_POINTS = "¿Aplicar estilo (QML) a los puntos?"
     QML_POINTS = "QML puntos:"
     APPLY_STYLE_TRACK = "¿Aplicar estilo (QML) a la trayectoria?"
@@ -390,6 +418,11 @@ class Strings_es(Strings_pt_BR):
     OPEN_REPORTS_FOLDER = "Abrir carpeta de informes"
     OPEN_JSONS_FOLDER = "Abrir carpeta de JSON"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Generar Vector Sin MRK"
+    VETORIZE_FLIGHT = "Vectorizar vuelo"
+    VETORIZE_FLIGHT_TOOLTIP = (
+        "Genera capas vectoriales de puntos y trayectoria a partir del JSON de metadatos seleccionado.\n"
+        "Equivalente a ejecutar el pipeline de coordenadas de dron solo con el JSON."
+    )
     NO_JSON_FOUND = "No se encontraron JSON temporales."
 
     # plugins/SettingsPlugin.py
@@ -399,6 +432,16 @@ class Strings_es(Strings_pt_BR):
         "Permite definir el método predeterminado de cálculo vectorial,\n"
         "la precisión de los campos y el umbral de entidades\n"
         "para el procesamiento asíncrono."
+    )
+    GENERAL = "General"
+    DEFAULT_CRS = "SRC por defecto"
+    PROJECTS_FOLDER = "Carpeta de proyectos"
+    TOOLBAR_VISIBLE_CATEGORIES = "Barra de herramientas - Categorías visibles"
+    VECTOR_CALCULATIONS_PLUGIN = "Plugin de Cálculos Vectoriales"
+    CARTESIAN_SUFFIX = "Sufijo Cartesiano"
+    ELLIPSOIDAL_SUFFIX = "Sufijo Elipsoidal"
+    AREA_SUFFIXES_CANNOT_MATCH = (
+        "Los sufijos cartesiano y elipsoidal no pueden ser iguales."
     )
     ELLIPSOIDAL = "Elipsoidal"
     CARTESIAN = "Cartesiano"
@@ -417,6 +460,48 @@ class Strings_es(Strings_pt_BR):
 
     # plugins/LoadFolderLayers.py
     LOAD_FOLDER_LAYERS_TITLE = "Cargar carpeta de archivos"
+    CREATE_PROJECT_TITLE = "Nuevo Proyecto"
+    CREATE_PROJECT_TOOLTIP = (
+        "Crea una nueva estructura de proyecto en una carpeta dedicada.\n"
+        "Si aún no hay carpeta predeterminada, solicita esa ruta,\n"
+        "luego crea la carpeta del proyecto, el archivo .qgz\n"
+        "y las subcarpetas vectors y rasters."
+    )
+    DEFAULT_PROJECTS_FOLDER_TITLE = "Carpeta predeterminada de proyectos"
+    DEFAULT_PROJECTS_FOLDER_PROMPT = (
+        "Defina la carpeta predeterminada donde se crearán los nuevos proyectos de Cadmus."
+    )
+    PROJECT_NAME_TITLE = "Nuevo proyecto"
+    PROJECT_NAME_PROMPT = (
+        "Ingrese el nombre del proyecto. Si se deja en blanco, se usará el nombre sugerido."
+    )
+    PROJECT_NAME_LABEL = "Nombre del proyecto"
+    PROJECTS_DEFAULT_FOLDER_MISSING = (
+        "No se ha definido ninguna carpeta predeterminada para proyectos.\n\n"
+        "¿Desea definir una carpeta predeterminada ahora?"
+    )
+    PROJECTS_DEFAULT_FOLDER_MISSING_TITLE = "Carpeta predeterminada no definida"
+    PROJECT_FOLDER_ALREADY_EXISTS = "La carpeta del proyecto ya existe:"
+    PROJECT_FOLDER_CREATE_ERROR = "No se pudo crear la estructura del proyecto:"
+    PROJECT_FILE_CREATE_ERROR = "No se pudo crear el proyecto QGIS:"
+    PROJECT_DEFAULT_FOLDER_PREPARE_ERROR = (
+        "No se pudo preparar la carpeta predeterminada:"
+    )
+    PROJECT_DEFAULT_FOLDER_ACCESS_ERROR = (
+        "No se pudo acceder a la carpeta predeterminada:"
+    )
+    CURRENT_PROJECT_SAVE_TO_NEW_DESTINATION_ERROR = (
+        "QGIS no pudo guardar el proyecto actual en el nuevo destino."
+    )
+    NEW_PROJECT_FILE_WRITE_ERROR = "QGIS no pudo escribir el nuevo archivo .qgz."
+    OPEN_NEW_QGIS_WINDOW_ERROR = (
+        "El proyecto fue creado, pero no se pudo abrir otra ventana de QGIS."
+    )
+    PROJECT_CREATED_TITLE = "Proyecto creado"
+    PROJECT_CREATED_SUCCESS = "Proyecto '{project_name}' creado con éxito"
+    PROJECT_CREATED_OPENED_NEW_WINDOW = (
+        "Proyecto '{project_name}' creado y abierto en otra ventana"
+    )
     LOAD_FOLDER_LAYERS_TOOLTIP = (
         "Carga en lote archivos vectoriales y raster desde una carpeta\n"
         "y sus subcarpetas en el proyecto QGIS.\n"
@@ -487,6 +572,8 @@ class Strings_es(Strings_pt_BR):
         "Muestra información general del plugin,\n"
         "como versión, autor y contexto del proyecto."
     )
+    LAYER_NOT_EDITABLE_ASK = "La capa '{layer_name}' no está en modo edición.\n\n¿Desea activar la edición ahora?"
+    LAYER_NOW_EDITABLE = "Capa puesta en modo edición automáticamente."
     VECTOR_FIELDS_TITLE = "Calcular campos vectoriales"
     VECTOR_FIELDS_TOOLTIP = (
         "Calcula automáticamente campos vectoriales como área,\n"
@@ -496,31 +583,50 @@ class Strings_es(Strings_pt_BR):
     )
     REMOVE_KML_FIELDS_TITLE = "Eliminar Campos KML"
     REMOVE_KML_FIELDS_TOOLTIP = (
-        "Elimina de la capa activa los campos de atributos tipicos de KML.\n"
-        "La herramienta solo se ejecuta si la capa ya esta en edicion\n"
-        "y no guarda ni cierra el modo de edicion."
+        "Elimina de la capa activa los campos de atributos típicos de KML.\n"
+        "La herramienta solo se ejecuta si la capa ya está en edición\n"
+        "y no guarda ni cierra el modo de edición."
     )
-    VECTOR_TO_SVG_TITLE = "Conversor de Vector a SVG"
-    VECTOR_TO_SVG_TOOLTIP = (
-        "Exporta una capa vectorial del proyecto a SVG.\n"
-        "Permite configurar fondo, borde y etiqueta,\n"
-        "además de generar un único archivo o un SVG\n"
-        "separado por cada entidad."
-    )
-    VECTOR_LAYER_LABEL = "Capa Vectorial"
-    BACKGROUND_COLOR = "Color de Fondo"
-    BORDER_COLOR = "Color del Borde"
-    BORDER_WIDTH = "Grosor del Borde"
-    LABEL_COLOR = "Color de la Etiqueta"
-    LABEL_SIZE = "Tamano de la Etiqueta"
-    SELECT_FILL_COLOR = "Seleccione el color de relleno"
-    SELECT_BORDER_COLOR = "Seleccione el color del borde"
-    SELECT_LABEL_COLOR = "Seleccione el color de la etiqueta"
-    TRANSPARENT_BACKGROUND = "Fondo transparente"
-    SHOW_BORDER = "Mostrar borde"
-    SHOW_LABEL = "Mostrar etiqueta"
-    GENERATE_SVG_FOR_EACH_FEATURE = "Generar SVG para cada entidad"
-    SVGS_GENERATED_SUCCESS = "SVG(s) generado(s) con exito."
+
+    # plugins/PathExtensionPlugin.py
+    PATH = "Path"
+    PATH_EXTENSION_TITLE = "Quitar/Restaurar Extensión"
+    PATH_EXTENSION_TOOLTIP = "Quita o restaura la extensión de archivos en las rutas de las entidades"
+    MODE_REMOVE = "Quitar extensión"
+    MODE_RESTORE = "Restaurar extensión"
+    MODE_ZIP = "Comprimir archivos"
+    MODE_UNZIP = "Descomprimir archivos"
+
+    # License
+    LICENSE_TITLE = "Gestionar Licencia"
+    LICENSE_SAVED_SUCCESS = "Licencia guardada y validada con éxito."
+    LICENSE_DELETED_SUCCESS = "Licencia eliminada con éxito."
+    LICENSE_INVALID_KEY = "Clave de licencia inválida."
+    LICENSE_EMPTY_KEY = "Ingrese una clave de licencia."
+    LICENSE_NO_KEY = "sin clave"
+    EXPIRATION_DATE = "Vencimiento"
+    REMAINING_DAYS = "días restantes"
+    STATUS = "Estado"
+    LEVEL = "Nivel"
+    ACTIVE = "Activa"
+    INACTIVE = "Inactiva"
+    VALIDATE = "Validar"
+
+    # plugins/SaveTemporaryLayersPlugin.py
+    SAVE_TEMPORARY_LAYER_TITLE = "Guardar Temporales"
+    SAVE_TEMPORARY_LAYER_TOOLTIP = "Guarda capas temporales (memory) del proyecto en archivos permanentes en el disco"
+    EXTENSION_VECTOR = "Extensión Vector"
+    EXTENSION_RASTER = "Extensión Raster"
+    VECTORS_FOLDER = "Carpeta de Vectores"
+    RASTERS_FOLDER = "Carpeta de Rasters"
+    SEPARATOR = "Separador"
+    VECTOR_EXTENSIONS = "Extensiones Vector"
+    RASTER_EXTENSIONS = "Extensiones Raster"
+    OUTPUT_CONFIG = "Configuración de Salida"
+    CONVERTER_FILE_TYPE = "Tipo de Archivo"
+    SELECT_OUTPUT_FOLDER = "Seleccionar Carpeta de Salida"
+
+    # plugins/DividePointsByStripsPlugin.py
     DIVIDE_POINTS_BY_STRIPS_TITLE = "Dividir Vector de Puntos por Franjas"
     DIVIDE_POINTS_BY_STRIPS_TOOLTIP = (
         "Prepara la configuración para segmentar una capa de puntos en franjas.\n"
@@ -556,3 +662,70 @@ class Strings_es(Strings_pt_BR):
     DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
         "La interfaz está lista. La rutina de división por franjas se implementará en la siguiente etapa."
     )
+
+    # processing/RasterOptimizer.py
+    RASTER_OPTIMIZER_TITLE = "Optimizar Raster (Overviews)"
+    RASTER_OPTIMIZER_TOOLTIP = (
+        "Crea o reconstruye pirámides (overviews) en rasters TIFF.\n"
+        "Permite seleccionar carpeta con rasters o capas individuales,\n"
+        "elegir los niveles de overview, método de remuestreo\n"
+        "y algoritmo de compresión (LZW, DEFLATE, ZSTD)."
+    )
+    INPUT_RASTER_LAYERS = "Capas Raster de Entrada"
+    INPUT_RASTER_FOLDER = "Carpeta con Rasters"
+    OVERVIEW_LEVELS = "Niveles de Overview"
+    RESAMPLING_METHOD = "Método de Remuestreo"
+    COMPRESS_OVERVIEW = "Compresión de Overviews"
+    PREDICTOR = "Predictor"
+    ZLEVEL = "ZLevel (compresión)"
+    DELETE_EXISTING_OVERVIEWS = "Eliminar overviews existentes antes de recrear"
+    OVERVIEWS_CREATED_SUCCESS = "Overviews creadas/actualizadas con éxito."
+    OVERVIEWS_ERROR = "Error al crear overviews: {error}"
+    RASTER_OPTIMIZER_COMPLETED = "Optimización de rasters completada."
+    USE_RECURSIVE_SEARCH = "Incluir subcarpetas"
+    SEARCHING_RASTERS = "Buscando rasters..."
+    BIGTIFF_YES = "Forzar BIGTIFF (necesario para archivos >4GB)"
+    RGB_MOSAIC_CREATOR_TITLE = "Creador de Mosaico RGB"
+    INPUT_RASTER_RED_BAND = "Raster Banda Roja (R)"
+    INPUT_RASTER_GREEN_BAND = "Raster Banda Verde (G)"
+    INPUT_RASTER_BLUE_BAND = "Raster Banda Azul (B)"
+    BAND_RED_LABEL = "Banda R"
+    BAND_GREEN_LABEL = "Banda G"
+    BAND_BLUE_LABEL = "Banda B"
+    CREATE_ALPHA_BAND = "Crear banda alfa para NoData"
+    ALPHA_NODATA_VALUE = "Valor NoData para alfa"
+    RGB_COMPOSITE = "Composición RGB"
+    NDVI_CALCULATOR_TITLE = "Calculadora NDVI"
+    INPUT_RASTER_NIR = "Raster Infrarrojo Cercano (NIR)"
+    INPUT_RASTER_RED = "Raster Rojo (RED)"
+    BAND_NIR = "Banda NIR"
+    BAND_RED = "Banda RED"
+    SENTINEL_BANDS_INFO = "Sentinel-2: Banda 8 (NIR) y Banda 4 (Rojo)"
+    LANDSAT_BANDS_INFO = (
+        "Landsat 8/9: Banda 5 (NIR) y Banda 4 (Rojo) | "
+        "Landsat 5/7: Banda 4 (NIR) y Banda 3 (Rojo)"
+    )
+    NDVI = "NDVI"
+    NDRE_CALCULATOR_TITLE = "Calculadora NDRE (Red Edge)"
+    INPUT_RASTER_NIR_NDRE = "Raster Infrarrojo Cercano (NIR) para NDRE"
+    INPUT_RASTER_REDEDGE = "Raster Borde Rojo (RedEdge)"
+    BAND_REDEDGE = "Banda RedEdge"
+    NDRE = "NDRE"
+    GLI_CALCULATOR_TITLE = "Calculadora GLI (Green Leaf Index)"
+    INPUT_RASTER_RGB_GLI = "Raster RGB de entrada (3 o 4 bandas)"
+    GLI = "GLI"
+    GLI_STYLE_PATH = "Ruta del estilo QML GLI"
+    GLI_INTERPRETATION = (
+        "Interpretación de valores GLI:\n"
+        "  -1.0 a 0.0  : Suelo desnudo, agua, superficies no vegetadas\n"
+        "   0.0 a 0.2  : Vegetación escasa o estresada\n"
+        "   0.2 a 0.5  : Vegetación moderada\n"
+        "   0.5 a 1.0  : Vegetación densa y saludable"
+    )
+    RGB_STYLE_STANDARDIZER_TITLE = "Estandarizar Estilo RGB (Percentil)"
+    INPUT_RASTER_RGB = "Raster RGB de entrada"
+    RGB_STANDARDIZER_OUTPUT = "Raster RGB estandarizado"
+    SEGMENTATION_MODE = "Modo de Segmentación"
+    CURVE = "Curva"
+    STRAIGHT = "Recta"
+    BOTH_PATH = "Ambas"

@@ -35,6 +35,8 @@ class Strings_de(Strings_pt_BR):
     AUTO_DETECT = "Automatisch erkennen"
 
     # Common labels
+    PRECISION = "Genauigkeit"
+    CONTINUE_ANYWAY = "Trotzdem fortfahren"
     MENU_SYSTEM = "System"
     MENU_LAYOUTS = "Layouts"
     MENU_FOLDER = "Ordner"
@@ -55,7 +57,6 @@ class Strings_de(Strings_pt_BR):
     INPUT_LINE_LAYER = "Linienlayer (EINGABE):"
     SOURCE_LAYER = "Quelllayer:"
     TARGET_LAYER = "Ziellayer:"
-    RANGE = "Bereich"
     IMPLEMENT_SIZE = "Gerätegröße: (immer in Metern)"
     VECTOR_CALCULATION_METHOD = "Vektorberechnungsmethode"
     VECTOR_FIELDS_PRECISION = "Genauigkeit der Vektorfelder (Dezimalstellen):"
@@ -200,10 +201,18 @@ class Strings_de(Strings_pt_BR):
         "Nur die ausgewählten Objekte in Multipart umwandeln?"
     )
     CONVERT_ALL_FEATURES_TO_MULTIPART = "Alle Objekte in Multipart umwandeln?"
+
+    # Dependencies
+    INSTALLING_DEPENDENCY = "Abhängigkeit wird installiert..."
+    INSTALLING_DEPENDENCIES = "Abhängigkeiten werden installiert"
+    DEPENDENCY = "Abhängigkeit"
+    INSTALLED_SUCCESSFULLY = "erfolgreich installiert."
+    SUCCESS = "Erfolg"
+    INSTALL_DEPENDENCY_FAILED = "Installation der Bibliothek konnte nicht gestartet werden."
     KML_FIELDS_REMOVED_SUCCESS = "KML-Felder erfolgreich entfernt"
     NO_KML_FIELDS_FOUND = "Keine KML-Felder zum Entfernen gefunden"
     ERROR_REMOVING_KML_FIELDS = "Fehler beim Entfernen der KML-Felder:"
-
+    RANGE = "Bereich"
     RASTERS = "Raster"
     INPUT_POINTS = "Eingabepunkte"
     REPROJECT_OUTPUT_LAYER_OPTIONAL = "Ausgabelayer umprojizieren (optional)"
@@ -214,27 +223,41 @@ class Strings_de(Strings_pt_BR):
     NONE = "Keine"
     FILE_SAVED_IN = "Datei gespeichert in:"
     RASTER_MASS_SAMPLER_TITLE = "Massen-Rasterbeprobung"
+    RASTER_WEIGHTED_AVERAGE_TITLE = "Gewichteter Durchschnitt von Rastern"
     RASTER_MASS_CLIPPER_TITLE = "Massenzuschnitt von Rastern"
     RASTER_MASS_SAMPLER_TOOLTIP = (
-        "Fuhrt eine Stapel-Beprobung mehrerer Raster uber einem Vektorlayer aus.\n"
-        "Offnet den Cadmus-Provider-Algorithmus im Processing,\n"
-        "sodass Eingaben, Felder und Ausgaben in der Standardoberflache konfiguriert werden konnen."
+        "Führt eine Stapel-Beprobung mehrerer Raster über einem Vektorlayer aus.\n"
+        "Öffnet den Cadmus-Provider-Algorithmus im Processing,\n"
+        "sodass Eingaben, Felder und Ausgaben in der Standardoberfläche konfiguriert werden können."
     )
     RASTER_MASS_CLIPPER_TOOLTIP = (
         "Schneidet mehrere Raster stapelweise mit einem Polygonlayer als Maske zu.\n"
-        "Offnet den Cadmus-Provider-Algorithmus im Processing,\n"
-        "mit Unterstutzung fur Zuschnitt pro Feature, Korrekturpuffer und Ausgabeordner."
+        "Öffnet den Cadmus-Provider-Algorithmus im Processing,\n"
+        "mit Unterstützung für Zuschnitt pro Feature, Korrekturpuffer und Ausgabeordner."
     )
     RASTER_DIFFERENCE_STATISTICS_TITLE = "Rasterdifferenz verarbeiten"
+    VECTOR_TO_SVG_TITLE = "Vektor-zu-SVG-Konverter"
+    VECTOR_TO_SVG_TOOLTIP = (
+        "Exportiert einen Vektorlayer des Projekts nach SVG.\n"
+        "Erlaubt die Konfiguration von Hintergrund, Rand und Beschriftung\n"
+        "und kann entweder eine einzelne Datei oder ein separates SVG\n"
+        "pro Feature erzeugen."
+    )
+    VECTOR_LAYER_LABEL = "Vektorlayer"
+    BACKGROUND_COLOR = "Hintergrundfarbe"
+    BORDER_COLOR = "Randfarbe"
+    BORDER_WIDTH = "Randstärke"
+    LABEL_COLOR = "Beschriftungsfarbe"
+    LABEL_SIZE = "Beschriftungsgröße"
+    SELECT_FILL_COLOR = "Füllfarbe auswählen"
+    SELECT_BORDER_COLOR = "Randfarbe auswählen"
+    SELECT_LABEL_COLOR = "Beschriftungsfarbe auswählen"
+    TRANSPARENT_BACKGROUND = "Transparenter Hintergrund"
+    SHOW_BORDER = "Rand anzeigen"
+    SHOW_LABEL = "Beschriftung anzeigen"
+    GENERATE_SVG_FOR_EACH_FEATURE = "SVG für jedes Feature erzeugen"
+    SVGS_GENERATED_SUCCESS = "SVG(s) erfolgreich erzeugt."
     INPUT_MASK_POLYGON_LAYER = "Maskenlayer (Polygon)"
-
-    # Dependencies
-    INSTALLING_DEPENDENCY = "Abhängigkeit wird installiert..."
-    INSTALLING_DEPENDENCIES = "Abhängigkeiten werden installiert"
-    DEPENDENCY = "Abhängigkeit"
-    INSTALLED_SUCCESSFULLY = "erfolgreich installiert."
-    SUCCESS = "Erfolg"
-    INSTALL_DEPENDENCY_FAILED = "Installation der Bibliothek konnte nicht gestartet werden."
     CLIP_PER_EACH_POLYGON = "Pro Polygon zuschneiden"
     APPLY_CORRECTION_BUFFER_PIXEL_1_1 = "Korrekturpuffer anwenden (Pixel * 1,1)"
     RASTER_FOLDER_OR_SELECT_RASTER_LAYERS = (
@@ -330,8 +353,8 @@ class Strings_de(Strings_pt_BR):
     MINIMUM = "Minimum"
     MAXIMUM = "Maximum"
     MEDIAN = "Median"
-    PERCENTILE_5 = "Perzentil 5 %"
-    PERCENTILE_95 = "Perzentil 95 %"
+    PERCENTILE_5 = "Perzentil 5%"
+    PERCENTILE_95 = "Perzentil 95%"
     MODE = "Modalwert"
     VARIANCE = "Varianz"
     SUM = "Summe"
@@ -341,7 +364,7 @@ class Strings_de(Strings_pt_BR):
     DIFFERENCE_FIELDS_TITLE = "Felddifferenz-Generator"
     POINT_LAYER = "Punktlayer"
     BASE_FIELD_SUBTRAHEND = "Basisfeld (Subtrahend)"
-    FIELDS_TO_EXCLUDE_FROM_CALCULATION = "Felder vom Berechnung AUSSCHLIESSEN"
+    FIELDS_TO_EXCLUDE_FROM_CALCULATION = "Felder von der Berechnung AUSSCHLIESSEN"
     PREFIX_FOR_NEW_FIELDS = "Präfix für neue Felder"
     DIFFERENCE = "Differenz"
     NO_EXCLUDED_FIELD_USING_ALL_NUMERIC = (
@@ -365,10 +388,15 @@ class Strings_de(Strings_pt_BR):
     USE_MRK_DATA = "MRK-Daten abrufen"
     PHOTOS_METADATA = "Mit Fotometadaten verknüpfen"
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Zum Verknüpfen mit Fotometadaten muss das Paket Pillow installiert werden.\n\nJetzt installieren?"
+    GENERATE_REPORT = "Bericht generieren"
     MRK_FOLDER = "MRK-Ordner:"
     SAVE_POINTS_CHECKBOX = "MRK-Punkte in Datei speichern?"
     SAVE_IN = "Speichern in:"
     SAVE_TRACK_CHECKBOX = "Spur in Datei speichern?"
+    USE_LOGO = "Logo verwenden?"
+    LOGO_LABEL = "Logo:"
+    PROJECT_TITLE = "Projekttitel"
+    PROJECT_TITLE_HINT = "Z.B.: Hoffnungshof"
     APPLY_STYLE_POINTS = "Stil (QML) auf Punkte anwenden?"
     QML_POINTS = "QML Punkte:"
     APPLY_STYLE_TRACK = "Stil (QML) auf Spur anwenden?"
@@ -379,14 +407,19 @@ class Strings_de(Strings_pt_BR):
     CONVERT_FILE_ERROR = "Dateikonvertierung fehlgeschlagen."
     REPORT_METADATA_TITLE = "Metadatenbericht"
     REPORT_METADATA_TOOLTIP = (
-        "Listet temporare Metadaten-JSON-Dateien und erzeugt den HTML-Bericht erneut.\n"
+        "Listet temporäre Metadaten-JSON-Dateien und erzeugt den HTML-Bericht erneut.\n"
         "Bietet zudem einen Schnellzugriff auf den Berichtsordner."
     )
     REFRESH_JSON_LIST = "JSON-Liste aktualisieren"
-    OPEN_REPORTS_FOLDER = "Berichtsordner offnen"
-    OPEN_JSONS_FOLDER = "JSON-Ordner offnen"
+    OPEN_REPORTS_FOLDER = "Berichtsordner öffnen"
+    OPEN_JSONS_FOLDER = "JSON-Ordner öffnen"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Vektor Ohne MRK Erzeugen"
-    NO_JSON_FOUND = "Keine temporaren JSON-Dateien gefunden."
+    VETORIZE_FLIGHT = "Flug vektorisieren"
+    VETORIZE_FLIGHT_TOOLTIP = (
+        "Erzeugt Punkt- und Spur-Vektorebenen aus dem ausgewählten Metadaten-JSON.\n"
+        "Entspricht der Ausführung der Drohnenkoordinaten-Pipeline nur mit dem JSON."
+    )
+    NO_JSON_FOUND = "Keine temporären JSON-Dateien gefunden."
 
     # plugins/SettingsPlugin.py
     SETTINGS_TITLE = "Cadmus-Einstellungen"
@@ -395,6 +428,16 @@ class Strings_de(Strings_pt_BR):
         "Ermöglicht das Festlegen der Standard-Vektorberechnungsmethode,\n"
         "der Genauigkeit der Vektorfelder und des Objekt-Schwellenwerts\n"
         "für die asynchrone Verarbeitung."
+    )
+    GENERAL = "Allgemein"
+    DEFAULT_CRS = "Standard-KBS"
+    PROJECTS_FOLDER = "Projektordner"
+    TOOLBAR_VISIBLE_CATEGORIES = "Werkzeugleiste – Sichtbare Kategorien"
+    VECTOR_CALCULATIONS_PLUGIN = "Plugin für Vektorberechnungen"
+    CARTESIAN_SUFFIX = "Kartesisches Suffix"
+    ELLIPSOIDAL_SUFFIX = "Ellipsoidisches Suffix"
+    AREA_SUFFIXES_CANNOT_MATCH = (
+        "Kartesisches und ellipsoidisches Suffix dürfen nicht identisch sein."
     )
     ELLIPSOIDAL = "Ellipsoidisch"
     CARTESIAN = "Kartesisch"
@@ -413,6 +456,48 @@ class Strings_de(Strings_pt_BR):
 
     # plugins/LoadFolderLayers.py
     LOAD_FOLDER_LAYERS_TITLE = "Ordner mit Dateien laden"
+    CREATE_PROJECT_TITLE = "Neues Projekt"
+    CREATE_PROJECT_TOOLTIP = (
+        "Erstellt eine neue Projektstruktur in einem dedizierten Ordner.\n"
+        "Falls noch kein Standardordner festgelegt ist, wird dieser Pfad abgefragt,\n"
+        "dann der Projektordner, die .qgz-Datei\n"
+        "und die Unterordner vectors und rasters erstellt."
+    )
+    DEFAULT_PROJECTS_FOLDER_TITLE = "Standard-Projektordner"
+    DEFAULT_PROJECTS_FOLDER_PROMPT = (
+        "Legen Sie den Standardordner fest, in dem neue Cadmus-Projekte erstellt werden."
+    )
+    PROJECT_NAME_TITLE = "Neues Projekt"
+    PROJECT_NAME_PROMPT = (
+        "Geben Sie den Projektnamen ein. Bei Leerlasse wird der vorgeschlagene Name verwendet."
+    )
+    PROJECT_NAME_LABEL = "Projektname"
+    PROJECTS_DEFAULT_FOLDER_MISSING = (
+        "Es wurde kein Standardordner für Projekte festgelegt.\n\n"
+        "Möchten Sie jetzt einen Standardordner festlegen?"
+    )
+    PROJECTS_DEFAULT_FOLDER_MISSING_TITLE = "Standardordner nicht festgelegt"
+    PROJECT_FOLDER_ALREADY_EXISTS = "Der Projektordner existiert bereits:"
+    PROJECT_FOLDER_CREATE_ERROR = "Die Projektstruktur konnte nicht erstellt werden:"
+    PROJECT_FILE_CREATE_ERROR = "Das QGIS-Projekt konnte nicht erstellt werden:"
+    PROJECT_DEFAULT_FOLDER_PREPARE_ERROR = (
+        "Der Standardordner konnte nicht vorbereitet werden:"
+    )
+    PROJECT_DEFAULT_FOLDER_ACCESS_ERROR = (
+        "Auf den Standardordner konnte nicht zugegriffen werden:"
+    )
+    CURRENT_PROJECT_SAVE_TO_NEW_DESTINATION_ERROR = (
+        "QGIS konnte das aktuelle Projekt nicht am neuen Speicherort speichern."
+    )
+    NEW_PROJECT_FILE_WRITE_ERROR = "QGIS konnte die neue .qgz-Datei nicht schreiben."
+    OPEN_NEW_QGIS_WINDOW_ERROR = (
+        "Das Projekt wurde erstellt, aber es konnte kein neues QGIS-Fenster geöffnet werden."
+    )
+    PROJECT_CREATED_TITLE = "Projekt erstellt"
+    PROJECT_CREATED_SUCCESS = "Projekt '{project_name}' erfolgreich erstellt"
+    PROJECT_CREATED_OPENED_NEW_WINDOW = (
+        "Projekt '{project_name}' erstellt und in einem neuen Fenster geöffnet"
+    )
     LOAD_FOLDER_LAYERS_TOOLTIP = (
         "Lädt Vektor- und Rasterdateien stapelweise aus einem Ordner\n"
         "und seinen Unterordnern in das QGIS-Projekt.\n"
@@ -483,6 +568,8 @@ class Strings_de(Strings_pt_BR):
         "Zeigt allgemeine Informationen über das Plugin,\n"
         "wie Version, Autorenschaft und Projektkontext."
     )
+    LAYER_NOT_EDITABLE_ASK = "Der Layer '{layer_name}' befindet sich nicht im Bearbeitungsmodus.\n\nMöchten Sie die Bearbeitung jetzt aktivieren?"
+    LAYER_NOW_EDITABLE = "Layer wurde automatisch in den Bearbeitungsmodus versetzt."
     VECTOR_FIELDS_TITLE = "Vektorfelder berechnen"
     VECTOR_FIELDS_TOOLTIP = (
         "Berechnet automatisch Vektorfelder wie Fläche,\n"
@@ -492,30 +579,49 @@ class Strings_de(Strings_pt_BR):
     REMOVE_KML_FIELDS_TITLE = "KML-Felder entfernen"
     REMOVE_KML_FIELDS_TOOLTIP = (
         "Entfernt typische KML-Attributfelder aus dem aktiven Layer.\n"
-        "Das Werkzeug lauft nur, wenn der Layer bereits im Bearbeitungsmodus ist,\n"
+        "Das Werkzeug läuft nur, wenn der Layer bereits im Bearbeitungsmodus ist,\n"
         "und speichert nicht und beendet den Bearbeitungsmodus nicht."
     )
-    VECTOR_TO_SVG_TITLE = "Vektor-zu-SVG-Konverter"
-    VECTOR_TO_SVG_TOOLTIP = (
-        "Exportiert einen Vektorlayer des Projekts nach SVG.\n"
-        "Erlaubt die Konfiguration von Hintergrund, Rand und Beschriftung\n"
-        "und kann entweder eine einzelne Datei oder ein separates SVG\n"
-        "pro Feature erzeugen."
-    )
-    VECTOR_LAYER_LABEL = "Vektorlayer"
-    BACKGROUND_COLOR = "Hintergrundfarbe"
-    BORDER_COLOR = "Randfarbe"
-    BORDER_WIDTH = "Randstarke"
-    LABEL_COLOR = "Beschriftungsfarbe"
-    LABEL_SIZE = "Beschriftungsgrosse"
-    SELECT_FILL_COLOR = "Fullfarbe auswahlen"
-    SELECT_BORDER_COLOR = "Randfarbe auswahlen"
-    SELECT_LABEL_COLOR = "Beschriftungsfarbe auswahlen"
-    TRANSPARENT_BACKGROUND = "Transparenter Hintergrund"
-    SHOW_BORDER = "Rand anzeigen"
-    SHOW_LABEL = "Beschriftung anzeigen"
-    GENERATE_SVG_FOR_EACH_FEATURE = "SVG fur jedes Feature erzeugen"
-    SVGS_GENERATED_SUCCESS = "SVG(s) erfolgreich erzeugt."
+
+    # plugins/PathExtensionPlugin.py
+    PATH = "Pfad"
+    PATH_EXTENSION_TITLE = "Erweiterung Entfernen/Wiederherstellen"
+    PATH_EXTENSION_TOOLTIP = "Entfernt oder stellt die Dateierweiterung in den Pfaden der Features wieder her"
+    MODE_REMOVE = "Erweiterung entfernen"
+    MODE_RESTORE = "Erweiterung wiederherstellen"
+    MODE_ZIP = "Dateien komprimieren"
+    MODE_UNZIP = "Dateien dekomprimieren"
+
+    # License
+    LICENSE_TITLE = "Lizenz verwalten"
+    LICENSE_SAVED_SUCCESS = "Lizenz erfolgreich gespeichert und validiert."
+    LICENSE_DELETED_SUCCESS = "Lizenz erfolgreich entfernt."
+    LICENSE_INVALID_KEY = "Ungültiger Lizenzschlüssel."
+    LICENSE_EMPTY_KEY = "Bitte geben Sie einen Lizenzschlüssel ein."
+    LICENSE_NO_KEY = "kein Schlüssel"
+    EXPIRATION_DATE = "Gültigkeit"
+    REMAINING_DAYS = "verbleibende Tage"
+    STATUS = "Status"
+    LEVEL = "Stufe"
+    ACTIVE = "Aktiv"
+    INACTIVE = "Inaktiv"
+    VALIDATE = "Validieren"
+
+    # plugins/SaveTemporaryLayersPlugin.py
+    SAVE_TEMPORARY_LAYER_TITLE = "Temporäre speichern"
+    SAVE_TEMPORARY_LAYER_TOOLTIP = "Speichert temporäre (Memory-)Layer des Projekts als dauerhafte Dateien auf der Festplatte"
+    EXTENSION_VECTOR = "Vektor-Erweiterung"
+    EXTENSION_RASTER = "Raster-Erweiterung"
+    VECTORS_FOLDER = "Vektorordner"
+    RASTERS_FOLDER = "Rasterordner"
+    SEPARATOR = "Trennzeichen"
+    VECTOR_EXTENSIONS = "Vektor-Erweiterungen"
+    RASTER_EXTENSIONS = "Raster-Erweiterungen"
+    OUTPUT_CONFIG = "Ausgangskonfiguration"
+    CONVERTER_FILE_TYPE = "Dateityp"
+    SELECT_OUTPUT_FOLDER = "Ausgabeordner auswählen"
+
+    # plugins/DividePointsByStripsPlugin.py
     DIVIDE_POINTS_BY_STRIPS_TITLE = "Punktvektor in Streifen aufteilen"
     DIVIDE_POINTS_BY_STRIPS_TOOLTIP = (
         "Bereitet die Konfiguration zur Segmentierung eines Punktlayers in Streifen vor.\n"
@@ -532,7 +638,7 @@ class Strings_de(Strings_pt_BR):
     TIMESTAMP_FIELD = "Zeitstempel-Feld"
     EXPECTED_POINT_FREQUENCY_SECONDS = "Erwartete Punktfrequenz (s)"
     EXPECTED_LATERAL_WIDTH_METERS = "Erwartete Seitenbreite (m)"
-    AZIMUTH_MOVING_WINDOW = "Azimut-Mittlungsfenster"
+    AZIMUTH_MOVING_WINDOW = "Azimut-Mittelungsfenster"
     LIGHT_AZIMUTH_DEVIATION_THRESHOLD = "Leichter Schwellenwert für Azimutabweichung (Grad)"
     SEVERE_AZIMUTH_DEVIATION_THRESHOLD = "Starker Schwellenwert für Azimutabweichung (Grad)"
     MINIMUM_BREAK_SCORE = "Mindestpunktzahl für Unterbrechung"
@@ -551,3 +657,70 @@ class Strings_de(Strings_pt_BR):
     DIVIDE_POINTS_BY_STRIPS_UI_ONLY_MESSAGE = (
         "Die Oberfläche ist bereit. Die Streifenaufteilung wird in der nächsten Phase implementiert."
     )
+
+    # processing/RasterOptimizer.py
+    RASTER_OPTIMIZER_TITLE = "Raster optimieren (Overviews)"
+    RASTER_OPTIMIZER_TOOLTIP = (
+        "Erstellt oder baut Pyramiden (Overviews) in TIFF-Rastern neu auf.\n"
+        "Ermöglicht die Auswahl eines Ordners mit Rastern oder einzelner Layer,\n"
+        "die Wahl der Overview-Ebenen, der Resampling-Methode\n"
+        "und des Kompressionsalgorithmus (LZW, DEFLATE, ZSTD)."
+    )
+    INPUT_RASTER_LAYERS = "Eingabe-Rasterlayer"
+    INPUT_RASTER_FOLDER = "Ordner mit Rastern"
+    OVERVIEW_LEVELS = "Overview-Ebenen"
+    RESAMPLING_METHOD = "Resampling-Methode"
+    COMPRESS_OVERVIEW = "Overview-Kompression"
+    PREDICTOR = "Prädiktor"
+    ZLEVEL = "ZLevel (Kompression)"
+    DELETE_EXISTING_OVERVIEWS = "Vorhandene Overviews vor dem Neuerstellen löschen"
+    OVERVIEWS_CREATED_SUCCESS = "Overviews erfolgreich erstellt/aktualisiert."
+    OVERVIEWS_ERROR = "Fehler beim Erstellen der Overviews: {error}"
+    RASTER_OPTIMIZER_COMPLETED = "Rasteroptimierung abgeschlossen."
+    USE_RECURSIVE_SEARCH = "Unterordner einbeziehen"
+    SEARCHING_RASTERS = "Raster werden gesucht..."
+    BIGTIFF_YES = "BIGTIFF erzwingen (erforderlich für Dateien >4GB)"
+    RGB_MOSAIC_CREATOR_TITLE = "RGB-Mosaik-Ersteller"
+    INPUT_RASTER_RED_BAND = "Rotband-Raster (R)"
+    INPUT_RASTER_GREEN_BAND = "Grünband-Raster (G)"
+    INPUT_RASTER_BLUE_BAND = "Blaudband-Raster (B)"
+    BAND_RED_LABEL = "Band R"
+    BAND_GREEN_LABEL = "Band G"
+    BAND_BLUE_LABEL = "Band B"
+    CREATE_ALPHA_BAND = "Alpha-Band für NoData erstellen"
+    ALPHA_NODATA_VALUE = "NoData-Wert für Alpha"
+    RGB_COMPOSITE = "RGB-Komposition"
+    NDVI_CALCULATOR_TITLE = "NDVI-Rechner"
+    INPUT_RASTER_NIR = "Nahes Infrarot-Raster (NIR)"
+    INPUT_RASTER_RED = "Rot-Raster (RED)"
+    BAND_NIR = "Band NIR"
+    BAND_RED = "Band RED"
+    SENTINEL_BANDS_INFO = "Sentinel-2: Band 8 (NIR) und Band 4 (Rot)"
+    LANDSAT_BANDS_INFO = (
+        "Landsat 8/9: Band 5 (NIR) und Band 4 (Rot) | "
+        "Landsat 5/7: Band 4 (NIR) und Band 3 (Rot)"
+    )
+    NDVI = "NDVI"
+    NDRE_CALCULATOR_TITLE = "NDRE-Rechner (Red Edge)"
+    INPUT_RASTER_NIR_NDRE = "Nahes Infrarot-Raster (NIR) für NDRE"
+    INPUT_RASTER_REDEDGE = "Red-Edge-Raster (RedEdge)"
+    BAND_REDEDGE = "Band RedEdge"
+    NDRE = "NDRE"
+    GLI_CALCULATOR_TITLE = "GLI-Rechner (Green Leaf Index)"
+    INPUT_RASTER_RGB_GLI = "Eingabe-RGB-Raster (3 oder 4 Bänder)"
+    GLI = "GLI"
+    GLI_STYLE_PATH = "Pfad zum GLI-QML-Stil"
+    GLI_INTERPRETATION = (
+        "GLI-Wert-Interpretation:\n"
+        "  -1,0 bis 0,0  : Nackter Boden, Wasser, nicht bewachsene Flächen\n"
+        "   0,0 bis 0,2  : Spärliche oder gestresste Vegetation\n"
+        "   0,2 bis 0,5  : Moderate Vegetation\n"
+        "   0,5 bis 1,0  : Dichte und gesunde Vegetation"
+    )
+    RGB_STYLE_STANDARDIZER_TITLE = "RGB-Stil standardisieren (Perzentil)"
+    INPUT_RASTER_RGB = "Eingabe-RGB-Raster"
+    RGB_STANDARDIZER_OUTPUT = "Standardisiertes RGB-Raster"
+    SEGMENTATION_MODE = "Segmentierungsmodus"
+    CURVE = "Kurve"
+    STRAIGHT = "Gerade"
+    BOTH_PATH = "Beide"

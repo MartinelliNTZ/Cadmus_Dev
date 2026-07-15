@@ -575,12 +575,12 @@ class Strings_en(Strings_pt_BR):
     MODE_ZIP = "Zip files"
     MODE_UNZIP = "Unzip files"
 
-    # License
-    REG_TITLE = "Manage License"
-    REGISTRY_SAVED_SUCCESS = "License saved and validated successfully."
-    REGISTRY_DELETED_SUCCESS = "License removed successfully."
-    REGISTRY_INVALID = "Invalid license key."
-    REGISTRY_EMPTY = "Enter a license key."
+    # Registry
+    REG_TITLE = "Manage"
+    REGISTRY_SAVED_SUCCESS = "Saved and validated successfully."
+    REGISTRY_DELETED_SUCCESS = "Removed successfully."
+    REGISTRY_INVALID = "Invalid."
+    REGISTRY_EMPTY = "Fill in the field."
     NO_KEY = "no key"
     EXPIRATION_DATE = "Expiration date"
     REMAINING_DAYS = "remaining days"

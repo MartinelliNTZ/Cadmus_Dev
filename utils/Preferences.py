@@ -67,6 +67,22 @@ class Preferences(BaseUtil):
         Preferences.save_prefs(prefs)
 
     @staticmethod
+    def update_tool_prefs(tool_key, updates: dict):
+        """
+        Atualiza seletivamente chaves nas prefs de uma ferramenta,
+        sem substituir o dicionário inteiro.
+
+        Args:
+            tool_key: Chave da ferramenta
+            updates: Dict com as chaves/valores a atualizar
+        """
+        prefs = Preferences.load_prefs()
+        tool_prefs = prefs.get(tool_key, {})
+        tool_prefs.update(updates)
+        prefs[tool_key] = tool_prefs
+        Preferences.save_prefs(prefs)
+
+    @staticmethod
     def load_pref_key_by_tool(pref_key):
         """
         Retorna {tool_key: valor} para todos os tools

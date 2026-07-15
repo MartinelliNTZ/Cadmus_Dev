@@ -334,3 +334,14 @@
       compatibilidade Qt5/Qt6
     - Corrigido E501 (linhas longas) nos comentários e na criação do QDialogButtonBox
     - Flake8 passou sem erros após correção
+[2.3.54.2][15/07/2026] Corrigido salvamento do tamanho da janela no SettingsPlugin ao fechar pelo botão X:
+    - Adicionado Preferences.update_tool_prefs() em utils/Preferences.py que faz merge
+      seletivo de chaves (update) sem substituir o dicionário inteiro da ferramenta
+    - BasePluginMTL.closeEvent() agora usa Preferences.update_tool_prefs() para persistir
+      APENAS window_width e window_height em disco, mesmo quando AUTO_SAVE_PREFS_ON_CLOSE=False
+    - SettingsPlugin.AUTO_SAVE_PREFS_ON_CLOSE=False impedia que o tamanho da janela
+      fosse persistido no disco quando o usuário fechava sem clicar em "Save"
+    - Causa raiz: _persist_window_size() atualizava dict em memória, mas nada era salvo
+      no disco pois o bloco `if AUTO_SAVE_PREFS_ON_CLOSE` não executava _save_prefs()
+    - A correção anterior (save_tool_prefs) sobrescreveria todas as prefs; corrigido para
+      update_tool_prefs que preserva as demais configurações da ferramenta

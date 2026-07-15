@@ -150,9 +150,21 @@ class BasePluginMTL(BaseDialog):
         Override do evento de fechamento para persistir preferências.
 
         Salva tamanho da janela e demais preferências antes de fechar.
+        O tamanho da janela (window_width, window_height) é sempre
+        persistido em disco via update_tool_prefs(), mesmo quando
+        AUTO_SAVE_PREFS_ON_CLOSE=False, para garantir que o tamanho
+        seja preservado entre sessões sem sobrescrever outras prefs.
         """
         self.logger.debug("Fechando plugin, persistindo preferências")
         self._persist_window_size()
+        # Persiste APENAS o tamanho da janela em disco (merge seletivo)
+        Preferences.update_tool_prefs(
+            self.TOOL_KEY,
+            {
+                "window_width": self.preferences.get("window_width", 300),
+                "window_height": self.preferences.get("window_height", 300),
+            },
+        )
         self.on_finish_plugin()  # Incrementa o contador de uso ao fechar o plugin
         if self.AUTO_SAVE_PREFS_ON_CLOSE:
             self._save_prefs()

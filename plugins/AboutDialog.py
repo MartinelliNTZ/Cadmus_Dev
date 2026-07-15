@@ -48,7 +48,7 @@ class AboutDialog(BaseDialog):
             self.logger.debug("Título adicionado")
 
             info_text = self.tr(
-                f"<b>{STR.VERSION}:</b> 3.0.0<br>"
+                f"<b>{STR.VERSION}:</b> 3.0.0.2<br>"
                 f"<b>{STR.UPDATED_ON}:</b> 15 / 07 / 2026<br>"
                 f"<b>{STR.CREATED_ON}:</b> 9 / 12 / 2024<br>"
                 f"<b>{STR.CREATOR}:</b> MTL Agricultura e Tecnologia<br>"

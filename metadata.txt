@@ -39,6 +39,21 @@ changelog=
         - Improvements to the DroneCoordinates system: better photo metadata handling, more reliable file matching, enhanced performance
         - Multiple bug fixes across various tools
         - Improvements to several Processing Provider tools
+        - Partially translated to German
+        - Fixed vector field calculation: for geographic CRS, automatically calculates both modes (ellipsoidal and Cartesian); for projected CRS, respects the mode selected in preferences
+        - Fixed error in speed formatting
+        - New tool: RemoveKmlFieldsPlugin - Removes specific fields from vector layers with one click
+        - Improvements in MRK file import
+        - Drag and drop support for importing drone coordinates
+        - More intuitive layer names based on the source file
+        - Import now respects user preferences (photos, QML styles)
+        - Existing files are loaded instead of being overwritten
+        - Toolbar icons now display correctly
+        - Fixed dropdown button behavior
+        - Prevented duplicated menus and toolbars when reloading the plugin
+        - Full translation in Portuguese, English and Spanish
+        - All screens and messages now follow the language configured in QGIS
+        - Faster and more reliable plugin startup
     2.3.0
         - Partially translated to German
         - Fixed vector field calculation: for geographic CRS, automatically calculates both modes (ellipsoidal and Cartesian); for projected CRS, respects the mode selected in preferences

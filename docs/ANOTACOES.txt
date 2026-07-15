@@ -54,7 +54,39 @@ atualizar o flush de drone corditates,
 colocar o 
 
  changelog=
-2.3.29 27/04/2026
+3.3.0 27/04/2026
+    - Reestruturação completa da arquitetura de processamento:
+      - ExecutionContext redesenhado com atributos canônicos
+      - Steps parametrizados via __init__
+      - BaseTask adotada como padrão para todas as Tasks
+      - BaseStep padronizado com logger, callbacks e contrato único da pipeline
+      - Compatibilidade preservada com implementações legadas
+
+    - Pipeline Drone completamente unificada:
+      - Todo o fluxo centralizado no DronePipelineService
+      - Eliminação de código duplicado e múltiplos fluxos de execução
+      - Pipeline única para enriquecimento de fotos, geocodificação, altitude, vetorização e geração de relatórios
+      - Gerenciamento unificado de preferências, callbacks e execução
+
+    - Novo sistema de metadados geoespaciais:
+      - Coordenadas obtidas prioritariamente das fotografias
+      - Extração automática da primeira coordenada válida
+      - Enriquecimento automático com EPSG, zona UTM, hemisfério, município, estado, região, país e altitude SRTM
+      - Persistência automática das informações no JSON e integração aos relatórios HTML
+
+    - Nova ferramenta Salvar Camadas Temporárias:
+      - Exportação de camadas temporárias vetoriais e raster
+      - Suporte a múltiplos formatos
+      - Organização automática dos arquivos em diretórios específicos
+      - Integração completa com a infraestrutura do plugin
+
+    - Modernização da infraestrutura interna:
+      - Padronização dos contratos entre Pipeline, Steps e Tasks
+      - Simplificação do JsonUtil com atualização genérica de metadados
+      - Novo utilitário ImageUtils para conversão Base64
+      - Padronização da WidgetFactory e dos componentes reutilizáveis
+      - Consolidação da documentação técnica e das Skills
+      - Melhor tratamento de exceções, logs e maior robustez geral da aplicação
 2.3.28 24/04/2026
     - SequentialPointBreakJudge: corrigido UnboundLocalError no metodo _evaluate_bidirectional ao acessar precomputed_dt antes de sua populacao.
     - SequentialPointBreakJudge: removida declaracao duplicada e precoce de use_time que causava UnboundLocalError.

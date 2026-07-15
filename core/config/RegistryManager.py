@@ -51,7 +51,7 @@ class RegistryManager(BaseUtil):
     # Public API
     # ----------------------------------------------------------------
 
-    def is_license_valid(self) -> bool:
+    def is_registry_valid(self) -> bool:
         """
         Verifica se a licença é válida, respeitando cache e renovação.
 
@@ -112,7 +112,7 @@ class RegistryManager(BaseUtil):
         self.logger.debug("Nenhum cache de licença encontrado, validando...")
         return self._validate_and_update(license_key, today)
 
-    def get_license_info(self) -> dict:
+    def get_registry_info(self) -> dict:
         """
         Retorna informações completas da licença cadastrada.
 
@@ -221,7 +221,7 @@ class RegistryManager(BaseUtil):
         Returns:
             int: Nível 1-5 se licença válida, 0 se sem chave ou inválida.
         """
-        lic_info = self.get_license_info()
+        lic_info = self.get_registry_info()
         return lic_info.get("nivel", 0)
 
     def has_minimum_level(self, min_level: int) -> bool:
@@ -237,7 +237,7 @@ class RegistryManager(BaseUtil):
         Returns:
             bool: True se a licença é válida e tem nível >= min_level.
         """
-        if not self.is_license_valid():
+        if not self.is_registry_valid():
             return False
 
         current_level = self.get_level()

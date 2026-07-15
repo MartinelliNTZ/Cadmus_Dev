@@ -1,19 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-LicenseDialog — Diálogo de gerenciamento de licença e distribuição
-===================================================================
-Diálogo modal com:
-- QLineEdit para inserir chave + botão 🔑 para validar
-- Grid de labels: nível, validade, status
-- Botão Apagar Licença
-- Botão Salvar
-- GridComplexSelector para selecionar arquivo .dist de distribuição
-  e restaurar as classes compiladas nas pastas corretas,
-  opcionalmente aplicando chave de licença contida no pacote.
 
-Lazy import de RegistryManager: se a classe foi compilada/removida
-(versão premium), o diálogo funciona sem licença.
-"""
 
 from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
@@ -50,13 +36,13 @@ class RegistryDialog(BaseDialog):
     def __init__(self, iface, parent=None):
         super().__init__(parent)
         self.iface = iface
-        self.logger = LogUtils(tool=ToolKey.SETTINGS, class_name="LicenseDialog")
+        self.logger = LogUtils(tool=ToolKey.SETTINGS, class_name="RegDialog")
 
         # Lazy import de RegistryManager — se foi compilado/removido = versão premium
-        self._license_mgr = self._init_license_mgr()
-        self._premium = self._license_mgr is None
+        self.lic_mgr = self._init_license_mgr()
+        self._premium = self.lic_mgr is None
 
-        self.setWindowTitle(STR.LICENSE_TITLE)
+        self.setWindowTitle(STR.REG_TITLE)
         self.setMinimumWidth(400)
         self.setModal(True)
 
@@ -198,14 +184,14 @@ class RegistryDialog(BaseDialog):
         self._do_save(show_message=True)
 
     def _do_save(self, show_message: bool):
-        if self._license_mgr is None:
+        if self.lic_mgr is None:
             # Premium — não precisa de licença
             from ...utils.QgisMessageUtil import QgisMessageUtil
 
             QgisMessageUtil.modal_info(
                 self.iface,
                 message="Versão premium — licença não necessária.",
-                title=STR.LICENSE_TITLE,
+                title=STR.REG_TITLE,
             )
             self.accept()
             return
@@ -218,12 +204,12 @@ class RegistryDialog(BaseDialog):
 
                 QgisMessageUtil.modal_warning(
                     self.iface,
-                    message=STR.LICENSE_EMPTY_KEY,
-                    title=STR.LICENSE_TITLE,
+                    message=STR.REGISTRY_EMPTY,
+                    title=STR.REG_TITLE,
                 )
             return
 
-        result = self._license_mgr.save_license_key(key)
+        result = self.lic_mgr.save_license_key(key)
         self._refresh()
 
         if show_message:
@@ -232,29 +218,29 @@ class RegistryDialog(BaseDialog):
             if result.get("success"):
                 QgisMessageUtil.modal_info(
                     self.iface,
-                    message=STR.LICENSE_SAVED_SUCCESS,
-                    title=STR.LICENSE_TITLE,
+                    message=STR.REGISTRY_SAVED_SUCCESS,
+                    title=STR.REG_TITLE,
                 )
                 self.accept()
             else:
                 QgisMessageUtil.modal_warning(
                     self.iface,
-                    message=result.get("message", STR.LICENSE_INVALID_KEY),
-                    title=STR.LICENSE_TITLE,
+                    message=result.get("message", STR.REGISTRY_INVALID),
+                    title=STR.REG_TITLE,
                 )
 
     def _on_delete(self):
-        if self._license_mgr is None:
+        if self.lic_mgr is None:
             return
-        self._license_mgr.delete_license()
+        self.lic_mgr.delete_license()
         self._input_key.clear()
         self._refresh()
         from ...utils.QgisMessageUtil import QgisMessageUtil
 
         QgisMessageUtil.modal_info(
             self.iface,
-            message=STR.LICENSE_DELETED_SUCCESS,
-            title=STR.LICENSE_TITLE,
+            message=STR.REGISTRY_DELETED_SUCCESS,
+            title=STR.REG_TITLE,
         )
 
     def _on_restore_distribution(self):
@@ -296,11 +282,11 @@ class RegistryDialog(BaseDialog):
             )
             self._input_key.setText(key)
             # Re-inicializa _license_mgr — agora RegistryManager está disponível
-            self._license_mgr = self._init_license_mgr()
-            self._premium = self._license_mgr is None
+            self.lic_mgr = self._init_license_mgr()
+            self._premium = self.lic_mgr is None
 
-            if self._license_mgr is not None:
-                result = self._license_mgr.save_license_key(key)
+            if self.lic_mgr is not None:
+                result = self.lic_mgr.save_license_key(key)
                 if result.get("success"):
                     self.logger.info("Licença do pacote aplicada com sucesso")
                 else:
@@ -326,8 +312,8 @@ class RegistryDialog(BaseDialog):
 
         if result["success"]:
             # Re-inicializa _license_mgr
-            self._license_mgr = self._init_license_mgr()
-            self._premium = self._license_mgr is None
+            self.lic_mgr = self._init_license_mgr()
+            self._premium = self.lic_mgr is None
 
             QgisMessageUtil.modal_info(
                 self.iface,
@@ -344,10 +330,10 @@ class RegistryDialog(BaseDialog):
         self._refresh()
 
     def _refresh(self):
-        self.logger.info(f"Iniciando refresh{self._license_mgr}")
-        if self._license_mgr is None:
+        self.logger.info(f"Iniciando refresh{self.lic_mgr}")
+        if self.lic_mgr is None:
             # Premium — esconde campos de licença
-            self.setWindowTitle(STR.LICENSE_TITLE)
+            self.setWindowTitle(STR.REG_TITLE)
             self._lbl_level_title.setVisible(False)
             self._lbl_level.setVisible(False)
             self._lbl_expiry_title.setVisible(False)
@@ -364,10 +350,10 @@ class RegistryDialog(BaseDialog):
             self._lbl_expiry.setParent(None)
             self._lbl_status_title.setParent(None)
             self._lbl_status.setParent(None)
-            self.logger.info(f"Licensa nao encontrada {self._license_mgr}")
+            self.logger.info(f"Licensa nao encontrada {self.lic_mgr}")
             return
 
-        info = self._license_mgr.get_license_info()
+        info = self.lic_mgr.get_registry_info()
 
         has_key = info.get("has_key", False)
         is_active = info.get("is_active", False)
@@ -377,7 +363,7 @@ class RegistryDialog(BaseDialog):
         self._lbl_level.setText(str(nivel) if is_valid and nivel > 0 else "")
         self._lbl_expiry.setText(info.get("expiry") if is_valid else "")
         self.logger.info(
-            f"Debug has license: {has_key} license manager: {self._license_mgr}, is_valid: {is_valid},is active: {is_active}, info: {info}, nivel: {nivel}"
+            f"Debug has license: {has_key} license manager: {self.lic_mgr}, is_valid: {is_valid},is active: {is_active}, info: {info}, nivel: {nivel}"
         )
 
         # Show/hide title labels based on whether a license exists
@@ -386,7 +372,7 @@ class RegistryDialog(BaseDialog):
         self._lbl_status_title.setVisible(is_valid)
 
         if is_valid:
-            self.setWindowTitle(STR.LICENSE_TITLE)
+            self.setWindowTitle(STR.REG_TITLE)
             self._btn_delete.setText(f"🗑️ {STR.REMOVE}")
             self._btn_save.setText(f"💾 {STR.SAVE}")
 

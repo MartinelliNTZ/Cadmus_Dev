@@ -299,10 +299,10 @@
   - Documenta LicenseManager API, LicenseDialogWidget, integração SettingsPlugin, WidgetFactory
   - Preferências utilizadas, fluxos de validação, proibições
 [2.3.50.6][11/07/2026] Adicionadas strings de licença em i18n/Strings_pt_BR.py:
-  - LICENSE_TITLE, LICENSE_KEY, LICENSE_LEVEL, LICENSE_EXPIRY, LICENSE_STATUS
+  - REG_TITLE, LICENSE_KEY, LICENSE_LEVEL, LICENSE_EXPIRY, LICENSE_STATUS
   - LICENSE_ACTIVE, LICENSE_INACTIVE, LICENSE_SAVE, LICENSE_DELETE, LICENSE_VALIDATE
-  - LICENSE_SAVED_SUCCESS, LICENSE_DELETED_SUCCESS, LICENSE_INVALID_KEY, LICENSE_EMPTY_KEY
-  - LICENSE_DAYS_REMAINING, LICENSE_NO_KEY, LICENSE_OPEN_DIALOG
+  - REGISTRY_SAVED_SUCCESS, REGISTRY_DELETED_SUCCESS, REGISTRY_INVALID, REGISTRY_EMPTY
+  - LICENSE_DAYS_REMAINING, NO_KEY, LICENSE_OPEN_DIALOG
 2.3.51 11/07/2026
 [2.3.51.1][11/07/2026] Adicionado atributo license_level em Tool e filtro por licença no ToolRegistry:
   - Adicionado parâmetro `license_level` (default None) em core/model/Tool.__init__()

@@ -47,7 +47,7 @@ class ToolRegistry:
         self.tools = self._create_tool_list()
 
         # Filtrar ferramentas por nível de licença
-        self._filter_tools_by_license()
+        self._filter_tools_by_reg()
 
         self.logger.info(
             f"[ToolRegistry.__init__] ✓ Inicializado com {len(self.tools)} ferramentas"
@@ -216,7 +216,7 @@ class ToolRegistry:
             tooltip=STR.LOGCAT_TOOLTIP,
             order=20,
             show_in_toolbar=True,
-            license_level=3,
+            registry_level=3,
         )
         tools.append(logcat)
 
@@ -385,7 +385,7 @@ class ToolRegistry:
             tooltip=STR.DIVIDE_POINTS_BY_STRIPS_TOOLTIP,
             order=60,
             show_in_toolbar=True,
-            license_level=1,
+            registry_level=1,
         )
         tools.append(divide_points_by_strips)
 
@@ -416,7 +416,7 @@ class ToolRegistry:
             tooltip=STR.PATH_EXTENSION_TOOLTIP,
             order=70,
             show_in_toolbar=True,
-            license_level=3,
+            registry_level=3,
         )
         tools.append(path_extension)
 
@@ -462,7 +462,7 @@ class ToolRegistry:
             tooltip=STR.REPORT_METADATA_TOOLTIP,
             order=30,
             show_in_toolbar=True,
-            license_level=1,
+            registry_level=1,
         )
         tools.append(report_metadata)
 
@@ -568,25 +568,15 @@ class ToolRegistry:
             self.logger.error(f"[update_tool_main_action] Erro: {e}", exc_info=True)
             return None
 
-    def _filter_tools_by_license(self):
-        """
-        Filtra ferramentas premium com base na existência e nível da licença.
-
-        Lógica:
-        1. Se NÃO houver licença válida → remove TODAS as ferramentas com
-           license_level definido (premium)
-        2. Se houver licença válida → mantém apenas ferramentas cujo
-           license_level seja menor ou igual ao nível atual da licença.
-           Ferramentas com license_level maior que o nível atual são removidas.
-
-        Ferramentas com license_level=None (padrão, gratuitas) nunca são filtradas.
-        """
+    def _filter_tools_by_reg(self):
+        
+    
         try:
             from .RegistryManager import RegistryManager
 
-            license_mgr = RegistryManager(ToolKey.SYSTEM)
-            is_valid = license_mgr.is_license_valid()
-            lic_info = license_mgr.get_license_info()
+            lic_mgr = RegistryManager(ToolKey.SYSTEM)
+            is_valid = lic_mgr.is_registry_valid()
+            lic_info = lic_mgr.get_registry_info()
             current_level = lic_info.get("nivel", 0)
         except Exception:
             # RegistryManager não existe (versão sem módulo de licença)
@@ -598,13 +588,13 @@ class ToolRegistry:
 
         if not is_valid:
             # Sem licença válida → só ferramentas gratuitas
-            self.tools = [tool for tool in self.tools if tool.license_level is None]
+            self.tools = [tool for tool in self.tools if tool.registry_level is None]
         else:
             # Com licença válida → respeita o nível
             self.tools = [
                 tool
                 for tool in self.tools
-                if tool.license_level is None or current_level >= tool.license_level
+                if tool.registry_level is None or current_level >= tool.registry_level
             ]
 
         filtered = before - len(self.tools)
@@ -613,7 +603,7 @@ class ToolRegistry:
                 f"{filtered} ferramentas  {is_valid}nível atual={current_level})"
             )
         else:
-            self.logger.info("[_filter_tools_by_license] Nenhuma ferramenta filtrada")
+            self.logger.info("Nenhuma ferramenta filtrada")
 
     def _make_plugin_executor(self, module_path: str, run_func: str = "run"):
         """

@@ -688,12 +688,12 @@ class Strings_pt_BR:
     MODE_UNZIP = "Deszipar arquivos"
 
     # License
-    LICENSE_TITLE = "Gerenciar Licença"
-    LICENSE_SAVED_SUCCESS = "Licença salva e validada com sucesso."
-    LICENSE_DELETED_SUCCESS = "Licença removida com sucesso."
-    LICENSE_INVALID_KEY = "Chave de licença inválida."
-    LICENSE_EMPTY_KEY = "Digite uma chave de licença."
-    LICENSE_NO_KEY = "sem chave"
+    REG_TITLE = "Gerenciar Licença"
+    REGISTRY_SAVED_SUCCESS = "Licença salva e validada com sucesso."
+    REGISTRY_DELETED_SUCCESS = "Licença removida com sucesso."
+    REGISTRY_INVALID = "Chave de licença inválida."
+    REGISTRY_EMPTY = "Digite uma chave de licença."
+    NO_KEY = "sem chave"
     EXPIRATION_DATE = "Validade"
     REMAINING_DAYS = "dias restantes"
     STATUS = "Status"

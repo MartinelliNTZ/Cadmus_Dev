@@ -576,12 +576,12 @@ class Strings_en(Strings_pt_BR):
     MODE_UNZIP = "Unzip files"
 
     # License
-    LICENSE_TITLE = "Manage License"
-    LICENSE_SAVED_SUCCESS = "License saved and validated successfully."
-    LICENSE_DELETED_SUCCESS = "License removed successfully."
-    LICENSE_INVALID_KEY = "Invalid license key."
-    LICENSE_EMPTY_KEY = "Enter a license key."
-    LICENSE_NO_KEY = "no key"
+    REG_TITLE = "Manage License"
+    REGISTRY_SAVED_SUCCESS = "License saved and validated successfully."
+    REGISTRY_DELETED_SUCCESS = "License removed successfully."
+    REGISTRY_INVALID = "Invalid license key."
+    REGISTRY_EMPTY = "Enter a license key."
+    NO_KEY = "no key"
     EXPIRATION_DATE = "Expiration date"
     REMAINING_DAYS = "remaining days"
     STATUS = "Status"

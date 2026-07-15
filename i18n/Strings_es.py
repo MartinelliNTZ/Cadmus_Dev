@@ -596,12 +596,12 @@ class Strings_es(Strings_pt_BR):
     MODE_UNZIP = "Descomprimir archivos"
 
     # License
-    LICENSE_TITLE = "Gestionar Licencia"
-    LICENSE_SAVED_SUCCESS = "Licencia guardada y validada con éxito."
-    LICENSE_DELETED_SUCCESS = "Licencia eliminada con éxito."
-    LICENSE_INVALID_KEY = "Clave de licencia inválida."
-    LICENSE_EMPTY_KEY = "Ingrese una clave de licencia."
-    LICENSE_NO_KEY = "sin clave"
+    REG_TITLE = "Gestionar Licencia"
+    REGISTRY_SAVED_SUCCESS = "Licencia guardada y validada con éxito."
+    REGISTRY_DELETED_SUCCESS = "Licencia eliminada con éxito."
+    REGISTRY_INVALID = "Clave de licencia inválida."
+    REGISTRY_EMPTY = "Ingrese una clave de licencia."
+    NO_KEY = "sin clave"
     EXPIRATION_DATE = "Vencimiento"
     REMAINING_DAYS = "días restantes"
     STATUS = "Estado"

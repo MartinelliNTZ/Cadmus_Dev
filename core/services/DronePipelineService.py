@@ -59,7 +59,7 @@ class DronePipelineService:
     }
 
     # Nível mínimo de licença exigido para gerar relatórios
-    LICENSE_LEVEL: int = 3
+    REGISTRY_LEVEL: int = 3
 
     # ── API PÚBLICA ────────────────────────────────────────────────
 
@@ -156,15 +156,15 @@ class DronePipelineService:
         if should_generate_report:
             try:
                 from ..config.RegistryManager import RegistryManager
-                license_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
-                if license_mgr.has_minimum_level(DronePipelineService.LICENSE_LEVEL):
+                reg_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
+                if reg_mgr.has_minimum_level(DronePipelineService.REGISTRY_LEVEL):
                     # Import lazy: ReportGenerationStep só é importado se houver licença
                     # Isso permite que o pipeline funcione em modo free sem o módulo
                     from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
                     steps.append(ReportGenerationStep())
                 else:
                     logger.warning(
-                        f"Licença sem nível mínimo {DronePipelineService.LICENSE_LEVEL} — relatório não será gerado"
+                        f"Licença sem nível mínimo {DronePipelineService.REGISTRY_LEVEL} — relatório não será gerado"
                     )
             except Exception as e:
                 logger.error(f"Falha ao verificar licença: {e}")
@@ -297,8 +297,8 @@ class DronePipelineService:
         if json_path and Preferences.load_tool_prefs(ToolKey.DRONE_COORDINATES).get("generate_report", False):
             try:
                 from ..config.RegistryManager import RegistryManager
-                license_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
-                if license_mgr.has_minimum_level(DronePipelineService.LICENSE_LEVEL):
+                reg_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
+                if reg_mgr.has_minimum_level(DronePipelineService.REGISTRY_LEVEL):
                     # Import lazy: ReportGenerationService só é importado se houver licença
                     # Permite que o pipeline funcione em modo free sem o módulo
                     from .ReportGenerationService import ReportGenerationService
@@ -307,7 +307,7 @@ class DronePipelineService:
                     ).generate_from_json(json_path)
                 else:
                     logger.warning(
-                        f"Licença sem nível mínimo {DronePipelineService.LICENSE_LEVEL} — relatório não será gerado no pós-processamento"
+                        f"Licença sem nível mínimo {DronePipelineService.REGISTRY_LEVEL} — relatório não será gerado no pós-processamento"
                     )
             except Exception as e:
                 logger.error(f"Falha ao gerar report: {e}")

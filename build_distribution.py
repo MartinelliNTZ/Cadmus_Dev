@@ -64,6 +64,7 @@ _MODULES_EXAMPLE = {
     ],
     "core/config": [
         "RegistryManager.py",
+        "RegistryFileManager.py",
         "ToolRegistry.py",
         "LogUtils.py",
         "LogCleanupUtils.py",
@@ -118,6 +119,8 @@ MODULES = {
     ],
     "core/config": [
         "RegistryManager.py",
+        "RegistryFileManager.py",
+        "Security.py",
     ],
     "core/services": [
         "ReportGenerationService.py",

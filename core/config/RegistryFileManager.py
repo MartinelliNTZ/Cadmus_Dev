@@ -71,7 +71,7 @@ class RegistryFileManager(BaseUtil):
     # Public API
     # ----------------------------------------------------------------
 
-    def save_license(self, data: dict) -> bool:
+    def save_lic(self, data: dict) -> bool:
         """
         Salva os dados da licença no arquivo ofuscado.
 
@@ -134,7 +134,7 @@ class RegistryFileManager(BaseUtil):
             )
             return False
 
-    def load_license(self) -> Optional[dict]:
+    def load_lic(self) -> Optional[dict]:
         """
         Carrega e valida os dados da licença do arquivo ofuscado.
 
@@ -200,7 +200,7 @@ class RegistryFileManager(BaseUtil):
             )
             return None
 
-    def validate_license(self, data: Optional[dict] = None) -> bool:
+    def validate_lic(self, data: Optional[dict] = None) -> bool:
         """
         Valida todos os critérios da licença.
 
@@ -217,7 +217,7 @@ class RegistryFileManager(BaseUtil):
             bool: True se a licença é válida.
         """
         if data is None:
-            data = self.load_license()
+            data = self.load_lic()
 
         if data is None:
             return False
@@ -275,7 +275,7 @@ class RegistryFileManager(BaseUtil):
 
         return True
 
-    def delete_license(self) -> bool:
+    def delete_lic(self) -> bool:
         """
         Remove o arquivo de licença do disco.
 
@@ -393,7 +393,7 @@ class RegistryFileManager(BaseUtil):
         return file_path
 
     @staticmethod
-    def build_license_dict(
+    def build_lic_dict(
         license_key: str,
         level: int,
         expire_date: str,

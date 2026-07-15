@@ -156,13 +156,13 @@ class SettingsPlugin(BasePluginMTL):
         self.geral_collapsable.add_content_layout(thresh_layout)
         self.geral_collapsable.add_content_layout(pref_button_layout)
 
-        license_layout, self.license_btn = WidgetFactory.create_simple_button(
+        lic_layout, self.lic_btn = WidgetFactory.create_simple_button(
             text="_",
             parent=self,
             spacing=6,
         )
-        self.license_btn.clicked.connect(self._open_license_dialog)
-        self.geral_collapsable.add_content_layout(license_layout)
+        self.lic_btn.clicked.connect(self._open_lic_dialog)
+        self.geral_collapsable.add_content_layout(lic_layout)
 
         self.geral_collapsable.add_content_layout(toolbar_layout)
 
@@ -354,8 +354,7 @@ class SettingsPlugin(BasePluginMTL):
             f"Categorias visiveis na toolbar salvas: {toolbar_visibility}"
         )
 
-        # License não é mais salva via input_fields aqui; o LicenseDialog salva diretamente
-        # via LicenseManager.save_license_key(). Apenas garantimos que a preferência existe.
+
 
         paths = self.project_folder_selector.get_paths()
         self.preferences["projects_folder"] = paths[0] if paths else ""
@@ -430,10 +429,10 @@ class SettingsPlugin(BasePluginMTL):
         self.logger.info("Configurações aplicadas e salvas")
         self.close()
 
-    def _open_license_dialog(self):
+    def _open_lic_dialog(self):
         """
         Abre o diálogo de gerenciamento de licença.
-        A licença é salva/gerenciada pelo LicenseDialog diretamente via LicenseManager.
+        A licença é salva/gerenciada pelo LicDialog diretamente via LicManager.
         """
         self.logger.debug("Abrindo diálogo de gerenciamento de licença")
         from ..core.ui.RegistryDialog import RegistryDialog

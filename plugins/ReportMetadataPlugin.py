@@ -27,7 +27,7 @@ class ReportMetadataPlugin(BasePluginMTL):
     PREF_SELECTED_JSON = "selected_json"
 
     # Nível mínimo de licença exigido para usar esta ferramenta
-    LICENSE_LEVEL: int = 3
+    REGISTRY_LEVEL: int = 3
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
@@ -362,8 +362,8 @@ class ReportMetadataPlugin(BasePluginMTL):
         try:
             # Verifica se a licença tem nível mínimo 3 para gerar relatórios
             from ..core.config.RegistryManager import RegistryManager
-            license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
-            if not license_mgr.has_minimum_level(self.LICENSE_LEVEL):
+            lic_mgr = RegistryManager(tool_key=self.TOOL_KEY)
+            if not lic_mgr.has_minimum_level(self.REGISTRY_LEVEL):
                 QgisMessageUtil.modal_warning(
                     self.iface,
                     "Relatório requer licença nível 3 ou superior."

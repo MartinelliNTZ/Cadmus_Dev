@@ -18,7 +18,7 @@ class DroneCordinates(BasePluginMTL):
     TOOL_KEY = ToolKey.DRONE_COORDINATES
 
     # Nível mínimo de licença exigido para funcionalidades premium (relatório, logo, título)
-    LICENSE_LEVEL: int = 3
+    REGISTRY_LEVEL: int = 3
 
     CHECKBOX_OPTIONS = {
         "recursive": STR.RECURSIVE_SEARCH,
@@ -56,13 +56,13 @@ class DroneCordinates(BasePluginMTL):
         # Verifica licença — controla exibição de itens do relatório
         try:
             from ..core.config.RegistryManager import RegistryManager
-            license_mgr = RegistryManager(tool_key=self.TOOL_KEY)
-            is_license_valid = license_mgr.has_minimum_level(self.LICENSE_LEVEL)
+            lic_mgr = RegistryManager(tool_key=self.TOOL_KEY)
+            is_lic_valid = lic_mgr.has_minimum_level(self.REGISTRY_LEVEL)
         except Exception as e:
             self.logger.error(
-                f"Erro ao verificar licença: {e}", code="LICENSE_CHECK_ERROR"
+                f"Erro ao verificar licença: {e}", code="CHECK_ERROR"
             )
-            is_license_valid = False
+            is_lic_valid = False
 
         # ====== PASTA MRK ======
         folder_layout, self.folder_selector = WidgetFactory.create_path_selector(
@@ -82,7 +82,7 @@ class DroneCordinates(BasePluginMTL):
         )
 
         # ====== LOGO / IMAGE SELECTOR (só se licença válida) ======
-        if is_license_valid:
+        if is_lic_valid:
             logo_layout, self.logo_selector = WidgetFactory.create_save_file_selector(
                 parent=self,
                 file_filter=StringManager.FILTER_IMAGES,
@@ -95,7 +95,7 @@ class DroneCordinates(BasePluginMTL):
             self.opts_collapsible.add_content_layout(logo_layout)
 
         # ====== PROJETO TITLE (só se licença válida) ======
-        if is_license_valid:
+        if is_lic_valid:
             title_fields = {
                 "project_title": {
                     "title": STR.PROJECT_TITLE,
@@ -116,7 +116,7 @@ class DroneCordinates(BasePluginMTL):
 
         # Monta checkboxes — remove generate_report se licença inválida
         checkbox_options = dict(self.CHECKBOX_OPTIONS)
-        if not is_license_valid:
+        if not is_lic_valid:
             checkbox_options.pop("generate_report", None)
 
         opts_checkbox_layout, self.checkbox_map = WidgetFactory.create_checkbox_grid(

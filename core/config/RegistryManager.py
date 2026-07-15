@@ -67,7 +67,7 @@ class RegistryManager(BaseUtil):
         Returns:
             bool: True se a licença é válida, False caso contrário
         """
-        lic_data = self._file_mgr.load_license()
+        lic_data = self._file_mgr.load_lic()
         if lic_data is None:
             self.logger.debug("Nenhum cache de licença encontrado")
             return False
@@ -127,7 +127,7 @@ class RegistryManager(BaseUtil):
                 "days_remaining": int,
             }
         """
-        lic_data = self._file_mgr.load_license()
+        lic_data = self._file_mgr.load_lic()
 
         if lic_data is None:
             return {
@@ -146,7 +146,7 @@ class RegistryManager(BaseUtil):
         level = lic_data.get(RegistryFileManager.FIELD_LEVEL, 0)
 
         # Verifica validade do cache
-        is_cached = self._file_mgr.validate_license(lic_data)
+        is_cached = self._file_mgr.validate_lic(lic_data)
 
         info = {
             "has_key": bool(license_key),
@@ -168,28 +168,28 @@ class RegistryManager(BaseUtil):
 
         return info
 
-    def save_license_key(self, license_key: str) -> dict:
+    def save_lic_key(self, lic_key: str) -> dict:
         """
         Salva e valida uma chave de licença junto ao servidor.
 
         Fluxo:
         1. Valida a chave no Supabase
         2. Se válida: salva chave, status "active", expiry (+30 dias), nivel
-           em arquivo ofuscado via LicenseFileManager
+           em arquivo ofuscado via LicFileManager
         3. Se inválida: NÃO salva, retorna erro
 
         Args:
-            license_key: Chave de licença a ser salva.
+            lic_key: Chave de licença a ser salva.
 
         Returns:
             dict: {"success": bool, "message": str}
         """
-        license_key = license_key.strip()
-        if not license_key:
+        lic_key = lic_key.strip()
+        if not lic_key:
             self.logger.warning("Tentativa de salvar chave vazia")
             return {"success": False, "message": "Chave de licença não pode estar vazia."}
 
-        is_valid, nivel = self._validate_and_get_nivel(license_key)
+        is_valid, nivel = self._validate_and_get_nivel(lic_key)
 
         if not is_valid:
             self.logger.warning("Tentativa de salvar chave inválida")
@@ -198,13 +198,13 @@ class RegistryManager(BaseUtil):
         today = datetime.now().date()
         new_expiry = today + timedelta(days=30)
 
-        lic_data = RegistryFileManager.build_license_dict(
-            license_key=license_key,
+        lic_data = RegistryFileManager.build_lic_dict(
+            license_key=lic_key,
             level=nivel,
             expire_date=new_expiry.strftime(self.DATE_FORMAT),
         )
 
-        saved = self._file_mgr.save_license(lic_data)
+        saved = self._file_mgr.save_lic(lic_data)
         if not saved:
             return {"success": False, "message": "Falha ao salvar arquivo de licença."}
 
@@ -243,11 +243,11 @@ class RegistryManager(BaseUtil):
         current_level = self.get_level()
         return current_level >= min_level
 
-    def delete_license(self) -> None:
+    def delete_lic(self) -> None:
         """
         Remove o arquivo de licença ofuscado do disco.
         """
-        self._file_mgr.delete_license()
+        self._file_mgr.delete_lic()
         self.logger.debug("Licença removida do arquivo ofuscado")
 
     # ----------------------------------------------------------------
@@ -353,17 +353,17 @@ class RegistryManager(BaseUtil):
 
         if is_valid:
             new_expiry = today + timedelta(days=30)
-            lic_data = RegistryFileManager.build_license_dict(
+            lic_data = RegistryFileManager.build_lic_dict(
                 license_key=license_key,
                 level=1,
                 expire_date=new_expiry.strftime(self.DATE_FORMAT),
             )
             # Tenta carregar dados existentes para preservar nível
-            existing = self._file_mgr.load_license()
+            existing = self._file_mgr.load_lic()
             if existing and isinstance(existing.get(RegistryFileManager.FIELD_LEVEL), int):
                 lic_data[RegistryFileManager.FIELD_LEVEL] = existing[RegistryFileManager.FIELD_LEVEL]
 
-            self._file_mgr.save_license(lic_data)
+            self._file_mgr.save_lic(lic_data)
             self.logger.debug(
                 f"Licença renovada com sucesso até "
                 f"{new_expiry.strftime(self.DATE_FORMAT)}"
@@ -392,24 +392,24 @@ class RegistryManager(BaseUtil):
 
         if is_valid:
             new_expiry = today + timedelta(days=30)
-            lic_data = RegistryFileManager.build_license_dict(
+            lic_data = RegistryFileManager.build_lic_dict(
                 license_key=license_key,
                 level=1,
                 expire_date=new_expiry.strftime(self.DATE_FORMAT),
             )
             # Tenta carregar dados existentes para preservar nível
-            existing = self._file_mgr.load_license()
+            existing = self._file_mgr.load_lic()
             if existing and isinstance(existing.get(RegistryFileManager.FIELD_LEVEL), int):
                 lic_data[RegistryFileManager.FIELD_LEVEL] = existing[RegistryFileManager.FIELD_LEVEL]
 
-            self._file_mgr.save_license(lic_data)
+            self._file_mgr.save_lic(lic_data)
             self.logger.debug(
                 f"Licença validada com sucesso até "
                 f"{new_expiry.strftime(self.DATE_FORMAT)}"
             )
             return True
         else:
-            self._file_mgr.delete_license()
+            self._file_mgr.delete_lic()
             self.logger.warning("Chave de licença inválida, cache removido")
             return False
 

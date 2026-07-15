@@ -9,6 +9,15 @@ from ..ScrollWidget import ScrollWidget
 from ....core.config.LogUtils import LogUtils
 from ....utils.ToolKeys import ToolKey
 
+
+# Compatibilidade Qt5/Qt6: Qt5 usa Qt.WA_TransparentForMouseEvents,
+# Qt6 usa Qt.WidgetAttribute.WA_TransparentForMouseEvents
+def _qt_wa_transparent():
+    try:
+        return Qt.WidgetAttribute.WA_TransparentForMouseEvents
+    except AttributeError:
+        return Qt.WA_TransparentForMouseEvents
+
 logger = LogUtils(
     tool=ToolKey.CADMUS_PLUGIN, class_name="MainLayout", level=LogUtils.DEBUG
 )
@@ -44,7 +53,7 @@ class BorderHitWidget(QWidget):
         self._edge = edge
         self._layout = main_layout
         self.setMouseTracking(True)
-        self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+        self.setAttribute(_qt_wa_transparent(), False)
         self.setStyleSheet("background: rgba(0,0,0,0); border: none;")
 
     def enterEvent(self, event):
@@ -324,7 +333,7 @@ class MainLayout(QVBoxLayout):
             try:
                 w = BorderHitWidget(self._frame, e, self)
                 w.setObjectName(f"border_hit_{e}")
-                w.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+                w.setAttribute(_qt_wa_transparent(), False)
                 w.setMouseTracking(True)
                 w.raise_()
                 self._borders[e] = w

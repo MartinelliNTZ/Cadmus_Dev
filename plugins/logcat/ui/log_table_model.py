@@ -8,6 +8,14 @@ Nenhuma lógica de UI aqui - apenas model puro.
 
 from typing import List, Optional
 from qgis.PyQt.QtCore import Qt, QAbstractTableModel, QModelIndex, QVariant
+
+
+# Compatibilidade Qt5/Qt6: Qt5 usa Qt.DisplayRole, Qt6 usa Qt.ItemDataRole.DisplayRole
+def _qt_display_role():
+    try:
+        return Qt.ItemDataRole.DisplayRole
+    except AttributeError:
+        return Qt.DisplayRole
 from qgis.PyQt.QtGui import QColor
 from ..core.model.log_entry import LogEntry
 from ..core.color.class_color_provider import ClassColorProvider
@@ -135,10 +143,10 @@ class LogTableModel(QAbstractTableModel):
         return len(self.COLUMNS)
 
     def headerData(
-        self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole
+        self, section: int, orientation: Qt.Orientation, role: int = _qt_display_role()
     ) -> QVariant:
         """Retorna cabeçalho das colunas."""
-        if role != Qt.DisplayRole:
+        if role != _qt_display_role():
             return QVariant()
 
         if orientation == Qt.Orientation.Horizontal and 0 <= section < len(self.COLUMNS):
@@ -149,7 +157,7 @@ class LogTableModel(QAbstractTableModel):
 
         return QVariant()
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> QVariant:
+    def data(self, index: QModelIndex, role: int = _qt_display_role()) -> QVariant:
         """Retorna dados para uma célula."""
         try:
             if not index.isValid():
@@ -165,7 +173,7 @@ class LogTableModel(QAbstractTableModel):
             col_name = self.COLUMNS[col][1]
 
             # Dados para exibição
-            if role == Qt.DisplayRole:
+            if role == _qt_display_role():
                 text = self._get_display_text(entry, col_name)
                 return QVariant(text)
 

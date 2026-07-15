@@ -4,6 +4,22 @@ from qgis.PyQt.QtWidgets import QDialog, QSizeGrip
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt
 
+
+# Compatibilidade Qt5/Qt6: Qt5 usa Qt.{attr}, Qt6 usa Qt.WindowType.{attr}
+def _qt_window_type(name):
+    try:
+        return getattr(Qt.WindowType, name)
+    except AttributeError:
+        return getattr(Qt, name)
+
+
+def _qt_widget_attr(name):
+    try:
+        return getattr(Qt.WidgetAttribute, name)
+    except AttributeError:
+        return getattr(Qt, name)
+
+
 import os
 from typing import Optional
 from ..core.ui.WidgetFactory import WidgetFactory
@@ -52,8 +68,8 @@ class BaseDialog(QDialog):
             self, title=title, enable_scroll=enable_scroll, icon_path="cadmus_icon.png"
         )
         # Garantir que o MainLayout seja sempre criado. Usar PLUGIN_NAME como fallback.
-        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setWindowFlags(_qt_window_type("Dialog") | _qt_window_type("FramelessWindowHint"))
+        self.setAttribute(_qt_widget_attr("WA_TranslucentBackground"), True)
         # Tamanho mínimo padrão: 300x300 (persistido em preferências)
         self.setMinimumSize(*minimum_size)
         # Size grip (resize visual indicator)

@@ -14,10 +14,10 @@ class HudProgressBar(QWidget):
         layout = QVBoxLayout()
 
         self.label = QLabel(title)
-        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.percent = QLabel("0 %")
-        self.percent.setAlignment(Qt.AlignCenter)
+        self.percent.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.bar = QProgressBar()
         self.bar.setMinimum(0)

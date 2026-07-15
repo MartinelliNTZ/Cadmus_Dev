@@ -346,7 +346,7 @@ class QgisMessageUtil(BaseUtil):
             icon_label = QLabel()
 
             pix = QPixmap(icon_path).scaled(
-                18, 18, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                18, 18, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             )
 
             icon_label.setPixmap(pix)

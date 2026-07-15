@@ -40,7 +40,7 @@ class VectorToSvgPlugin(BasePluginMTL):
 
         layer_layout, self.layer_input = WidgetFactory.create_layer_input(
             STR.VECTOR_LAYER_LABEL,
-            QgsMapLayerProxyModel.VectorLayer,
+            QgsMapLayerProxyModel.Filter.VectorLayer,
             allow_empty=False,
             enable_selected_checkbox=True,
             parent=self,
@@ -190,13 +190,13 @@ class VectorToSvgPlugin(BasePluginMTL):
         self.logger.debug("Salvando preferencias do VectorToSvg")
 
         self.preferences["fill_color"] = self.fill_color_widget.get_color().name(
-            QColor.HexArgb
+            QColor.NameFormat.HexArgb
         )
         self.preferences["border_color"] = self.border_color_widget.get_color().name(
-            QColor.HexArgb
+            QColor.NameFormat.HexArgb
         )
         self.preferences["label_color"] = self.label_color_widget.get_color().name(
-            QColor.HexArgb
+            QColor.NameFormat.HexArgb
         )
         self.preferences["label_size"] = float(self.label_size_spin.value())
         self.preferences["border_width"] = float(self.border_width_spin.value())
@@ -324,9 +324,9 @@ class VectorToSvgPlugin(BasePluginMTL):
 
     def _build_style(self):
         return {
-            "background_color": self.fill_color_widget.get_color().name(QColor.HexRgb),
-            "border_color": self.border_color_widget.get_color().name(QColor.HexRgb),
-            "label_color": self.label_color_widget.get_color().name(QColor.HexRgb),
+            "background_color": self.fill_color_widget.get_color().name(QColor.NameFormat.HexRgb),
+            "border_color": self.border_color_widget.get_color().name(QColor.NameFormat.HexRgb),
+            "label_color": self.label_color_widget.get_color().name(QColor.NameFormat.HexRgb),
             "label_size": float(self.label_size_spin.value()),
             "border_width": float(self.border_width_spin.value()),
             "transparent_background": self.options_map[

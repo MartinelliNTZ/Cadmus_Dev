@@ -406,23 +406,23 @@ class MainLayout(QVBoxLayout):
     def _update_cursor(self, edge: Optional[str]):
         """Atualiza cursor baseado na borda detectada."""
         cursors = {
-            "top": Qt.SizeVerCursor,
-            "bottom": Qt.SizeVerCursor,
-            "left": Qt.SizeHorCursor,
-            "right": Qt.SizeHorCursor,
-            "top-left": Qt.SizeFDiagCursor,
-            "top-right": Qt.SizeBDiagCursor,
-            "bottom-left": Qt.SizeBDiagCursor,
-            "bottom-right": Qt.SizeFDiagCursor,
+            "top": Qt.CursorShape.SizeVerCursor,
+            "bottom": Qt.CursorShape.SizeVerCursor,
+            "left": Qt.CursorShape.SizeHorCursor,
+            "right": Qt.CursorShape.SizeHorCursor,
+            "top-left": Qt.CursorShape.SizeFDiagCursor,
+            "top-right": Qt.CursorShape.SizeBDiagCursor,
+            "bottom-left": Qt.CursorShape.SizeBDiagCursor,
+            "bottom-right": Qt.CursorShape.SizeFDiagCursor,
         }
         if self._parent_dialog:
-            cur = cursors.get(edge, Qt.ArrowCursor)
+            cur = cursors.get(edge, Qt.CursorShape.ArrowCursor)
             # cursor update is silent to avoid noisy logs
             self._parent_dialog.setCursor(QCursor(cur))
 
     def handle_mouse_press(self, event):
         """Inicia resize ao clicar nas bordas."""
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             # Map event global position to parent dialog coordinates to ensure
             # correct edge detection when events come from child widgets.
             mapped_pos = None
@@ -489,7 +489,7 @@ class MainLayout(QVBoxLayout):
 
     def handle_mouse_release(self, event):
         """Finaliza resize ao soltar o mouse."""
-        if event.button() == Qt.LeftButton and self._resize_active:
+        if event.button() == Qt.MouseButton.LeftButton and self._resize_active:
             self._resize_active = False
             self._resize_edge = None
             self._last_pos = None

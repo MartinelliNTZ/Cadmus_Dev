@@ -1,0 +1,212 @@
+==========================================================================================
+RELATORIO DE CORRECAO DE ENUMS QT5/QT6
+Gerado em: 15/07/2026 14:21:54
+==========================================================================================
+
+Arquivo: core\ui\TemporaryDialog.py
+------------------------------------------------------------------------------------------
+  Linha 42: Qt.AlignLeft -> Qt.AlignmentFlag.AlignLeft
+    Contexto: layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+  Linha 42: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignVCenter)
+  Linha 52: Qt.SmoothTransformation -> Qt.TransformationMode.SmoothTransformation
+    Contexto: 20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
+  Linha 52: Qt.KeepAspectRatio -> Qt.AspectRatioMode.KeepAspectRatio
+    Contexto: 20, 20, Qt.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+
+Arquivo: core\ui\WidgetFactory.py
+------------------------------------------------------------------------------------------
+  Linha 628: QFrame.HLine -> QFrame.Shape.HLine
+    Contexto: shape = QFrame.HLine
+  Linha 632: QFrame.NoFrame -> QFrame.Shape.NoFrame
+    Contexto: shape = QFrame.NoFrame
+  Linha 636: QFrame.Sunken -> QFrame.Shadow.Sunken
+    Contexto: shadow = QFrame.Sunken
+  Linha 640: QFrame.Plain -> QFrame.Shadow.Plain
+    Contexto: shadow = QFrame.Plain
+
+Arquivo: plugins\AboutDialog.py
+------------------------------------------------------------------------------------------
+  Linha 37: Qt.AlignCenter -> Qt.AlignmentFlag.AlignCenter
+    Contexto: alignment=Qt.AlignCenter,
+  Linha 59: Qt.AlignCenter -> Qt.AlignmentFlag.AlignCenter
+    Contexto: alignment=Qt.AlignCenter,
+  Linha 82: Qt.AlignCenter -> Qt.AlignmentFlag.AlignCenter
+    Contexto: social_layout.setAlignment(Qt.AlignCenter)
+  Linha 94: Qt.PointingHandCursor -> Qt.CursorShape.PointingHandCursor
+    Contexto: btn.setCursor(Qt.PointingHandCursor)
+
+Arquivo: plugins\BaseDialog.py
+------------------------------------------------------------------------------------------
+  Linha 62: Qt.AlignRight -> Qt.AlignmentFlag.AlignRight
+    Contexto: self.layout.addWidget(self.size_grip, alignment=Qt.AlignBottom | Qt.AlignRight)
+  Linha 62: Qt.AlignBottom -> Qt.AlignmentFlag.AlignBottom
+    Contexto: self.layout.addWidget(self.size_grip, alignment=Qt.AlignBottom | Qt.AlignmentFlag.AlignRight)
+
+Arquivo: plugins\CopyAttributesPlugin.py
+------------------------------------------------------------------------------------------
+  Linha 35: QgsMapLayerProxyModel.VectorLayer -> QgsMapLayerProxyModel.Filter.VectorLayer
+    Contexto: filters=[QgsMapLayerProxyModel.VectorLayer],
+  Linha 43: QgsMapLayerProxyModel.VectorLayer -> QgsMapLayerProxyModel.Filter.VectorLayer
+    Contexto: filters=[QgsMapLayerProxyModel.VectorLayer],
+
+Arquivo: plugins\DividePointsByStripsPlugin.py
+------------------------------------------------------------------------------------------
+  Linha 70: QgsMapLayerProxyModel.PointLayer -> QgsMapLayerProxyModel.Filter.PointLayer
+    Contexto: filters=[QgsMapLayerProxyModel.PointLayer],
+
+Arquivo: plugins\GenerateTrailPlugin.py
+------------------------------------------------------------------------------------------
+  Linha 49: QgsMapLayerProxyModel.LineLayer -> QgsMapLayerProxyModel.Filter.LineLayer
+    Contexto: filters=[QgsMapLayerProxyModel.LineLayer],
+
+Arquivo: plugins\PathExtensionPlugin.py
+------------------------------------------------------------------------------------------
+  Linha 43: QgsMapLayerProxyModel.VectorLayer -> QgsMapLayerProxyModel.Filter.VectorLayer
+    Contexto: filters=[QgsMapLayerProxyModel.VectorLayer],
+
+Arquivo: plugins\ReportMetadataPlugin.py
+------------------------------------------------------------------------------------------
+  Linha 116: QSizePolicy.Fixed -> QSizePolicy.Policy.Fixed
+    Contexto: combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+  Linha 116: QSizePolicy.Expanding -> QSizePolicy.Policy.Expanding
+    Contexto: combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Policy.Fixed)
+  Linha 125: QSizePolicy.Fixed -> QSizePolicy.Policy.Fixed
+    Contexto: btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+  Linha 125: QSizePolicy.Maximum -> QSizePolicy.Policy.Maximum
+    Contexto: btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Policy.Fixed)
+  Linha 127: Qt.PointingHandCursor -> Qt.CursorShape.PointingHandCursor
+    Contexto: btn.setCursor(Qt.PointingHandCursor)
+
+Arquivo: plugins\VectorToSvgPlugin.py
+------------------------------------------------------------------------------------------
+  Linha 43: QgsMapLayerProxyModel.VectorLayer -> QgsMapLayerProxyModel.Filter.VectorLayer
+    Contexto: QgsMapLayerProxyModel.VectorLayer,
+  Linha 193: QColor.HexArgb -> QColor.NameFormat.HexArgb
+    Contexto: QColor.HexArgb
+  Linha 196: QColor.HexArgb -> QColor.NameFormat.HexArgb
+    Contexto: QColor.HexArgb
+  Linha 199: QColor.HexArgb -> QColor.NameFormat.HexArgb
+    Contexto: QColor.HexArgb
+  Linha 327: QColor.HexRgb -> QColor.NameFormat.HexRgb
+    Contexto: "background_color": self.fill_color_widget.get_color().name(QColor.HexRgb),
+  Linha 328: QColor.HexRgb -> QColor.NameFormat.HexRgb
+    Contexto: "border_color": self.border_color_widget.get_color().name(QColor.HexRgb),
+  Linha 329: QColor.HexRgb -> QColor.NameFormat.HexRgb
+    Contexto: "label_color": self.label_color_widget.get_color().name(QColor.HexRgb),
+
+Arquivo: plugins\logcat\ui\log_table_model.py
+------------------------------------------------------------------------------------------
+  Linha 144: Qt.Horizontal -> Qt.Orientation.Horizontal
+    Contexto: if orientation == Qt.Horizontal and 0 <= section < len(self.COLUMNS):
+  Linha 147: Qt.Vertical -> Qt.Orientation.Vertical
+    Contexto: if orientation == Qt.Vertical:
+
+Arquivo: plugins\logcat\ui\logcat_dialog.py
+------------------------------------------------------------------------------------------
+  Linha 189: QFrame.VLine -> QFrame.Shape.VLine
+    Contexto: sep1.setFrameShape(QFrame.VLine)
+  Linha 229: QAbstractItemView.SelectRows -> QAbstractItemView.SelectionBehavior.SelectRows
+    Contexto: self.table_view.setSelectionBehavior(QAbstractItemView.SelectRows)
+  Linha 231: QAbstractItemView.MultiSelection -> QAbstractItemView.SelectionMode.MultiSelection
+    Contexto: QAbstractItemView.MultiSelection
+  Linha 540: Qt.Checked -> Qt.CheckState.Checked
+    Contexto: item.setCheckState(Qt.Checked if value in current_filter else Qt.Unchecked)
+  Linha 540: Qt.Unchecked -> Qt.CheckState.Unchecked
+    Contexto: item.setCheckState(Qt.CheckState.Checked if value in current_filter else Qt.Unchecked)
+  Linha 564: Qt.Checked -> Qt.CheckState.Checked
+    Contexto: if item.checkState() == Qt.Checked:
+
+Arquivo: resources\widgets\simple\ComplexSelector.py
+------------------------------------------------------------------------------------------
+  Linha 170: QSizePolicy.Fixed -> QSizePolicy.Policy.Fixed
+    Contexto: self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+  Linha 170: QSizePolicy.Preferred -> QSizePolicy.Policy.Preferred
+    Contexto: self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Policy.Fixed)
+  Linha 175: Qt.AlignLeft -> Qt.AlignmentFlag.AlignLeft
+    Contexto: self._label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+  Linha 175: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: self._label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignVCenter)
+  Linha 178: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._label, 0, Qt.AlignVCenter)
+  Linha 182: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._stack, 1, Qt.AlignVCenter)
+  Linha 222: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._btn_file, 0, Qt.AlignVCenter)
+  Linha 233: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._btn_folder, 0, Qt.AlignVCenter)
+  Linha 242: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._btn_project, 0, Qt.AlignVCenter)
+  Linha 251: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._btn_origin, 0, Qt.AlignVCenter)
+  Linha 260: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._btn_suggest, 0, Qt.AlignVCenter)
+  Linha 269: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._btn_explorer, 0, Qt.AlignVCenter)
+  Linha 278: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: layout.addWidget(self._crs_widget, 0, Qt.AlignVCenter)
+
+Arquivo: resources\widgets\system\AppBarWidget.py
+------------------------------------------------------------------------------------------
+  Linha 57: Qt.SmoothTransformation -> Qt.TransformationMode.SmoothTransformation
+    Contexto: 20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
+  Linha 57: Qt.KeepAspectRatio -> Qt.AspectRatioMode.KeepAspectRatio
+    Contexto: 20, 20, Qt.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+  Linha 82: Qt.AlignLeft -> Qt.AlignmentFlag.AlignLeft
+    Contexto: self.lbl_title.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+  Linha 82: Qt.AlignVCenter -> Qt.AlignmentFlag.AlignVCenter
+    Contexto: self.lbl_title.setAlignment(Qt.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+  Linha 121: Qt.LeftButton -> Qt.MouseButton.LeftButton
+    Contexto: if event.button() == Qt.LeftButton:
+  Linha 128: Qt.LeftButton -> Qt.MouseButton.LeftButton
+    Contexto: if self._drag_pos and event.buttons() & Qt.LeftButton:
+
+Arquivo: resources\widgets\system\MainLayout.py
+------------------------------------------------------------------------------------------
+  Linha 409: Qt.SizeVerCursor -> Qt.CursorShape.SizeVerCursor
+    Contexto: "top": Qt.SizeVerCursor,
+  Linha 410: Qt.SizeVerCursor -> Qt.CursorShape.SizeVerCursor
+    Contexto: "bottom": Qt.SizeVerCursor,
+  Linha 411: Qt.SizeHorCursor -> Qt.CursorShape.SizeHorCursor
+    Contexto: "left": Qt.SizeHorCursor,
+  Linha 412: Qt.SizeHorCursor -> Qt.CursorShape.SizeHorCursor
+    Contexto: "right": Qt.SizeHorCursor,
+  Linha 413: Qt.SizeFDiagCursor -> Qt.CursorShape.SizeFDiagCursor
+    Contexto: "top-left": Qt.SizeFDiagCursor,
+  Linha 414: Qt.SizeBDiagCursor -> Qt.CursorShape.SizeBDiagCursor
+    Contexto: "top-right": Qt.SizeBDiagCursor,
+  Linha 415: Qt.SizeBDiagCursor -> Qt.CursorShape.SizeBDiagCursor
+    Contexto: "bottom-left": Qt.SizeBDiagCursor,
+  Linha 416: Qt.SizeFDiagCursor -> Qt.CursorShape.SizeFDiagCursor
+    Contexto: "bottom-right": Qt.SizeFDiagCursor,
+  Linha 419: Qt.ArrowCursor -> Qt.CursorShape.ArrowCursor
+    Contexto: cur = cursors.get(edge, Qt.ArrowCursor)
+  Linha 425: Qt.LeftButton -> Qt.MouseButton.LeftButton
+    Contexto: if event.button() == Qt.LeftButton:
+  Linha 492: Qt.LeftButton -> Qt.MouseButton.LeftButton
+    Contexto: if event.button() == Qt.LeftButton and self._resize_active:
+
+Arquivo: utils\QgisMessageUtil.py
+------------------------------------------------------------------------------------------
+  Linha 349: Qt.SmoothTransformation -> Qt.TransformationMode.SmoothTransformation
+    Contexto: 18, 18, Qt.KeepAspectRatio, Qt.SmoothTransformation
+  Linha 349: Qt.KeepAspectRatio -> Qt.AspectRatioMode.KeepAspectRatio
+    Contexto: 18, 18, Qt.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+
+Arquivo: utils\SVGUtils.py
+------------------------------------------------------------------------------------------
+  Linha 225: QgsWkbTypes.Point -> QgsWkbTypes.GeometryType.Point
+    Contexto: if wkb_type == QgsWkbTypes.Point:
+  Linha 231: QgsWkbTypes.MultiPoint -> QgsWkbTypes.GeometryType.MultiPoint
+    Contexto: if wkb_type == QgsWkbTypes.MultiPoint:
+  Linha 247: QgsWkbTypes.Polygon -> QgsWkbTypes.GeometryType.Polygon
+    Contexto: if wkb_type == QgsWkbTypes.Polygon:
+  Linha 253: QgsWkbTypes.MultiPolygon -> QgsWkbTypes.GeometryType.MultiPolygon
+    Contexto: if wkb_type == QgsWkbTypes.MultiPolygon:
+  Linha 842: QColor.HexRgb -> QColor.NameFormat.HexRgb
+    Contexto: return value.name(QColor.HexRgb)
+
+==========================================================================================
+Total de arquivos modificados: 17
+Total de correcoes aplicadas: 76
+==========================================================================================

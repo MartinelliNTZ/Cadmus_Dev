@@ -222,13 +222,13 @@ class SVGUtils(BaseUtil):
                 )
             return elements
 
-        if wkb_type == QgsWkbTypes.Point:
+        if wkb_type == QgsWkbTypes.GeometryType.Point:
             return [
                 SVGUtils.point_svg(
                     geometry.asPoint(), offset_x, offset_y, scale, symbol_style
                 )
             ]
-        if wkb_type == QgsWkbTypes.MultiPoint:
+        if wkb_type == QgsWkbTypes.GeometryType.MultiPoint:
             return [
                 SVGUtils.point_svg(point, offset_x, offset_y, scale, symbol_style)
                 for point in geometry.asMultiPoint()
@@ -244,13 +244,13 @@ class SVGUtils(BaseUtil):
                 SVGUtils.line_svg(line, offset_x, offset_y, scale, symbol_style)
                 for line in geometry.asMultiPolyline()
             ]
-        if wkb_type == QgsWkbTypes.Polygon:
+        if wkb_type == QgsWkbTypes.GeometryType.Polygon:
             return [
                 SVGUtils.polygon_svg(
                     geometry.asPolygon(), offset_x, offset_y, scale, symbol_style
                 )
             ]
-        if wkb_type == QgsWkbTypes.MultiPolygon:
+        if wkb_type == QgsWkbTypes.GeometryType.MultiPolygon:
             return [
                 SVGUtils.polygon_svg(polygon, offset_x, offset_y, scale, symbol_style)
                 for polygon in geometry.asMultiPolygon()
@@ -839,7 +839,7 @@ class SVGUtils(BaseUtil):
     @staticmethod
     def qcolor_to_svg(value) -> Optional[str]:
         if isinstance(value, QColor) and value.isValid():
-            return value.name(QColor.HexRgb)
+            return value.name(QColor.NameFormat.HexRgb)
         return None
 
     @staticmethod

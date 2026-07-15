@@ -40,7 +40,7 @@ class PathExtensionPlugin(BasePluginMTL):
 
         layer_layout, self.layer_input = WidgetFactory.create_layer_input(
             label_text=STR.INPUT_LAYER,
-            filters=[QgsMapLayerProxyModel.VectorLayer],
+            filters=[QgsMapLayerProxyModel.Filter.VectorLayer],
             parent=self,
             allow_empty=False,
         )

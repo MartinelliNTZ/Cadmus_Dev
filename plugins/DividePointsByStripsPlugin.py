@@ -67,7 +67,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         layer_layout, self.layer_input = WidgetFactory.create_layer_input(
             label_text=STR.INPUT_POINTS,
-            filters=[QgsMapLayerProxyModel.PointLayer],
+            filters=[QgsMapLayerProxyModel.Filter.PointLayer],
             allow_empty=False,
             enable_selected_checkbox=True,
             parent=self,

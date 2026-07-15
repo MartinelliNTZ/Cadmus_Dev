@@ -46,7 +46,7 @@ class GenerateTrailPlugin(BasePluginMTL):
 
         layer_layout, self.layer_input = WidgetFactory.create_layer_input(
             label_text=STR.INPUT_LINE_LAYER,
-            filters=[QgsMapLayerProxyModel.LineLayer],
+            filters=[QgsMapLayerProxyModel.Filter.LineLayer],
             parent=self,
             allow_empty=False,
         )

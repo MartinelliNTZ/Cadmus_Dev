@@ -186,7 +186,7 @@ class LogcatDialog(QDialog):
 
         # Separador
         sep1 = QFrame()
-        sep1.setFrameShape(QFrame.VLine)
+        sep1.setFrameShape(QFrame.Shape.VLine)
         filter_layout.addWidget(sep1)
 
         # Filtro de Level
@@ -226,9 +226,9 @@ class LogcatDialog(QDialog):
         self.table_view = QTableView()
         self.table_view.setModel(self.proxy_model)
         self.table_view.setSortingEnabled(True)  # Habilitar sort via header
-        self.table_view.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_view.setSelectionMode(
-            QAbstractItemView.MultiSelection
+            QAbstractItemView.SelectionMode.MultiSelection
         )  # Multi-seleção
         self.table_view.setAlternatingRowColors(True)
         self.table_view.setColumnWidth(0, 150)  # Timestamp
@@ -537,7 +537,7 @@ class LogcatDialog(QDialog):
         for value in unique_values:
             item = QListWidgetItem(value)
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            item.setCheckState(Qt.Checked if value in current_filter else Qt.Unchecked)
+            item.setCheckState(Qt.CheckState.Checked if value in current_filter else Qt.CheckState.Unchecked)
             list_widget.addItem(item)
 
         # Criar dialog
@@ -561,7 +561,7 @@ class LogcatDialog(QDialog):
             selected = set()
             for i in range(list_widget.count()):
                 item = list_widget.item(i)
-                if item.checkState() == Qt.Checked:
+                if item.checkState() == Qt.CheckState.Checked:
                     selected.add(item.text())
 
             if filter_type == "level":

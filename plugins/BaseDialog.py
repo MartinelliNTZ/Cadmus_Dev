@@ -59,7 +59,7 @@ class BaseDialog(QDialog):
         # Size grip (resize visual indicator)
         self.size_grip = QSizeGrip(self.layout._frame)
         self.size_grip.setFixedSize(16, 16)
-        self.layout.addWidget(self.size_grip, alignment=Qt.AlignBottom | Qt.AlignRight)
+        self.layout.addWidget(self.size_grip, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
         # Ícone nao ta funcionando, talvez por causa do frameless. Tentar setar ícone do aplicativo como fallback
         icon_path = os.path.join(
             os.path.dirname(__file__), "..", "resources", "icons", icon_path

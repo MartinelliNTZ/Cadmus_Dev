@@ -34,7 +34,7 @@ class AboutDialog(BaseDialog):
                 word_wrap=True,
                 parent=self,
                 text_format=Qt.RichText,
-                alignment=Qt.AlignCenter,
+                alignment=Qt.AlignmentFlag.AlignCenter,
             )
             self.layout.addWidget(lbl_title)
             self.logger.debug("Título adicionado")
@@ -56,7 +56,7 @@ class AboutDialog(BaseDialog):
                 text_format=Qt.RichText,
                 text_interaction_flags=Qt.TextBrowserInteraction,
                 open_external_links=True,
-                alignment=Qt.AlignCenter,
+                alignment=Qt.AlignmentFlag.AlignCenter,
             )
             self.layout.addWidget(lbl_info)
             self.logger.debug("Informações adicionadas")
@@ -79,7 +79,7 @@ class AboutDialog(BaseDialog):
             social_layout = QHBoxLayout()
             social_layout.setSpacing(10)
             social_layout.setContentsMargins(0, 8, 0, 4)
-            social_layout.setAlignment(Qt.AlignCenter)
+            social_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             for name, icon_file, url in social_links:
                 icon_path = os.path.join(
@@ -91,7 +91,7 @@ class AboutDialog(BaseDialog):
                     btn.setIconSize(QSize(32, 32))
                     btn.setToolTip(name)
                     btn.setFixedSize(40, 40)
-                    btn.setCursor(Qt.PointingHandCursor)
+                    btn.setCursor(Qt.CursorShape.PointingHandCursor)
                     btn.setFlat(True)
                     btn.clicked.connect(lambda checked, u=url: webbrowser.open(u))
                     social_layout.addWidget(btn)

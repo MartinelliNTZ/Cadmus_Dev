@@ -32,7 +32,7 @@ class CopyAttributes(BasePluginMTL):
         # CAMADA DESTINO
         tgt_layout, self.target_layer_input = WidgetFactory.create_layer_input(
             label_text=STR.TARGET_LAYER,
-            filters=[QgsMapLayerProxyModel.VectorLayer],
+            filters=[QgsMapLayerProxyModel.Filter.VectorLayer],
             parent=self,
         )
         self.logger.debug("Componente de camada de target adicionado")
@@ -40,7 +40,7 @@ class CopyAttributes(BasePluginMTL):
         # CAMADA ORIGEM
         src_layout, self.source_layer_input = WidgetFactory.create_layer_input(
             label_text=STR.SOURCE_LAYER,
-            filters=[QgsMapLayerProxyModel.VectorLayer],
+            filters=[QgsMapLayerProxyModel.Filter.VectorLayer],
             parent=self,
         )
         self.source_layer_input.layerChanged.connect(self._populate_fields)

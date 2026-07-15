@@ -141,10 +141,10 @@ class LogTableModel(QAbstractTableModel):
         if role != Qt.DisplayRole:
             return QVariant()
 
-        if orientation == Qt.Horizontal and 0 <= section < len(self.COLUMNS):
+        if orientation == Qt.Orientation.Horizontal and 0 <= section < len(self.COLUMNS):
             return QVariant(self.COLUMNS[section][0])
 
-        if orientation == Qt.Vertical:
+        if orientation == Qt.Orientation.Vertical:
             return QVariant(str(section + 1))
 
         return QVariant()

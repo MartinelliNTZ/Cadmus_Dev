@@ -39,7 +39,7 @@ class TemporaryDialog(QDialog):
         # Layout
         layout = QHBoxLayout()
         layout.setContentsMargins(10, 6, 10, 6)
-        layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         layout.setSpacing(8)
 
         # Ícone
@@ -49,7 +49,7 @@ class TemporaryDialog(QDialog):
                 pix = icon.pixmap(20, 20)
             else:
                 pix = QPixmap(icon).scaled(
-                    20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                    20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
                 )
             icon_label.setPixmap(pix)
             layout.addWidget(icon_label)

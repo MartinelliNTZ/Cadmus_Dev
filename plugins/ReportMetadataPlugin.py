@@ -113,7 +113,7 @@ class ReportMetadataPlugin(BasePluginMTL):
                 # Evita que o maior texto do JSON force largura minima gigante.
                 combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
                 combo.setMinimumContentsLength(24)
-                combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 combo.setMaximumWidth(520)
 
             for btn in (
@@ -122,9 +122,9 @@ class ReportMetadataPlugin(BasePluginMTL):
                 self.open_reports_button,
                 self.vetorize_button,
             ):
-                btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+                btn.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
                 btn.setMaximumWidth(360)
-                btn.setCursor(Qt.PointingHandCursor)
+                btn.setCursor(Qt.CursorShape.PointingHandCursor)
         except Exception as e:
             self.logger.warning(f"Falha ao ajustar UI compacta: {e}")
 

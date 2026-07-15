@@ -71,7 +71,7 @@ class HudCircularLoader(QWidget):
         by = center.y() + radius * math.sin(angle_rad)
 
         painter.setBrush(QColor(0, 255, 255))
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
 
         painter.drawEllipse(int(bx) - 6, int(by) - 6, 12, 12)
 
@@ -83,4 +83,4 @@ class HudCircularLoader(QWidget):
 
         text = f"{self.progress}%"
 
-        painter.drawText(self.rect(), Qt.AlignCenter, text)
+        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, text)

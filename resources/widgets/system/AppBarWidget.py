@@ -54,7 +54,7 @@ class AppBarWidget(QFrame):
                         self.lbl_icon = QLabel()
                         self.lbl_icon.setPixmap(
                             pix.scaled(
-                                20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                                20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
                             )
                         )
                         self.lbl_icon.setObjectName("app_bar_icon")
@@ -79,7 +79,7 @@ class AppBarWidget(QFrame):
 
         self.lbl_title = QLabel(title)
         self.lbl_title.setObjectName("app_bar_title")
-        self.lbl_title.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        self.lbl_title.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
 
         layout.addWidget(self.lbl_title)
         layout.addStretch()
@@ -118,14 +118,14 @@ class AppBarWidget(QFrame):
     # =====================================================
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self._drag_pos = event.globalPos() - self.window().frameGeometry().topLeft()
             event.accept()
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self._drag_pos and event.buttons() & Qt.LeftButton:
+        if self._drag_pos and event.buttons() & Qt.MouseButton.LeftButton:
             self.window().move(event.globalPos() - self._drag_pos)
             event.accept()
         else:

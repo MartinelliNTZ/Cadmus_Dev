@@ -9,6 +9,15 @@ class DropdownToolButton(QToolButton):
     Herda de QToolButton para ser adicionado como widget à toolbar.
     """
 
+    # Compatibilidade Qt5/Qt6: Qt5 usa QToolButton.MenuButtonPopup,
+    # Qt6 usa QToolButton.ToolButtonPopupMode.MenuButtonPopup
+    @staticmethod
+    def _popup_mode():
+        try:
+            return QToolButton.ToolButtonPopupMode.MenuButtonPopup
+        except AttributeError:
+            return QToolButton.MenuButtonPopup
+
     def __init__(
         self,
         iface=None,
@@ -28,7 +37,7 @@ class DropdownToolButton(QToolButton):
         """
         super().__init__()
         self.menu = QMenu(iface.mainWindow() if iface else None)
-        self.setPopupMode(QToolButton.MenuButtonPopup)
+        self.setPopupMode(self._popup_mode())
         self.setMenu(self.menu)
 
         if main_action is not None:

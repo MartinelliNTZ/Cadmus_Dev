@@ -25,11 +25,44 @@ class QgisMessageUtil(BaseUtil):
     """
 
     DEFAULT_LOG_TAG = "Cadmus"
-    NOICON = QMessageBox.NoIcon
-    INFO_ICON = QMessageBox.Information
-    WARNING_ICON = QMessageBox.Warning
-    ERROR_ICON = QMessageBox.Critical
-    QUESTION_ICON = QMessageBox.Question
+
+    @staticmethod
+    def _icon(attr_name):
+        """Compatibilidade Qt5/Qt6: Qt5 usa QMessageBox.{attr_name},
+        Qt6 usa QMessageBox.Icon.{attr_name}."""
+        try:
+            return getattr(QMessageBox.Icon, attr_name)
+        except AttributeError:
+            return getattr(QMessageBox, attr_name)
+
+    @staticmethod
+    def _std_button(attr_name):
+        """Compatibilidade Qt5/Qt6: Qt5 usa QMessageBox.{attr_name},
+        Qt6 usa QMessageBox.StandardButton.{attr_name}."""
+        try:
+            return getattr(QMessageBox.StandardButton, attr_name)
+        except AttributeError:
+            return getattr(QMessageBox, attr_name)
+
+    @staticmethod
+    def _btn_role(attr_name):
+        """Compatibilidade Qt5/Qt6: Qt5 usa QMessageBox.{attr_name},
+        Qt6 usa QMessageBox.ButtonRole.{attr_name}."""
+        try:
+            return getattr(QMessageBox.ButtonRole, attr_name)
+        except AttributeError:
+            return getattr(QMessageBox, attr_name)
+
+    NOICON = _icon("NoIcon")
+    INFO_ICON = _icon("Information")
+    WARNING_ICON = _icon("Warning")
+    ERROR_ICON = _icon("Critical")
+    QUESTION_ICON = _icon("Question")
+    YES_BUTTON = _std_button("Yes")
+    NO_BUTTON = _std_button("No")
+    ACCEPT_ROLE = _btn_role("AcceptRole")
+    ACTION_ROLE = _btn_role("ActionRole")
+    REJECT_ROLE = _btn_role("RejectRole")
 
     # ------------------------------
     # Message bar (não modal)
@@ -98,7 +131,7 @@ class QgisMessageUtil(BaseUtil):
 
             msg = QMessageBox(parent_widget)
             msg.setWindowTitle(title)
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QgisMessageUtil.INFO_ICON)
             msg.setTextFormat(Qt.RichText)
 
             text = (
@@ -194,10 +227,10 @@ class QgisMessageUtil(BaseUtil):
             iface.mainWindow(),
             title,
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QgisMessageUtil.YES_BUTTON | QgisMessageUtil.NO_BUTTON,
+            QgisMessageUtil.NO_BUTTON,
         )
-        return resp == QMessageBox.Yes
+        return resp == QgisMessageUtil.YES_BUTTON
 
     # ------------------------------
     # Exceções e log
@@ -227,12 +260,12 @@ class QgisMessageUtil(BaseUtil):
     @staticmethod
     def ask_field_conflict(iface, field_name):
         msg = QMessageBox(iface.mainWindow())
-        msg.setIcon(QMessageBox.Question)
+        msg.setIcon(QgisMessageUtil.QUESTION_ICON)
         msg.setWindowTitle("Campo existente")
         msg.setText(f"O campo '{field_name}' já existe.\nO que deseja fazer?")
 
-        btn_replace = msg.addButton("Substituir", QMessageBox.AcceptRole)
-        btn_rename = msg.addButton("Renomear", QMessageBox.ActionRole)
+        btn_replace = msg.addButton("Substituir", QgisMessageUtil.ACCEPT_ROLE)
+        btn_rename = msg.addButton("Renomear", QgisMessageUtil.ACTION_ROLE)
 
         QgisMessageUtil._exec_dialog(msg)
 
@@ -246,13 +279,13 @@ class QgisMessageUtil(BaseUtil):
     @staticmethod
     def ask_overwrite(iface, path: str = "") -> str:
         msg = QMessageBox(iface.mainWindow())
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QgisMessageUtil.WARNING_ICON)
         msg.setWindowTitle("Arquivo já existe")
         msg.setText(f"O arquivo já existe:\n{path}")
         msg.setInformativeText("Deseja sobrescrever ou renomear?")
-        btn_over = msg.addButton("Sobrescrever", QMessageBox.AcceptRole)
-        btn_rename = msg.addButton("Renomear", QMessageBox.ActionRole)
-        msg.addButton("Cancelar", QMessageBox.RejectRole)
+        btn_over = msg.addButton("Sobrescrever", QgisMessageUtil.ACCEPT_ROLE)
+        btn_rename = msg.addButton("Renomear", QgisMessageUtil.ACTION_ROLE)
+        msg.addButton("Cancelar", QgisMessageUtil.REJECT_ROLE)
 
         QgisMessageUtil._exec_dialog(msg)
 
@@ -264,8 +297,10 @@ class QgisMessageUtil(BaseUtil):
 
     @staticmethod
     def confirm_destructive(
-        parent, title: str, html_text: str, icon=QMessageBox.Warning, red_text=None
+        parent, title: str, html_text: str, icon=None, red_text=None
     ) -> bool:
+        if icon is None:
+            icon = QgisMessageUtil.WARNING_ICON
         if red_text:
             html_text = f"<b style='color:red'>{red_text}</b><br><br>" + html_text
 
@@ -274,8 +309,8 @@ class QgisMessageUtil(BaseUtil):
         msg.setIcon(icon)
         msg.setTextFormat(Qt.RichText)
         msg.setText(html_text)
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        return QgisMessageUtil._exec_dialog(msg) == QMessageBox.Yes
+        msg.setStandardButtons(QgisMessageUtil.YES_BUTTON | QgisMessageUtil.NO_BUTTON)
+        return QgisMessageUtil._exec_dialog(msg) == QgisMessageUtil.YES_BUTTON
 
     # -------------------------
     # 2. Styled message

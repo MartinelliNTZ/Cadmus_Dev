@@ -30,7 +30,7 @@ changelog=
         - New tool: NdviCalculator - Calcula índice de vegetação NDVI a partir de bandas RED/NIR
         - New tool: RgbMosaicCreator - Monta mosaico RGB a partir de bandas separadas
         - New tool: RgbStyleStandardizer - Aplica estilo padronizado (rampa de cor) a bandas RGB
-        - New tool: PathExtensionPlugin - Gera extensão/continuação de linha a partir do último segmento de uma trilha
+        - New tool: PathExtensionPlugin - Compacta fotos a partir de um shape dos voos
         - New tool: SaveTemporaryLayersPlugin - Salva camadas temporárias (memória) para arquivos permanentes
         - New tool: NdreCalculator - Calcula índice NDRE (Red Edge) a partir de bandas NIR/Red Edge
         - New tool: GliCalculator - Calcula o índice de vegetação GLI (Green Leaf Index)

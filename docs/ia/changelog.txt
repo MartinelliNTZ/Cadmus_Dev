@@ -326,3 +326,11 @@
     - Substituído `pathChanged = Signal(list)` por `pathChanged = pyqtSignal(list)`
     - Causava falha no SaveTemporaryLayersPlugin ao executar ("cannot import name 'Signal' from 'qgis.PyQt.QtCore'")
     - Nenhum outro arquivo no projeto usava `Signal` incorretamente
+2.3.54 15/07/2026
+[2.3.54.1][15/07/2026] Corrigido erro Qt6 em DefaultProjectsFolderDialog._build_ui():
+    - Substituído `QDialogButtonBox.Ok` e `QDialogButtonBox.Cancel` por
+      `QDialogButtonBox.StandardButton.Ok` e `QDialogButtonBox.StandardButton.Cancel`
+    - Qt5 suporta ambos, Qt6 exige StandardButton. O uso de StandardButton garante
+      compatibilidade Qt5/Qt6
+    - Corrigido E501 (linhas longas) nos comentários e na criação do QDialogButtonBox
+    - Flake8 passou sem erros após correção

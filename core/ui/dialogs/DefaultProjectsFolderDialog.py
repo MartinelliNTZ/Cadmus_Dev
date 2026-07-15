@@ -30,7 +30,14 @@ class DefaultProjectsFolderDialog(QDialog):
         self.selector.set_path(self.DEFAULT_FOLDER)
         layout.addWidget(self.selector)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        # Qt5: QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        # Qt6: QDialogButtonBox.StandardButton.Ok |
+        #      QDialogButtonBox.StandardButton.Cancel
+        # Usar StandardButton garante compatibilidade Qt5/Qt6
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

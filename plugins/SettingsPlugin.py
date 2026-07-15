@@ -438,7 +438,10 @@ class SettingsPlugin(BasePluginMTL):
         from ..core.ui.RegistryDialog import RegistryDialog
 
         dialog = RegistryDialog(iface=self.iface, parent=self)
-        dialog.exec_()
+        if hasattr(dialog, "exec_"):
+            dialog.exec_()
+        else:
+            dialog.exec()
 
     def _open_preferences_folder(self):
         """Abre a pasta de preferências do Cadmus."""

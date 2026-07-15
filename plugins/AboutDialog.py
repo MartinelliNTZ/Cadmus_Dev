@@ -33,7 +33,7 @@ class AboutDialog(BaseDialog):
                 bold=False,
                 word_wrap=True,
                 parent=self,
-                text_format=Qt.RichText,
+                text_format=Qt.TextFormat.RichText,
                 alignment=Qt.AlignmentFlag.AlignCenter,
             )
             self.layout.addWidget(lbl_title)
@@ -53,7 +53,7 @@ class AboutDialog(BaseDialog):
                 bold=False,
                 word_wrap=True,
                 parent=self,
-                text_format=Qt.RichText,
+                text_format=Qt.TextFormat.RichText,
                 text_interaction_flags=Qt.TextBrowserInteraction,
                 open_external_links=True,
                 alignment=Qt.AlignmentFlag.AlignCenter,

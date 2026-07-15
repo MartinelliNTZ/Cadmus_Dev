@@ -29,6 +29,13 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal, QModelIndex
 
 
+def _exec_dialog(dialog):
+    """Compatibilidade Qt5/Qt6: executa dialog de forma unificada."""
+    if hasattr(dialog, "exec_"):
+        return dialog.exec_()
+    return dialog.exec()
+
+
 from ..core.model.log_entry import LogEntry
 from ..core.model.log_session_manager import LogSessionManager
 from ..core.io.log_loader import LogLoader
@@ -577,7 +584,7 @@ class LogcatDialog(QDialog):
         btn_ok.clicked.connect(on_ok)
         btn_cancel.clicked.connect(dialog.reject)
 
-        dialog.exec_()
+        _exec_dialog(dialog)
 
     def _save_scroll_position(self):
         """Salva posição atual do scroll (para preservar durante filtros)."""
@@ -736,7 +743,7 @@ class LogcatDialog(QDialog):
                     f"Abrindo detalhe: row={source_index.row()}, entry_id={id(entry)}"
                 )
                 dialog = LogDetailDialog(entry, self)
-                dialog.exec_()
+                _exec_dialog(dialog)
             else:
                 self._logger.warning(
                     f"Entrada não encontrada em source_index: {source_index.row()}"
@@ -855,11 +862,11 @@ class LogcatDialog(QDialog):
         # Se apenas 1 entrada, abrir detalhe único
         if len(selected_entries) == 1:
             dialog = LogDetailDialog(selected_entries[0], self)
-            dialog.exec_()
+            _exec_dialog(dialog)
         else:
             # Se múltiplas, abrir diálogo de múltiplas
             dialog = LogMultipleDetailDialog(selected_entries, self)
-            dialog.exec_()
+            _exec_dialog(dialog)
 
     def _on_export_filter(self):
         """Exporta todos os itens filtrados para LogMultipleDetailDialog."""
@@ -880,11 +887,11 @@ class LogcatDialog(QDialog):
         # Se apenas 1 entrada, abrir detalhe único
         if len(filtered_entries) == 1:
             dialog = LogDetailDialog(filtered_entries[0], self)
-            dialog.exec_()
+            _exec_dialog(dialog)
         else:
             # Se múltiplas, abrir diálogo de múltiplas
             dialog = LogMultipleDetailDialog(filtered_entries, self)
-            dialog.exec_()
+            _exec_dialog(dialog)
 
     def closeEvent(self, event):
         """Chamado ao fechar o diálogo - limpeza agressiva."""

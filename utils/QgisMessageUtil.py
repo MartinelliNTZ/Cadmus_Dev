@@ -132,7 +132,7 @@ class QgisMessageUtil(BaseUtil):
             msg = QMessageBox(parent_widget)
             msg.setWindowTitle(title)
             msg.setIcon(QgisMessageUtil.INFO_ICON)
-            msg.setTextFormat(Qt.RichText)
+            msg.setTextFormat(Qt.TextFormat.RichText)
 
             text = (
                 f"<b>{message}</b> .<br><br>"
@@ -307,7 +307,7 @@ class QgisMessageUtil(BaseUtil):
         msg = QMessageBox(parent)
         msg.setWindowTitle(title)
         msg.setIcon(icon)
-        msg.setTextFormat(Qt.RichText)
+        msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(html_text)
         msg.setStandardButtons(QgisMessageUtil.YES_BUTTON | QgisMessageUtil.NO_BUTTON)
         return QgisMessageUtil._exec_dialog(msg) == QgisMessageUtil.YES_BUTTON

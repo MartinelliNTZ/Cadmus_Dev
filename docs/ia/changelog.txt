@@ -343,5 +343,14 @@
       fosse persistido no disco quando o usuário fechava sem clicar em "Save"
     - Causa raiz: _persist_window_size() atualizava dict em memória, mas nada era salvo
       no disco pois o bloco `if AUTO_SAVE_PREFS_ON_CLOSE` não executava _save_prefs()
-    - A correção anterior (save_tool_prefs) sobrescreveria todas as prefs; corrigido para
-      update_tool_prefs que preserva as demais configurações da ferramenta
+     - A correção anterior (save_tool_prefs) sobrescreveria todas as prefs; corrigido para
+       update_tool_prefs que preserva as demais configurações da ferramenta
+2.3.55 20/07/2026
+[2.3.55.1][20/07/2026] Corrigido JsonToVectorTranslator._resolve_geometry não resolvendo coordenadas MRK:
+  - Adicionada Tentativa 3 (fallback MRK): quando GpsLatitude/GpsLongitude (EXIF/XMP) não estão disponíveis,
+    tenta Lat/Lon do MRK como fallback — soluciona erro "Nenhum registro com geometria válida encontrado"
+    em pipelines com source "mrk+photo" cujas fotos não possuem GPS embutido.
+  - Causa raiz: _resolve_geometry ignorava o parâmetro source e só tentava campos EXIF/XMP,
+    mesmo quando os dados vinham exclusivamente do arquivo MRK.
+  - A correção beneficia pipelines com fotos sem EXIF GPS (ex: DJI sem GPS de câmera,
+    mas com arquivo .mrk contendo coordenadas).

@@ -248,15 +248,13 @@ class JsonToVectorTranslator:
 
     def _resolve_geometry(self, record: Dict, source: str) -> Optional[QgsPointXY]:
         """
-        Resolve coordenadas exclusivamente das FOTOS (EXIF/XMP).
+        Resolve coordenadas do registro tentando fontes na ordem de prioridade.
 
-        O MRK não fornece mais coordenadas geométricas — apenas atributos
-        de contexto (MrkFile, MrkPath, FolderLevel*, etc.).
-
-        Ordem de tentativas (apenas fotos):
+        Ordem de tentativas:
         1. GpsLatitude/GpsLongitude (XMP do drone → sobrescreve EXIF quando disponível)
         2. DMS tuple em GpsLatitude/GpsLongitude (EXIF bruto, safety net)
-        3. Nenhuma válida → retorna None (registro ignorado)
+        3. Lat/Lon (MRK) — usado quando source contém "mrk" e fotos não têm GPS
+        4. Nenhuma válida → retorna None (registro ignorado)
         """
         lat, lon = None, None
 
@@ -284,6 +282,11 @@ class JsonToVectorTranslator:
                     dms_lon = -dms_lon
                 lat = dms_lat
                 lon = dms_lon
+
+        # ── Tentativa 3: Lat/Lon (MRK) — fallback para fontes que incluem MRK ──
+        if lat is None or lon is None:
+            lat = self._try_get_float(record, MetadataFieldKey.LAT.value)
+            lon = self._try_get_float(record, MetadataFieldKey.LON.value)
 
         if lat is not None and lon is not None:
             return QgsPointXY(float(lon), float(lat))

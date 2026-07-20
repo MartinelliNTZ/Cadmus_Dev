@@ -18,6 +18,10 @@ Sua missão é:
 - **rotear entre skills** — identificar qual skill consultar com base no contexto da tarefa
 
 ---
+COMPATIBILIDADE TOTAL COM 
+  - QGIS 3.16 A 4.99
+  - QT5 /QT6 
+  PYTHON 3.7 A 3.13
 
 # MAPEAMENTO RÁPIDO — SKILL RELEVANTE PARA CADA SITUAÇÃO
 

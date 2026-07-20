@@ -37,6 +37,7 @@ Use esta tabela para decidir qual skill ler **além** dos contratos obrigatório
 | Manipulação de camadas vetoriais ou raster | `docs/skills/SKILL_VECTOR_RASTER_LAYER_UTILS.md` | VectorLayerAttributes, VectorLayerGeometry, RasterLayerRendering, RasterLayerProcessing |
 | Utilitários gerais (arquivos, zip, compressão, ProjectUtils, QgisMessageUtil) | `docs/skills/SKILL_UTILS.md` | Todas as classes do utils/ — ExplorerUtils, FileCompressUtils, FormatUtils, etc. |
 | Documentar novo sistema, criar skill nova | `docs/skills/SKILL_FACTORY.md` | Protocolo de documentação: ler código → rastrear dependências → gravar skill |
+| Instruções de ferramenta (.md ou HTML), InstructionsManager, HtmlInstructionsProvider | `docs/skills/SKILL_INSTRUCTIONS_SYSTEM.md` | Sistema completo de instruções: .md para plugins (BasePluginMTL), HTML para algoritmos de processing, resolução por locale |
 | Contratos do plugin (12 regras críticas) | `docs/skills/PLUGIN_CONTRACT.md` | **OBRIGATÓRIO** — ler sempre antes de qualquer alteração |
 | Contratos da pipeline assíncrona | `docs/skills/SKILL_ASYNC_PAPELINE.md` | **OBRIGATÓRIO** — ler sempre antes de qualquer alteração |
 

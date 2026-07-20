@@ -2,6 +2,7 @@
 
 from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from ...i18n.TranslationManager import STR
+from ...resources.IconManager import IconManager
 
 
 class ExecutionButtonsWidget(QWidget):
@@ -29,7 +30,9 @@ class ExecutionButtonsWidget(QWidget):
 
         self._btn_run = QPushButton(run_text)
         self._btn_close = QPushButton(close_text)
-        self._btn_info = QPushButton("ℹ️")
+        self._btn_info = QPushButton("?")
+        self._btn_info.setToolTip(STR.INFO)
+        self._btn_info.setIcon(IconManager.icon(IconManager.ABOUT))
 
         self._build_ui(height, style)
         self._bind_callbacks(run_callback, close_callback, info_callback)

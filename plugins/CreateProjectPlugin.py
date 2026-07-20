@@ -124,7 +124,10 @@ class CreateProjectPlugin(BasePluginMTL):
             pattern=self.GENERIC_PROJECT_PATTERN,
         )
         name_dialog = ProjectNameDialog(
-            suggested_name=suggested_name, parent=self.iface.mainWindow()
+            suggested_name=suggested_name,
+            base_folder=base_folder,
+            project_tool_key=self.TOOL_KEY,
+            parent=self.iface.mainWindow(),
         )
         if not name_dialog.exec():
             self.logger.info("Usuario cancelou o dialogo de nome do projeto")

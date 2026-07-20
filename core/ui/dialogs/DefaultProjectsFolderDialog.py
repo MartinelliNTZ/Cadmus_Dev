@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
+from qgis.PyQt.QtWidgets import QDialog, QLabel, QVBoxLayout
 
 from ....i18n.TranslationManager import STR
 from ....resources.widgets.simple.SelectorWidget import SelectorWidget
+from ....resources.widgets.ExecutionButtonsWidget import ExecutionButtonsWidget
 
 
 class DefaultProjectsFolderDialog(QDialog):
@@ -12,7 +13,7 @@ class DefaultProjectsFolderDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(STR.DEFAULT_PROJECTS_FOLDER_TITLE)
         self.setModal(True)
-        self.resize(620, 120)
+        self.resize(620, 160)
         self._build_ui()
 
     def _build_ui(self):
@@ -30,17 +31,17 @@ class DefaultProjectsFolderDialog(QDialog):
         self.selector.set_path(self.DEFAULT_FOLDER)
         layout.addWidget(self.selector)
 
-        # Qt5: QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-        # Qt6: QDialogButtonBox.StandardButton.Ok |
-        #      QDialogButtonBox.StandardButton.Cancel
-        # Usar StandardButton garante compatibilidade Qt5/Qt6
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok
-            | QDialogButtonBox.StandardButton.Cancel
+        # ExecutionButtonsWidget padronizado: OK + Cancelar (sem info)
+        self._buttons_widget = ExecutionButtonsWidget(
+            run_callback=self.accept,
+            close_callback=self.reject,
+            info_callback=None,
+            run_text=STR.OK,
+            close_text=STR.CANCEL,
+            height=24,
+            parent=self,
         )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        layout.addWidget(self._buttons_widget)
 
     def get_folder_path(self) -> str:
         paths = self.selector.get_paths()

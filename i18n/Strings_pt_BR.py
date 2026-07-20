@@ -15,6 +15,7 @@ class Strings_pt_BR:
     CREATED_ON = "Criado em"
     CREATOR = "Criador"
     LOCATION = "Local"
+    
 
     # Buttons
     CLOSE = "Fechar"
@@ -33,6 +34,8 @@ class Strings_pt_BR:
     INFO = "Info"
     INSTRUCTIONS = "Instruções"
     AUTO_DETECT = "Auto-detectar"
+    PROJECTS_DEFAULT_FOLDER = "Pasta padrão de projetos"
+    OPEN_SETTINGS = "Abrir Configurações"
 
     # Common labels
     PRECISION = "Precisao"
@@ -437,6 +440,7 @@ class Strings_pt_BR:
     # plugins/LoadFolderLayers.py
     LOAD_FOLDER_LAYERS_TITLE = "Carregar Pasta de Arquivos"
     CREATE_PROJECT_TITLE = "Novo Projeto"
+    CREATE_PROJECT = "Novo Projeto"
     CREATE_PROJECT_TOOLTIP = (
         "Cria uma nova estrutura de projeto em uma pasta dedicada.\n"
         "Se ainda nao houver pasta padrao definida, solicita esse caminho,\n"

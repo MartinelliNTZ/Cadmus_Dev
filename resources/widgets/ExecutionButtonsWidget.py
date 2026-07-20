@@ -32,7 +32,7 @@ class ExecutionButtonsWidget(QWidget):
         self._btn_close = QPushButton(close_text)
         self._btn_info = QPushButton("?")
         self._btn_info.setToolTip(STR.INFO)
-        self._btn_info.setIcon(IconManager.icon(IconManager.ABOUT))
+        self._btn_info.setIcon(IconManager.icon(IconManager.INFO))
 
         self._build_ui(height, style)
         self._bind_callbacks(run_callback, close_callback, info_callback)

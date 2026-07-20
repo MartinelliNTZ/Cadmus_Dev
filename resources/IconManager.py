@@ -15,6 +15,7 @@ class IconManager:
     CADMUS_ICON = "cadmus_icon.ico"
     CADMUS_PNG = "cadmus_icon.png"
     COPY_BUTTON = "copy.png"
+    INFO = "info.ico"
 
     # Menus
     AGRICULTURE = "agriculture.ico"

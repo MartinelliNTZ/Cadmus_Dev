@@ -374,7 +374,10 @@ class QgisMessageUtil(BaseUtil):
             icon_label = QLabel()
 
             pix = QPixmap(icon_path).scaled(
-                18, 18, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                18,
+                18,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
             )
 
             icon_label.setPixmap(pix)
@@ -487,6 +490,7 @@ class QgisMessageUtil(BaseUtil):
         msg.layout().addWidget(button)
 
         iface.messageBar().pushWidget(msg, level=level)
+
 
 # ── Constantes de classe (definidas APÓS a classe para compatibilidade Python < 3.10) ──
 # Em Python 3.7-3.9, `staticmethod` objects não podem ser chamados dentro do corpo da classe.

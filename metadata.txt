@@ -21,6 +21,12 @@ tracker=https://github.com/MartinelliNTZ/Cadmus/issues
 
 
 changelog=
+    3.0.0.3
+        - Bug fixes and performance improvements
+    3.0.0.2
+        - Bug fixes and performance improvements
+    3.0.0.1
+        - Bug fixes and performance improvements
     3.0.0
         - New tool: VectorToSvgPlugin - Exports the active vector layer to a styled SVG file
         - New tool: CreateProjectPlugin - Creates a standard project structure (folders, basemap, CRS) in a new directory

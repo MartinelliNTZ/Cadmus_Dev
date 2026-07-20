@@ -1155,7 +1155,7 @@ class AggregateAnalyzer:
             try:
                 strip_id = int(float(strip))
             except Exception:
-                return None
+                return {"strip_rows": [], "problematic_strips": []}
             strip_buckets[strip_id].append(r)
 
         strip_rows = []

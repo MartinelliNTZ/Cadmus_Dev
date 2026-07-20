@@ -53,16 +53,9 @@ class QgisMessageUtil(BaseUtil):
         except AttributeError:
             return getattr(QMessageBox, attr_name)
 
-    NOICON = _icon("NoIcon")
-    INFO_ICON = _icon("Information")
-    WARNING_ICON = _icon("Warning")
-    ERROR_ICON = _icon("Critical")
-    QUESTION_ICON = _icon("Question")
-    YES_BUTTON = _std_button("Yes")
-    NO_BUTTON = _std_button("No")
-    ACCEPT_ROLE = _btn_role("AcceptRole")
-    ACTION_ROLE = _btn_role("ActionRole")
-    REJECT_ROLE = _btn_role("RejectRole")
+    # Constantes de ícones e botões (definidas como classe interna para compatibilidade Qt5/Qt6)
+    # Nota: em Python < 3.10, staticmethod objects não são callable dentro do corpo da classe.
+    # Por isso as constantes são definidas APÓS a classe, abaixo.
 
     # ------------------------------
     # Message bar (não modal)
@@ -494,3 +487,17 @@ class QgisMessageUtil(BaseUtil):
         msg.layout().addWidget(button)
 
         iface.messageBar().pushWidget(msg, level=level)
+
+# ── Constantes de classe (definidas APÓS a classe para compatibilidade Python < 3.10) ──
+# Em Python 3.7-3.9, `staticmethod` objects não podem ser chamados dentro do corpo da classe.
+# Por isso as constantes são definidas aqui, após o fechamento da classe.
+QgisMessageUtil.NOICON = QgisMessageUtil._icon("NoIcon")  # type: ignore[attr-defined]
+QgisMessageUtil.INFO_ICON = QgisMessageUtil._icon("Information")  # type: ignore[attr-defined]
+QgisMessageUtil.WARNING_ICON = QgisMessageUtil._icon("Warning")  # type: ignore[attr-defined]
+QgisMessageUtil.ERROR_ICON = QgisMessageUtil._icon("Critical")  # type: ignore[attr-defined]
+QgisMessageUtil.QUESTION_ICON = QgisMessageUtil._icon("Question")  # type: ignore[attr-defined]
+QgisMessageUtil.YES_BUTTON = QgisMessageUtil._std_button("Yes")  # type: ignore[attr-defined]
+QgisMessageUtil.NO_BUTTON = QgisMessageUtil._std_button("No")  # type: ignore[attr-defined]
+QgisMessageUtil.ACCEPT_ROLE = QgisMessageUtil._btn_role("AcceptRole")  # type: ignore[attr-defined]
+QgisMessageUtil.ACTION_ROLE = QgisMessageUtil._btn_role("ActionRole")  # type: ignore[attr-defined]
+QgisMessageUtil.REJECT_ROLE = QgisMessageUtil._btn_role("RejectRole")  # type: ignore[attr-defined]

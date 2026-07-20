@@ -22,9 +22,12 @@ def _qt_wa_transparent():
 def _global_pos(event):
     """Compatibilidade Qt5/Qt6: Qt5 usa event.globalPos(),
     Qt6 usa event.globalPosition().toPoint()."""
-    if hasattr(event, "globalPosition"):
+    try:
+        # Qt6: retorna QPointF → converter para QPoint
         return event.globalPosition().toPoint()
-    return event.globalPos()
+    except AttributeError:
+        # Qt5: retorna QPoint diretamente
+        return event.globalPos()
 
 
 logger = LogUtils(

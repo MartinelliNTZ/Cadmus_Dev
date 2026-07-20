@@ -114,19 +114,31 @@ class AppBarWidget(QFrame):
         self.window().close()
 
     # =====================================================
-    # DRAG DA JANELA (QT 5)
+    # DRAG DA JANELA (QT 5 / QT 6)
     # =====================================================
+
+    def _global_pos(self, event):
+        """
+        Retorna QPoint da posição global do mouse.
+        Compatível com Qt5 (globalPos) e Qt6 (globalPosition).
+        """
+        try:
+            # Qt6: retorna QPointF → converter para QPoint
+            return event.globalPosition().toPoint()
+        except AttributeError:
+            # Qt5: retorna QPoint diretamente
+            return event.globalPos()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_pos = event.globalPosition().toPoint() - self.window().frameGeometry().topLeft()
+            self._drag_pos = self._global_pos(event) - self.window().frameGeometry().topLeft()
             event.accept()
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if self._drag_pos and event.buttons() & Qt.MouseButton.LeftButton:
-            self.window().move(event.globalPosition().toPoint() - self._drag_pos)
+            self.window().move(self._global_pos(event) - self._drag_pos)
             event.accept()
         else:
             super().mouseMoveEvent(event)

@@ -353,6 +353,22 @@
    - Adicionado `List` à importação do módulo `typing`
    - Causa: QGIS 3.16 usa Python 3.7 que não suporta type hint subscriptable nativo
    - Correção garante compatibilidade com Python 3.7+ (QGIS 3.16 até 4.99)
+[2.3.56.2][20/07/2026] Corrigido AttributeError 'QMouseEvent' object has no attribute 'globalPosition' em AppBarWidget.py:
+    - Adicionado método _global_pos() com detecção automática: usa globalPosition().toPoint() (Qt6)
+      ou globalPos() (Qt5) conforme disponível
+    - mousePressEvent e mouseMoveEvent agora usam _global_pos() em vez de globalPosition() direto
+    - Causa: QGIS 3.34 (Qt5) não expõe globalPosition(), apenas globalPos()
+    - Mantida compatibilidade Qt5/Qt6
+    - OBS: O erro continuou ocorrendo pois hasattr() não funciona com objetos SIP (PyQt5)
+      — substituído para try/except na versão 2.3.57
+2.3.57 20/07/2026
+[2.3.57.1][20/07/2026] Corrigido definitivamente AttributeError 'QMouseEvent' object has no attribute 'globalPosition':
+    - AppBarWidget._global_pos(): substituído `hasattr(event, 'globalPosition')` por `try/except AttributeError`
+      O hasattr() em objetos C++ do PyQt5 (SIP bindings) pode retornar False mesmo quando o
+      método existe, ou lançar exceção ao verificar. try/except garante detecção robusta.
+    - MainLayout._global_pos(): mesma correção (hasattr → try/except) — mesmo padrão vulnerável.
+    - Causa raiz: hasattr() não é confiável com objetos SIP do PyQt5.
+    - Compatibilidade Qt5/Qt6 mantida.
 2.3.55 20/07/2026
 [2.3.55.1][20/07/2026] Corrigido JsonToVectorTranslator._resolve_geometry não resolvendo coordenadas MRK:
   - Adicionada Tentativa 3 (fallback MRK): quando GpsLatitude/GpsLongitude (EXIF/XMP) não estão disponíveis,

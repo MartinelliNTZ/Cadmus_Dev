@@ -47,7 +47,7 @@ class PhotoMetadata:
     - Vetorização (responsabilidade do JsonVectorizationStep)
     """
 
-    DJI_RE = re.compile(r"_(\d{4})_[A-Z]\.JPG$", re.IGNORECASE)
+    DJI_RE = re.compile(r"_(\d{4})(?:_[A-Z])?\.JPG$", re.IGNORECASE)
 
     # Cache de timestamps de extracao
     _timestamps: Dict[str, str] = {}

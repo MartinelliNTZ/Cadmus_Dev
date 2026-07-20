@@ -37,8 +37,8 @@ class InitialParamsUtil:
     Gera o JSON inicial (Etapa 1) do pipeline de metadados.
     """
 
-    # Regex para identificar fotos DJI: _0001_V.JPG, _0001_W.JPG etc.
-    DJI_RE = re.compile(r"_(\d{4})_[A-Z]\.JPG$", re.IGNORECASE)
+    # Regex para identificar fotos DJI: _0001_V.JPG, _0001_W.JPG, _0001.JPG etc.
+    DJI_RE = re.compile(r"_(\d{4})(?:_[A-Z])?\.JPG$", re.IGNORECASE)
 
     # Regex para extrair FlightNumber e FlightName do nome da pasta
     # Ex: "DJI_202605101003_001_IRIA01" → number=1, name=IRIA01

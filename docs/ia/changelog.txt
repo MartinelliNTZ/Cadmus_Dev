@@ -345,6 +345,14 @@
       no disco pois o bloco `if AUTO_SAVE_PREFS_ON_CLOSE` não executava _save_prefs()
      - A correção anterior (save_tool_prefs) sobrescreveria todas as prefs; corrigido para
        update_tool_prefs que preserva as demais configurações da ferramenta
+2.3.56 20/07/2026
+[2.3.56.1][20/07/2026] Corrigido TypeError 'type' object is not subscriptable em MathUtils.py:
+   - Substituído `list[float]` (PEP 585, requer Python 3.9+) por `List[float]` do módulo `typing`
+     em todos os parâmetros de tipo dos métodos circular_variance, circular_mean,
+     weighted_circular_mean, axial_mean, weighted_axial_mean e axial_variance
+   - Adicionado `List` à importação do módulo `typing`
+   - Causa: QGIS 3.16 usa Python 3.7 que não suporta type hint subscriptable nativo
+   - Correção garante compatibilidade com Python 3.7+ (QGIS 3.16 até 4.99)
 2.3.55 20/07/2026
 [2.3.55.1][20/07/2026] Corrigido JsonToVectorTranslator._resolve_geometry não resolvendo coordenadas MRK:
   - Adicionada Tentativa 3 (fallback MRK): quando GpsLatitude/GpsLongitude (EXIF/XMP) não estão disponíveis,

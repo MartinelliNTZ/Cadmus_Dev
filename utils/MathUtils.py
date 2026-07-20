@@ -4,7 +4,7 @@ MathUtils — Utilitários matemáticos genéricos reutilizáveis
 """
 
 import math
-from typing import Any, Optional
+from typing import Any, List, Optional
 from ..core.config.LogUtils import LogUtils
 from .BaseUtil import BaseUtil
 
@@ -23,7 +23,7 @@ class MathUtils(BaseUtil):
         return min(d, 360.0 - d)
 
     @staticmethod
-    def circular_variance(angles: list[float]) -> float:
+    def circular_variance(angles: List[float]) -> float:
         """
         Variância circular (R-bar), em [0, 1].
         0 = todos iguais (mínima variância), 1 = máxima dispersão.
@@ -39,7 +39,7 @@ class MathUtils(BaseUtil):
         return 1.0 - r_bar  # 0 = concentrado, 1 = disperso
 
     @staticmethod
-    def circular_mean(angles: list[float]) -> float:
+    def circular_mean(angles: List[float]) -> float:
         """Média circular em graus."""
         if not angles:
             return 0.0
@@ -49,7 +49,7 @@ class MathUtils(BaseUtil):
         return math.degrees(math.atan2(s, c)) % 360.0
 
     @staticmethod
-    def weighted_circular_mean(angles: list[float], weights: list[float]) -> float:
+    def weighted_circular_mean(angles: List[float], weights: List[float]) -> float:
         """
         Média circular ponderada por velocidade.
         Pontos lentos (curva) têm peso menor, pontos rápidos (faixa) dominam.
@@ -89,7 +89,7 @@ class MathUtils(BaseUtil):
         return min(d, 180.0 - d)
 
     @staticmethod
-    def axial_mean(angles: list[float]) -> float:
+    def axial_mean(angles: List[float]) -> float:
         """
         Média axial (direção sem sentido) em graus, 0-180°.
         Algoritmo: dobra os ângulos, calcula média circular, divide por 2.
@@ -102,7 +102,7 @@ class MathUtils(BaseUtil):
         return (mean_doubled / 2.0) % 180.0
 
     @staticmethod
-    def weighted_axial_mean(angles: list[float], weights: list[float]) -> float:
+    def weighted_axial_mean(angles: List[float], weights: List[float]) -> float:
         """
         Média axial ponderada em graus, 0-180°.
         """
@@ -119,7 +119,7 @@ class MathUtils(BaseUtil):
         return (mean_doubled / 2.0) % 180.0
 
     @staticmethod
-    def axial_variance(angles: list[float]) -> float:
+    def axial_variance(angles: List[float]) -> float:
         """
         Variância axial em [0, 1].
         0 = todos na mesma direção, 1 = máxima dispersão axial.

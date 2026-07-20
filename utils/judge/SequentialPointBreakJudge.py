@@ -31,7 +31,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
 from qgis.core import QgsVectorLayer, QgsWkbTypes, QgsField, QgsFeature
 

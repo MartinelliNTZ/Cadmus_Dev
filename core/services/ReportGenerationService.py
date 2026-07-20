@@ -134,9 +134,15 @@ class ReportGenerationService:
             )
 
         # Recarrega timestamps agora com report_end e re-renderiza
+        # IMPORTANTE: Recarrega json_meta do disco para evitar mutacao
+        # do logotipo (primeira renderizacao converte file path → base64
+        # in-place no dict, corrompendo a segunda chamada)
         self.logger.debug("SEGUNDA RENDERIZACAO (com report_end)...")
         try:
             timestamps = JsonMetadataManager.load_timestamps(
+                json_path=json_path, tool_key=self.tool_key
+            )
+            json_meta = JsonMetadataManager.load_json_metadata(
                 json_path=json_path, tool_key=self.tool_key
             )
             processing_summary = JsonMetadataManager.compute_processing_summary(

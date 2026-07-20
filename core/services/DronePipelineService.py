@@ -122,7 +122,9 @@ class DronePipelineService:
         # ── Montar Steps ──────────────────────────────────────────
         enable_exif = apply_photos
         enable_xmp = apply_photos
-        enable_custom = apply_photos and bool(selected_custom)
+        # Custom fields SEMPRE calculados (sao dados derivados).
+        # O filtro por campos selecionados acontece depois no PhotoEnrichmentTask._run()
+        enable_custom = apply_photos
         project_title = prefs.get("project_title", "")
         logo_path = prefs.get("logo_path", "") if prefs.get(
             "logo_enabled", False) else ""

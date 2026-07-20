@@ -546,7 +546,8 @@ class RenderEngine:
         buy_me_a_coffee_icon_url = _icon_to_base64(IM.BUY_ME_A_COFFEE)
 
         # ── Converter logotipo do projeto (json_meta.logotipo) para base64 ──
-        json_meta = agg.get("json_meta") or {}
+        # Faz copia para evitar mutacao do dict original entre renderizacoes
+        json_meta = dict(agg.get("json_meta") or {})
         logotipo_path = json_meta.get("logotipo")
         if logotipo_path:
             logotipo_b64 = ImageUtils.photo_to_base64(

@@ -1,28 +1,30 @@
 # -*- coding: utf-8 -*-
+from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QLabel,
     QLineEdit,
     QVBoxLayout,
     QHBoxLayout,
 )
-from qgis.PyQt.QtCore import Qt
 
 from ....i18n.TranslationManager import STR
+from ....plugins.BaseDialog import BaseDialog
 from ....resources.styles.Styles import Styles
 from ....resources.widgets.ExecutionButtonsWidget import ExecutionButtonsWidget
 from ....core.config.LogUtils import LogUtils
-from ....utils.Preferences import Preferences
 from ....utils.QgisMessageUtil import QgisMessageUtil
 from ....utils.ToolKeys import ToolKey
 
 
-class ProjectNameDialog:
+class ProjectNameDialog(BaseDialog):
     """
-    Dialogo de nome de projeto com:
-    - Exibição da pasta atual
-    - Botão para abrir Configurações Cadmus
-    - ExecutionButtonsWidget: Criar Projeto + Fechar + Instruções
+    Dialogo nao-modal de nome de projeto com:
+    - Exibicao da pasta atual
+    - Botao para abrir Configuracoes Cadmus
+    - ExecutionButtonsWidget: Criar Projeto + Fechar + Instrucoes
     """
+
+    project_accepted = pyqtSignal(str)
 
     def __init__(
         self,
@@ -31,34 +33,39 @@ class ProjectNameDialog:
         project_tool_key: str = ToolKey.CREATE_PROJECT,
         parent=None,
     ):
+        super().__init__(parent)
+        self.setObjectName("project_name_dialog")
+        self.setWindowTitle(STR.PROJECT_NAME_TITLE)
+        self.setModal(False)
+        self.resize(480, 220)
+
         self._suggested_name = suggested_name
         self._base_folder = base_folder
         self._project_tool_key = project_tool_key
-        self._parent = parent
         self._result = False
         self._project_name = ""
 
-        from qgis.PyQt.QtWidgets import QDialog as QD
-
-        self.dialog = QD(parent)
-        self.dialog.setObjectName("project_name_dialog")
-        self.dialog.setWindowTitle(STR.PROJECT_NAME_TITLE)
-        self.dialog.setModal(False)
-        self.dialog.resize(480, 220)
+        self.PLUGIN_NAME = STR.PROJECT_NAME_TITLE
 
         self.logger = LogUtils(
             tool=project_tool_key, class_name="ProjectNameDialog", level="DEBUG"
         )
 
-        self._build_ui()
+        # Inicializa o MainLayout do BaseDialog (cria self.layout)
+        self._build_ui(
+            title=self.PLUGIN_NAME,
+            enable_scroll=False,
+            minimum_size=(300, 220),
+        )
+        self._build_inner_ui()
         self._apply_styles()
 
-    def _build_ui(self):
+    def _build_inner_ui(self):
         """Monta os widgets do dialogo."""
-        layout = QVBoxLayout(self.dialog)
+        layout = QVBoxLayout()
 
-        # ── Pasta atual (exibição) ──
-        folder_label = QLabel(f"📂 {STR.PROJECTS_DEFAULT_FOLDER}:")
+        # ── Pasta atual (exibicao) ──
+        folder_label = QLabel(f"\U0001F4C2 {STR.PROJECTS_DEFAULT_FOLDER}:")
         folder_label.setObjectName("project_name_folder_label")
         layout.addWidget(folder_label)
 
@@ -67,10 +74,10 @@ class ProjectNameDialog:
         folder_path.setReadOnly(True)
         layout.addWidget(folder_path)
 
-        # ── Botão Configurações ──
+        # ── Botao Configuracoes ──
         from qgis.PyQt.QtWidgets import QPushButton
 
-        settings_btn = QPushButton(f"⚙️ {STR.OPEN_SETTINGS}")
+        settings_btn = QPushButton(f"\u2699\ufe0f {STR.OPEN_SETTINGS}")
         settings_btn.setObjectName("project_name_settings_btn")
         settings_btn.setFixedHeight(24)
         settings_btn.clicked.connect(self._open_settings)
@@ -93,7 +100,7 @@ class ProjectNameDialog:
         row.addWidget(self.name_input)
         layout.addLayout(row)
 
-        # ── ExecutionButtonsWidget: Criar + Fechar + Instruções ──
+        # ── ExecutionButtonsWidget: Criar + Fechar + Instrucoes ──
         self._buttons_widget = ExecutionButtonsWidget(
             run_callback=self._on_accept,
             close_callback=self._on_reject,
@@ -101,21 +108,24 @@ class ProjectNameDialog:
             run_text=STR.CREATE_PROJECT,
             close_text=STR.CANCEL,
             height=24,
-            parent=self.dialog,
+            parent=self,
         )
         layout.addWidget(self._buttons_widget)
 
+        # Adiciona ao MainLayout do BaseDialog
+        self.layout.add_items([layout])
+
     def _apply_styles(self):
         """Aplica o stylesheet."""
-        self.dialog.setStyleSheet(Styles.project_name_dialog())
+        self.setStyleSheet(Styles.project_name_dialog())
 
     def _open_settings(self):
-        """Abre Configurações Cadmus."""
-        self.logger.info("Abrindo Configurações Cadmus via ProjectNameDialog")
+        """Abre Configuracoes Cadmus."""
+        self.logger.info("Abrindo Configuracoes Cadmus via ProjectNameDialog")
         try:
             # Tentar obter iface do parent chain
             iface = None
-            p = self.dialog.parent()
+            p = self.parent()
             while p is not None:
                 if hasattr(p, "iface"):
                     iface = p.iface
@@ -126,6 +136,7 @@ class ProjectNameDialog:
                 # Fallback: tentar do QgisInterface global
                 try:
                     from qgis.utils import iface as qgis_iface
+
                     iface = qgis_iface
                 except Exception:
                     pass
@@ -133,7 +144,7 @@ class ProjectNameDialog:
             if iface is None:
                 QgisMessageUtil.bar_warning(
                     None,
-                    "Abra Configurações Cadmus pelo menu Cadmus > Sistema > Configurações.",
+                    "Abra Configuracoes Cadmus pelo menu Cadmus > Sistema > Configuracoes.",
                 )
                 return
 
@@ -143,39 +154,38 @@ class ProjectNameDialog:
             dlg.setModal(False)
             dlg.show()
         except Exception as e:
-            self.logger.error(f"Erro ao abrir Configurações: {e}")
+            self.logger.error(f"Erro ao abrir Configuracoes: {e}")
             QgisMessageUtil.bar_warning(
                 None,
-                "Abra Configurações Cadmus pelo menu Cadmus > Sistema > Configurações.",
+                "Abra Configuracoes Cadmus pelo menu Cadmus > Sistema > Configuracoes.",
             )
 
     def _show_instructions(self):
-        """Exibe instruções da ferramenta."""
-        self.logger.debug("Exibindo instruções via ProjectNameDialog")
+        """Exibe instrucoes da ferramenta."""
+        self.logger.debug("Exibindo instrucoes via ProjectNameDialog")
         try:
             from ....resources.InstructionsManager import InstructionsManager
             from ....core.ui.info_dialog import InfoDialog
 
             instructions_file = InstructionsManager.get(self._project_tool_key)
-            title = f"📘 {STR.INSTRUCTIONS} – {STR.CREATE_PROJECT_TITLE}"
-            InfoDialog(instructions_file, self.dialog, title).exec()
+            title = f"\U0001F4D8 {STR.INSTRUCTIONS} \u2013 {STR.CREATE_PROJECT_TITLE}"
+            InfoDialog(instructions_file, self, title).exec()
         except Exception as e:
-            self.logger.error(f"Erro ao exibir instruções: {e}")
+            self.logger.error(f"Erro ao exibir instrucoes: {e}")
 
     def _on_accept(self):
-        """Callback de aceite — fecha com resultado positivo."""
+        """Callback de aceite — emite signal com o nome e fecha."""
         self._project_name = self.name_input.text().strip()
         self._result = True
-        self.dialog.accept()
+        name = self.get_project_name()
+        self.project_accepted.emit(name)
+        self.accept()
 
     def _on_reject(self):
-        """Callback de rejeição — fecha com resultado negativo."""
+        """Callback de rejeicao — emite signal None e fecha."""
         self._result = False
-        self.dialog.reject()
-
-    def exec(self):
-        """Executa o dialogo modalmente."""
-        return self.dialog.exec()
+        self.project_accepted.emit(None)
+        self.reject()
 
     def get_project_name(self) -> str:
         """Retorna o nome de projeto informado sem espacos extras."""

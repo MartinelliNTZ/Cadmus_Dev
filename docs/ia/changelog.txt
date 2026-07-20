@@ -369,6 +369,17 @@
     - MainLayout._global_pos(): mesma correção (hasattr → try/except) — mesmo padrão vulnerável.
     - Causa raiz: hasattr() não é confiável com objetos SIP do PyQt5.
     - Compatibilidade Qt5/Qt6 mantida.
+2.3.58 20/07/2026
+[2.3.58.1][20/07/2026] DefaultProjectsFolderDialog e ProjectNameDialog refatorados:
+   - Ambos agora herdam de BaseDialog (em vez de QDialog direto ou classe avulsa)
+   - Ambos convertidos para não-modais (setModal(False), show() em vez de exec())
+   - Adicionados signals: folder_selected(str) e project_accepted(str)
+   - CreateProjectPlugin refatorado para fluxo orientado a eventos (non-modal):
+     - _resolve_base_folder() e _resolve_project_name() agora abrem diálogos e conectam signals
+     - Callbacks _on_folder_selected() e _on_project_name_accepted() continuam o fluxo
+     - Removido método _continue_after_base_folder() — fluxo linear via callbacks
+   - Import não utilizado Preferences removido de ProjectNameDialog
+   - Compatibilidade Qt5/Qt6 mantida via BaseDialog
 2.3.55 20/07/2026
 [2.3.55.1][20/07/2026] Corrigido JsonToVectorTranslator._resolve_geometry não resolvendo coordenadas MRK:
   - Adicionada Tentativa 3 (fallback MRK): quando GpsLatitude/GpsLongitude (EXIF/XMP) não estão disponíveis,

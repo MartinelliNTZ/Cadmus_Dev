@@ -32,6 +32,10 @@ class CreateProjectPlugin(BasePluginMTL):
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
         self.iface = iface
+        self._system_prefs = {}
+        self._base_folder = ""
+        self._project_name = ""
+        self._default_crs_authid = ""
         self.init(
             tool_key=self.TOOL_KEY,
             class_name="CreateProjectPlugin",
@@ -44,39 +48,31 @@ class CreateProjectPlugin(BasePluginMTL):
         return self.execute_tool()
 
     def execute_tool(self):
-        """Executa o fluxo completo de criacao de projeto."""
+        """Executa o fluxo completo de criacao de projeto (nao-modal)."""
         self.on_finish_plugin()
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.info("Iniciando fluxo de criacao de novo projeto")
-        system_prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-        base_folder = self._resolve_base_folder(system_prefs)
-        if not base_folder:
-            return
-
-        project_name = self._resolve_project_name(base_folder)
-        if not project_name:
-            return
-
-        default_crs_authid = (
-            system_prefs.get(self.DEFAULT_CRS_PREF_KEY) or self.DEFAULT_CRS_AUTHID
+        self._system_prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
+        self._default_crs_authid = (
+            self._system_prefs.get(self.DEFAULT_CRS_PREF_KEY) or self.DEFAULT_CRS_AUTHID
         )
-        self._create_project_structure(base_folder, project_name, default_crs_authid)
+        self._resolve_base_folder()
 
-    def _resolve_base_folder(self, system_prefs: dict) -> str:
-        base_folder = (system_prefs.get(self.PROJECTS_FOLDER_PREF_KEY) or "").strip()
+    def _resolve_base_folder(self):
+        """Resolve a pasta base — se ja configurada, segue; senao, abre dialogo."""
+        base_folder = (
+            self._system_prefs.get(self.PROJECTS_FOLDER_PREF_KEY) or ""
+        ).strip()
         if base_folder:
             if self._prepare_existing_base_folder(base_folder):
-                return base_folder
-            return ""
+                self._base_folder = base_folder
+                self._resolve_project_name()
+            return
 
-        base_folder = self._prompt_and_persist_base_folder(system_prefs)
-        if not base_folder:
-            return ""
-        if self._prepare_new_base_folder(base_folder):
-            return base_folder
-        return ""
+        self._prompt_and_persist_base_folder()
 
-    def _prompt_and_persist_base_folder(self, system_prefs: dict) -> str:
+    def _prompt_and_persist_base_folder(self):
+        """Abre dialogo nao-modal para definir a pasta padrao."""
         should_define = QgisMessageUtil.confirm(
             self.iface,
             STR.PROJECTS_DEFAULT_FOLDER_MISSING,
@@ -84,18 +80,30 @@ class CreateProjectPlugin(BasePluginMTL):
         )
         if not should_define:
             self.logger.info("Usuario cancelou definicao da pasta padrao")
-            return ""
+            return
 
         folder_dialog = DefaultProjectsFolderDialog(parent=self.iface.mainWindow())
-        if not folder_dialog.exec():
-            self.logger.info("Usuario cancelou o dialogo da pasta padrao")
-            return ""
+        folder_dialog.folder_selected.connect(
+            lambda path: self._on_folder_selected(path)
+        )
+        folder_dialog.show()
 
-        base_folder = folder_dialog.get_folder_path().strip()
-        system_prefs[self.PROJECTS_FOLDER_PREF_KEY] = base_folder
-        Preferences.save_tool_prefs(ToolKey.SYSTEM, system_prefs)
+    def _on_folder_selected(self, base_folder: str):
+        """Callback quando o dialogo de pasta e confirmado."""
+        if not base_folder:
+            self.logger.info("Usuario cancelou o dialogo da pasta padrao")
+            return
+
+        base_folder = base_folder.strip()
+        self._system_prefs[self.PROJECTS_FOLDER_PREF_KEY] = base_folder
+        Preferences.save_tool_prefs(ToolKey.SYSTEM, self._system_prefs)
         self.logger.info(f"Pasta padrao salva nas system prefs: {base_folder}")
-        return base_folder
+
+        if not self._prepare_new_base_folder(base_folder):
+            return
+
+        self._base_folder = base_folder
+        self._resolve_project_name()
 
     def _prepare_new_base_folder(self, base_folder: str) -> bool:
         if ExplorerUtils.ensure_folder_exists(base_folder, self.TOOL_KEY):
@@ -117,26 +125,50 @@ class CreateProjectPlugin(BasePluginMTL):
         )
         return False
 
-    def _resolve_project_name(self, base_folder: str) -> str:
+    def _resolve_project_name(self):
+        """Abre dialogo nao-modal para nome do projeto."""
         suggested_name = ExplorerUtils.next_indexed_folder_name(
-            base_folder=base_folder,
+            base_folder=self._base_folder,
             prefix="NovoProjeto_",
             pattern=self.GENERIC_PROJECT_PATTERN,
         )
         name_dialog = ProjectNameDialog(
             suggested_name=suggested_name,
-            base_folder=base_folder,
+            base_folder=self._base_folder,
             project_tool_key=self.TOOL_KEY,
             parent=self.iface.mainWindow(),
         )
-        if not name_dialog.exec():
-            self.logger.info("Usuario cancelou o dialogo de nome do projeto")
-            return ""
-
-        project_name = ExplorerUtils.sanitize_path_component(
-            name_dialog.get_project_name()
+        name_dialog.project_accepted.connect(
+            lambda name: self._on_project_name_accepted(name, suggested_name)
         )
-        return project_name or suggested_name
+        name_dialog.show()
+
+    def _on_project_name_accepted(self, project_name: str, suggested_name: str):
+        """Callback quando o dialogo de nome do projeto e fechado.
+        
+        project_name:
+          - None significa cancelamento (fechou sem criar)
+          - "" (vazio) significa aceite sem digitar → usa suggested_name
+          - "nome" significa aceite com nome digitado
+        """
+        if project_name is None:
+            self.logger.info("Usuario cancelou o dialogo de nome do projeto")
+            return
+
+        # Se vazio, usa o nome sugerido (placeholder)
+        resolved_name = project_name.strip() or suggested_name
+        self._project_name = ExplorerUtils.sanitize_path_component(resolved_name)
+        if not self._project_name:
+            self._project_name = suggested_name
+
+        self.logger.info(
+            f"Nome do projeto resolvido: {self._project_name}"
+        )
+        self._create_project_structure(
+            self._base_folder,
+            self._project_name,
+            self._default_crs_authid,
+        )
 
     def _detect_creation_scenario(self, current_project) -> int:
         if ProjectUtils.is_project_saved(current_project):

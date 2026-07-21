@@ -3,7 +3,7 @@
 **Objetivo:** Eliminar completamente o uso da `WidgetFactory`, migrando para um modelo onde widgets se autoconfiguram com `AppStyles` + `ThemeManager` + `BaseTheme`, e plugins declaram widgets via parâmetros/dict sem saber de estilos.
 
 **Data:** 2026-07-21
-**Versão:** 3.0.0
+**Versão:** 4.0.0
 **Autor:** Cadmus Engineering
 
 ---
@@ -37,7 +37,7 @@ Plugin
           ├─ Cria widget (importa de resources/widgets/)
           ├─ Cria layout (QVBoxLayout)
           ├─ Aplica Styles.xxx() (importa de resources/styles/Styles.py)
-          ├─ Adiciona separadores (top/bottom)
+          ├─ Adiciona separadores (top/bottom) via QFrame
           └─ Retorna (layout, widget)
 
 Styles (resources/styles/Styles.py)
@@ -49,14 +49,13 @@ BaseStyles
   └─ Métodos estáticos: button(), label(), input(), checkbox()
 
 BaseTheme (resources/styles/BaseTheme.py) — ANTIGO
-  └─ 135 linhas com todos os tokens visuais
+  └─ 135 linhas com todos os tokens visuais — FOI LIMPO
 ```
 
 ### O que NÃO mudará (mantido como está)
 
 | Arquivo | Motivo |
 |---------|--------|
-| `resources/styles/BaseTheme.py` antigo | Foi **limpo** para ser a base exclusiva do NOVO sistema (agora tem só `rgba()`) |
 | `resources/styles/BaseStyles.py` | `current_theme = CoffeTheme()` — exclusivo do sistema antigo |
 | `resources/styles/Styles.py` | Mantido para widgets antigos |
 | `resources/styles/CoffeTheme.py` | Exclusivo do sistema antigo |
@@ -71,7 +70,7 @@ BaseTheme (resources/styles/BaseTheme.py) — ANTIGO
 | 2 | `Styles` + `BaseStyles` duplicados | Manutenção confusa |
 | 3 | `WidgetFactory` 1135 linhas (viola SRP) | Difícil testar/manter |
 | 4 | Plugin sabe de layout (recebe `(layout, widget)`) | Acoplamento |
-| 5 | Unidades `px` espalhadas em Styles.py e widgets | Mudar tamanho exige N alterações |
+| 5 | Unidades `px` espalhadas | Mudar tamanho exige N alterações |
 | 6 | Widgets antigos não têm `_specific_style()` | Estilo misturado |
 
 ---
@@ -92,15 +91,15 @@ Plugin
 AppStyles (resources/styles/AppStyles.py)
   ├─ Lê de ThemeManager (com cache)
   ├─ Só métodos GLOBAIS: button(), label(), input(), checkbox()
-  ├─ Nomes de tokens SEMPRE descritivos: {theme.INPUT_HEIGHT}
+  ├─ Nomes de tokens SEMPRE descritivos: {theme.INPUT_FIELD_MIN_HEIGHT}
   └─ SEM `px` — tokens já vêm do tema com unidade
 
 ThemeManager
-  └─ Lê qual tema usar (via preferências)
-      └─ Instancia tema concreto (herda de BaseTheme)
+  └─ Mantém instância ÚNICA de BaseTheme (sem temas filhos por enquanto)
+      └─ BaseTheme é o próprio tema — tem todos os tokens
 
 BaseTheme (NOVO — resources/styles/BaseTheme.py)
-  └─ Classe base LIMPA (só rgba() + tokens sem contaminação antiga)
+  └─ Classe ÚNICA de tema: rgba() + todos os tokens visuais descritivos
 
 Widgets (resources/new_widgets/)
   ├── widget comum → raiz (não tem versão grid)
@@ -120,14 +119,15 @@ resources/
   │   ├── BaseStyles.py   ← NÃO TOCAR (current_theme = CoffeTheme() — SISTEMA ANTIGO)
   │   ├── Styles.py        ← NÃO TOCAR (herda BaseStyles — SISTEMA ANTIGO)
   │   ├── CoffeTheme.py    ← NÃO TOCAR (tema antigo)
-  │   ├── BaseTheme.py     ← FOI LIMPO — agora é base do NOVO sistema (só rgba()) ADICIONAR NOVOS TOKENS AQUI
-  │   ├── ThemeManager.py  ← ATUALIZAR — gerenciar temas NOVOS
+  │   ├── BaseTheme.py     ← FOI LIMPO — agora é o tema ÚNICO do NOVO sistema
+  │   │                      (tem rgba() + todos os tokens visuais)
+  │   ├── ThemeManager.py  ← ATUALIZAR — gerenciar o BaseTheme
   │   └── AppStyles.py     ← NOVO (lê de ThemeManager)
   │
   ├── widgets/             ← NÃO TOCAR (widgets antigos)
   │
   └── new_widgets/         ← NOVO (sistema novo)
-      ├── widget_comum.py          ← widget sem versão grid (ex: CollapsibleParameters)
+      ├── widget_comum.py          ← widget sem versão grid
       ├── simple/
       │   └── SimpleLayerInput.py  ← widget TEM versão grid (não usar em plugins!)
       └── grid/
@@ -154,9 +154,9 @@ Se um widget é COMPLEXO (simple + funções):
 
 ```
 1. BaseTheme já está limpo ✅
-2. Criar AppStyles.py → lê de ThemeManager com tokens descritivos
-3. Atualizar ThemeManager.py → aceitar temas novos
-4. Criar tema novo (ex: DarkTheme.py) → herda de BaseTheme
+2. Adicionar tokens descritivos no BaseTheme.py
+3. Criar AppStyles.py → lê de ThemeManager com tokens descritivos
+4. Atualizar ThemeManager.py → apontar para BaseTheme (NÃO AppTheme filho)
 5. Criar widgets em new_widgets/ → seguindo hierarquia simple/grid/raiz
 6. Migrar plugins 1 por vez → usar widgets de new_widgets/
 7. NUNCA deletar nada antigo
@@ -191,11 +191,11 @@ new_widgets/
 │   └── SimpleDropdown.py
 │
 └── (raiz)          ← Widget SEM versão grid
-    ├── SeparatorWidget.py
+    ├── SeparatorWidget.py    ← QFrame separador visual (gradiente horizontal)
     ├── AppBarWidget.py
     ├── CollapsibleParametersWidget.py
-    ├── ComplexPathSelector.py     ← nomenclatura complex, mas fica na raiz
-    ├── ComplexColorPicker.py       ← nomenclatura complex, mas fica na raiz
+    ├── ComplexPathSelector.py     ← nomenclatura complex, fica na raiz
+    ├── ComplexColorPicker.py       ← nomenclatura complex, fica na raiz
     └── GridComplexSelector.py      ← grid de complex, fica na raiz
 ```
 
@@ -220,7 +220,7 @@ WIDGET INTERNO:
 - Botões
 - Funções internas (path selector, color picker, etc.)
 
-Mas isso NÃO define uma pasta. O widget fica na raiz ou em grid/simple conforme a regra acima.
+Mas isso NÃO define uma pasta. O widget fica na raiz conforme a regra acima.
 
 Exemplos:
 - `ComplexPathSelector.py` → raiz (não tem versão grid)
@@ -228,32 +228,60 @@ Exemplos:
 - `ComplexCollapsible.py` → raiz (não tem versão grid)
 - `GridComplexSelector.py` → raiz (é grid de complex, mas nome indica grid)
 
-### 4.4 Separadores em Todos os Widgets
+### 4.4 Separadores Widgets Separados (NÃO São Margens)
 
-TODO widget DEVE suportar separadores nos 4 lados:
-
-```python
-class MeuWidget(QWidget):
-    def __init__(self, parent=None, **kwargs):
-        self._separator_top = kwargs.pop("separator_top", False)
-        self._separator_bottom = kwargs.pop("separator_bottom", False)
-        self._separator_left = kwargs.pop("separator_left", False)
-        self._separator_right = kwargs.pop("separator_right", False)
-```
-
-Os separadores são aplicados como `contentsMargins` no layout:
+**SEPARADOR é um QFrame visual**, não padding/margem.  
+O widget `SeparatorWidget` é um QFrame com estilo de gradiente horizontal.
 
 ```python
-def _build_layout(self):
-    theme = AppStyles._get_theme()
-    layout = QVBoxLayout(self)
-    layout.setContentsMargins(
-        PADDING_SEPARATOR if self._separator_left else 0,
-        PADDING_SEPARATOR if self._separator_top else 0,
-        PADDING_SEPARATOR if self._separator_right else 0,
-        PADDING_SEPARATOR if self._separator_bottom else 0,
-    )
+# resources/new_widgets/SeparatorWidget.py
+class SeparatorWidget(QFrame):
+    """
+    Separador visual — QFrame com gradiente horizontal.
+    
+    Parâmetros
+    ----------
+    height : str, optional
+        Altura do separador (default: usa theme.SEPARATOR_LINE_HEIGHT)
+    """
+
+    def __init__(self, height: str = None, parent=None):
+        super().__init__(parent)
+        theme = AppStyles._get_theme()
+        
+        # Compatibilidade Qt5/Qt6 para QFrame.Shape
+        try:
+            shape = QFrame.Shape.HLine
+        except AttributeError:
+            shape = QFrame.HLine
+        
+        try:
+            shadow = QFrame.Shadow.Sunken
+        except AttributeError:
+            shadow = QFrame.Sunken
+        
+        self.setFrameShape(shape)
+        self.setFrameShadow(shadow)
+        
+        h = height or theme.SEPARATOR_LINE_HEIGHT
+        h_int = int(h.replace("px", ""))
+        self.setFixedHeight(h_int)
+        self.setStyleSheet(AppStyles.separator())
 ```
+
+**Plugins adicionam separadores entre widgets:**
+
+```python
+# NO LAYOUT do plugin:
+self.layout.addWidget(self.layer_input)
+self.layout.addWidget(SeparatorWidget())        # separador entre widgets
+self.layout.addWidget(self.dropdown_selector)
+self.layout.addWidget(SeparatorWidget())
+self.layout.addWidget(self.action_buttons)
+```
+
+**Widgets NÃO têm `separator_top/bottom/left/right` como parâmetros.**  
+Separador é um widget separado que o plugin insere entre os widgets.
 
 ---
 
@@ -264,18 +292,18 @@ def _build_layout(self):
 **ERRADO:**
 ```python
 # ❌ UNIDADE FIXA — NÃO FAZER
-min-height: {theme.INPUT_HEIGHT}px;
+min-height: {theme.INPUT_FIELD_MIN_HEIGHT}px;
 border: 1px solid {theme.COLOR_BORDER};
 ```
 
 **CERTO:**
 ```python
 # ✅ UNIDADE SEMPRE NO TEMA
-# No theme:  INPUT_HEIGHT = "4px"
-# No estilo: min-height: {theme.INPUT_HEIGHT};
+# No tema:  INPUT_FIELD_MIN_HEIGHT = "4px"
+# No estilo: min-height: {theme.INPUT_FIELD_MIN_HEIGHT};
 
-# No theme:  PXBORDER_ONE = "1px solid"
-# No estilo: border: {theme.PXBORDER_ONE} {theme.COLOR_BORDER};
+# No tema:  PXBORDER_ONE = "1px solid"
+# No estilo: border: {theme.PXBORDER_ONE} {theme.COLOR_BORDER_DEFAULT};
 ```
 
 ### 5.2 NUNCA Usar `t` — Use `theme`
@@ -283,11 +311,11 @@ border: 1px solid {theme.COLOR_BORDER};
 ```python
 # ❌ AMBÍGUO — NÃO FAZER
 t = cls._get_theme()
-min-height: {t.INPUT_HEIGHT};
+min-height: {t.INPUT_FIELD_MIN_HEIGHT};
 
 # ✅ DESCRITIVO — FAZER
 theme = cls._get_theme()
-min-height: {theme.INPUT_HEIGHT};
+min-height: {theme.INPUT_FIELD_MIN_HEIGHT};
 ```
 
 ### 5.3 Nomes de Tokens DESCRITIVOS (sem medo de tamanho)
@@ -306,6 +334,8 @@ class BaseTheme:
     COLLAPSIBLE_HEADER_BUTTON_BACKGROUND: str = "transparent"
     COLLAPSIBLE_HEADER_BUTTON_BORDER: str = "none"
     APP_BAR_TITLE_FONT_WEIGHT: str = "bold"
+    SEPARATOR_LINE_HEIGHT: str = "3px"
+    SEPARATOR_LINE_MARGIN: str = "4px 0px"
 ```
 
 ### 5.4 Onde Cada Token Fica
@@ -317,6 +347,7 @@ TEMA (BaseTheme):
   PXBORDER_ONE: str = "1px solid"              ← tudo AQUI
   PADDING_INPUT_FIELD: str = "2px 8px"         ← unidade AQUI
   BORDER_RADIUS_INPUT_FIELD: str = "4px"       ← unidade AQUI
+  SEPARATOR_LINE_HEIGHT: str = "3px"           ← unidade AQUI
   SEPARATOR_LINE_MARGIN: str = "4px 0px"       ← unidade AQUI
   COLLAPSIBLE_HEADER_BUTTON_BACKGROUND: str = "transparent"  ← valor direto
   COLLAPSIBLE_HEADER_BUTTON_BORDER: str = "none"              ← valor direto
@@ -335,43 +366,14 @@ TEMA (BaseTheme):
 
 AppStyles / Widget:
   min-height: {theme.INPUT_FIELD_MIN_HEIGHT};     ← sem px
-  border: {theme.PXBORDER_ONE} {theme.COLOR_BORDER};
+  border: {theme.PXBORDER_ONE} {theme.COLOR_BORDER_DEFAULT};
   padding: {theme.PADDING_INPUT_FIELD};
   border-radius: {theme.BORDER_RADIUS_INPUT_FIELD};
   background: {theme.COLLAPSIBLE_HEADER_BUTTON_BACKGROUND};
   border: {theme.COLLAPSIBLE_HEADER_BUTTON_BORDER};
 ```
 
-### 5.5 Exemplo de Propriedade no Tema
-
-```python
-class DarkTheme(BaseTheme):
-    ALLOW_COMPONENT_SHADOW: bool = True
-    
-    @property
-    def BOX_SHADOW_COMPONENT(self) -> str:
-        """Sombra para painéis e containers."""
-        if self.ALLOW_COMPONENT_SHADOW:
-            return "0px 0px 6px rgba(0,0,0,0.4)"
-        return "none"
-```
-
-Uso em AppStyles (NUNCA usa `hasattr`, a propriedade está no contrato do tema):
-
-```python
-@classmethod
-def panel(cls) -> str:
-    theme = cls._get_theme()
-    return f"""
-    QFrame {{
-        background:{theme.COLOR_BACKGROUND_SOFT};
-        border-radius:{theme.BORDER_RADIUS_PANEL};
-        padding:{theme.PADDING_PANEL};
-    }}
-    """
-```
-
-### 5.6 `_specific_style()` Padronizado
+### 5.5 `_specific_style()` Padronizado
 
 TODO widget DEVE ter:
 
@@ -391,23 +393,25 @@ def _specific_style(self) -> str:
 
 ### 6.1 BaseTheme JÁ Está Limpo ✅
 
-O `resources/styles/BaseTheme.py` já foi limpo. Agora contém apenas:
-- `rgba()` helper
-- Sem tokens visuais
-- Serve como base EXCLUSIVA para o novo sistema
+O `resources/styles/BaseTheme.py` já foi limpo. Agora contém apenas `rgba()`.
 
-**NÃO** tem relação com o `BaseStyles.current_theme = CoffeTheme()` do sistema antigo.
+**NÃO** tem relação com `BaseStyles.current_theme = CoffeTheme()` do sistema antigo.
 
-### 6.2 Criar `resources/styles/AppTheme.py` (Tema Novo)
+**BaseTheme é o tema ÚNICO.** Não terá temas filhos por enquanto.  
+Só quando o sistema estiver completamente modificado e estável, poderemos criar temas filhos (DarkTheme, LightTheme, etc.).
+
+### 6.2 Adicionar Tokens Descritivos no `BaseTheme.py`
 
 ```python
-# resources/styles/AppTheme.py
+# resources/styles/BaseTheme.py
 # -*- coding: utf-8 -*-
 """
-AppTheme — Tema padrão do novo sistema visual
-==============================================
-Herda de BaseTheme (limpo, sem contaminação do sistema antigo).
-Define todos os tokens visuais com nomes DESCRITIVOS.
+BaseTheme — Tema ÚNICO do sistema Cadmus
+==========================================
+Contém todos os tokens visuais com nomes DESCRITIVOS.
+NÃO terá temas filhos por enquanto.
+Quando o sistema estiver completamente modificado, 
+poderemos criar temas filhos (DarkTheme, LightTheme, etc.).
 
 Uso:
     from resources.styles.ThemeManager import theme_manager
@@ -415,14 +419,26 @@ Uso:
 """
 
 from __future__ import annotations
-from .BaseTheme import BaseTheme
 
 
-class AppTheme(BaseTheme):
+class BaseTheme:
     """
     Tema padrão do Cadmus.
     Todos os tokens com nomes descritivos (sem medo de serem grandes).
     """
+
+    @staticmethod
+    def rgba(hex_color: str, alpha: int) -> str:
+        """
+        Converte HEX + alpha para rgba().
+        Exemplo:
+        rgba("#a6784f", 120) -> "rgba(166,120,79,120)"
+        """
+        hex_color = hex_color.lstrip("#")
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return f"rgba({r},{g},{b},{alpha})"
 
     # ════════════════════════════════════════════════════════════
     # CORES
@@ -492,7 +508,6 @@ class AppTheme(BaseTheme):
     # ════════════════════════════════════════════════════════════
 
     PXBORDER_ONE: str = "1px solid"
-    PXBORDER_ONE_NONE: str = "none"
 
     CHECKBOX_BORDER_WIDTH: str = "1px"
 
@@ -504,12 +519,12 @@ class AppTheme(BaseTheme):
     BORDER_RADIUS_BUTTON_DEFAULT: str = "6px"
     BORDER_RADIUS_CHECKBOX: str = "3px"
     BORDER_RADIUS_RADIO_BUTTON: str = "6px"
-    BORDER_RADIUS_CONTAINER: str = "8px"
+    BORDER_RADIUS_CONTAINER_MAIN: str = "8px"
     BORDER_RADIUS_SMALL_COMPONENT: str = "2px"
     BORDER_RADIUS_SCROLL_BAR_HANDLE: str = "4px"
     BORDER_RADIUS_COLLAPSIBLE_HEADER: str = "6px"
 
-    CONTAINER_BORDER_SIZE: str = "3px"
+    CONTAINER_MAIN_BORDER_SIZE: str = "3px"
 
     # ════════════════════════════════════════════════════════════
     # PADDINGS — TODOS COM UNIDADE
@@ -521,7 +536,13 @@ class AppTheme(BaseTheme):
     PADDING_BUTTON_SMALL: str = "4px 14px"
     PADDING_PANEL_CONTENT: str = "8px"
     PADDING_LIST_ITEM: str = "4px"
-    PADDING_SEPARATOR: str = "4px"
+
+    # ════════════════════════════════════════════════════════════
+    # SEPARADOR
+    # ════════════════════════════════════════════════════════════
+
+    SEPARATOR_LINE_HEIGHT: str = "3px"
+    SEPARATOR_LINE_MARGIN: str = "4px 0px"
 
     # ════════════════════════════════════════════════════════════
     # ESPAÇAMENTOS
@@ -530,8 +551,6 @@ class AppTheme(BaseTheme):
     LAYOUT_VERTICAL_SPACING: int = 2
     LAYOUT_HORIZONTAL_SPACING: int = 2
     CHECKBOX_LABEL_SPACING: str = "6px"
-    SEPARATOR_LINE_HEIGHT: str = "3px"
-    SEPARATOR_LINE_MARGIN: str = "4px 0px"
     SPINBOX_ARROW_BUTTON_WIDTH: str = "16px"
 
     # ════════════════════════════════════════════════════════════
@@ -569,7 +588,7 @@ class AppTheme(BaseTheme):
         return "bold"
 ```
 
-### 6.3 Atualizar `ThemeManager.py`
+### 6.3 Atualizar `ThemeManager.py` (Apenas BaseTheme)
 
 ```python
 # resources/styles/ThemeManager.py
@@ -578,48 +597,71 @@ class AppTheme(BaseTheme):
 ThemeManager — Gerenciador central de temas
 =============================================
 Usado pelo NOVO sistema (AppStyles, new_widgets).
+Mantém instância ÚNICA de BaseTheme (sem temas filhos por enquanto).
+
 O sistema antigo (BaseStyles) usa current_theme = CoffeTheme() direto.
 
 Uso:
     from resources.styles.ThemeManager import theme_manager
-    bg = theme_manager.COLOR_BACKGROUND_MAIN
+    theme_manager.COLOR_BACKGROUND_MAIN
 """
 
 from __future__ import annotations
 from typing import Any
 from .BaseTheme import BaseTheme
-from .AppTheme import AppTheme
 
 
-THEMES: dict[str, dict[str, Any]] = {
-    "app": {
-        "class": AppTheme,
-        "label": "App Theme",
-        "description": "Tema padrão do novo sistema visual.",
-        "version": "1.0.0",
-    },
-}
+class ThemeManager:
+    """
+    Gerenciador singleton de tema.
+    Mantém instância ÚNICA de BaseTheme.
+    Quando o sistema estiver completamente modificado,
+    poderemos adicionar temas filhos (DarkTheme, LightTheme, etc.).
+    """
 
-_DEFAULT_THEME_KEY: str = "app"
-__CURRENT_THEME_KEY: str | None = None
+    _instance: ThemeManager | None = None
+    _theme: BaseTheme | None = None
+
+    def __new__(cls) -> ThemeManager:
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._theme = BaseTheme()
+        return cls._instance
+
+    @property
+    def theme(self) -> BaseTheme:
+        """Retorna a instância do tema atual."""
+        return self._theme
+
+    def reload_theme(self) -> None:
+        """Recria a instância do tema."""
+        self._theme = BaseTheme()
+
+    @property
+    def current_info(self) -> dict[str, Any]:
+        """Metadados do tema atual."""
+        return {
+            "name": "BaseTheme",
+            "description": "Tema padrão do Cadmus",
+            "version": "1.0.0",
+        }
+
+    def _sync_attributes(self) -> None:
+        """
+        Sincroniza tokens do tema como atributos diretos do ThemeManager.
+        Permite acesso via: theme_manager.COLOR_PRIMARY
+        """
+        for attr_name in dir(self._theme):
+            if attr_name.startswith("_"):
+                continue
+            attr_value = getattr(self._theme, attr_name)
+            if callable(attr_value):
+                continue
+            setattr(self, attr_name, attr_value)
 
 
-def _resolve_current_theme_key() -> str:
-    """Lê chave do tema ativo das preferências do sistema."""
-    global __CURRENT_THEME_KEY
-    if __CURRENT_THEME_KEY is not None:
-        return __CURRENT_THEME_KEY
-    try:
-        from ...utils.Preferences import Preferences
-        from ...utils.ToolKeys import ToolKey
-        sys_prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-        __CURRENT_THEME_KEY = sys_prefs.get("theme_new", _DEFAULT_THEME_KEY)
-    except Exception:
-        __CURRENT_THEME_KEY = _DEFAULT_THEME_KEY
-    return __CURRENT_THEME_KEY
-
-
-# ... (restante do ThemeManager mantido igual)
+# ── Singleton pré-instanciado ──────────────────────────────────
+theme_manager: ThemeManager = ThemeManager()
 ```
 
 ### 6.4 Criar `resources/styles/AppStyles.py`
@@ -632,10 +674,9 @@ AppStyles — Estilos GLOBAIS do Cadmus
 ======================================
 Ponto único de estilos visuais GLOBAIS.
 Lê tokens do ThemeManager (cada token já contém unidade: "4px").
-Widgets específicos têm `_specific_style()`.
 
 NUNCA use px nos estilos — tokens do tema já têm unidade.
-NUNCA use variável 't' — use 'theme' sempre.
+NUNCA use 't' — use 'theme' sempre.
 
 Uso:
     from resources.styles.AppStyles import AppStyles
@@ -887,8 +928,8 @@ class AppStyles:
                 stop:0 {theme.COLOR_BACKGROUND_MAIN},
                 stop:0.5 {theme.COLOR_BACKGROUND_PANEL},
                 stop:1 {theme.COLOR_BACKGROUND_MAIN});
-            border: {theme.CONTAINER_BORDER_SIZE} {theme.COLOR_BORDER_DEFAULT};
-            border-radius: {theme.BORDER_RADIUS_CONTAINER};
+            border: {theme.CONTAINER_MAIN_BORDER_SIZE} {theme.COLOR_BORDER_DEFAULT};
+            border-radius: {theme.BORDER_RADIUS_CONTAINER_MAIN};
         }}
         {cls.label()}
         {cls.checkbox()}
@@ -1019,15 +1060,14 @@ Criados em `resources/new_widgets/simple/`. Estes widgets TEM versão grid.
 | `SimpleLabel.py` | `SimpleLabel` | QLabel + AppStyles.label() |
 | `SimpleInput.py` | `SimpleInput` | QLineEdit + AppStyles.input() |
 | `SimpleButton.py` | `SimpleButton` | QPushButton + AppStyles.button() |
-| `SimpleComboBox.py` | `SimpleComboBox` | QComboBox |
+| `SimpleComboBox.py` | `SimpleComboBox` | QComboBox + AppStyles.input() |
 | `SimpleSpinBox.py` | `SimpleSpinBox` | QDoubleSpinBox + AppStyles.spinbox() |
 | `SimpleCheckbox.py` | `SimpleCheckbox` | QCheckBox + AppStyles.checkbox() |
 | `SimpleRadioButton.py` | `SimpleRadioButton` | QRadioButton + AppStyles.radio_button() |
-| `SimpleSeparator.py` | `SimpleSeparator` | QFrame + AppStyles.separator() |
 
-### 7.2 Widgets Grid (PLUGINS USAM ESTES) OU USAM OS WIDGETS NA RAIZ (SEM GRID)
+### 7.2 Widgets Grid (PLUGINS USAM ESTES)
 
-Criados em `resources/new_widgets/grid/`. Compostos de Simple + layout + separadores.
+Criados em `resources/new_widgets/grid/`. Compostos de Simple + layout.
 
 | Arquivo | Classe | Descrição |
 |---------|--------|-----------|
@@ -1046,7 +1086,7 @@ Criados em `resources/new_widgets/`. Nomenclatura "Complex" indica widget compos
 
 | Arquivo | Classe | Descrição |
 |---------|--------|-----------|
-| `SeparatorWidget.py` | `SeparatorWidget` | Separador simples |
+| `SeparatorWidget.py` | `SeparatorWidget` | QFrame separador visual (gradiente) |
 | `AppBarWidget.py` | `AppBarWidget` | Barra superior |
 | `CollapsibleParametersWidget.py` | `CollapsibleParametersWidget` | Conteúdo colapsável |
 | `ComplexPathSelector.py` | `ComplexPathSelector` | Título + path + botões |
@@ -1054,7 +1094,60 @@ Criados em `resources/new_widgets/`. Nomenclatura "Complex" indica widget compos
 | `ComplexCrsSelector.py` | `ComplexCrsSelector` | Título + CRS |
 | `GridComplexSelector.py` | `GridComplexSelector` | Grid de selectors complexos |
 
-### 7.4 Template de Widget
+### 7.4 SeparatorWidget — Widget Visual Separado
+
+```python
+# resources/new_widgets/SeparatorWidget.py
+# -*- coding: utf-8 -*-
+
+from qgis.PyQt.QtWidgets import QFrame
+from ...resources.styles.AppStyles import AppStyles
+
+
+class SeparatorWidget(QFrame):
+    """
+    Separador visual — QFrame HLine com gradiente.
+    
+    É um widget Qt separado, NÃO uma margem/padding.
+    O plugin insere entre widgets no layout:
+    
+        layout.addWidget(widget1)
+        layout.addWidget(SeparatorWidget())
+        layout.addWidget(widget2)
+    
+    Parâmetros
+    ----------
+    height : str, optional
+        Altura do separador (default: theme.SEPARATOR_LINE_HEIGHT)
+    parent : QWidget, optional
+        Widget pai
+    """
+
+    def __init__(self, height: str = None, parent=None):
+        super().__init__(parent)
+        
+        # Compatibilidade Qt5/Qt6 para QFrame.Shape
+        try:
+            shape_hline = QFrame.Shape.HLine
+        except AttributeError:
+            shape_hline = QFrame.HLine
+        
+        try:
+            shadow_sunken = QFrame.Shadow.Sunken
+        except AttributeError:
+            shadow_sunken = QFrame.Sunken
+        
+        self.setFrameShape(shape_hline)
+        self.setFrameShadow(shadow_sunken)
+        
+        theme = AppStyles._get_theme()
+        h = height or theme.SEPARATOR_LINE_HEIGHT
+        h_int = int(h.replace("px", ""))
+        self.setFixedHeight(h_int)
+        self.setStyleSheet(AppStyles.separator())
+```
+
+### 7.5 Template de Widget Grid
 
 ```python
 # resources/new_widgets/grid/GridExemplo.py
@@ -1074,14 +1167,6 @@ class GridExemplo(QWidget):
     ----------
     [param1] : type
         [descrição]
-    separator_top : bool
-        Separador no topo (default False)
-    separator_bottom : bool
-        Separador na base (default False)
-    separator_left : bool
-        Separador na esquerda (default False)
-    separator_right : bool
-        Separador na direita (default False)
     parent : QWidget, optional
         Widget pai
     
@@ -1093,32 +1178,21 @@ class GridExemplo(QWidget):
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent)
-        self._separator_top = kwargs.pop("separator_top", False)
-        self._separator_bottom = kwargs.pop("separator_bottom", False)
-        self._separator_left = kwargs.pop("separator_left", False)
-        self._separator_right = kwargs.pop("separator_right", False)
+        self._params = kwargs
 
         self.logger = LogUtils(
             tool=ToolKey.WIDGETS,
             class_name=self.__class__.__name__,
         )
         try:
-            self._params = kwargs
             self._configure()
             self._apply_styles()
         except Exception as error:
             self.logger.exception(error, code="WIDGET_INIT_ERROR")
 
     def _configure(self):
-        """Monta UI com parâmetros e separadores."""
-        theme = AppStyles._get_theme()
+        """Monta UI com parâmetros."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(
-            theme.PADDING_SEPARATOR if self._separator_left else 0,
-            theme.PADDING_SEPARATOR if self._separator_top else 0,
-            theme.PADDING_SEPARATOR if self._separator_right else 0,
-            theme.PADDING_SEPARATOR if self._separator_bottom else 0,
-        )
         # ... criar widgets, montar layout, conectar sinais
 
     def _apply_styles(self):
@@ -1186,7 +1260,7 @@ class GridExemplo(QWidget):
 ### Migração
 - [ ] Substituir WidgetFactory.create_xxx() por widget de new_widgets/
 - [ ] Remover imports da Factory
-- [ ] Separadores via parâmetros do widget
+- [ ] Adicionar SeparatorWidget() entre widgets no layout
 - [ ] Ajustar layout (addWidget)
 
 ### Pós-migração
@@ -1205,6 +1279,7 @@ from ..resources.new_widgets.grid.GridLayerInput import GridLayerInput
 from ..resources.new_widgets.grid.GridDropdown import GridDropdown
 from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
 from ..resources.new_widgets.grid.GridButton import GridButton
+from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
 
 
 class PathExtensionPlugin(BasePluginMTL):
@@ -1243,10 +1318,13 @@ class PathExtensionPlugin(BasePluginMTL):
             tool_key=self.TOOL_KEY,
         )
 
-        # Layout simples: plugin só adiciona widgets
+        # Layout com separadores entre widgets
         self.layout.addWidget(self.layer_input)
+        self.layout.addWidget(SeparatorWidget())
         self.layout.addWidget(self.attr_selector)
+        self.layout.addWidget(SeparatorWidget())
         self.layout.addWidget(self.radio_mode)
+        self.layout.addWidget(SeparatorWidget())
         self.layout.addWidget(self.action_buttons)
 ```
 
@@ -1270,7 +1348,7 @@ warnings.warn(
 
 - Deletar `core/ui/WidgetFactory.py`
 - Remover imports da Factory de todos os plugins
-- Atualizar SKILL_WIDGETS.md
+- Atualizar SKILL_WIDGETS2.md
 - Atualizar PLUGIN_CONTRACT.md regra #1
 - Atualizar docs/ia/changelog.txt
 
@@ -1295,7 +1373,7 @@ warnings.warn(
 6. **Estilo específico** → `_specific_style()`
 7. **Plugin NUNCA** chama `setStyleSheet()`
 8. **Plugin NUNCA** importa `AppStyles` ou `ThemeManager`
-9. **Separadores** 4 lados: `separator_top/bottom/left/right`
+9. **Separadores** são widgets separados (`SeparatorWidget`), não margens
 10. **Unidades** sempre no tema, nunca `px` no estilo
 11. **Variável do tema** sempre `theme`, nunca `t`
 12. **Nomes de tokens** sempre descritivos (ex: `INPUT_FIELD_MIN_HEIGHT`)
@@ -1315,7 +1393,7 @@ from qgis.PyQt.QtWidgets import QFrame
 
 
 def resolve_qt_enum(module, qt5_attribute_name: str, qt6_class_name: str, qt6_attribute_name: str):
-    """Resolve enum Qt5 → Qt6."""
+    """Resolve enum Qt5 → Qt6 via try/except."""
     try:
         return getattr(getattr(module, qt6_class_name), qt6_attribute_name)
     except AttributeError:
@@ -1357,6 +1435,7 @@ def resolve_qframe_shadow(name: str):
 
 - `new_widgets/` — todos os widgets
 - `AppStyles` — seguro (só strings CSS)
+- `SeparatorWidget` — precisa de compat QFrame.Shape e QFrame.Shadow
 - `BaseDialog.py` — já tem compat
 
 ---
@@ -1372,6 +1451,7 @@ def resolve_qframe_shadow(name: str):
 | Widget sem `_apply_styles()` | Média | Médio | Template obrigatório |
 | Unidade hardcoded no widget | Alta | Alto | Template proíbe |
 | Widget antigo quebrar | Baixa | Baixo | Widgets antigos usam Styles.py |
+| Plugin esquecer SeparatorWidget | Baixa | Baixo | Separadores são opcionais |
 
 ---
 
@@ -1380,11 +1460,11 @@ def resolve_qframe_shadow(name: str):
 ```
 [ ] FASE 0: Fundação
   [ ] 0.1 BaseTheme já limpo ✅
-  [ ] 0.2 Criar resources/styles/AppTheme.py
-  [ ] 0.3 Atualizar ThemeManager.py para aceitar AppTheme
+  [ ] 0.2 Adicionar tokens descritivos no BaseTheme.py
+  [ ] 0.3 Atualizar ThemeManager.py (apenas BaseTheme, sem temas filhos)
   [ ] 0.4 Criar resources/styles/AppStyles.py
   [ ] 0.5 Criar utils/qt_compat.py
-  [ ] 0.6 Testar AppStyles + AppTheme
+  [ ] 0.6 Testar AppStyles + ThemeManager + BaseTheme
 
 [ ] FASE 1: Criação dos Widgets
   [ ] 1.1 Simple (USO INTERNO)
@@ -1395,7 +1475,6 @@ def resolve_qframe_shadow(name: str):
     [ ] SimpleSpinBox.py
     [ ] SimpleCheckbox.py
     [ ] SimpleRadioButton.py
-    [ ] SimpleSeparator.py
   [ ] 1.2 Grid (PLUGINS USAM)
     [ ] GridLabel.py
     [ ] GridInput.py
@@ -1449,5 +1528,6 @@ def resolve_qframe_shadow(name: str):
 | Data | Versão | Descrição |
 |------|--------|-----------|
 | 2026-07-21 | 1.0.0 | Criação inicial |
-| 2026-07-21 | 2.0.0 | Estratégia não-destrutiva + hierarquia simple/grid/complex |
-| 2026-07-21 | 3.0.0 | **Revisão completa:** BaseTheme limpo (só rgba), AppTheme novo, CoffeTheme exclusivo do antigo, `theme` (não `t`), nomes descritivos de tokens (sem medo de tamanho), pastas: apenas simple/grid/raiz, complex é nomenclatura, propriedades vão pro tema (sem hasattr), BOX_SHADOW como propriedade do tema, helpers Qt5/Qt6 com nomes descritivos |
+| 2026-07-21 | 2.0.0 | Estratégia não-destrutiva + hierarquia |
+| 2026-07-21 | 3.0.0 | BaseTheme limpo, AppTheme, theme (não t), nomes descritivos |
+| 2026-07-21 | 4.0.0 | **Correções:** Separador é QFrame visual (não margem), `SeparatorWidget` separado, ThemeManager só com BaseTheme (sem temas filhos), BaseTheme é o tema ÚNICO, Qt5/Qt6 compat via try/except |

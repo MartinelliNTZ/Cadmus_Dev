@@ -90,14 +90,34 @@ class AboutDialog(BaseDialog):
             # Separador antes do botão fechar
             self.layout.addWidget(SeparatorWidget())
 
-            # Botão fechar via GridExecutionButtons
+            # Botões de ação via GridExecutionButtons
+            # 3 botões extras (teste) + info + close, alinhados à direita
             self.action_buttons = GridExecutionButtons(
+                config={
+                    "run": {
+                        "label": "Executar",
+                        "description": "Botão executar principal",
+                        "callback": lambda: None,
+                        "is_run_button": True,
+                    },
+                    "extra1": {
+                        "label": "Extra 1",
+                        "description": "Botão extra 1 (teste)",
+                        "callback": lambda: None,
+                    },
+                    "extra2": {
+                        "label": "Extra 2",
+                        "description": "Botão extra 2 (teste)",
+                        "callback": lambda: None,
+                    },
+                },
                 enable_close_button=True,
-                enable_info=False,
+                enable_info=True,
+                tool_key=ToolKey.ABOUT_DIALOG,
                 parent=self,
             )
             self.layout.addWidget(self.action_buttons)
-            self.logger.debug("Botão Fechar adicionado via GridExecutionButtons")
+            self.logger.debug("Botões de ação adicionados via GridExecutionButtons")
 
             self.logger.debug("AboutDialog UI construída com sucesso")
         except Exception as ex:

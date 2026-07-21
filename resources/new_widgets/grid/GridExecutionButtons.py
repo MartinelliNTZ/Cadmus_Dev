@@ -113,7 +113,10 @@ class GridExecutionButtons(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(AppStyles._get_theme().LAYOUT_HORIZONTAL_SPACING)
 
-        # Botão Info (sempre primeiro na ordem, mas visualmente à esquerda)
+        # Stretch à esquerda para alinhar botões à direita
+        layout.addStretch()
+
+        # Botão Info (sempre primeiro na ordem)
         if self._enable_info:
             self.btn_info = QPushButton("?")
             self.btn_info.setToolTip("Informações")
@@ -156,8 +159,6 @@ class GridExecutionButtons(QWidget):
                 btn.setStyleSheet(self._run_button_style())
 
             layout.addWidget(btn)
-
-        layout.addStretch()
 
         # Adiciona layout interno ao outer
         outer_layout.addLayout(layout)

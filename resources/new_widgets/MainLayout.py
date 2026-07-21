@@ -141,9 +141,9 @@ class MainLayout(QVBoxLayout):
         except Exception:
             pass
 
-        # Layout interno
+        # Layout interno — sem margens extras (o container já tem 3px de padding)
         self._inner_layout = QVBoxLayout(self._frame)
-        self._inner_layout.setContentsMargins(5, 5, 5, 5)
+        self._inner_layout.setContentsMargins(0, 0, 0, 0)
         self._inner_layout.setSpacing(
             AppStyles._get_theme().LAYOUT_VERTICAL_SPACING
         )

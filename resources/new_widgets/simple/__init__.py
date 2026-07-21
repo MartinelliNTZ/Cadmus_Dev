@@ -7,8 +7,10 @@ NUNCA importados por plugins.
 
 from .SimpleLabel import SimpleLabel
 from .SimpleButton import SimpleButton
+from .SimpleIconButton import SimpleIconButton
 
 __all__ = [
     "SimpleLabel",
     "SimpleButton",
+    "SimpleIconButton",
 ]

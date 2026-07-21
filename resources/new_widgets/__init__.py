@@ -20,6 +20,7 @@ from .MainLayout import MainLayout
 from .AppBarWidget import AppBarWidget
 from .grid.GridLabel import GridLabel
 from .grid.GridButton import GridButton
+from .grid.GridIconButton import GridIconButton
 
 __all__ = [
     "SeparatorWidget",
@@ -28,4 +29,5 @@ __all__ = [
     "AppBarWidget",
     "GridLabel",
     "GridButton",
+    "GridIconButton",
 ]

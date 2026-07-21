@@ -49,6 +49,10 @@ class AppBarWidget(QFrame):
 
         self.setStyleSheet(AppStyles.app_bar())
 
+        # Forçar altura fixa para não expandir além do desejado
+        h = int(AppStyles._get_theme().APP_BAR_MIN_HEIGHT.replace("px", ""))
+        self.setFixedHeight(h)
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 0, 12, 0)
         layout.setSpacing(8)

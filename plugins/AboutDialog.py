@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
-import os
-from qgis.PyQt.QtCore import Qt
 from ..core.config.LogUtils import LogUtils
 from .BaseDialog import BaseDialog
 from ..utils.ToolKeys import ToolKey
 from ..i18n.TranslationManager import STR
 from ..resources.new_widgets.grid.GridLabel import GridLabel
 from ..resources.new_widgets.grid.GridButton import GridButton
+from ..resources.new_widgets.grid.GridIconButton import GridIconButton
 from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
-
-
-def _qt_text_browser_interaction():
-    """Compatibilidade Qt5/Qt6: retorna TextBrowserInteraction."""
-    try:
-        return Qt.TextInteractionFlag.TextBrowserInteraction
-    except AttributeError:
-        return Qt.TextBrowserInteraction
+from ..resources.IconManager import IconManager
+import webbrowser
 
 
 class AboutDialog(BaseDialog):
@@ -55,55 +48,45 @@ class AboutDialog(BaseDialog):
             self.layout.addWidget(self.grid_info)
             self.logger.debug("Informações adicionadas via GridLabel")
 
-            # Social icons row
-            from ..resources.IconManager import IconManager as IM
-            from qgis.PyQt.QtWidgets import QHBoxLayout, QPushButton
-            from qgis.PyQt.QtGui import QIcon
-            from qgis.PyQt.QtCore import QSize
-            import webbrowser
-
-            social_links = [
-                ("GitHub", IM.GITHUB, "https://github.com/MartinelliNTZ"),
-                (
-                    "LinkedIn",
-                    IM.LINKEDIN,
-                    "https://www.linkedin.com/in/matheus-martinelli-a82149108",
-                ),
-                (
-                    "Instagram",
-                    IM.INSTAGRAM,
-                    "https://www.instagram.com/matheusmartinelli00",
-                ),
-                ("E-mail", IM.EMAIL, "mailto:martinelli.matheus11@gmail.com"),
-                (
-                    "Buy Me a Coffee",
-                    IM.BUY_ME_A_COFFEE,
-                    "https://buymeacoffee.com/martinelliNTZ",
-                ),
-            ]
-
-            social_layout = QHBoxLayout()
-            social_layout.setSpacing(10)
-            social_layout.setContentsMargins(0, 8, 0, 4)
-            social_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            for name, icon_file, url in social_links:
-                icon_path = os.path.join(
-                    os.path.dirname(__file__), "..", "resources", "icons", icon_file
-                )
-                if os.path.exists(icon_path):
-                    btn = QPushButton(parent=self)
-                    btn.setIcon(QIcon(icon_path))
-                    btn.setIconSize(QSize(32, 32))
-                    btn.setToolTip(name)
-                    btn.setFixedSize(40, 40)
-                    btn.setCursor(Qt.CursorShape.PointingHandCursor)
-                    btn.setFlat(True)
-                    btn.clicked.connect(lambda checked, u=url: webbrowser.open(u))
-                    social_layout.addWidget(btn)
-
-            self.layout.addLayout(social_layout)
-            self.logger.debug("Ícones sociais adicionados")
+            # Social icons via GridIconButton com dict config
+            self.social_buttons = GridIconButton(
+                config={
+                    "github": {
+                        "label": "GitHub",
+                        "icon": IconManager.GITHUB,
+                        "url": "https://github.com/MartinelliNTZ",
+                        "description": "Visite o GitHub de Matheus Martinelli",
+                    },
+                    "linkedin": {
+                        "label": "LinkedIn",
+                        "icon": IconManager.LINKEDIN,
+                        "url": "https://www.linkedin.com/in/matheus-martinelli-a82149108",
+                        "description": "Conecte-se no LinkedIn",
+                    },
+                    "instagram": {
+                        "label": "Instagram",
+                        "icon": IconManager.INSTAGRAM,
+                        "url": "https://www.instagram.com/matheusmartinelli00",
+                        "description": "Siga no Instagram",
+                    },
+                    "email": {
+                        "label": "E-mail",
+                        "icon": IconManager.EMAIL,
+                        "url": "mailto:martinelli.matheus11@gmail.com",
+                        "description": "Envie um e-mail",
+                    },
+                    "buymeacoffee": {
+                        "label": "Buy Me a Coffee",
+                        "icon": IconManager.BUY_ME_A_COFFEE,
+                        "url": "https://buymeacoffee.com/martinelliNTZ",
+                        "description": "Apoie o desenvolvimento",
+                    },
+                },
+                url_callback=lambda url: webbrowser.open(url),
+                parent=self,
+            )
+            self.layout.addWidget(self.social_buttons)
+            self.logger.debug("Ícones sociais adicionados via GridIconButton")
 
             # Separador antes do botão fechar
             self.layout.addWidget(SeparatorWidget())

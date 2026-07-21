@@ -77,27 +77,56 @@ min-height: 12px;  # certo: {theme.INPUT_FIELD_MIN_HEIGHT}
 widget.btn_close.clicked.connect(self.close)
 ```
 
-### 📋 Padrão de Configuração — Dict `config={}`
+### 📋 ⚠️ REGRA ABSOLUTA: Configuração via Dict `config={}`
 
-Todos os widgets Grid recebem configuração via **dict** `config={}`, onde:
-- Cada **chave** é o identificador do componente (ex: `"title"`, `"subfolders"`)
-- Cada **valor** é um dict com as propriedades:
-  - `"text"` (obrigatório): texto exibido
-  - `"description"` (opcional): tooltip do componente
-  - `"default"` (opcional): valor padrão (para inputs, checkboxes, etc)
+**TODO widget Grid usa APENAS dict `config={}`. NUNCA use listas, tuplas ou arrays.**
+
+Cada **chave** do dict é o **identificador único** do componente (ex: `"github"`, `"subfolders"`, `"app_name"`).  
+Cada **valor** é um dict com as propriedades específicas do componente.
 
 ```python
-# ✅ CERTO — config dict com identificadores
-self.grid_info = GridLabel(config={
-    "app_name": {"text": "<h2>Meu App</h2>"},
-    "version": {"text": "Versão 1.0", "description": "Data de atualização"},
-}, parent=self)
+# ✅ CERTO — dict config com chaves identificadoras
+self.social = GridIconButton(config={
+    "github": {
+        "label": "GitHub",
+        "icon": IconManager.GITHUB,
+        "url": "https://github.com/user",
+        "description": "Visite o GitHub",
+    },
+    "linkedin": {
+        "label": "LinkedIn",
+        "icon": IconManager.LINKEDIN,
+        "url": "https://linkedin.com/in/user",
+    },
+}, url_callback=lambda url: webbrowser.open(url), parent=self)
 
-# ❌ ERRADO — lista solta sem identificadores
-self.grid_info = GridLabel(items=["Título", "Descrição"], parent=self)
+# ❌ ERRADO — lista de tuplas (NUNCA use isso)
+self.social = GridIconButton(items=[
+    ("GitHub", IconManager.GITHUB, "https://github.com/user"),
+    ("LinkedIn", IconManager.LINKEDIN, "https://linkedin.com/in/user"),
+], parent=self)
+
+# ❌ ERRADO — lista de dicts sem chave identificadora
+self.social = GridIconButton(items=[
+    {"label": "GitHub", "icon": IconManager.GITHUB},
+    {"label": "LinkedIn", "icon": IconManager.LINKEDIN},
+], parent=self)
 ```
 
-**Descrição** sempre vira tooltip no widget, visível ao passar o mouse.
+**Propriedades comuns do dict de cada componente:**
+
+| Propriedade | Obrigatório | Descrição |
+|-------------|-------------|-----------|
+| `"text"` | Sim (labels) | Texto exibido no label |
+| `"label"` | Sim (botões) | Tooltip/label do botão |
+| `"icon"` | Sim (icon buttons) | Nome do arquivo de ícone (ex: `IconManager.GITHUB`) |
+| `"url"` | Condicional | URL para callback de clique |
+| `"description"` | Não | Tooltip/descrição adicional |
+| `"default"` | Não | Valor padrão (inputs, checkboxes) |
+| `"icon_size"` | Não | QSize do ícone |
+| `"button_size"` | Não | QSize do botão |
+
+**`description`** sempre vira tooltip no widget, visível ao passar o mouse.
 
 ---
 

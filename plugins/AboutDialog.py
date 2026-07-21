@@ -4,7 +4,7 @@ from .BaseDialog import BaseDialog
 from ..utils.ToolKeys import ToolKey
 from ..i18n.TranslationManager import STR
 from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridButton import GridButton
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ..resources.new_widgets.grid.GridIconButton import GridIconButton
 from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
 from ..resources.IconManager import IconManager
@@ -90,13 +90,14 @@ class AboutDialog(BaseDialog):
             # Separador antes do botão fechar
             self.layout.addWidget(SeparatorWidget())
 
-            # Botão fechar via GridButton
-            self.action_buttons = GridButton(
-                close_callback=self.close,
+            # Botão fechar via GridExecutionButtons
+            self.action_buttons = GridExecutionButtons(
+                enable_close_button=True,
+                enable_info=False,
                 parent=self,
             )
             self.layout.addWidget(self.action_buttons)
-            self.logger.debug("Botão Fechar adicionado via GridButton")
+            self.logger.debug("Botão Fechar adicionado via GridExecutionButtons")
 
             self.logger.debug("AboutDialog UI construída com sucesso")
         except Exception as ex:

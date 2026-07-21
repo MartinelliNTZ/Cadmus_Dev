@@ -10,7 +10,7 @@ from __future__ import annotations
 from .BaseTheme import BaseTheme
 
 
-class CoffeTheme(BaseTheme):
+class CoffeTheme:
 
     # ==========================================================
     # CORES BASE (TEMA)

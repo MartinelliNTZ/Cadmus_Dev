@@ -3,7 +3,7 @@
 **Objetivo:** Eliminar completamente o uso da `WidgetFactory`, migrando para um modelo onde widgets se autoconfiguram com `AppStyles` + `ThemeManager`, e plugins declaram widgets via parâmetros/dict sem saber de estilos.
 
 **Data:** 2026-07-21
-**Versão:** 1.0.0
+**Versão:** 2.0.0
 **Autor:** Cadmus Engineering
 
 ---
@@ -12,14 +12,17 @@
 
 1. [Arquitetura Atual](#1-arquitetura-atual)
 2. [Arquitetura Alvo](#2-arquitetura-alvo)
-3. [FASE 0 — Fundação](#3-fase-0--fundação)
-4. [FASE 1 — Migração Plugin por Plugin](#4-fase-1--migração-plugin-por-plugin)
-5. [FASE 2 — Refatoração dos Widgets](#5-fase-2--refatoração-dos-widgets)
-6. [FASE 3 — Eliminação da WidgetFactory](#6-fase-3--eliminação-da-widgetfactory)
-7. [Contrato do Widget Autoconfigurável](#7-contrato-do-widget-autoconfigurável)
-8. [Compatibilidade Qt5/Qt6](#8-compatibilidade-qt5qt6)
-9. [Riscos e Mitigações](#9-riscos-e-mitigações)
-10. [TODO Interno Consolidado](#10-todo-interno-consolidado)
+3. [Estratégia de Migração Não-Destrutiva](#3-estratégia-de-migração-não-destrutiva)
+4. [Hierarquia de Widgets](#4-hierarquia-de-widgets)
+5. [Contrato de Unidades e Estilo](#5-contrato-de-unidades-e-estilo)
+6. [FASE 0 — Fundação](#6-fase-0--fundação)
+7. [FASE 1 — Criação dos Novos Widgets](#7-fase-1--criação-dos-novos-widgets)
+8. [FASE 2 — Migração Plugin por Plugin](#8-fase-2--migração-plugin-por-plugin)
+9. [FASE 3 — Eliminação da WidgetFactory](#9-fase-3--eliminação-da-widgetfactory)
+10. [Contrato do Widget](#10-contrato-do-widget)
+11. [Compatibilidade Qt5/Qt6](#11-compatibilidade-qt5qt6)
+12. [Riscos e Mitigações](#12-riscos-e-mitigações)
+13. [TODO Interno Consolidado](#13-todo-interno-consolidado)
 
 ---
 
@@ -38,27 +41,26 @@ Plugin
           └─ Retorna (layout, widget)
 
 Styles (resources/styles/Styles.py)
-  └─ herda BaseStyles (resources/styles/BaseStyles.py)
+  └─ herda BaseStyles
       └─ importa current_theme de ThemeManager (variável de módulo)
-          └─ ThemeManager.theme → CoffeTheme (instância concreta)
+          └─ ThemeManager.theme → CoffeTheme
 
 BaseStyles
   ├─ Atributos de classe: COLOR_PRIMARY, FONT_SIZE_NORMAL, etc.
   │   └─ Lidos de current_theme (resolvido na importação!)
   └─ Métodos estáticos: button(), label(), input(), checkbox(), etc.
-      └─ Usam current_theme direto (também variável de módulo)
 ```
 
 ### Problemas Identificados
 
 | # | Problema | Impacto |
 |---|----------|---------|
-| 1 | `BaseStyles` copia tokens do tema como atributos de classe (`COLOR_PRIMARY = current_theme.COLOR_PRIMARY`) | Resolvido na importação — se tema mudar em runtime, atributos ficam desatualizados |
-| 2 | `Styles` + `BaseStyles` são 2 arquivos com responsabilidade duplicada | Manutenção confusa, viola DRY |
-| 3 | `WidgetFactory` tem 1135 linhas e faz TUDO: cria widget + layout + estilo + separadores + conecta sinais | Violação SRP, difícil testar, difícil manter |
-| 4 | Plugin recebe `(layout, widget)` da Factory e precisa gerenciar layout externo | Acoplamento, plugin sabe de estrutura de layout |
-| 5 | Estilos específicos de widget misturados com estilos globais em `Styles.py` | Widget não é autossuficiente |
-| 6 | `current_theme` é variável de módulo em `BaseStyles.py` | Se ThemeManager recarregar tema, BaseStyles não atualiza |
+| 1 | `BaseStyles` copia tokens como atributos de classe | Resolvido na importação — se tema mudar, atributos ficam desatualizados |
+| 2 | `Styles` + `BaseStyles` são 2 arquivos duplicados | Manutenção confusa |
+| 3 | `WidgetFactory` tem 1135 linhas (viola SRP) | Difícil testar/manter |
+| 4 | Plugin sabe de layout (recebe `(layout, widget)`) | Acoplamento |
+| 5 | Unidades de medida (`px`) espalhadas em Styles.py e widgets | Se tema mudar tamanho base, precisa mudar em N lugares |
+| 6 | Widgets antigos não têm `_specific_style()` padronizado | Estilo específico misturado com global |
 
 ---
 
@@ -68,112 +70,239 @@ BaseStyles
 
 ```
 Plugin
-  └─ importa widget direto de resources/widgets/
+  └─ importa GRID widget de resources/new_widgets/grid/
       └─ widget.__init__(params, parent)
-          ├─ self._configure(params) → aplica parâmetros
-          ├─ self._apply_styles()
-          │   ├─ AppStyles.global_style() → estilos globais (botão, input, label...)
-          │   ├─ ThemeManager.current_theme → cores, fontes, dimensões
-          │   └─ self._specific_style() → estilo próprio do widget
-          └─ self.logger (inicializado no __init__)
+          ├─ Autoconfiguração total
+          ├─ AppStyles (estilos globais)
+          ├─ ThemeManager (cores, fontes, dimensões)
+          └─ _specific_style() (estilo próprio)
 
-AppStyles (resources/styles/AppStyles.py)
-  ├─ Singleton: lê de ThemeManager.current_theme
-  ├─ Só métodos estáticos GLOBAIS: button(), label(), input(), checkbox(), etc.
-  └─ SEM atributos de classe copiados do tema
+AppStyles (resources/styles/AppStyles.py — NOVO)
+  ├─ Lê de ThemeManager (com cache)
+  ├─ Só métodos GLOBAIS: button(), label(), input(), checkbox()
+  ├─ SEM unidades fixas — usa tokens do tema (ex: {t.INPUT_HEIGHT})
+  └─ SEM atributos de classe copiados
 
-ThemeManager (resources/styles/ThemeManager.py)
-  └─ Mantido como está (singleton, reload_theme())
-      └─ AppStyles._get_theme() → theme_manager.theme
+ThemeManager
+  └─ Mantido → AppStyles lê dele
 
-Widget (cada widget em resources/widgets/)
-  ├─ __init__(self, parent=None, **kwargs)
-  │   ├─ self._params = kwargs
-  │   ├─ self.logger = LogUtils(...)
-  │   ├─ self._configure()
-  │   └─ self._apply_styles()
-  ├─ _configure() → monta UI com params
-  ├─ _apply_styles() → AppStyles + específico
-  └─ _specific_style() → str (opcional)
-```
-
-### Fluxo de Autoconfiguração
-
-```
-Plugin declara:
-    widget = LayerInputWidget(
-        label_text=STR.INPUT_LAYER,
-        filters=[VectorLayer],
-        parent=self,
-    )
-
-Dentro de LayerInputWidget.__init__():
-    1. self._params = {label_text, filters, parent}
-    2. self.logger = LogUtils(tool=..., class_name="LayerInputWidget")
-    3. self._configure():
-        - Cria QLabel(label_text)
-        - Cria QgsMapLayerComboBox()
-        - Cria QCheckBox()
-        - Monta layout
-    4. self._apply_styles():
-        - AppStyles.label() → QLabel
-        - AppStyles.map_layer_combobox() → QComboBox
-        - AppStyles.checkbox() → QCheckBox
-        - self._specific_style() → margens, padding extra
-    5. Pronto! Plugin só dá addWidget()
+Widgets (resources/new_widgets/)
+  ├─ simple/   → itens básicos (QLineEdit, QLabel) — uso INTERNO apenas
+  ├─ grid/     → composto de simples — PRIORIDADE para plugins (mesmo 1 item)
+  ├─ complex/  → simple + título + botões + funções internas
+  └─ grid_complex/ → grid de complex — PRIORIDADE MÁXIMA para plugins
 ```
 
 ---
 
-## 3. FASE 0 — Fundação
+## 3. Estratégia de Migração Não-Destrutiva
 
-### 3.1 Criar `resources/styles/AppStyles.py`
+### ⚠️ REGRA FUNDAMENTAL: NÃO MODIFICAR ARQUIVOS EXISTENTES
 
-**Arquivo novo** que unifica `Styles` + `BaseStyles` em um único ponto de estilos globais.
+Para não quebrar o sistema durante a migração:
+
+```
+resources/
+  ├── styles/
+  │   ├── BaseStyles.py   ← NÃO TOCAR (mantido para widgets antigos)
+  │   ├── Styles.py        ← NÃO TOCAR (mantido para widgets antigos)
+  │   ├── ThemeManager.py  ← OK usar (já existe)
+  │   ├── BaseTheme.py     ← OK usar (já existe)
+  │   ├── CoffeTheme.py    ← OK usar (já existe)
+  │   └── AppStyles.py     ← NOVO (criado na FASE 0)
+  │
+  ├── widgets/             ← NÃO TOCAR (widgets antigos continuam funcionando)
+  │
+  └── new_widgets/         ← NOVO (tudo novo aqui)
+      ├── simple/
+      │   ├── SimpleLabel.py
+      │   ├── SimpleInput.py
+      │   ├── SimpleButton.py
+      │   └── SimpleComboBox.py
+      │
+      ├── grid/
+      │   ├── GridLabel.py        → grid de QLabel(s)
+      │   ├── GridInput.py         → grid de QLineEdit(s)
+      │   ├── GridCheckbox.py      → grid de QCheckBox(es)
+      │   ├── GridRadioButton.py   → grid de QRadioButton(s)
+      │   ├── GridLayerInput.py    → LayerInput refatorado
+      │   └── GridButton.py        → grid de botões (ex: bottom actions)
+      │
+      ├── complex/
+      │   ├── ComplexSelector.py   → título + input + botões
+      │   ├── ComplexPath.py       → título + path selector + botões
+      │   ├── ComplexColor.py      → título + color picker + hex
+      │   └── ComplexCollapsible.py→ título + conteúdo colapsável
+      │
+      └── grid_complex/
+          └── GridComplexSelector.py → grid de ComplexSelector
+```
+
+### Fluxo de Migração
+
+```
+1. Criar AppStyles.py          → sem modificar Styles/BaseStyles
+2. Criar simple/ widgets       → widgets base
+3. Criar grid/ widgets         → compostos de simple (para plugins)
+4. Criar complex/ widgets      → simples + funções
+5. Criar grid_complex/ widgets → grids de complex
+6. Migrar Plugin A             → usar grid/grid_complex de new_widgets
+7. Migrar Plugin B             → idem
+8. ... até todos plugins migrados
+9. NUNCA deletar widgets/ antigos ou Styles.py
+```
+
+---
+
+## 4. Hierarquia de Widgets
+
+### 4.1 Categorias
+
+| Categoria | Descrição | Onde Fica | Quem Usa |
+|-----------|-----------|-----------|----------|
+| **Simple** | Item UI mais básico: QLineEdit, QLabel, QComboBox, QPushButton | `new_widgets/simple/` | ⚠️ USO INTERNO apenas (outros widgets) |
+| **Grid** | Composto de vários simples + layout + separadores | `new_widgets/grid/` | ✅ PRIORIDADE para plugins (mesmo 1 item) |
+| **Complex** | Simple + título + botões + funções internas | `new_widgets/complex/` | ✅ USO em plugins quando necessário |
+| **Grid Complex** | Grid de ComplexSelectors com parent linking | `new_widgets/grid_complex/` | ✅ PRIORIDADE MÁXIMA para plugins |
+
+### 4.2 Regra de Uso
+
+```
+Plugin:
+  ├── PRIORIDADE 1: GridComplex (se precisar de múltiplos complexos)
+  ├── PRIORIDADE 2: Complex (se precisar de título + botões + função)
+  ├── PRIORIDADE 3: Grid (se for entrada simples)
+  └── NUNCA: Simple (uso interno apenas)
+
+Widget interno:
+  ├── Simple: para construir Grid e Complex
+  └── Grid/Complex: para construir GridComplex
+```
+
+### 4.3 Separadores em Todos os Widgets
+
+TODO widget em `new_widgets/` DEVE suportar separadores nos 4 lados:
+
+```python
+class MeuWidget(QWidget):
+    def __init__(self, parent=None, **kwargs):
+        # ...
+        self._separator_top = kwargs.pop("separator_top", False)
+        self._separator_bottom = kwargs.pop("separator_bottom", False)
+        self._separator_left = kwargs.pop("separator_left", False)
+        self._separator_right = kwargs.pop("separator_right", False)
+```
+
+Os separadores são adicionados no layout interno do widget (margens):
+
+```python
+def _build_layout(self):
+    layout = QVBoxLayout(self)
+    layout.setContentsMargins(
+        self._PADDING if self._separator_left else 0,
+        self._PADDING if self._separator_top else 0,
+        self._PADDING if self._separator_right else 0,
+        self._PADDING if self._separator_bottom else 0,
+    )
+```
+
+---
+
+## 5. Contrato de Unidades e Estilo
+
+### 5.1 🚫 NUNCA Colocar `px` no Widget ou AppStyles
+
+**ERRADO:**
+```python
+# ❌ UNIDADE FIXA NO ESTILO — NÃO FAZER
+min-height: {current_theme.INPUT_HEIGHT}px;
+border: 1px solid {current_theme.COLOR_BORDER};
+```
+
+**CERTO:**
+```python
+# ✅ UNIDADE SEMPRE NO TEMA
+# No theme:  INPUT_HEIGHT = "4px"
+# No style:  min-height: {t.INPUT_HEIGHT};
+
+# No theme:  PXBORDER = "1px solid"
+# No style:  border: {t.PXBORDER} {t.COLOR_BORDER};
+```
+
+### 5.2 Onde a Unidade Fica
+
+```
+TEMA (BaseTheme / CoffeTheme):
+  INPUT_HEIGHT: str = "4px"          ← unidade AQUI
+  BUTTON_HEIGHT: str = "4px"         ← unidade AQUI
+  PXBORDER: str = "1px solid"       ← unidade AQUI
+  PADDING_INPUT: str = "2px 8px"    ← unidade AQUI
+  BORDER_RADIUS: str = "4px"        ← unidade AQUI
+  MARGIN_SEPARATOR: str = "4px 0px" ← unidade AQUI
+
+AppStyles / Widget:
+  min-height: {t.INPUT_HEIGHT};      ← sem px, sem unidade
+  border: {t.PXBORDER} {t.COLOR_BORDER};
+  padding: {t.PADDING_INPUT};
+  border-radius: {t.BORDER_RADIUS};
+  margin: {t.MARGIN_SEPARATOR};
+```
+
+### 5.3 Temas com Variáveis Booleanas
+
+Temas podem ter flags booleanas para efeitos visuais:
+
+```python
+class CoffeTheme(BaseTheme):
+    ALLOW_SHADOW: bool = True
+    ALLOW_GLOW: bool = False
+    SHADOW_SIZE: str = "0px"  # ou "4px" quando ALLOW_SHADOW=True
+    GLOW_SIZE: str = "0px"    # ou "4px" quando ALLOW_GLOW=True
+
+Uso no AppStyles:
+```python
+@classmethod
+def panel(cls) -> str:
+    t = cls._get_theme()
+    return f"""
+    QFrame {{
+        background:{t.COLOR_BACKGROUND_SOFT};
+        border-radius:{t.BORDER_RADIUS};
+        padding:{t.PADDING_INPUT};
+        box-shadow: {shadow};
+    }}
+    """
+```
+
+### 5.4 Padronização de `_specific_style()`
+
+TODO widget em `new_widgets/` DEVE ter:
+
+```python
+def _specific_style(self) -> str:
+    """
+    Estilo específico deste widget.
+    Usa tokens do tema (sem unidades fixas).
+    SOBRESCREVER nas subclasses se necessário.
+    """
+    return ""
+```
+
+---
+
+## 6. FASE 0 — Fundação
+
+### 6.1 Criar `resources/styles/AppStyles.py`
+
+**Arquivo novo** que concentra estilos globais. Lê tokens do tema via cache com `_get_theme()`.
 
 **Regras:**
-- Só contém métodos de estilo **global** (aplicáveis a qualquer widget do sistema)
-- **NÃO** contém estilos específicos de widget (ex: `path_selector_widget()`, `attribute_selector()`)
-- Lê tokens direto de `ThemeManager.current_theme` em cada chamada de método
-- **NÃO** copia tokens como atributos de classe
-- Usa cache interno com invalidação via `reload_theme()`
+- Só métodos de estilo **global** (button, label, input, checkbox, radio, spinbox, map_layer_combobox, scroll_area, separator, main_application, app_bar, panel, collapsible_parameters)
+- **NÃO** contém estilos específicos de widget (vão para `_specific_style()` do widget)
+- **NÃO** usa `px` ou unidades — tokens do tema já têm unidade
+- Usa cache com `_get_theme()` e `reload_theme()`
 
-**Métodos que vão para AppStyles:**
-
-| Método | Origem | Descrição |
-|--------|--------|-----------|
-| `button()` | BaseStyles | QPushButton global |
-| `label()` | BaseStyles | QLabel global |
-| `input()` | BaseStyles | QLineEdit, QSpinBox, QDoubleSpinBox |
-| `checkbox()` | BaseStyles | QCheckBox + indicator |
-| `radio_button()` | BaseStyles | QRadioButton + indicator |
-| `spinbox()` | BaseStyles | QSpinBox, QDoubleSpinBox (completo) |
-| `map_layer_combobox()` | BaseStyles | QgsMapLayerComboBox |
-| `scroll_area()` | BaseStyles | QScrollArea + QScrollBar |
-| `separator()` | Styles | QFrame separador |
-| `main_application()` | Styles | Container principal |
-| `app_bar()` | Styles | AppBar gradient |
-| `panel()` | Styles | QFrame painel |
-| `collapsible_parameters()` | Styles | Header + conteúdo colapsável |
-| `calc_checkbox_grid_height()` | Styles | Cálculo de altura |
-
-**Métodos que NÃO vão para AppStyles (ficam no widget como `_specific_style()`):**
-
-| Método Atual | Destino |
-|-------------|---------|
-| `attribute_selector()` | AttributeSelectorWidget._specific_style() |
-| `path_selector_widget()` | SelectorWidget._specific_style() |
-| `layer_input_widget()` | LayerInputWidget._specific_style() |
-| `radio_button_grid_widget()` | RadioButtonGridWidget._specific_style() |
-| `grid_checkboxes()` | GridCheckboxWidget._specific_style() |
-| `bottom_action_buttons_widget()` | ExecutionButtonsWidget._specific_style() |
-| `input_fields_widget()` | GridInputFieldsWidget._specific_style() |
-| `dropdown_selector_widget()` | DropdownSelectorWidget._specific_style() |
-| `simple_button_widget()` | SimpleButtonWidget._specific_style() |
-| `color_button_widget()` | ColorButtonWidget._specific_style() |
-| `project_name_dialog()` | ProjectNameDialog._specific_style() |
-
-**Estrutura do AppStyles:**
+**Estrutura:**
 
 ```python
 # resources/styles/AppStyles.py
@@ -181,9 +310,9 @@ Dentro de LayerInputWidget.__init__():
 """
 AppStyles — Estilos globais do Cadmus
 ======================================
-Ponto único de estilos visuais globais.
-Lê tokens diretamente do ThemeManager.current_theme.
-Widgets específicos têm seus estilos próprios em _specific_style().
+Ponto único de estilos visuais GLOBAIS.
+Lê tokens do ThemeManager (cada token já contém unidade: "4px").
+Widgets específicos têm estilos próprios em _specific_style().
 
 Uso:
     from resources.styles.AppStyles import AppStyles
@@ -191,18 +320,17 @@ Uso:
 """
 
 from __future__ import annotations
-
 from typing import ClassVar, Optional
 
 
 class AppStyles:
-    """Estilos globais reutilizáveis entre todos os widgets."""
+    """Estilos globais — lê do ThemeManager com cache."""
 
     _theme: ClassVar[Optional[object]] = None
 
     @classmethod
     def _get_theme(cls):
-        """Retorna o tema atual, com cache."""
+        """Retorna tema atual (com cache). Invalida com reload_theme()."""
         if cls._theme is None:
             from .ThemeManager import theme_manager
             cls._theme = theme_manager.theme
@@ -210,7 +338,7 @@ class AppStyles:
 
     @classmethod
     def reload_theme(cls):
-        """Invalida o cache de tema (chamar quando tema mudar)."""
+        """Invalida cache e recarrega tema."""
         from .ThemeManager import theme_manager
         theme_manager.reload_theme()
         cls._theme = theme_manager.theme
@@ -224,10 +352,10 @@ class AppStyles:
                 stop:0 {t.COLOR_PRIMARY},
                 stop:1 {t.COLOR_PRIMARY_DARK});
             color: {t.COLOR_BUTTON_TEXT};
-            border: 1px solid {t.COLOR_PRIMARY_DARK};
-            border-radius: {t.BUTTON_BORDER_RADIUS}px;
+            border: {t.PXBORDER} {t.COLOR_PRIMARY_DARK};
+            border-radius: {t.BUTTON_BORDER_RADIUS};
             padding: {t.BUTTON_PADDING};
-            min-height: {t.BUTTON_HEIGHT}px;
+            min-height: {t.BUTTON_HEIGHT};
         }}
         QPushButton:hover {{
             background: {t.COLOR_PRIMARY_LIGHT};
@@ -261,16 +389,16 @@ class AppStyles:
         QDoubleSpinBox {{
             background: {t.COLOR_BACKGROUND_PANEL};
             color: {t.COLOR_TEXT_PRIMARY};
-            border: 1px solid {t.COLOR_BORDER};
-            border-radius: {t.INPUT_BORDER_RADIUS}px;
+            border: {t.PXBORDER} {t.COLOR_BORDER};
+            border-radius: {t.INPUT_BORDER_RADIUS};
             padding: {t.INPUT_PADDING};
-            min-height: {t.INPUT_HEIGHT}px;
-            max-height: {t.INPUT_HEIGHT + 6}px;
+            min-height: {t.INPUT_HEIGHT};
+            max-height: {t.INPUT_MAX_HEIGHT};
         }}
         QLineEdit:focus,
         QSpinBox:focus,
         QDoubleSpinBox:focus {{
-            border: 1px solid {t.COLOR_PRIMARY};
+            border: {t.PXBORDER} {t.COLOR_PRIMARY};
         }}
         """
 
@@ -282,18 +410,18 @@ class AppStyles:
             color: {t.COLOR_TEXT_PRIMARY};
             font-family: {t.FONT_FAMILY_DEFAULT};
             font-size: {t.FONT_SIZE_NORMAL};
-            spacing: {t.CHECKBOX_SPACING}px;
+            spacing: {t.CHECKBOX_SPACING};
         }}
         QCheckBox::indicator {{
-            width: {t.CHECKBOX_SIZE}px;
-            height: {t.CHECKBOX_SIZE}px;
-            border-radius: {t.CHECKBOX_BORDER_RADIUS}px;
-            border: {t.CHECKBOX_BORDER_WIDTH}px solid {t.COLOR_BORDER};
+            width: {t.CHECKBOX_SIZE};
+            height: {t.CHECKBOX_SIZE};
+            border-radius: {t.CHECKBOX_BORDER_RADIUS};
+            border: {t.CHECKBOX_BORDER_WIDTH} {t.COLOR_BORDER};
             background: {t.COLOR_CHECKBOX_BG};
         }}
         QCheckBox::indicator:checked {{
             background: {t.COLOR_PRIMARY};
-            border: {t.CHECKBOX_BORDER_WIDTH}px solid {t.COLOR_PRIMARY_DARK};
+            border: {t.CHECKBOX_BORDER_WIDTH} {t.COLOR_PRIMARY_DARK};
         }}
         """
 
@@ -305,13 +433,13 @@ class AppStyles:
             color: {t.COLOR_TEXT_PRIMARY};
             font-family: {t.FONT_FAMILY_DEFAULT};
             font-size: {t.FONT_SIZE_NORMAL};
-            spacing: {t.CHECKBOX_SPACING}px;
+            spacing: {t.CHECKBOX_SPACING};
         }}
         QRadioButton::indicator {{
-            width: {t.RADIO_SIZE}px;
-            height: {t.RADIO_SIZE}px;
-            border-radius: {t.RADIO_BORDER_RADIUS}px;
-            border: {t.CHECKBOX_BORDER_WIDTH}px solid {t.COLOR_BORDER};
+            width: {t.RADIO_SIZE};
+            height: {t.RADIO_SIZE};
+            border-radius: {t.RADIO_BORDER_RADIUS};
+            border: {t.CHECKBOX_BORDER_WIDTH} {t.COLOR_BORDER};
             background: {t.COLOR_BACKGROUND_PANEL};
         }}
         QRadioButton::indicator:checked {{
@@ -329,19 +457,19 @@ class AppStyles:
             color: {t.COLOR_TEXT_PRIMARY};
             font-family: {t.FONT_FAMILY_DEFAULT};
             font-size: {t.FONT_SIZE_NORMAL};
-            border: 1px solid {t.COLOR_BORDER};
-            border-radius: {t.INPUT_BORDER_RADIUS}px;
-            min-height: {t.INPUT_HEIGHT}px;
-            padding: 2px 4px;
-            padding-right: 18px;
+            border: {t.PXBORDER} {t.COLOR_BORDER};
+            border-radius: {t.INPUT_BORDER_RADIUS};
+            min-height: {t.INPUT_HEIGHT};
+            padding: {t.INPUT_PADDING};
+            padding-right: {t.INPUT_PADDING_RIGHT};
         }}
         QSpinBox:hover,
         QDoubleSpinBox:hover {{
-            border: 1px solid {t.COLOR_PRIMARY_LIGHT};
+            border: {t.PXBORDER} {t.COLOR_PRIMARY_LIGHT};
         }}
         QSpinBox:focus,
         QDoubleSpinBox:focus {{
-            border: 1px solid {t.COLOR_PRIMARY};
+            border: {t.PXBORDER} {t.COLOR_PRIMARY};
         }}
         QSpinBox:disabled,
         QDoubleSpinBox:disabled {{
@@ -352,10 +480,10 @@ class AppStyles:
         QSpinBox::down-button,
         QDoubleSpinBox::up-button,
         QDoubleSpinBox::down-button {{
-            width: 16px;
-            height: {t.INPUT_HEIGHT}px;
-            border-radius: 2px;
-            border-left: 1px solid {t.COLOR_BORDER};
+            width: {t.INPUT_BUTTON_WIDTH};
+            height: {t.INPUT_HEIGHT};
+            border-radius: {t.BORDER_RADIUS_SMALL};
+            border-left: {t.PXBORDER} {t.COLOR_BORDER};
             background: {t.COLOR_PRIMARY};
             padding: 0px;
             margin: 0px;
@@ -381,13 +509,13 @@ class AppStyles:
         QgsMapLayerComboBox {{
             background: {t.COLOR_BACKGROUND_PANEL};
             color: {t.COLOR_TEXT_PRIMARY};
-            border: 1px solid {t.COLOR_BORDER};
-            border-radius: {t.INPUT_BORDER_RADIUS}px;
+            border: {t.PXBORDER} {t.COLOR_BORDER};
+            border-radius: {t.INPUT_BORDER_RADIUS};
             padding: {t.INPUT_PADDING};
-            min-height: {t.INPUT_HEIGHT}px;
+            min-height: {t.INPUT_HEIGHT};
         }}
         QgsMapLayerComboBox:hover {{
-            border: 1px solid {t.COLOR_PRIMARY_LIGHT};
+            border: {t.PXBORDER} {t.COLOR_PRIMARY_LIGHT};
         }}
         """
 
@@ -400,12 +528,12 @@ class AppStyles:
             background: transparent;
         }}
         QScrollBar:vertical {{
-            width: 8px;
+            width: {t.SCROLLBAR_WIDTH};
             background: transparent;
         }}
         QScrollBar::handle:vertical {{
             background: {t.COLOR_PRIMARY};
-            border-radius: 4px;
+            border-radius: {t.SCROLLBAR_RADIUS};
         }}
         QScrollBar::handle:vertical:hover {{
             background: {t.COLOR_PRIMARY_LIGHT};
@@ -421,9 +549,9 @@ class AppStyles:
                 stop:0 {t.COLOR_BACKGROUND_PANEL},
                 stop:0.5 {t.COLOR_PRIMARY},
                 stop:1 {t.COLOR_BACKGROUND_PANEL});
-            height:3px;
-            border:none;
-            margin:4px 0px;
+            height: {t.SEPARATOR_HEIGHT};
+            border: none;
+            margin: {t.SEPARATOR_MARGIN};
         }}
         """
 
@@ -436,8 +564,8 @@ class AppStyles:
                 stop:0 {t.COLOR_BACKGROUND_MAIN},
                 stop:0.5 {t.COLOR_BACKGROUND_PANEL},
                 stop:1 {t.COLOR_BACKGROUND_MAIN});
-            border:3px solid {t.COLOR_BORDER};
-            border-radius:8px;
+            border: {t.PXBORDER} {t.COLOR_BORDER};
+            border-radius: {t.CONTAINER_RADIUS};
         }}
         {cls.label()}
         {cls.checkbox()}
@@ -456,19 +584,19 @@ class AppStyles:
             background:qlineargradient(x1:0,y1:0,x2:1,y2:0,
                 stop:0 {t.COLOR_PRIMARY_DARK},
                 stop:1 {t.COLOR_PRIMARY});
-            border-bottom:1px solid {t.COLOR_BORDER};
+            border-bottom: {t.PXBORDER} {t.COLOR_BORDER};
             border-radius: {t.RADIO_BORDER_RADIUS};
-            min-height:35px;
+            min-height: {t.APPBAR_HEIGHT};
         }}
         #app_bar_title {{
             color:{t.COLOR_TEXT_PRIMARY};
             font-weight:bold;
-            font-size:10.5pt;
+            font-size:{t.APPBAR_TITLE_SIZE};
         }}
         QPushButton#app_bar_btn_run {{
             background:{t.COLOR_PRIMARY};
-            border:1px solid {t.COLOR_PRIMARY_DARK};
-            padding:4px 14px;
+            border: {t.PXBORDER} {t.COLOR_PRIMARY_DARK};
+            padding: {t.BUTTON_PADDING_SMALL};
             font-weight:bold;
             font-size:{t.FONT_SIZE_SMALL};
         }}
@@ -478,7 +606,7 @@ class AppStyles:
         QPushButton#app_bar_btn_info {{
             background:{t.COLOR_APPBAR_INFO_BG};
             color:{t.COLOR_TEXT_SECONDARY};
-            border:1px solid {t.COLOR_BORDER};
+            border: {t.PXBORDER} {t.COLOR_BORDER};
         }}
         QPushButton#app_bar_btn_info:hover {{
             background:{t.COLOR_APPBAR_INFO_BG_HOVER};
@@ -486,7 +614,7 @@ class AppStyles:
         QPushButton#app_bar_btn_close {{
             background:transparent;
             border:none;
-            font-size:14pt;
+            font-size:{t.APPBAR_CLOSE_SIZE};
         }}
         """
 
@@ -496,8 +624,8 @@ class AppStyles:
         return f"""
         QFrame {{
             background:{t.COLOR_BACKGROUND_SOFT};
-            border-radius:6px;
-            padding:8px;
+            border-radius: {t.BORDER_RADIUS};
+            padding: {t.PADDING_INPUT};
         }}
         """
 
@@ -509,8 +637,8 @@ class AppStyles:
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                 stop:0 {t.COLOR_COLLAPSIBLE_HEADER_START},
                 stop:1 {t.COLOR_COLLAPSIBLE_HEADER_END});
-            border-bottom: 1px solid {t.COLOR_BORDER};
-            border-radius: 6px 6px 0px 0px;
+            border-bottom: {t.PXBORDER} {t.COLOR_BORDER};
+            border-radius: {t.BORDER_RADIUS} {t.BORDER_RADIUS} 0 0;
         }}
         #collapsible_header:hover {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
@@ -531,17 +659,17 @@ class AppStyles:
             background: transparent;
         }}
         #collapsible_header_btn {{
-            background:{t.COLOR_BACKGROUND_TRANSPARENT};
+            background: transparent;
             border: none;
             padding: 0px;
             margin: 0px;
         }}
         #collapsible_content {{
             background: {t.COLOR_BACKGROUND_SOFT};
-            border-bottom: 1px solid {t.COLOR_BORDER};
-            border-left: 1px solid {t.COLOR_BORDER};
-            border-right: 1px solid {t.COLOR_BORDER};
-            border-radius: 0px 0px 6px 6px;
+            border-bottom: {t.PXBORDER} {t.COLOR_BORDER};
+            border-left: {t.PXBORDER} {t.COLOR_BORDER};
+            border-right: {t.PXBORDER} {t.COLOR_BORDER};
+            border-radius: 0 0 {t.BORDER_RADIUS} {t.BORDER_RADIUS};
         }}
         """
 
@@ -549,338 +677,135 @@ class AppStyles:
     def calc_checkbox_grid_height(cls, num_items: int, items_per_row: int = 1) -> int:
         t = cls._get_theme()
         rows = (num_items + items_per_row - 1) // items_per_row
-        return (rows * t.ITEM_HEIGHT) + ((rows - 1) * t.LAYOUT_V_SPACING)
+        item_h = int(t.ITEM_HEIGHT.replace("px", ""))
+        spacing = t.LAYOUT_V_SPACING
+        return (rows * item_h) + ((rows - 1) * spacing)
 ```
 
-### 3.2 Adaptar `Styles.py` como Ponte de Transição
+### 6.2 Adicionar Tokens com Unidade no `BaseTheme.py`
 
-`Styles.py` passa a herdar de `AppStyles` e manter os métodos específicos de widget como **deprecated**:
-
-```python
-# resources/styles/Styles.py
-# -*- coding: utf-8 -*-
-"""
-Styles — Ponte de transição (DEPRECATED)
-=========================================
-Mantido para compatibilidade durante migração.
-Novos códigos devem usar AppStyles diretamente.
-Os métodos específicos de widget serão movidos para cada widget.
-"""
-
-import warnings
-from .AppStyles import AppStyles
-
-
-class Styles(AppStyles):
-    """DEPRECATED: Use AppStyles para estilos globais."""
-
-    # ── Métodos específicos de widget (serão movidos) ──────────
-
-    @staticmethod
-    def attribute_selector():
-        warnings.warn(
-            "Styles.attribute_selector() movido para "
-            "AttributeSelectorWidget._specific_style()",
-            DeprecationWarning, stacklevel=2,
-        )
-        return _attribute_selector_style()
-
-    @staticmethod
-    def path_selector_widget():
-        warnings.warn(
-            "Styles.path_selector_widget() movido para "
-            "SelectorWidget._specific_style()",
-            DeprecationWarning, stacklevel=2,
-        )
-        return _path_selector_style()
-
-    # ... demais métodos específicos com warnings
-```
-
-### 3.3 Adaptar `BaseStyles.py` como Alias
+**NÃO modificar tokens existentes** — adicionar NOVOS tokens com unidade:
 
 ```python
-# resources/styles/BaseStyles.py
-# -*- coding: utf-8 -*-
-"""
-BaseStyles — Alias para AppStyles (DEPRECATED)
-===============================================
-Mantido para compatibilidade. Use AppStyles.
-"""
+class BaseTheme:
+    # ── Tokens existentes (mantidos para compatibilidade) ────
+    STANDARD_SIZE: int = 12
+    INPUT_HEIGHT: int = STANDARD_SIZE
+    BUTTON_HEIGHT: int = STANDARD_SIZE
+    # ... demais tokens existentes (NÃO MODIFICAR)
 
-import warnings
-from .AppStyles import AppStyles
+    # ── NOVOS tokens com unidade ─────────────────────────────
+    INPUT_HEIGHT: str = "12px"
+    INPUT_MAX_HEIGHT: str = "18px"
+    BUTTON_HEIGHT: str = "12px"
+    PXBORDER: str = "1px solid"
+    PADDING_INPUT: str = "2px 8px"
+    PADDING_BUTTON: str = "4px 12px"
+    BORDER_RADIUS: str = "6px"
+    BORDER_RADIUS_SMALL: str = "2px"
+    CONTAINER_RADIUS: str = "8px"
+    SEPARATOR_HEIGHT: str = "3px"
+    SEPARATOR_MARGIN: str = "4px 0px"
+    SCROLLBAR_WIDTH: str = "8px"
+    SCROLLBAR_RADIUS: str = "4px"
+    APPBAR_HEIGHT: str = "35px"
+    APPBAR_TITLE_SIZE: str = "10.5pt"
+    APPBAR_CLOSE_SIZE: str = "14pt"
+    CHECKBOX_SIZE: str = "12px"
+    RADIO_SIZE: str = "12px"
+    CHECKBOX_BORDER_RADIUS: str = "3px"
+    CHECKBOX_BORDER_WIDTH: str = "1px"
+    CHECKBOX_SPACING: str = "6px"
+    RADIO_BORDER_RADIUS: str = "6px"
+    INPUT_BORDER_RADIUS: str = "4px"
+    INPUT_BUTTON_WIDTH: str = "16px"
+    INPUT_PADDING_RIGHT: str = "18px"
+    BUTTON_BORDER_RADIUS: str = "6px"
+    LAYOUT_V_SPACING: int = 2
+    LAYOUT_H_SPACING: int = 2
+    ITEM_HEIGHT: str = "12px"
 
-warnings.warn(
-    "BaseStyles foi movido para AppStyles. "
-    "Use 'from resources.styles.AppStyles import AppStyles'.",
-    DeprecationWarning, stacklevel=2,
-)
-
-current_theme = None  # Não use mais — acesse via AppStyles._get_theme()
-
-class BaseStyles(AppStyles):
-    """DEPRECATED: Use AppStyles."""
-    pass
-```
-
-### 3.4 Atualizar `resources/__init__.py`
-
-```python
-# resources/__init__.py
-from .styles.AppStyles import AppStyles
-from .styles.Styles import Styles  # mantido para compatibilidade
-from .styles.BaseTheme import BaseTheme
-from .styles.CoffeTheme import CoffeTheme
-from .styles.ThemeManager import ThemeManager, theme_manager
+    # ── Flags booleanas para efeitos visuais ────────────────
+    ALLOW_SHADOW: bool = False
+    ALLOW_GLOW: bool = False
+    SHADOW_SIZE: str = "0px"
 ```
 
 ---
 
-## 4. FASE 1 — Migração Plugin por Plugin
+## 7. FASE 1 — Criação dos Novos Widgets
 
-### 4.1 Ordem de Migração
+### 7.1 Widgets Simple (USO INTERNO)
 
-Os plugins serão migrados em ordem crescente de complexidade. Cada plugin segue o checklist:
+Criados em `resources/new_widgets/simple/`. Usados apenas por Grid, Complex e GridComplex.
 
-1. Analisar quais widgets o plugin usa
-2. Verificar se plugin pode usar grid layout (se tem múltiplos widgets)
-3. Verificar se plugin obedece ao contrato (PLUGIN_CONTRACT.md)
-4. Verificar se todos os widgets usados têm `self.logger`
-5. Migrar plugin para usar widgets diretos (sem Factory)
-6. Adaptar AppStyles com métodos necessários (se aplicável)
-7. Atualizar changelog
+| Arquivo | Classe | Descrição |
+|---------|--------|-----------|
+| `SimpleLabel.py` | `SimpleLabel` | QLabel configurado com AppStyles.label() |
+| `SimpleInput.py` | `SimpleInput` | QLineEdit configurado |
+| `SimpleButton.py` | `SimpleButton` | QPushButton configurado |
+| `SimpleComboBox.py` | `SimpleComboBox` | QComboBox configurado |
+| `SimpleSpinBox.py` | `SimpleSpinBox` | QDoubleSpinBox configurado |
+| `SimpleCheckbox.py` | `SimpleCheckbox` | QCheckBox configurado |
+| `SimpleRadioButton.py` | `SimpleRadioButton` | QRadioButton configurado |
+| `SimpleSeparator.py` | `SimpleSeparator` | QFrame separador |
 
-### 4.2 Tabela de Plugins
+### 7.2 Widgets Grid (PRIORIDADE para plugins)
 
-| # | Plugin | Widgets Usados | Complexidade | Grid? | Logger? | Dependências |
-|---|--------|---------------|-------------|-------|---------|-------------|
-| 1 | `AboutDialog` | label, text_browser, image_widget | 🔵 Fácil | Não | Sim (herda) | Nenhuma |
-| 2 | `RestartQgis` | simple_button | 🔵 Fácil | Não | Sim (herda) | Nenhuma |
-| 3 | `CoorResultDialog` | label, readonly_field, bottom_action_buttons | 🔵 Fácil | Sim | Sim (herda) | Nenhuma |
-| 4 | `VectorMultipartPlugin` | layer_input, bottom_action_buttons | 🔵 Fácil | Sim | Sim | Nenhuma |
-| 5 | `ExportAllLayouts` | readonly_field, bottom_action_buttons | 🔵 Fácil | Não | Sim | Nenhuma |
-| 6 | `CopyAttributesPlugin` | layer_input, checkbox_grid, bottom_action_buttons | 🟡 Médio | Sim | Sim | Nenhuma |
-| 7 | `DividePointsByStripsPlugin` | layer_input, input_fields, bottom_action_buttons | 🟡 Médio | Sim | Sim | Nenhuma |
-| 8 | `DroneCoordinates` | label, double_spin_input, custom | 🟡 Médio | Sim | Sim | Nenhuma |
-| 9 | `LoadFolderLayers` | path_selector, checkbox_grid, bottom_action_buttons | 🟡 Médio | Sim | Sim | Nenhuma |
-| 10 | `PathExtensionPlugin` | layer_input, dropdown_selector, radio_button_grid, bottom_action_buttons | 🟡 Médio | Sim | Sim | Nenhuma |
-| 11 | `ReplaceInLayouts` | layer_input, dropdown_selector, bottom_action_buttons | 🟡 Médio | Sim | Sim | Nenhuma |
-| 12 | `SaveTemporaryLayersPlugin` | path_selector, layer_input, bottom_action_buttons | 🟡 Médio | Sim | Sim | Nenhuma |
-| 13 | `GenerateTrailPlugin` | layer_input, dropdown_selector, input_fields, color_button, bottom_action_buttons | 🔴 Complexo | Sim | Sim | Nenhuma |
-| 14 | `ReportMetadataPlugin` | path_selector, layer_input, checkbox_grid, bottom_action_buttons | 🔴 Complexo | Sim | Sim | Pipeline |
-| 15 | `VectorFieldsCalculationPlugin` | layer_input, dropdown_selector, input_fields, bottom_action_buttons | 🔴 Complexo | Sim | Sim | Nenhuma |
-| 16 | `VectorToSvgPlugin` | path_selector, layer_input, checkbox_grid, bottom_action_buttons | 🔴 Complexo | Sim | Sim | Nenhuma |
-| 17 | `SettingsPlugin` | Múltiplos (tema, preferências, etc) | 🔴 Complexo | Não | Sim | Sistema |
+Criados em `resources/new_widgets/grid/`. Compostos de Simple widgets + layout.
 
-### 4.3 Exemplo de Migração: `PathExtensionPlugin`
+| Arquivo | Classe | Descrição |
+|---------|--------|-----------|
+| `GridLabel.py` | `GridLabel` | Grid de QLabels (1 ou mais) |
+| `GridInput.py` | `GridInput` | Grid de QLineEdits |
+| `GridCheckbox.py` | `GridCheckbox` | Grid de QCheckBoxes |
+| `GridRadioButton.py` | `GridRadioButton` | Grid de QRadioButtons |
+| `GridLayerInput.py` | `GridLayerInput` | LayerInput refatorado (label + combobox + checkbox) |
+| `GridButton.py` | `GridButton` | Grid de botões (bottom actions) |
+| `GridReadOnly.py` | `GridReadOnly` | Grid de campos read-only |
+| `GridDropdown.py` | `GridDropdown` | Dropdown com label |
 
-**Antes (com Factory):**
-```python
-class PathExtensionPlugin(BasePluginMTL):
-    def _build_ui(self, **kwargs):
-        super()._build_ui(title=STR.PATH_EXTENSION_TITLE, enable_scroll=True)
+### 7.3 Widgets Complex
 
-        layer_layout, self.layer_input = WidgetFactory.create_layer_input(
-            label_text=STR.INPUT_LAYER,
-            filters=[QgsMapLayerProxyModel.Filter.VectorLayer],
-            allow_empty=False,
-        )
+Criados em `resources/new_widgets/complex/`. Simple + título + botões + funções internas.
 
-        attr_layout, self.attr_selector = WidgetFactory.create_dropdown_selector(
-            title=f"{STR.PATH}:",
-            options_dict={},
-            allow_empty=True,
-            empty_text=STR.SELECT,
-            separator_bottom=True,
-        )
+| Arquivo | Classe | Descrição |
+|---------|--------|-----------|
+| `ComplexSelector.py` | `ComplexSelector` | Título + input + botão + checkbox (seleção de arquivo/pasta) |
+| `ComplexPath.py` | `ComplexPath` | Título + path selector + botões |
+| `ComplexColor.py` | `ComplexColor` | Título + color picker + hex input + copy |
+| `ComplexCollapsible.py` | `ComplexCollapsible` | Título + conteúdo colapsável (avançados) |
+| `ComplexCrs.py` | `ComplexCrs` | Título + CRS selector |
 
-        mode_layout, self.radio_mode = WidgetFactory.create_radio_button_grid(
-            items=[STR.MODE_REMOVE, STR.MODE_RESTORE, STR.MODE_ZIP, STR.MODE_UNZIP],
-            columns=2,
-            checked_index=0,
-            tool_key=self.TOOL_KEY,
-            separator_bottom=True,
-        )
+### 7.4 Widgets GridComplex (PRIORIDADE MÁXIMA)
 
-        buttons_layout, self.action_buttons = WidgetFactory.create_bottom_action_buttons(
-            parent=self,
-            run_callback=self.execute_tool,
-            close_callback=self.close,
-            info_callback=self.show_info_dialog,
-            tool_key=self.TOOL_KEY,
-        )
+Criados em `resources/new_widgets/grid_complex/`.
 
-        self.layout.add_items([layer_layout, attr_layout, mode_layout, buttons_layout])
-```
+| Arquivo | Classe | Descrição |
+|---------|--------|-----------|
+| `GridComplexSelector.py` | `GridComplexSelector` | Grid de ComplexSelectors com parent linking |
 
-**Depois (sem Factory):**
-```python
-class PathExtensionPlugin(BasePluginMTL):
-    def _build_ui(self, **kwargs):
-        super()._build_ui(title=STR.PATH_EXTENSION_TITLE, enable_scroll=True)
-
-        self.layer_input = LayerInputWidget(
-            label_text=STR.INPUT_LAYER,
-            filters=[QgsMapLayerProxyModel.Filter.VectorLayer],
-            allow_empty=False,
-            parent=self,
-        )
-
-        self.attr_selector = DropdownSelectorWidget(
-            title=f"{STR.PATH}:",
-            options_dict={},
-            allow_empty=True,
-            empty_text=STR.SELECT,
-            parent=self,
-        )
-
-        self.radio_mode = RadioButtonGridWidget(
-            items=[STR.MODE_REMOVE, STR.MODE_RESTORE, STR.MODE_ZIP, STR.MODE_UNZIP],
-            columns=2,
-            checked_index=0,
-            tool_key=self.TOOL_KEY,
-            parent=self,
-        )
-
-        self.action_buttons = ExecutionButtonsWidget(
-            parent=self,
-            run_callback=self.execute_tool,
-            close_callback=self.close,
-            info_callback=self.show_info_dialog,
-            tool_key=self.TOOL_KEY,
-        )
-
-        self.layout.addWidget(self.layer_input)
-        self.layout.addWidget(self.attr_selector)
-        self.layout.addWidget(self.radio_mode)
-        self.layout.addWidget(self.action_buttons)
-```
-
-### 4.4 Checklist de Migração por Plugin
-
-```markdown
-## Plugin: [NOME]
-
-### Análise
-- [ ] Quais widgets usa?
-- [ ] Pode usar grid layout?
-- [ ] Obedece ao contrato PLUGIN_CONTRACT.md?
-- [ ] Todos widgets têm self.logger?
-
-### Migração
-- [ ] Substituir WidgetFactory.create_xxx() por widget direto
-- [ ] Remover imports da Factory
-- [ ] Ajustar layout (addWidget em vez de add_items com layouts)
-- [ ] Verificar se AppStyles tem todos os métodos necessários
-- [ ] Testar funcionamento
-
-### Pós-migração
-- [ ] Atualizar docs/ia/changelog.txt
-- [ ] Verificar se não quebrou nada
-```
-
----
-
-## 5. FASE 2 — Refatoração dos Widgets
-
-### 5.1 Contrato do Widget Autoconfigurável
-
-Cada widget em `resources/widgets/` deve seguir este contrato:
+### 7.5 Template de Widget Grid
 
 ```python
-class MeuWidget(QWidget):
-    """
-    [Descrição do widget]
-    
-    Parâmetros
-    ----------
-    [param1] : type
-        [descrição]
-    parent : QWidget, optional
-        Widget pai
-    
-    Autoconfiguração
-    ----------------
-    - Estilos globais via AppStyles
-    - Estilo específico via _specific_style()
-    - Logger inicializado no __init__
-    """
-    
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent)
-        self._params = kwargs
-        self.logger = LogUtils(
-            tool=ToolKey.WIDGETS,
-            class_name=self.__class__.__name__,
-        )
-        try:
-            self._configure()
-            self._apply_styles()
-        except Exception as e:
-            self.logger.exception(e, code="WIDGET_INIT_ERR")
-    
-    def _configure(self):
-        """Monta a UI com base nos parâmetros recebidos."""
-        raise NotImplementedError
-    
-    def _apply_styles(self):
-        """Aplica estilos globais + específico."""
-        combined = self._global_style() + self._specific_style()
-        self.setStyleSheet(combined)
-    
-    def _global_style(self) -> str:
-        """Estilos globais via AppStyles (opcional)."""
-        return ""
-    
-    def _specific_style(self) -> str:
-        """Estilo específico deste widget (opcional)."""
-        return ""
-```
-
-### 5.2 Tabela de Refatoração por Widget
-
-| Widget | `_global_style()` (AppStyles) | `_specific_style()` (próprio) | Logger? |
-|--------|------------------------------|------------------------------|---------|
-| `LayerInputWidget` | label, checkbox, map_layer_combobox | Margens, padding do layout | ✅ |
-| `AttributeSelectorWidget` | label, checkbox, button, list | Padding, spacing do list | ✅ |
-| `GridCheckboxWidget` | label, checkbox | Grid layout, tooltip | ✅ |
-| `RadioButtonGridWidget` | label, radio_button | Grid layout, spacing | ✅ |
-| `ColorButtonWidget` | label, input, button | Hex input, copy button, layout | ✅ |
-| `CollapsibleParametersWidget` | collapsible_parameters | Animação, ícone | ✅ |
-| `DropdownSelectorWidget` | label, combobox | Padding, hover states | ✅ |
-| `CrsSelectorWidget` | label, combobox | Layout específico | ✅ |
-| `SimpleButtonWidget` | button | Padding fixo, expansão | ✅ |
-| `ExecutionButtonsWidget` | button | Layout horizontal, padding | ✅ |
-| `SelectorWidget` | input, button, label | Layout, tooltip, checkbox | ✅ |
-| `GridInputFieldsWidget` | label, input, spinbox | Grid layout, validação | ✅ |
-| `ReadOnlyFieldWidget` | label, button | Grid layout, copy button | ✅ |
-| `ComplexSelector` | input, button, label | Layout, tooltip, project button | ✅ |
-| `GridComplexSelector` | (usa ComplexSelector) | Grid layout, parent linking | ✅ |
-| `ImageWidget` | (sem estilo Qt) | paintEvent, click | ✅ |
-| `ScrollWidget` | scroll_area | (usa QScrollArea nativo) | ✅ |
-| `AppBarWidget` | app_bar | Botões, título, ícone | ✅ |
-| `MainLayout` | main_application | Scroll, resize, drag | ✅ |
-
-### 5.3 Exemplo de Widget Refatorado: `LayerInputWidget`
-
-```python
-# resources/widgets/LayerInputWidget.py
+# resources/new_widgets/grid/GridLayerInput.py
 # -*- coding: utf-8 -*-
 
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QLabel, QCheckBox
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsVectorLayer, QgsMapLayerProxyModel, QgsProject
-from ...core.config.LogUtils import LogUtils
-from ...utils.ToolKeys import ToolKey
-from ...resources.styles.AppStyles import AppStyles
-from ...i18n.TranslationManager import STR
+from ....core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
+from ....resources.styles.AppStyles import AppStyles
+from ....i18n.TranslationManager import STR
 
 
-class LayerInputWidget(QWidget):
+class GridLayerInput(QWidget):
     """
-    Widget padrão para seleção de camada.
+    Widget grid para seleção de camada.
+    
+    PRIORIDADE para uso em plugins (substitui LayerInputWidget antigo).
     
     Parâmetros
     ----------
@@ -889,19 +814,27 @@ class LayerInputWidget(QWidget):
     filters : QgsMapLayerProxyModel.Filter | list
         Filtros para o combobox
     allow_empty : bool, optional
-        Se True, permite nenhuma camada selecionada (default True)
+        Permite nenhuma camada selecionada (default True)
     enable_selected_checkbox : bool, optional
-        Se True, exibe checkbox "usar apenas seleção" (default True)
+        Exibe checkbox "usar apenas seleção" (default True)
+    separator_top : bool, optional
+        Separador no topo (default False)
+    separator_bottom : bool, optional
+        Separador na base (default False)
+    separator_left : bool, optional
+        Separador na esquerda (default False)
+    separator_right : bool, optional
+        Separador na direita (default False)
     parent : QWidget, optional
         Widget pai
     
     Autoconfiguração
     ----------------
-    - Estilos globais: AppStyles.label(), AppStyles.checkbox(), AppStyles.map_layer_combobox()
-    - Estilo específico: margens e padding do layout
+    - AppStyles: label(), checkbox(), map_layer_combobox()
+    - _specific_style(): margens e padding
     """
 
-    layerChanged = pyqtSignal(object)  # QgsMapLayer | None
+    layerChanged = pyqtSignal(object)
 
     def __init__(
         self,
@@ -910,12 +843,21 @@ class LayerInputWidget(QWidget):
         *,
         allow_empty: bool = True,
         enable_selected_checkbox: bool = True,
+        separator_top: bool = False,
+        separator_bottom: bool = False,
+        separator_left: bool = False,
+        separator_right: bool = False,
         parent=None,
     ):
         super().__init__(parent)
+        self._separator_top = separator_top
+        self._separator_bottom = separator_bottom
+        self._separator_left = separator_left
+        self._separator_right = separator_right
+
         self.logger = LogUtils(
             tool=ToolKey.WIDGETS,
-            class_name="LayerInputWidget",
+            class_name="GridLayerInput",
         )
         try:
             self._state_layer = None
@@ -936,13 +878,26 @@ class LayerInputWidget(QWidget):
             self._bind_events()
             self._try_select_active_layer()
         except Exception as e:
-            self.logger.exception(e, code="LAYER_INPUT_INIT_ERR")
+            self.logger.exception(e, code="GRID_LAYER_INPUT_INIT_ERR")
 
     def _build_layout(self):
-        """Monta o layout vertical."""
+        """Monta layout com separadores nos 4 lados."""
+        t = AppStyles._get_theme()
+        padding = {
+            "left": t.PADDING_INPUT if self._separator_left else "0px",
+            "top": t.PADDING_INPUT if self._separator_top else "0px",
+            "right": t.PADDING_INPUT if self._separator_right else "0px",
+            "bottom": t.PADDING_INPUT if self._separator_bottom else "0px",
+        }
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        # Converter px strings para int
+        layout.setContentsMargins(
+            int(padding["left"].replace("px", "")),
+            int(padding["top"].replace("px", "")),
+            int(padding["right"].replace("px", "")),
+            int(padding["bottom"].replace("px", "")),
+        )
+        layout.setSpacing(t.LAYOUT_V_SPACING)
         layout.addWidget(self._label)
         layout.addWidget(self._combo)
         if self._chk_selected:
@@ -959,130 +914,218 @@ class LayerInputWidget(QWidget):
         self.setStyleSheet(style)
 
     def _specific_style(self) -> str:
-        """Estilo específico do LayerInputWidget."""
-        return """
-        QWidget {
-            margin: 0px;
-            padding: 0px;
-        }
         """
+        Estilo específico do GridLayerInput.
+        SOBRESCREVER em subclasses se necessário.
+        """
+        return ""
 
     # ── Demais métodos (bindings, eventos, API pública) ────────
-    # ... (mantidos iguais aos atuais)
+    # (mesma lógica do LayerInputWidget atual)
 ```
 
 ---
 
-## 6. FASE 3 — Eliminação da WidgetFactory
+## 8. FASE 2 — Migração Plugin por Plugin
 
-### 6.1 Marcar como Deprecated
+### 8.1 Ordem de Migração
 
-Após todos os plugins e widgets migrados, `WidgetFactory.py` vira:
+Cada plugin é migrado individualmente. Enquanto não é migrado, continua usando a Factory antiga sem problemas.
+
+### 8.2 Exemplo: `PathExtensionPlugin` Migrado
 
 ```python
-# core/ui/WidgetFactory.py
-# -*- coding: utf-8 -*-
-"""
-WidgetFactory — DEPRECATED
-==========================
-Toda criação de widget agora é feita diretamente pelas classes em
-resources/widgets/. Os widgets se autoconfiguram com AppStyles + ThemeManager.
+# plugins/PathExtensionPlugin.py
 
-Use:
-    from resources.widgets.LayerInputWidget import LayerInputWidget
-    widget = LayerInputWidget(label_text="...", filters=[...])
+from ..resources.new_widgets.grid.GridLayerInput import GridLayerInput
+from ..resources.new_widgets.grid.GridDropdown import GridDropdown
+from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
+from ..resources.new_widgets.grid.GridButton import GridButton
 
-Em vez de:
-    from core.ui.WidgetFactory import WidgetFactory
-    layout, widget = WidgetFactory.create_layer_input(...)
-"""
 
-import warnings
+class PathExtensionPlugin(BasePluginMTL):
+    def _build_ui(self, **kwargs):
+        super()._build_ui(title=STR.PATH_EXTENSION_TITLE, enable_scroll=True)
 
-warnings.warn(
-    "WidgetFactory está obsoleto. "
-    "Use os widgets diretamente de resources/widgets/. "
-    "Consulte docs/plano_eliminacao_widgetfactory.md para detalhes.",
-    DeprecationWarning,
-    stacklevel=2,
-)
+        # GridLayerInput substitui WidgetFactory.create_layer_input()
+        self.layer_input = GridLayerInput(
+            label_text=STR.INPUT_LAYER,
+            filters=[QgsMapLayerProxyModel.Filter.VectorLayer],
+            allow_empty=False,
+            parent=self,
+            # Separadores são opcionais internos ao widget
+        )
 
-# Mantido apenas para compatibilidade durante transição
-# Será removido na próxima versão
-from ...resources.widgets.LayerInputWidget import LayerInputWidget
-# ... (demais imports e métodos delegados)
+        # GridDropdown substitui WidgetFactory.create_dropdown_selector()
+        self.attr_selector = GridDropdown(
+            title=f"{STR.PATH}:",
+            options_dict={},
+            allow_empty=True,
+            empty_text=STR.SELECT,
+            parent=self,
+        )
+
+        # GridRadioButton substitui WidgetFactory.create_radio_button_grid()
+        self.radio_mode = GridRadioButton(
+            items=[STR.MODE_REMOVE, STR.MODE_RESTORE,
+                   STR.MODE_ZIP, STR.MODE_UNZIP],
+            columns=2,
+            checked_index=0,
+            tool_key=self.TOOL_KEY,
+            parent=self,
+        )
+
+        # GridButton substitui WidgetFactory.create_bottom_action_buttons()
+        self.action_buttons = GridButton(
+            parent=self,
+            run_callback=self.execute_tool,
+            close_callback=self.close,
+            info_callback=self.show_info_dialog,
+            tool_key=self.TOOL_KEY,
+        )
+
+        # Layout simples: plugin só dá addWidget()
+        self.layout.addWidget(self.layer_input)
+        self.layout.addWidget(self.attr_selector)
+        self.layout.addWidget(self.radio_mode)
+        self.layout.addWidget(self.action_buttons)
 ```
 
-### 6.2 Remover Completamente
+### 8.3 Tabela de Migração
 
-Após 1 release de transição:
-- Deletar `core/ui/WidgetFactory.py`
-- Remover imports da Factory de todos os arquivos
-- Remover referências em `docs/skills/SKILL_WIDGETS.md`
+| # | Plugin | Widget Antigo (Factory) | Widget Novo (new_widgets) |
+|---|--------|------------------------|--------------------------|
+| 1 | `AboutDialog` | create_label, create_text_browser, create_image_widget | GridLabel + complex |
+| 2 | `RestartQgis` | create_simple_button | GridButton |
+| 3 | `CoorResultDialog` | create_label, create_readonly_field, create_bottom_action_buttons | GridReadOnly + GridButton |
+| 4 | `VectorMultipartPlugin` | create_layer_input, create_bottom_action_buttons | GridLayerInput + GridButton |
+| 5 | `ExportAllLayouts` | create_readonly_field, create_bottom_action_buttons | GridReadOnly + GridButton |
+| 6 | `CopyAttributesPlugin` | create_layer_input, create_checkbox_grid, create_bottom_action_buttons | GridLayerInput + GridCheckbox + GridButton |
+| 7 | `DividePointsByStripsPlugin` | create_layer_input, create_input_fields_widget, create_bottom_action_buttons | GridLayerInput + GridInput + GridButton |
+| 8 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput |
+| 9 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_bottom_action_buttons | ComplexPath + GridCheckbox + GridButton |
+| 10 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton |
+| 11 | `ReplaceInLayouts` | create_layer_input, create_dropdown_selector, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridButton |
+| 12 | `SaveTemporaryLayersPlugin` | create_path_selector, create_layer_input, create_bottom_action_buttons | ComplexPath + GridLayerInput + GridButton |
+| 13 | `GenerateTrailPlugin` | create_layer_input, create_dropdown_selector, create_input_fields_widget, create_color_button, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + ComplexColor + GridButton |
+| 14 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPath + GridLayerInput + GridCheckbox + GridButton |
+| 15 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields_widget, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton |
+| 16 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPath + GridLayerInput + GridCheckbox + GridButton |
+| 17 | `SettingsPlugin` | Múltiplos | Grid + Complex (análise individual) |
 
-### 6.3 Atualizar Skills e Contratos
+### 8.4 Checklist de Migração por Plugin
 
-**`docs/skills/SKILL_WIDGETS.md`** — Reescrever para o novo modelo:
-- Remover toda referência à WidgetFactory
-- Documentar o novo contrato de autoconfiguração
-- Documentar AppStyles como ponto único de estilos globais
-- Documentar `_specific_style()` para estilos específicos
+```markdown
+## Plugin: [NOME]
 
-**`docs/skills/PLUGIN_CONTRACT.md`** — Atualizar regra #1:
-```
-## 1. UI — Widgets
+### Análise
+- [ ] Quais widgets usa atualmente (via Factory)?
+- [ ] Pode usar GridComplex? Complex? Grid?
+- [ ] Obedece ao contrato PLUGIN_CONTRACT.md?
+- [ ] TEM LOGGER? (sim, herda de BasePluginMTL)
 
-❌ from core.ui.WidgetFactory import WidgetFactory
-✅ from resources.widgets.LayerInputWidget import LayerInputWidget
+### Migração
+- [ ] Substituir WidgetFactory.create_xxx() por widget de new_widgets/
+- [ ] Remover imports da Factory
+- [ ] Usar Grid (prioridade) ou Complex (se necessário)
+- [ ] Separadores: configurar via parâmetros do widget
+- [ ] Ajustar layout (addWidget em vez de add_items)
 
-Plugins nunca importam QtWidgets direto. Todo widget é importado
-diretamente de resources/widgets/ e se autoconfigura com AppStyles + ThemeManager.
-O plugin passa apenas parâmetros de configuração, sem saber de estilos.
+### Pós-migração
+- [ ] Plugin não importa mais nada de core/ui/WidgetFactory
+- [ ] Plugin não importa nada de resources/styles/
+- [ ] Plugin não chama setStyleSheet()
+- [ ] Atualizar docs/ia/changelog.txt
 ```
 
 ---
 
-## 7. Contrato do Widget Autoconfigurável
+## 9. FASE 3 — Eliminação da WidgetFactory
 
-### 7.1 Regras Obrigatórias
+### 9.1 Após TODOS os plugins migrados
 
-1. **Todo widget herda de `QWidget`** (ou `QDialog` para diálogos)
-2. **Todo widget tem `self.logger`** inicializado no `__init__`
-3. **Todo `try` usa `self.logger.exception()`** no except
+Quando nenhum plugin depender mais da WidgetFactory:
+
+```python
+# core/ui/WidgetFactory.py — DEPRECATED
+import warnings
+warnings.warn(
+    "WidgetFactory obsoleto. Use widgets de resources/new_widgets/. "
+    "Consulte docs/plano_eliminacao_widgetfactory.md",
+    DeprecationWarning, stacklevel=2,
+)
+```
+
+### 9.2 Remover (após 1 release)
+
+- Deletar `core/ui/WidgetFactory.py`
+- Remover imports da Factory de todos os plugins
+- Atualizar SKILL_WIDGETS.md
+- Atualizar PLUGIN_CONTRACT.md regra #1
+- Atualizar docs/ia/changelog.txt
+
+### 9.3 O que NUNCA será removido
+
+- `resources/widgets/` (widgets antigos — mantidos para compatibilidade)
+- `resources/styles/Styles.py` (mantido para widgets antigos)
+- `resources/styles/BaseStyles.py` (mantido para compatibilidade)
+
+---
+
+## 10. Contrato do Widget
+
+### 10.1 Regras Obrigatórias
+
+1. **Todo widget herda de `QWidget`** (ou `QDialog`)
+2. **Todo widget tem `self.logger`** no `__init__`
+3. **Todo `try`** usa `self.logger.exception(e, code=...)`
 4. **Todo widget chama `self._apply_styles()`** no final do `__init__`
 5. **Estilos globais** vêm de `AppStyles`
-6. **Estilos específicos** vêm de `_specific_style()` (método do próprio widget)
+6. **Estilos específicos** vêm de `_specific_style()` (sempre sobrescrita)
 7. **Plugin NUNCA** chama `setStyleSheet()` no widget
 8. **Plugin NUNCA** importa `AppStyles` ou `ThemeManager`
-9. **Widget recebe params** como argumentos nomeados no `__init__`
-10. **Widget NÃO** depende de `WidgetFactory` para nada
+9. **Separadores** nos 4 lados: `separator_top/bottom/left/right`
+10. **Unidades** sempre no tema — never hardcoded `px` no widget/style
 
-### 7.2 Template de Widget
+### 10.2 Template Completo
 
 ```python
-# resources/widgets/MeuWidget.py
+# resources/new_widgets/categoria/MeuWidget.py
 # -*- coding: utf-8 -*-
 
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout
-from ...core.config.LogUtils import LogUtils
-from ...utils.ToolKeys import ToolKey
-from ...resources.styles.AppStyles import AppStyles
+from ....core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
+from ....resources.styles.AppStyles import AppStyles
 
 
 class MeuWidget(QWidget):
     """
-    [Descrição do widget]
+    [Descrição]
     
     Parâmetros
     ----------
     [param1] : type
         [descrição]
+    separator_top/bottom/left/right : bool
+        Separadores nos 4 lados (default False)
     parent : QWidget, optional
         Widget pai
+    
+    Autoconfiguração
+    ----------------
+    - AppStyles: métodos globais
+    - _specific_style(): estilo específico
+    - Logger no __init__
     """
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent)
+        self._separator_top = kwargs.pop("separator_top", False)
+        self._separator_bottom = kwargs.pop("separator_bottom", False)
+        self._separator_left = kwargs.pop("separator_left", False)
+        self._separator_right = kwargs.pop("separator_right", False)
+
         self.logger = LogUtils(
             tool=ToolKey.WIDGETS,
             class_name=self.__class__.__name__,
@@ -1095,19 +1138,33 @@ class MeuWidget(QWidget):
             self.logger.exception(e, code="WIDGET_INIT_ERR")
 
     def _configure(self):
-        """Monta a UI com base nos parâmetros."""
-        # Criar widgets filhos
-        # Montar layout
-        # Conectar sinais
-        pass
+        """Monta UI com parâmetros e separadores."""
+        t = AppStyles._get_theme()
+        padding = {
+            "left": t.PADDING_INPUT if self._separator_left else "0px",
+            "top": t.PADDING_INPUT if self._separator_top else "0px",
+            "right": t.PADDING_INPUT if self._separator_right else "0px",
+            "bottom": t.PADDING_INPUT if self._separator_bottom else "0px",
+        }
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(
+            int(padding["left"].replace("px", "")),
+            int(padding["top"].replace("px", "")),
+            int(padding["right"].replace("px", "")),
+            int(padding["bottom"].replace("px", "")),
+        )
+        # ... criar widgets filhos, montar layout, conectar sinais
 
     def _apply_styles(self):
         """Aplica estilos globais + específico."""
-        style = self._global_style() + self._specific_style()
+        style = (
+            self._global_style()
+            + self._specific_style()
+        )
         self.setStyleSheet(style)
 
     def _global_style(self) -> str:
-        """Estilos globais via AppStyles."""
+        """Estilos globais via AppStyles (opcional)."""
         return (
             AppStyles.label()
             + AppStyles.button()
@@ -1115,120 +1172,147 @@ class MeuWidget(QWidget):
         )
 
     def _specific_style(self) -> str:
-        """Estilo específico deste widget."""
-        return """
-        QWidget {
-            margin: 4px;
-            padding: 2px;
-        }
         """
+        Estilo específico do widget.
+        SOBRESCREVER nas subclasses.
+        Usa tokens do tema, SEM unidades fixas.
+        """
+        return ""
 ```
 
 ---
 
-## 8. Compatibilidade Qt5/Qt6
+## 11. Compatibilidade Qt5/Qt6
 
-### 8.1 Pontos de Atenção
-
-| Qt5 | Qt6 | Onde Usar |
-|-----|-----|-----------|
-| `Qt.AlignLeft` | `Qt.AlignmentFlag.AlignLeft` | Alinhamentos |
-| `Qt.WA_TranslucentBackground` | `Qt.WidgetAttribute.WA_TranslucentBackground` | Atributos de widget |
-| `Qt.Dialog` | `Qt.WindowType.Dialog` | Window flags |
-| `QFrame.HLine` | `QFrame.Shape.HLine` | Formas de QFrame |
-| `QFrame.Sunken` | `QFrame.Shadow.Sunken` | Sombras de QFrame |
-
-### 8.2 Padrão de Compatibilidade
+### 11.1 Helper de Compatibilidade
 
 ```python
-# helpers compat
-def _qt_enum(module, qt5_name, qt6_attr, qt6_name):
-    """Resolve enum compatível Qt5/Qt6."""
+# utils/qt_compat.py
+"""Helpers de compatibilidade Qt5/Qt6."""
+
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QFrame
+
+
+def qt_enum(module, qt5_name: str, qt6_attr: str, qt6_name: str):
+    """Resolve enum compatível Qt5 → Qt6."""
     try:
         return getattr(getattr(module, qt6_attr), qt6_name)
     except AttributeError:
         return getattr(module, qt5_name)
 
-# Uso:
-ALIGN_LEFT = _qt_enum(Qt, "AlignLeft", "AlignmentFlag", "AlignLeft")
-WA_TRANSLUCENT = _qt_enum(Qt, "WA_TranslucentBackground", "WidgetAttribute", "WA_TranslucentBackground")
-WINDOW_DIALOG = _qt_enum(Qt, "Dialog", "WindowType", "Dialog")
+
+def qt_window_type(name: str):
+    """Qt.WindowType.Dialog → Qt.Dialog"""
+    return qt_enum(Qt, name, "WindowType", name)
+
+
+def qt_widget_attr(name: str):
+    """Qt.WidgetAttribute.WA_TranslucentBackground → Qt.WA_TranslucentBackground"""
+    return qt_enum(Qt, name, "WidgetAttribute", name)
+
+
+def qt_alignment(name: str):
+    """Qt.AlignmentFlag.AlignLeft → Qt.AlignLeft"""
+    return qt_enum(Qt, name, "AlignmentFlag", name)
+
+
+def qframe_shape(name: str):
+    """QFrame.Shape.HLine → QFrame.HLine"""
+    try:
+        return getattr(QFrame.Shape, name)
+    except AttributeError:
+        return getattr(QFrame, name)
+
+
+def qframe_shadow(name: str):
+    """QFrame.Shadow.Sunken → QFrame.Sunken"""
+    try:
+        return getattr(QFrame.Shadow, name)
+    except AttributeError:
+        return getattr(QFrame, name)
 ```
 
-### 8.3 Onde Aplicar
+### 11.2 Onde Aplicar
 
 - `BaseDialog.py` (já tem `_qt_window_type` e `_qt_widget_attr`)
-- `WidgetFactory.create_separator()` (já tem compat)
-- Todos os widgets que usam `Qt.` enums
-- `AppStyles` (não usa enums, só strings CSS — seguro)
+- `new_widgets/` — todos os widgets que usam `Qt.` enums
+- `AppStyles` — não usa enums (só strings CSS) → seguro
 
 ---
 
-## 9. Riscos e Mitigações
+## 12. Riscos e Mitigações
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|--------------|---------|-----------|
-| Quebrar compatibilidade Qt5/Qt6 | Média | Alto | Usar helpers de compatibilidade em todos os widgets |
-| Plugin parar de funcionar durante migração | Alta | Alto | Migrar 1 plugin por vez, testar cada um antes de passar ao próximo |
-| Perder estilos específicos que estavam em Styles.py | Média | Médio | Mover para `_specific_style()` do widget correspondente |
-| BaseStyles ainda ser importado por código externo | Baixa | Baixo | Manter como alias para AppStyles durante transição |
-| ThemeManager.current_theme mudar em runtime | Baixa | Médio | AppStyles usa cache com invalidação via `reload_theme()` |
-| Widget esquecer de chamar `_apply_styles()` | Média | Médio | Chamar no `__init__` dentro do template obrigatório |
-| Plugin importar QtWidgets direto | Média | Alto | Revisão de código + linter rule |
-| Esquecer de adicionar `self.logger` | Média | Baixo | Template obrigatório + code review |
+| Quebrar compatibilidade Qt5/Qt6 | Média | Alto | Helper `qt_enum()` em todos os widgets |
+| Plugin parar durante migração | Alta | Alto | Migrar 1 plugin por vez; antigo continua funcionando |
+| Perder estilos específicos | Média | Médio | Mover para `_specific_style()` do widget |
+| BaseStyles desatualizado | Baixa | Baixo | Mantido como alias, não removido |
+| Tema mudar em runtime | Baixa | Médio | AppStyles com cache + `reload_theme()` |
+| Widget sem `_apply_styles()` | Média | Médio | Template obrigatório |
+| Plugin importar QtWidgets direto | Média | Alto | Code review + linter |
+| Unidade hardcoded no widget | Alta | Alto | Template proíbe; usar tokens do tema |
+| Widget antigo quebrar com novo AppStyles | Baixa | Baixo | Widgets antigos continuam usando Styles.py |
 
 ---
 
-## 10. TODO Interno Consolidado
+## 13. TODO Interno Consolidado
 
 ```
 [ ] FASE 0: Fundação
   [ ] 0.1 Criar resources/styles/AppStyles.py
-  [ ] 0.2 Adaptar Styles.py como ponte (herda AppStyles + deprecated warnings)
-  [ ] 0.3 Adaptar BaseStyles.py como alias (deprecated)
-  [ ] 0.4 Atualizar resources/__init__.py
-  [ ] 0.5 Adicionar helpers de compatibilidade Qt5/Qt6
-  [ ] 0.6 Testar se AppStyles funciona com tema atual
+  [ ] 0.2 Adicionar tokens com unidade no BaseTheme.py (NOVOS, sem modificar existentes)
+  [ ] 0.3 Criar utils/qt_compat.py (helper Qt5/Qt6)
+  [ ] 0.4 Testar AppStyles com tema atual
 
-[ ] FASE 1: Migração Plugin por Plugin
-  [ ] 1.1 AboutDialog
-  [ ] 1.2 RestartQgis
-  [ ] 1.3 CoorResultDialog
-  [ ] 1.4 VectorMultipartPlugin
-  [ ] 1.5 ExportAllLayouts
-  [ ] 1.6 CopyAttributesPlugin
-  [ ] 1.7 DividePointsByStripsPlugin
-  [ ] 1.8 DroneCoordinates
-  [ ] 1.9 LoadFolderLayers
-  [ ] 1.10 PathExtensionPlugin
-  [ ] 1.11 ReplaceInLayouts
-  [ ] 1.12 SaveTemporaryLayersPlugin
-  [ ] 1.13 GenerateTrailPlugin
-  [ ] 1.14 ReportMetadataPlugin
-  [ ] 1.15 VectorFieldsCalculationPlugin
-  [ ] 1.16 VectorToSvgPlugin
-  [ ] 1.17 SettingsPlugin
+[ ] FASE 1: Criação dos Novos Widgets
+  [ ] 1.1 Simple
+    [ ] SimpleLabel.py
+    [ ] SimpleInput.py
+    [ ] SimpleButton.py
+    [ ] SimpleComboBox.py
+    [ ] SimpleSpinBox.py
+    [ ] SimpleCheckbox.py
+    [ ] SimpleRadioButton.py
+    [ ] SimpleSeparator.py
+  [ ] 1.2 Grid
+    [ ] GridLabel.py
+    [ ] GridInput.py
+    [ ] GridCheckbox.py
+    [ ] GridRadioButton.py
+    [ ] GridLayerInput.py
+    [ ] GridButton.py
+    [ ] GridReadOnly.py
+    [ ] GridDropdown.py
+  [ ] 1.3 Complex
+    [ ] ComplexSelector.py
+    [ ] ComplexPath.py
+    [ ] ComplexColor.py
+    [ ] ComplexCollapsible.py
+    [ ] ComplexCrs.py
+  [ ] 1.4 GridComplex
+    [ ] GridComplexSelector.py
+  [ ] 1.5 resources/new_widgets/__init__.py
 
-[ ] FASE 2: Refatoração dos Widgets
-  [ ] 2.1 LayerInputWidget
-  [ ] 2.2 AttributeSelectorWidget
-  [ ] 2.3 GridCheckboxWidget
-  [ ] 2.4 RadioButtonGridWidget
-  [ ] 2.5 ColorButtonWidget
-  [ ] 2.6 CollapsibleParametersWidget
-  [ ] 2.7 DropdownSelectorWidget
-  [ ] 2.8 CrsSelectorWidget
-  [ ] 2.9 SimpleButtonWidget
-  [ ] 2.10 ExecutionButtonsWidget
-  [ ] 2.11 SelectorWidget
-  [ ] 2.12 GridInputFieldsWidget
-  [ ] 2.13 ReadOnlyFieldWidget
-  [ ] 2.14 ComplexSelector
-  [ ] 2.15 GridComplexSelector
-  [ ] 2.16 ImageWidget
-  [ ] 2.17 ScrollWidget
-  [ ] 2.18 AppBarWidget
-  [ ] 2.19 MainLayout
+[ ] FASE 2: Migração Plugin por Plugin
+  [ ] 2.1 AboutDialog
+  [ ] 2.2 RestartQgis
+  [ ] 2.3 CoorResultDialog
+  [ ] 2.4 VectorMultipartPlugin
+  [ ] 2.5 ExportAllLayouts
+  [ ] 2.6 CopyAttributesPlugin
+  [ ] 2.7 DividePointsByStripsPlugin
+  [ ] 2.8 DroneCoordinates
+  [ ] 2.9 LoadFolderLayers
+  [ ] 2.10 PathExtensionPlugin
+  [ ] 2.11 ReplaceInLayouts
+  [ ] 2.12 SaveTemporaryLayersPlugin
+  [ ] 2.13 GenerateTrailPlugin
+  [ ] 2.14 ReportMetadataPlugin
+  [ ] 2.15 VectorFieldsCalculationPlugin
+  [ ] 2.16 VectorToSvgPlugin
+  [ ] 2.17 SettingsPlugin
 
 [ ] FASE 3: Eliminação da WidgetFactory
   [ ] 3.1 Marcar WidgetFactory como deprecated
@@ -1236,7 +1320,6 @@ WINDOW_DIALOG = _qt_enum(Qt, "Dialog", "WindowType", "Dialog")
   [ ] 3.3 Atualizar docs/skills/SKILL_WIDGETS.md
   [ ] 3.4 Atualizar docs/skills/PLUGIN_CONTRACT.md (regra #1)
   [ ] 3.5 Atualizar docs/ia/changelog.txt
-  [ ] 3.6 Remover referências obsoletas em todo código
 ```
 
 ---
@@ -1245,4 +1328,5 @@ WINDOW_DIALOG = _qt_enum(Qt, "Dialog", "WindowType", "Dialog")
 
 | Data | Versão | Descrição |
 |------|--------|-----------|
-| 2026-07-21 | 1.0.0 | Criação do plano de ação para eliminação da WidgetFactory |
+| 2026-07-21 | 1.0.0 | Criação inicial do plano |
+| 2026-07-21 | 2.0.0 | **Revisão completa:** estratégia não-destrutiva (`new_widgets/`), hierarquia simple/grid/complex/grid_complex, unidades no tema (nunca `px` em estilo), separadores 4 lados, `_specific_style()` padronizado, flags booleanas no tema, helper Qt5/Qt6, sem modificação de Styles.py ou BaseStyles.py |

@@ -11,10 +11,11 @@ Uso:
 from __future__ import annotations
 
 from .ThemeManager import theme_manager
+from .CoffeTheme import CoffeTheme
 
 
 # Instância do tema ativo (CoffeTheme, DarkCharcoalTheme, etc.)
-current_theme = theme_manager.theme
+current_theme = CoffeTheme()
 
 
 class BaseStyles:

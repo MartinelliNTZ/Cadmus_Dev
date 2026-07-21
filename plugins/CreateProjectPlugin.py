@@ -18,7 +18,6 @@ from ..utils.vector.VectorLayerSource import VectorLayerSource
 
 
 class CreateProjectPlugin(BasePluginMTL):
-    DEFAULT_PROJECTS_FOLDER = "C:/QgisProjects"
     PROJECTS_FOLDER_PREF_KEY = "projects_folder"
     TOOL_KEY = ToolKey.CREATE_PROJECT
     GENERIC_PROJECT_PATTERN = re.compile(r"^NovoProjeto_(\d+)$")

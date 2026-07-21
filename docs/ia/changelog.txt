@@ -380,6 +380,22 @@
      - Removido método _continue_after_base_folder() — fluxo linear via callbacks
    - Import não utilizado Preferences removido de ProjectNameDialog
    - Compatibilidade Qt5/Qt6 mantida via BaseDialog
+2.3.59 20/07/2026
+[2.3.59.1][20/07/2026] Correção de contrato PLUGIN_CONTRACT em DefaultProjectsFolderDialog, ProjectNameDialog e CreateProjectPlugin:
+   - DefaultProjectsFolderDialog: removido DEFAULT_FOLDER = "C:/QgisProjects" hardcoded
+     (a pasta AGORA vem das Preferences via construtor `current_folder`)
+   - DefaultProjectsFolderDialog: `get_folder_path()` NÃO retorna mais fallback hardcoded
+     (retorna string vazia se nada selecionado — usuário que cancela NÃO salva projeto)
+   - DefaultProjectsFolderDialog: substituído QLabel por WidgetFactory.create_label()
+   - DefaultProjectsFolderDialog: import LogUtils movido para topo (não mais dentro de __init__)
+   - DefaultProjectsFolderDialog: import ToolKey adicionado
+   - ProjectNameDialog: substituídos QLabel, QPushButton por WidgetFactory.create_label(),
+     WidgetFactory.create_simple_button()
+   - ProjectNameDialog: imports de SettingsPlugin, InstructionsManager, InfoDialog movidos para topo
+   - ProjectNameDialog: removido _apply_styles() (estilo via WidgetFactory)
+   - ProjectNameDialog: removido setStyleSheet direto (via WidgetFactory)
+   - CreateProjectPlugin: removido DEFAULT_PROJECTS_FOLDER = "C:/QgisProjects" (nunca mais usado)
+   - SKILL_PLUGIN_CONTRACT.md não necessitou alteração
 2.3.55 20/07/2026
 [2.3.55.1][20/07/2026] Corrigido JsonToVectorTranslator._resolve_geometry não resolvendo coordenadas MRK:
   - Adicionada Tentativa 3 (fallback MRK): quando GpsLatitude/GpsLongitude (EXIF/XMP) não estão disponíveis,

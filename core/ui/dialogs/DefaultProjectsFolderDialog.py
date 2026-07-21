@@ -1,29 +1,33 @@
 # -*- coding: utf-8 -*-
 from qgis.PyQt.QtCore import pyqtSignal
-from qgis.PyQt.QtWidgets import QLabel, QVBoxLayout
+from qgis.PyQt.QtWidgets import QVBoxLayout
 
 from ....i18n.TranslationManager import STR
 from ....resources.widgets.simple.SelectorWidget import SelectorWidget
 from ....resources.widgets.ExecutionButtonsWidget import ExecutionButtonsWidget
+from ....core.ui.WidgetFactory import WidgetFactory
+from ....core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
 from ....plugins.BaseDialog import BaseDialog
 
 
 class DefaultProjectsFolderDialog(BaseDialog):
-    """Diálogo não-modal para seleção da pasta padrão de projetos."""
+    """Diálogo não-modal para seleção da pasta padrão de projetos.
+
+    A pasta padrão NUNCA é hardcoded. Deve vir das Preferences
+    e ser passada via construtor em ``current_folder``.
+    """
 
     folder_selected = pyqtSignal(str)
-    DEFAULT_FOLDER = "C:/QgisProjects"
 
-    def __init__(self, parent=None):
+    def __init__(self, current_folder: str = "", parent=None):
         super().__init__(parent)
         self.PLUGIN_NAME = STR.DEFAULT_PROJECTS_FOLDER_TITLE
-        from ....core.config.LogUtils import LogUtils
-        from ....utils.ToolKeys import ToolKey
         self.logger = LogUtils(
             tool=ToolKey.CREATE_PROJECT, class_name="DefaultProjectsFolderDialog", level="DEBUG"
         )
+        self._current_folder = current_folder
         self.setWindowTitle(STR.DEFAULT_PROJECTS_FOLDER_TITLE)
-        self.setModal(False)
         self.resize(620, 160)
         # Inicializa o MainLayout do BaseDialog (cria self.layout)
         self._build_ui(
@@ -37,8 +41,10 @@ class DefaultProjectsFolderDialog(BaseDialog):
         """Constrói o conteúdo interno do diálogo dentro do MainLayout."""
         layout = QVBoxLayout()
 
-        info = QLabel(STR.DEFAULT_PROJECTS_FOLDER_PROMPT)
-        info.setWordWrap(True)
+        info = WidgetFactory.create_label(
+            text=STR.DEFAULT_PROJECTS_FOLDER_PROMPT,
+            word_wrap=True,
+        )
         layout.addWidget(info)
 
         self.selector = SelectorWidget(
@@ -46,7 +52,8 @@ class DefaultProjectsFolderDialog(BaseDialog):
             mode=SelectorWidget.MODE_FOLDER,
             parent=self,
         )
-        self.selector.set_path(self.DEFAULT_FOLDER)
+        if self._current_folder:
+            self.selector.set_path(self._current_folder)
         layout.addWidget(self.selector)
 
         # ExecutionButtonsWidget padronizado: OK + Cancelar (sem info)
@@ -76,10 +83,14 @@ class DefaultProjectsFolderDialog(BaseDialog):
         self.reject()
 
     def get_folder_path(self) -> str:
-        """Retorna o caminho da pasta selecionada."""
+        """Retorna o caminho da pasta selecionada.
+
+        Retorna string vazia se nada foi selecionado.
+        NUNCA retorna um valor hardcoded — a pasta deve vir das Preferences.
+        """
         paths = self.selector.get_paths()
         if paths:
             return paths[0].strip()
 
         fallback_text = self.selector.get_file_path().strip()
-        return fallback_text or self.DEFAULT_FOLDER
+        return fallback_text or ""

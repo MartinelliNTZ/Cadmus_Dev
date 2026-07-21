@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import (
-    QLabel,
     QLineEdit,
     QVBoxLayout,
     QHBoxLayout,
@@ -14,6 +13,10 @@ from ....resources.widgets.ExecutionButtonsWidget import ExecutionButtonsWidget
 from ....core.config.LogUtils import LogUtils
 from ....utils.QgisMessageUtil import QgisMessageUtil
 from ....utils.ToolKeys import ToolKey
+from ....core.ui.WidgetFactory import WidgetFactory
+from ....plugins.SettingsPlugin import SettingsPlugin
+from ....resources.InstructionsManager import InstructionsManager
+from ....core.ui.info_dialog import InfoDialog
 
 
 class ProjectNameDialog(BaseDialog):
@@ -36,7 +39,6 @@ class ProjectNameDialog(BaseDialog):
         super().__init__(parent)
         self.setObjectName("project_name_dialog")
         self.setWindowTitle(STR.PROJECT_NAME_TITLE)
-        self.setModal(False)
         self.resize(480, 220)
 
         self._suggested_name = suggested_name
@@ -58,45 +60,51 @@ class ProjectNameDialog(BaseDialog):
             minimum_size=(300, 220),
         )
         self._build_inner_ui()
-        self._apply_styles()
 
     def _build_inner_ui(self):
         """Monta os widgets do dialogo."""
         layout = QVBoxLayout()
 
         # ── Pasta atual (exibicao) ──
-        folder_label = QLabel(f"\U0001F4C2 {STR.PROJECTS_DEFAULT_FOLDER}:")
+        folder_label = WidgetFactory.create_label(
+            text=f"\U0001F4C2 {STR.PROJECTS_DEFAULT_FOLDER}:",
+        )
         folder_label.setObjectName("project_name_folder_label")
         layout.addWidget(folder_label)
 
         folder_path = QLineEdit(self._base_folder)
         folder_path.setObjectName("project_name_folder_path")
         folder_path.setReadOnly(True)
+        folder_path.setStyleSheet(Styles.input_fields_widget())
         layout.addWidget(folder_path)
 
         # ── Botao Configuracoes ──
-        from qgis.PyQt.QtWidgets import QPushButton
-
-        settings_btn = QPushButton(f"\u2699\ufe0f {STR.OPEN_SETTINGS}")
+        settings_layout, settings_btn = WidgetFactory.create_simple_button(
+            text=f"\u2699\ufe0f {STR.OPEN_SETTINGS}",
+            separator_top=False,
+            separator_bottom=False,
+        )
         settings_btn.setObjectName("project_name_settings_btn")
-        settings_btn.setFixedHeight(24)
         settings_btn.clicked.connect(self._open_settings)
-        layout.addWidget(settings_btn)
+        layout.addLayout(settings_layout)
 
         # ── Nome do projeto ──
-        info = QLabel(STR.PROJECT_NAME_PROMPT)
+        info = WidgetFactory.create_label(
+            text=STR.PROJECT_NAME_PROMPT,
+            word_wrap=True,
+        )
         info.setObjectName("project_name_info_label")
-        info.setWordWrap(True)
         layout.addWidget(info)
 
         row = QHBoxLayout()
-        field_label = QLabel(STR.PROJECT_NAME_LABEL)
+        field_label = WidgetFactory.create_label(text=STR.PROJECT_NAME_LABEL)
         field_label.setObjectName("project_name_field_label")
         row.addWidget(field_label)
 
         self.name_input = QLineEdit()
         self.name_input.setObjectName("project_name_input")
         self.name_input.setPlaceholderText(self._suggested_name)
+        self.name_input.setStyleSheet(Styles.input_fields_widget())
         row.addWidget(self.name_input)
         layout.addLayout(row)
 
@@ -114,10 +122,6 @@ class ProjectNameDialog(BaseDialog):
 
         # Adiciona ao MainLayout do BaseDialog
         self.layout.add_items([layout])
-
-    def _apply_styles(self):
-        """Aplica o stylesheet."""
-        self.setStyleSheet(Styles.project_name_dialog())
 
     def _open_settings(self):
         """Abre Configuracoes Cadmus."""
@@ -148,8 +152,6 @@ class ProjectNameDialog(BaseDialog):
                 )
                 return
 
-            from ....plugins.SettingsPlugin import SettingsPlugin
-
             dlg = SettingsPlugin(iface)
             dlg.setModal(False)
             dlg.show()
@@ -164,9 +166,6 @@ class ProjectNameDialog(BaseDialog):
         """Exibe instrucoes da ferramenta."""
         self.logger.debug("Exibindo instrucoes via ProjectNameDialog")
         try:
-            from ....resources.InstructionsManager import InstructionsManager
-            from ....core.ui.info_dialog import InfoDialog
-
             instructions_file = InstructionsManager.get(self._project_tool_key)
             title = f"\U0001F4D8 {STR.INSTRUCTIONS} \u2013 {STR.CREATE_PROJECT_TITLE}"
             InfoDialog(instructions_file, self, title).exec()

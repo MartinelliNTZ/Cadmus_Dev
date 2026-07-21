@@ -9,7 +9,7 @@ Uso em BaseDialog:
 """
 
 from qgis.PyQt.QtWidgets import (
-    QVBoxLayout, QFrame, QApplication, QWidget,
+    QVBoxLayout, QFrame, QApplication, QWidget, QLayout,
 )
 from qgis.PyQt.QtCore import Qt, QPoint
 from qgis.PyQt.QtGui import QCursor
@@ -212,6 +212,58 @@ class MainLayout(QVBoxLayout):
 
     def addSpacing(self, *args, **kwargs):
         self._inner_layout.addSpacing(*args, **kwargs)
+
+    def add_items(self, items):
+        """
+        Adiciona widgets e/ou layouts ao layout.
+
+        Se scroll está habilitado, coleta todos os itens e os adiciona
+        ao scroll como um único layout.
+
+        Se scroll está desabilitado, adiciona ao inner_layout diretamente.
+
+        Parameters
+        ----------
+        items : iterable
+            Lista ou tupla contendo QLayout e/ou QWidget
+        """
+        if not items:
+            return
+
+        if self._scroll is not None:
+            # Scroll habilitado: coleta itens em um layout e adiciona ao scroll
+            container_layout = QVBoxLayout()
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            container_layout.setSpacing(
+                AppStyles._get_theme().LAYOUT_VERTICAL_SPACING
+            )
+
+            for item in items:
+                if isinstance(item, QLayout):
+                    container_layout.addLayout(item)
+                elif isinstance(item, QWidget):
+                    container_layout.addWidget(item)
+                else:
+                    raise TypeError(
+                        f"Tipo inválido em MainLayout.add_items: {type(item)}"
+                    )
+
+            # Adiciona ao scroll
+            self._scroll.add_layout_as_content(container_layout)
+        else:
+            # Scroll desabilitado: adiciona diretamente ao inner_layout
+            for item in items:
+                if isinstance(item, QLayout):
+                    self._inner_layout.addLayout(item)
+                elif isinstance(item, QWidget):
+                    self._inner_layout.addWidget(item)
+                else:
+                    raise TypeError(
+                        f"Tipo inválido em MainLayout.add_items: {type(item)}"
+                    )
+
+            # Adiciona stretch ao final para evitar gaps quando sem scroll
+            self._inner_layout.addStretch()
 
     # ── Resize ──────────────────────────────────────────────────
 

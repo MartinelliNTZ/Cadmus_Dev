@@ -6,6 +6,7 @@ from qgis.PyQt.QtCore import Qt
 import os
 from typing import Optional
 from ..resources.new_widgets.MainLayout import MainLayout
+from ..resources.widgets.system.MainLayout import MainLayout as MainLayoutOld
 
 
 # Compatibilidade Qt5/Qt6: Qt5 usa Qt.{attr}, Qt6 usa Qt.WindowType.{attr}
@@ -35,6 +36,7 @@ class BaseDialog(QDialog):
         icon_path: Optional[str] = "cadmus_icon.ico",
         enable_scroll: bool = True,
         minimum_size=(300, 300),
+        old = False,
         **kwargs,
     ):
         """Constrói a interface do plugin.
@@ -51,6 +53,7 @@ class BaseDialog(QDialog):
             icon_path=icon_path,
             title=self.PLUGIN_NAME,
             minimum_size=minimum_size,
+            old=old,
         )
 
     def set_layout(
@@ -59,14 +62,22 @@ class BaseDialog(QDialog):
         icon_path=None,
         title="Cadmus",
         minimum_size=(300, 300),
+        old=False,
     ):
         """Define o layout principal do plugin usando o novo MainLayout."""
         self.logger.debug(f"Construindo UI para plugin: {self.PLUGIN_NAME}")
-        self.layout = MainLayout(
-            self,
-            enable_scroll=enable_scroll,
-            title=title,
-        )
+        if old:
+            self.layout = MainLayoutOld(
+                self,
+                enable_scroll=enable_scroll,
+                title=title,
+            )
+        else:
+            self.layout = MainLayout(
+                self,
+                enable_scroll=enable_scroll,
+                title=title,
+            )
         self.setWindowFlags(
             _qt_window_type("Dialog") | _qt_window_type("FramelessWindowHint")
         )

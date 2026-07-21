@@ -11,10 +11,11 @@ Cada item do config dict define um botão com:
 
 Botões built-in:
     enable_close_button=True → adiciona botão Fechar
+    enable_config_button=True → adiciona botão Config ⚙️ (abre SettingsPlugin)
     enable_info=True → adiciona botão Info (usa tool_key + InstructionsManager)
 
-Ordem dos botões (inversa):
-    config_item_N, ..., config_item_1(executar), close_button, info_button
+Ordem dos botões:
+    item3, item2, item1(executar), close_button, config_button, info_button
 
 Uso em plugins:
     actions = GridExecutionButtons(
@@ -32,6 +33,7 @@ Uso em plugins:
             },
         },
         enable_close_button=True,
+        enable_config_button=True,
         enable_info=True,
         tool_key=self.TOOL_KEY,
         separator_top=False,
@@ -62,7 +64,11 @@ class GridExecutionButtons(QWidget):
             - "description" (opcional): tooltip do botão
             - "is_run_button" (opcional): bool, True para destaque visual
     enable_close_button : bool, optional
-        Se True, adiciona botão Fechar ao final.
+        Se True, adiciona botão Fechar.
+    enable_config_button : bool, optional
+        Se True, adiciona botão Config ⚙️ (abre SettingsPlugin por padrão).
+    config_callback : callable, optional
+        Callback customizado para botão Config. Se None, abre SettingsPlugin.
     enable_info : bool, optional
         Se True, adiciona botão Info (usa tool_key para InstructionsManager).
     tool_key : str, optional
@@ -79,6 +85,8 @@ class GridExecutionButtons(QWidget):
         self,
         config: dict = None,
         enable_close_button: bool = True,
+        enable_config_button: bool = False,
+        config_callback: callable = None,
         enable_info: bool = False,
         tool_key: str = None,
         separator_top: bool = False,
@@ -90,6 +98,8 @@ class GridExecutionButtons(QWidget):
         self._config = config or {}
         self._tool_key = tool_key
         self._enable_close = enable_close_button
+        self._enable_config = enable_config_button
+        self._config_callback = config_callback
         self._enable_info = enable_info
         self._separator_top = separator_top
         self._separator_bottom = separator_bottom
@@ -98,25 +108,59 @@ class GridExecutionButtons(QWidget):
         self._apply_styles()
 
     def _build_ui(self):
-        """Monta layout com botões na ordem inversa."""
-        # Layout externo para separadores
+        """Monta layout com botões na ordem: item3, item2, item1, close, config, info."""
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
 
-        # Separador top
         if self._separator_top:
             outer_layout.addWidget(SeparatorWidget())
 
-        # Layout interno dos botões
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(AppStyles._get_theme().LAYOUT_HORIZONTAL_SPACING)
 
-        # Stretch à esquerda para alinhar botões à direita
+        # Stretch à esquerda para alinhar à direita
         layout.addStretch()
 
-        # Botão Info (sempre primeiro na ordem)
+        # 1. Itens do config em ordem reversa (item3, item2, item1)
+        for btn_id, btn_config in reversed(list(self._config.items())):
+            label = btn_config.get("label", btn_id)
+            callback = btn_config.get("callback")
+            description = btn_config.get("description", "")
+            is_run = btn_config.get("is_run_button", False)
+
+            btn = SimpleButton(text=label, parent=self)
+            if description:
+                btn.setToolTip(description)
+            if callback:
+                btn.clicked.connect(callback)
+
+            if is_run:
+                btn.setObjectName("btn_run_execution")
+                btn.setStyleSheet(self._run_button_style())
+
+            layout.addWidget(btn)
+
+        # 2. Botão Close
+        if self._enable_close:
+            self.btn_close = SimpleButton(text="Fechar", parent=self)
+            self.btn_close.clicked.connect(self._on_close_clicked)
+            layout.addWidget(self.btn_close)
+
+        # 3. Botão Config ⚙️ (entre close e info)
+        if self._enable_config:
+            self.btn_config = QPushButton("⚙️")
+            self.btn_config.setToolTip("Configurações")
+            self.btn_config.setFixedWidth(24)
+            self.btn_config.setFixedHeight(24)
+            if self._config_callback:
+                self.btn_config.clicked.connect(self._config_callback)
+            else:
+                self.btn_config.clicked.connect(self._open_settings)
+            layout.addWidget(self.btn_config)
+
+        # 4. Botão Info
         if self._enable_info:
             self.btn_info = QPushButton("?")
             self.btn_info.setToolTip("Informações")
@@ -131,44 +175,31 @@ class GridExecutionButtons(QWidget):
                 self.btn_info.setVisible(False)
             layout.addWidget(self.btn_info)
 
-        # Botão Close
-        if self._enable_close:
-            self.btn_close = SimpleButton(text="Fechar", parent=self)
-            self.btn_close.clicked.connect(self._on_close_clicked)
-            layout.addWidget(self.btn_close)
-
-        # Itens do config em ordem inversa
-        # Último item do dict aparece primeiro (mais à direita no layout)
-        items = list(self._config.items())
-
-        for btn_id, btn_config in reversed(items):
-            label = btn_config.get("label", btn_id)
-            callback = btn_config.get("callback")
-            description = btn_config.get("description", "")
-            is_run = btn_config.get("is_run_button", False)
-
-            btn = SimpleButton(text=label, parent=self)
-            if description:
-                btn.setToolTip(description)
-            if callback:
-                btn.clicked.connect(callback)
-
-            # Botão run tem destaque visual
-            if is_run:
-                btn.setObjectName("btn_run_execution")
-                btn.setStyleSheet(self._run_button_style())
-
-            layout.addWidget(btn)
-
-        # Adiciona layout interno ao outer
         outer_layout.addLayout(layout)
 
-        # Separador bottom
         if self._separator_bottom:
             outer_layout.addWidget(SeparatorWidget())
 
+    def _open_settings(self):
+        """Abre o SettingsPlugin (lazy import para evitar circular)."""
+        from qgis.core import QgsApplication
+        from ....plugins.SettingsPlugin import run as run_settings
+
+        window = self.window()
+        iface = None
+        for attr in ("iface", "_iface"):
+            if hasattr(window, attr):
+                iface = getattr(window, attr)
+                break
+        if iface is None:
+            app = QgsApplication.instance()
+            if app and hasattr(app, "activeInstance"):
+                iface = app.activeInstance().mainWindow()
+        if iface:
+            dlg = run_settings(iface)
+            dlg.show()
+
     def _run_button_style(self) -> str:
-        """Estilo especial para o botão executar."""
         return f"""
         QPushButton#btn_run_execution {{
             font-weight: bold;
@@ -177,7 +208,7 @@ class GridExecutionButtons(QWidget):
 
     def _show_info(self, instructions_path: str):
         """Abre diálogo de informações (lazy import para evitar circular)."""
-        from ...core.ui.info_dialog import InfoDialog
+        from ....core.ui.info_dialog import InfoDialog
         dlg = InfoDialog(instructions_path, self.window())
         dlg.exec()
 

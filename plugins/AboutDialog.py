@@ -113,6 +113,7 @@ class AboutDialog(BaseDialog):
                 },
                 enable_close_button=True,
                 enable_info=True,
+                enable_config_button=True,
                 tool_key=ToolKey.ABOUT_DIALOG,
                 parent=self,
             )

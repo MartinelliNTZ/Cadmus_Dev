@@ -101,7 +101,7 @@ class BasePluginMTL(BaseDialog):
         enable_scroll: bool = True,
         **kwargs,
     ):
-        super()._build_ui(title=title, icon_path=icon_path, enable_scroll=enable_scroll)
+        super()._build_ui(title=title, icon_path=icon_path, enable_scroll=enable_scroll, old=False)
 
         # instruções - resolvidas automaticamente via InstructionsManager.get(TOOL_KEY)
         self.instructions_file = InstructionsManager.get(self.TOOL_KEY)

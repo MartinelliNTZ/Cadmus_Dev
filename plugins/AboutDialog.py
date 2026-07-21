@@ -47,14 +47,11 @@ class AboutDialog(BaseDialog):
                 '<b>Site:</b> <a href="https://github.com/MartinelliNTZ/Cadmus">github.com/MartinelliNTZ/Cadmus</a>'
             )
 
-            # Labels via GridLabel
-            self.grid_info = GridLabel(
-                items=[
-                    f"<h2>{STR.APP_NAME}</h2>",
-                    info_text,
-                ],
-                parent=self,
-            )
+            # Labels via GridLabel com config dict
+            self.grid_info = GridLabel(config={
+                "app_name": {"text": f"<h2>{STR.APP_NAME}</h2>"},
+                "info": {"text": info_text},
+            }, parent=self)
             self.layout.addWidget(self.grid_info)
             self.logger.debug("Informações adicionadas via GridLabel")
 

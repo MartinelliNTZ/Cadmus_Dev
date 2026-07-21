@@ -11,14 +11,21 @@ Uso em plugins:
     from ..resources.new_widgets.grid.GridLabel import GridLabel
     from ..resources.new_widgets.grid.GridButton import GridButton
     from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+    from ..resources.new_widgets.MainLayout import MainLayout
 """
 
 from .SeparatorWidget import SeparatorWidget
+from .ScrollWidget import ScrollWidget
+from .MainLayout import MainLayout
+from .AppBarWidget import AppBarWidget
 from .grid.GridLabel import GridLabel
 from .grid.GridButton import GridButton
 
 __all__ = [
     "SeparatorWidget",
+    "ScrollWidget",
+    "MainLayout",
+    "AppBarWidget",
     "GridLabel",
     "GridButton",
 ]

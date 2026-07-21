@@ -77,6 +77,30 @@ min-height: 12px;  # certo: {theme.INPUT_FIELD_MIN_HEIGHT}
 widget.btn_close.clicked.connect(self.close)
 ```
 
+### 📋 Padrão de Configuração — Dict `config={}`
+
+Todos os widgets Grid recebem configuração via **dict** `config={}`, onde:
+- Cada **chave** é o identificador do componente (ex: `"title"`, `"subfolders"`)
+- Cada **valor** é um dict com as propriedades:
+  - `"text"` (obrigatório): texto exibido
+  - `"description"` (opcional): tooltip do componente
+  - `"default"` (opcional): valor padrão (para inputs, checkboxes, etc)
+
+```python
+# ✅ CERTO — config dict com identificadores
+self.grid_info = GridLabel(config={
+    "app_name": {"text": "<h2>Meu App</h2>"},
+    "version": {"text": "Versão 1.0", "description": "Data de atualização"},
+}, parent=self)
+
+# ❌ ERRADO — lista solta sem identificadores
+self.grid_info = GridLabel(items=["Título", "Descrição"], parent=self)
+```
+
+**Descrição** sempre vira tooltip no widget, visível ao passar o mouse.
+
+---
+
 ### 📞 Regra de Callbacks
 
 Widgets **não expõem sinais Qt** para o plugin. Em vez disso, o plugin passa **funções callback** como parâmetros no construtor do widget. O widget conecta os sinais internamente.
@@ -222,3 +246,4 @@ border: 1px solid {theme.COLOR_BORDER};
 |------|--------|-----------|
 | 2026-07-21 | 1.0.0 | Criação inicial — Novo sistema de widgets autoconfiguráveis |
 | 2026-07-21 | 1.1.0 | Adicionada regra de callbacks (widget não expõe sinais Qt, plugin passa funções callback como parâmetros) |
+| 2026-07-21 | 1.2.0 | Adicionado padrão de configuração via dict `config={}` com chaves identificadoras e suporte a `description` para tooltip |

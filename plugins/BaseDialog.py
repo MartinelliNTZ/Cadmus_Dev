@@ -5,7 +5,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt
 import os
 from typing import Optional
-from ..core.ui.WidgetFactory import WidgetFactory
+from ..resources.new_widgets.MainLayout import MainLayout
 
 
 # Compatibilidade Qt5/Qt6: Qt5 usa Qt.{attr}, Qt6 usa Qt.WindowType.{attr}
@@ -39,10 +39,10 @@ class BaseDialog(QDialog):
     ):
         """Constrói a interface do plugin.
         Recebe: title (str|None), icon_path (str), instructions_file (str), enable_scroll (bool).
-        ARQUITETURA (MainLayout encapsula scroll):
-        - MainLayout cria ScrollWidget internamente se enable_scroll=True
-        - Plugin apenas atribui self.layout = WidgetFactory.create_main_layout()
-        - Responsabilidade única: MainLayout gerencia scroll, plugin usa add_items()
+        ARQUITETURA (MainLayout encapsula scroll + appbar):
+        - MainLayout cria AppBarWidget e ScrollWidget internamente
+        - Plugin apenas atribui self.layout = MainLayout()
+        - Responsabilidade única: MainLayout gerencia appbar + scroll, plugin usa addWidget()
         """
         if title is not None:
             self.PLUGIN_NAME = title
@@ -60,17 +60,17 @@ class BaseDialog(QDialog):
         title="Cadmus",
         minimum_size=(300, 300),
     ):
-        """Define o layout principal do plugin."""
+        """Define o layout principal do plugin usando o novo MainLayout."""
         self.logger.debug(f"Construindo UI para plugin: {self.PLUGIN_NAME}")
-        self.layout = WidgetFactory.create_main_layout(
-            self, title=title, enable_scroll=enable_scroll, icon_path="cadmus_icon.png"
+        self.layout = MainLayout(
+            self,
+            enable_scroll=enable_scroll,
+            title=title,
         )
-        # Garantir que o MainLayout seja sempre criado. Usar PLUGIN_NAME como fallback.
         self.setWindowFlags(
             _qt_window_type("Dialog") | _qt_window_type("FramelessWindowHint")
         )
         self.setAttribute(_qt_widget_attr("WA_TranslucentBackground"), True)
-        # Tamanho mínimo padrão: 300x300 (persistido em preferências)
         self.setMinimumSize(*minimum_size)
         # Size grip (resize visual indicator)
         self.size_grip = QSizeGrip(self.layout._frame)
@@ -79,7 +79,7 @@ class BaseDialog(QDialog):
             self.size_grip,
             alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight,
         )
-        # Ícone nao ta funcionando, talvez por causa do frameless. Tentar setar ícone do aplicativo como fallback
+        # Ícone
         icon_path = os.path.join(
             os.path.dirname(__file__), "..", "resources", "icons", icon_path
         )

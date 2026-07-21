@@ -295,7 +295,7 @@ class SettingsPlugin(BasePluginMTL):
         for category, checkbox in self.toolbar_category_checks.items():
             checkbox.setChecked(toolbar_visibility.get(category, True))
 
-        project_folder = self.preferences.get("projects_folder", "")
+        project_folder = self.system_preferences.get("projects_folder", "")
         if project_folder:
             self.project_folder_selector.set_path(project_folder)
 
@@ -355,7 +355,7 @@ class SettingsPlugin(BasePluginMTL):
         )
 
         paths = self.project_folder_selector.get_paths()
-        self.preferences["projects_folder"] = paths[0] if paths else ""
+        self.system_preferences["projects_folder"] = paths[0] if paths else ""
 
         cartesian_suffix = (
             self.area_fields_inputs.get_value("cartesian_suffix") or ""

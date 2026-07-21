@@ -405,3 +405,13 @@
     mesmo quando os dados vinham exclusivamente do arquivo MRK.
   - A correção beneficia pipelines com fotos sem EXIF GPS (ex: DJI sem GPS de câmera,
     mas com arquivo .mrk contendo coordenadas).
+2.3.60 21/07/2026
+[2.3.60.1][21/07/2026] Corrigido fluxo do CreateProjectPlugin (9 bugs):
+  - Removido on_finish_plugin() do inicio de execute_tool(), movido para apos criacao bem-sucedida
+  - Removido Preferences.save_tool_prefs prematuro de execute_tool()
+  - _resolve_base_folder agora redireciona para _prompt_and_persist_base_folder() quando pasta configurada esta inacessivel (fallback)
+  - _prompt_and_persist_base_folder alterado de nao-modal (show) para modal (exec), garantindo sincronismo
+  - Adicionado modal_warning quando usuario cancela definicao da pasta padrao
+  - _resolve_project_name protegido contra base_folder vazio com guard clause + modal_error
+
+

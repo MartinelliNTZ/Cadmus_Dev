@@ -1,39 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-GridIconButton — Container de botões de ação com ícones (ex: sociais).
+GridIconButton — Container genérico de botões com ícone.
 Plugins USAM este widget (composto de SimpleIconButton internamente).
 
-A configuração é feita via dict `config={}`, onde:
-- Cada chave é o identificador do botão (ex: "github", "linkedin")
-- Cada valor é um dict com:
-  - "icon": nome do arquivo de ícone (ex: IconManager.GITHUB)
-  - "url": URL para abrir ao clicar
-  - "label": tooltip do botão (obrigatório)
-  - "description": descrição adicional (opcional)
-  - "icon_size": QSize opcional para o ícone
-  - "button_size": QSize opcional para o botão
+Cada item no config dict tem seu próprio callback.
+O widget não sabe o que cada botão faz — o plugin decide.
 
-Callbacks são passadas via parâmetros, não por sinais Qt.
+Callbacks são passadas no dict de cada item, não por sinais Qt.
 Widgets não expõem sinais — o plugin passa funções callback.
 
 Uso em plugins:
-    social = GridIconButton(
-        config={
-            "github": {
-                "label": "GitHub",
-                "icon": IconManager.GITHUB,
-                "url": "https://github.com/user",
-                "description": "Visite o GitHub",
-            },
-            "linkedin": {
-                "label": "LinkedIn",
-                "icon": IconManager.LINKEDIN,
-                "url": "https://linkedin.com/in/user",
-            },
+    social = GridIconButton(config={
+        "github": {
+            "label": "GitHub",
+            "icon": IconManager.GITHUB,
+            "callback": lambda: webbrowser.open("https://github.com/user"),
+            "description": "Visite o GitHub",
         },
-        url_callback=lambda url: webbrowser.open(url),
-        parent=self,
-    )
+        "linkedin": {
+            "label": "LinkedIn",
+            "icon": IconManager.LINKEDIN,
+            "callback": lambda: webbrowser.open("https://linkedin.com/in/user"),
+        },
+    }, parent=self)
     layout.addWidget(social)
 """
 
@@ -46,16 +35,23 @@ import os
 
 class GridIconButton(QWidget):
     """
-    Container com botões de ação que usam ícone (ex: redes sociais).
+    Container genérico de botões com ícone.
+
+    Cada item no config deve ter:
+    - "label" (obrigatório): tooltip do botão
+    - "icon" (obrigatório): nome do arquivo de ícone
+    - "callback" (obrigatório): função chamada ao clicar
+
+    Opcionais:
+    - "description": tooltip adicional
+    - "icon_size": QSize do ícone (default: 32x32)
+    - "button_size": QSize do botão (default: 40x40)
 
     Parâmetros
     ----------
     config : dict
-        Dicionário de configuração. Cada chave é o identificador do botão.
-        Cada valor é um dict com: "label" (obrigatório), "icon", "url",
-        "description" (opcional), "icon_size" (opcional), "button_size" (opcional).
-    url_callback : callable
-        Função chamada ao clicar em um botão, recebe a url como argumento.
+        Dicionário de configuração onde cada chave é o identificador
+        e cada valor é um dict com "label", "icon", "callback" e opcionais.
     parent : QWidget, optional
         Widget pai.
     """
@@ -63,13 +59,11 @@ class GridIconButton(QWidget):
     def __init__(
         self,
         config: dict = None,
-        url_callback=None,
         parent=None,
     ):
         super().__init__(parent)
 
         self._config = config or {}
-        self._url_callback = url_callback
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 8, 0, 4)
@@ -87,7 +81,7 @@ class GridIconButton(QWidget):
                 continue
 
             tooltip = btn_config.get("label", btn_id)
-            url = btn_config.get("url", "")
+            callback = btn_config.get("callback")
             icon_size = btn_config.get("icon_size", QSize(32, 32))
             button_size = btn_config.get("button_size", QSize(40, 40))
 
@@ -99,8 +93,8 @@ class GridIconButton(QWidget):
                 parent=self,
             )
 
-            if self._url_callback and url:
-                btn.clicked.connect(lambda checked, u=url: self._url_callback(u))
+            if callback:
+                btn.clicked.connect(callback)
             layout.addWidget(btn)
 
         self._apply_styles()

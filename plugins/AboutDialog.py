@@ -48,41 +48,40 @@ class AboutDialog(BaseDialog):
             self.layout.addWidget(self.grid_info)
             self.logger.debug("Informações adicionadas via GridLabel")
 
-            # Social icons via GridIconButton com dict config
+            # Social icons via GridIconButton — cada item tem seu próprio callback
             self.social_buttons = GridIconButton(
                 config={
                     "github": {
                         "label": "GitHub",
                         "icon": IconManager.GITHUB,
-                        "url": "https://github.com/MartinelliNTZ",
+                        "callback": lambda: webbrowser.open("https://github.com/MartinelliNTZ"),
                         "description": "Visite o GitHub de Matheus Martinelli",
                     },
                     "linkedin": {
                         "label": "LinkedIn",
                         "icon": IconManager.LINKEDIN,
-                        "url": "https://www.linkedin.com/in/matheus-martinelli-a82149108",
+                        "callback": lambda: webbrowser.open("https://www.linkedin.com/in/matheus-martinelli-a82149108"),
                         "description": "Conecte-se no LinkedIn",
                     },
                     "instagram": {
                         "label": "Instagram",
                         "icon": IconManager.INSTAGRAM,
-                        "url": "https://www.instagram.com/matheusmartinelli00",
+                        "callback": lambda: webbrowser.open("https://www.instagram.com/matheusmartinelli00"),
                         "description": "Siga no Instagram",
                     },
                     "email": {
                         "label": "E-mail",
                         "icon": IconManager.EMAIL,
-                        "url": "mailto:martinelli.matheus11@gmail.com",
+                        "callback": lambda: webbrowser.open("mailto:martinelli.matheus11@gmail.com"),
                         "description": "Envie um e-mail",
                     },
                     "buymeacoffee": {
                         "label": "Buy Me a Coffee",
                         "icon": IconManager.BUY_ME_A_COFFEE,
-                        "url": "https://buymeacoffee.com/martinelliNTZ",
+                        "callback": lambda: webbrowser.open("https://buymeacoffee.com/martinelliNTZ"),
                         "description": "Apoie o desenvolvimento",
                     },
                 },
-                url_callback=lambda url: webbrowser.open(url),
                 parent=self,
             )
             self.layout.addWidget(self.social_buttons)

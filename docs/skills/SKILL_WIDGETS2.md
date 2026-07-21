@@ -85,31 +85,34 @@ Cada **chave** do dict é o **identificador único** do componente (ex: `"github
 Cada **valor** é um dict com as propriedades específicas do componente.
 
 ```python
-# ✅ CERTO — dict config com chaves identificadoras
+# ✅ CERTO — dict config com chaves identificadoras e callback por item
 self.social = GridIconButton(config={
     "github": {
         "label": "GitHub",
         "icon": IconManager.GITHUB,
-        "url": "https://github.com/user",
+        "callback": lambda: webbrowser.open("https://github.com/user"),
         "description": "Visite o GitHub",
     },
     "linkedin": {
         "label": "LinkedIn",
         "icon": IconManager.LINKEDIN,
-        "url": "https://linkedin.com/in/user",
+        "callback": lambda: webbrowser.open("https://linkedin.com/in/user"),
     },
-}, url_callback=lambda url: webbrowser.open(url), parent=self)
+}, parent=self)
+
+# ❌ ERRADO — callback global (quem define a ação é o plugin, não o widget)
+self.social = GridIconButton(config={
+    "github": {"label": "GitHub", "icon": IconManager.GITHUB, "url": "..."},
+}, url_callback=lambda url: ..., parent=self)
 
 # ❌ ERRADO — lista de tuplas (NUNCA use isso)
 self.social = GridIconButton(items=[
     ("GitHub", IconManager.GITHUB, "https://github.com/user"),
-    ("LinkedIn", IconManager.LINKEDIN, "https://linkedin.com/in/user"),
 ], parent=self)
 
 # ❌ ERRADO — lista de dicts sem chave identificadora
 self.social = GridIconButton(items=[
     {"label": "GitHub", "icon": IconManager.GITHUB},
-    {"label": "LinkedIn", "icon": IconManager.LINKEDIN},
 ], parent=self)
 ```
 
@@ -120,7 +123,7 @@ self.social = GridIconButton(items=[
 | `"text"` | Sim (labels) | Texto exibido no label |
 | `"label"` | Sim (botões) | Tooltip/label do botão |
 | `"icon"` | Sim (icon buttons) | Nome do arquivo de ícone (ex: `IconManager.GITHUB`) |
-| `"url"` | Condicional | URL para callback de clique |
+| `"callback"` | Sim (ações) | Função chamada ao clicar no botão |
 | `"description"` | Não | Tooltip/descrição adicional |
 | `"default"` | Não | Valor padrão (inputs, checkboxes) |
 | `"icon_size"` | Não | QSize do ícone |

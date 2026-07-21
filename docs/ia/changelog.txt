@@ -442,5 +442,12 @@
    - Migrado plugins/AboutDialog.py: substituído WidgetFactory.create_label() por GridLabel,
      create_simple_button() por GridButton + SeparatorWidget
    - Removido import de WidgetFactory de AboutDialog
+[2.3.62.3][21/07/2026] Corrigido AttributeError Qt.WindowModal em ProgressDialog (Qt6/QGIS 4.0.0):
+   - Adicionado resolve_qt_window_modality() em utils/qt_compat.py que resolve
+     Qt.WindowModality.WindowModal (Qt6) ↔ Qt.WindowModal (Qt5) via try/except
+   - Substituído Qt.WindowModal por resolve_qt_window_modality("WindowModal") em
+     core/ui/ProgressDialog.py linha 61
+   - SKILL_UTILS.md atualizado: adicionada entrada qt_compat na tabela de classes
+     e no histórico
 
 

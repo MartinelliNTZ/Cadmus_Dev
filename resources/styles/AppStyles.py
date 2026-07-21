@@ -307,7 +307,6 @@ class AppStyles:
 
     @classmethod
     def app_bar(cls) -> str:
-        """Estilo global para AppBarWidget."""
         theme = cls._get_theme()
         return (
             "#app_bar {"
@@ -315,7 +314,10 @@ class AppStyles:
             f"        stop:0 {theme.COLOR_PRIMARY_DARK},"
             f"        stop:1 {theme.COLOR_PRIMARY});"
             f"    border-bottom: {theme.PXBORDER_ONE} {theme.COLOR_BORDER_DEFAULT};"
-            f"    border-radius: {theme.BORDER_RADIUS_RADIO_BUTTON};"
+            f"    border-top-left-radius: {theme.BORDER_RADIUS_CONTAINER_MAIN};"
+            f"    border-top-right-radius: {theme.BORDER_RADIUS_CONTAINER_MAIN};"
+            "    border-bottom-left-radius: 0px;"
+            "    border-bottom-right-radius: 0px;"
             f"    min-height: {theme.APP_BAR_MIN_HEIGHT};"
             "}"
             "#app_bar_title {"

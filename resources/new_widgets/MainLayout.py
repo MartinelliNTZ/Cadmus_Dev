@@ -108,8 +108,12 @@ class MainLayout(QVBoxLayout):
     ARQUITETURA:
     - QVBoxLayout externo (com margens para o border-radius)
     - EdgeFrame interno (container visual com estilo)
-    - AppBarWidget no topo do _inner_layout
-    - ScrollWidget opcional se enable_scroll=True
+    - _inner_layout: SEM margens/espaçamento — contém apenas a AppBar
+      (que assim ocupa 100% da largura do frame, colada nas bordas)
+      e o _content_layout logo abaixo.
+    - _content_layout: COM margem de 5px em todos os lados — é onde
+      entram o ScrollWidget (se enable_scroll=True) e todos os widgets
+      / layouts adicionados via addWidget/addLayout/add_items/etc.
     - BorderHitWidgets nas bordas para resize
 
     Uso em BaseDialog:
@@ -128,7 +132,7 @@ class MainLayout(QVBoxLayout):
     ):
         super().__init__(parent)
 
-        self.setContentsMargins(3, 3, 3, 3)
+        self.setContentsMargins(0,0, 0, 0)
         self.setSpacing(0)
 
         # Frame container visual
@@ -141,14 +145,12 @@ class MainLayout(QVBoxLayout):
         except Exception:
             pass
 
-        # Layout interno — sem margens extras (o container já tem 3px de padding)
+        # Layout interno — SEM margens, a AppBar ocupa 100% do espaço
         self._inner_layout = QVBoxLayout(self._frame)
         self._inner_layout.setContentsMargins(0, 0, 0, 0)
-        self._inner_layout.setSpacing(
-            AppStyles._get_theme().LAYOUT_VERTICAL_SPACING
-        )
+        self._inner_layout.setSpacing(0)
 
-        # AppBar no topo
+        # AppBar no topo, colada nas bordas (sem margem)
         self._app_bar = AppBarWidget(
             title=title,
             show_run=show_run,
@@ -158,11 +160,20 @@ class MainLayout(QVBoxLayout):
         )
         self._inner_layout.insertWidget(0, self._app_bar)
 
-        # Scroll opcional
+        # Layout de conteúdo — COM margem interna de 5px. Tudo que for
+        # adicionado depois (scroll, widgets, botões) passa por aqui.
+        self._content_layout = QVBoxLayout()
+        self._content_layout.setContentsMargins(5, 5, 5, 5)
+        self._content_layout.setSpacing(
+            AppStyles._get_theme().LAYOUT_VERTICAL_SPACING
+        )
+        self._inner_layout.addLayout(self._content_layout)
+
+        # Scroll opcional — entra dentro do content_layout (com margem)
         self._scroll = None
         if enable_scroll:
             self._scroll = ScrollWidget(parent)
-            self._inner_layout.addWidget(self._scroll)
+            self._content_layout.addWidget(self._scroll)
 
         # Adiciona frame ao layout principal
         super().addWidget(self._frame)
@@ -190,7 +201,7 @@ class MainLayout(QVBoxLayout):
             self._app_bar.set_title(title)
 
     def addWidget(self, widget, *args, **kwargs):
-        """Adiciona widget ao layout (scroll ou inner)."""
+        """Adiciona widget ao layout (scroll ou content)."""
         if self._scroll is not None:
             container = QWidget()
             layout = QVBoxLayout(container)
@@ -198,39 +209,41 @@ class MainLayout(QVBoxLayout):
             layout.addWidget(widget)
             self._scroll.add_layout_as_content(layout)
         else:
-            self._inner_layout.addWidget(widget, *args, **kwargs)
+            self._content_layout.addWidget(widget, *args, **kwargs)
 
     def addLayout(self, layout, *args, **kwargs):
-        """Adiciona layout ao layout (scroll ou inner)."""
+        """Adiciona layout ao layout (scroll ou content)."""
         if self._scroll is not None:
             self._scroll.add_layout_as_content(layout)
         else:
-            self._inner_layout.addLayout(layout, *args, **kwargs)
+            self._content_layout.addLayout(layout, *args, **kwargs)
 
     def addStretch(self, *args, **kwargs):
-        self._inner_layout.addStretch(*args, **kwargs)
+        self._content_layout.addStretch(*args, **kwargs)
 
     def addSpacing(self, *args, **kwargs):
-        self._inner_layout.addSpacing(*args, **kwargs)
+        self._content_layout.addSpacing(*args, **kwargs)
 
     def add_execution_buttons(self, buttons_widget):
         """
         Adiciona widget de botões de execução fixo na parte inferior,
-        SEMPRE fora da área de scroll (se houver).
+        SEMPRE fora da área de scroll (se houver), mas ainda dentro
+        do _content_layout (respeitando a margem de 5px).
 
-        - Se scroll está habilitado: adiciona diretamente ao _inner_layout
-          após o scroll, com stretch antes para empurrar para baixo.
-        - Se scroll está desabilitado: adiciona ao _inner_layout
+        - Se scroll está habilitado: adiciona diretamente ao
+          _content_layout após o scroll, com stretch antes para
+          empurrar para baixo.
+        - Se scroll está desabilitado: adiciona ao _content_layout
           após os demais widgets, com stretch antes.
         - Adiciona um pequeno espaçamento (LAYOUT_VERTICAL_SPACING) após
           os botões para não colar na borda inferior.
         """
         # Stretch antes dos botões para empurrá-los para baixo
-        self._inner_layout.addStretch()
+        self._content_layout.addStretch()
         # Botões fixos no final (fora do scroll)
-        self._inner_layout.addWidget(buttons_widget)
+        self._content_layout.addWidget(buttons_widget)
         # Pequeno espaçamento após os botões para não colar na borda
-        self._inner_layout.addSpacing(
+        self._content_layout.addSpacing(
             AppStyles._get_theme().LAYOUT_VERTICAL_SPACING
         )
 
@@ -241,7 +254,8 @@ class MainLayout(QVBoxLayout):
         Se scroll está habilitado, coleta todos os itens e os adiciona
         ao scroll como um único layout.
 
-        Se scroll está desabilitado, adiciona ao inner_layout diretamente.
+        Se scroll está desabilitado, adiciona ao _content_layout
+        diretamente (respeitando a margem de 5px).
 
         Parameters
         ----------
@@ -272,19 +286,19 @@ class MainLayout(QVBoxLayout):
             # Adiciona ao scroll
             self._scroll.add_layout_as_content(container_layout)
         else:
-            # Scroll desabilitado: adiciona diretamente ao inner_layout
+            # Scroll desabilitado: adiciona diretamente ao content_layout
             for item in items:
                 if isinstance(item, QLayout):
-                    self._inner_layout.addLayout(item)
+                    self._content_layout.addLayout(item)
                 elif isinstance(item, QWidget):
-                    self._inner_layout.addWidget(item)
+                    self._content_layout.addWidget(item)
                 else:
                     raise TypeError(
                         f"Tipo inválido em MainLayout.add_items: {type(item)}"
                     )
 
             # Adiciona stretch ao final para evitar gaps quando sem scroll
-            self._inner_layout.addStretch()
+            self._content_layout.addStretch()
 
     # ── Resize ──────────────────────────────────────────────────
 

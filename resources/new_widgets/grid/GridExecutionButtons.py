@@ -48,6 +48,7 @@ from ..simple.SimpleButton import SimpleButton
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
 from ...InstructionsManager import InstructionsManager
+from ...IconManager import IconManager
 
 
 class GridExecutionButtons(QWidget):
@@ -150,7 +151,8 @@ class GridExecutionButtons(QWidget):
 
         # 3. Botão Config ⚙️ (entre close e info)
         if self._enable_config:
-            self.btn_config = QPushButton("⚙️")
+            self.btn_config = QPushButton()
+            self.btn_config.setIcon(IconManager.icon(IconManager.INFO))
             self.btn_config.setToolTip("Configurações")
             self.btn_config.setFixedWidth(24)
             self.btn_config.setFixedHeight(24)
@@ -162,7 +164,8 @@ class GridExecutionButtons(QWidget):
 
         # 4. Botão Info
         if self._enable_info:
-            self.btn_info = QPushButton("?")
+            self.btn_info = QPushButton()
+            self.btn_info.setIcon(IconManager.icon(IconManager.INFO))
             self.btn_info.setToolTip("Informações")
             self.btn_info.setFixedWidth(24)
             self.btn_info.setFixedHeight(24)

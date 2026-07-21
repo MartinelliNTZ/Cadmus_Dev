@@ -313,6 +313,7 @@ QgisMessageUtil.bar_info(iface, "Arquivo salvo com sucesso!")
 | XmlUtil | `utils/XmlUtil.py` | Manipulação de XML e QML |
 | PDFUtils | `utils/PDFUtils.py` | Merge de PDFs e conversão PNG→PDF |
 | ImageUtils | `utils/ImageUtils.py` | Conversão de imagens para base64 e decodificação de base64 para bytes |
+| qt_compat | `utils/qt_compat.py` | Compatibilidade Qt5/Qt6. Resolução de enums (WindowModality, WindowType, WidgetAttribute, AlignmentFlag, QFrame.Shape, QFrame.Shadow) |
 
 ---
 
@@ -407,3 +408,4 @@ if success:
 | 2026-04-20 | 1.0.0 | Criação via SKILL_FACTORY — lidas classes base do utils |
 | 2026-06-08 | 2.0.0 | **Refatoração arquitetural**: removidos `os.rename` e `zipfile.ZipFile` de PathExtensionTask. Criado `FileCompressUtils` (compressão/extração). Adicionados `rename_file`, `remove_extension_dot`, `restore_extension_dot` ao `ExplorerUtils`. SKILL enriquecida com todas as 48 classes do diretório utils. |
 | 2026-07-11 | 2.1.0 | **Novo utilitário ImageUtils**: classe para conversão de imagens para base64 com data URI. Métodos: `photo_to_base64`, `base64_to_bytes`. Adicionada entrada #28 na tabela de classes. |
+| 2026-07-21 | 2.2.0 | **Novo módulo qt_compat**: compatibilidade Qt5/Qt6. Resolução de enums via try/except (WindowModality, WindowType, WidgetAttribute, AlignmentFlag, QFrame). Adicionado `resolve_qt_window_modality()` usado em ProgressDialog. Adicionada entrada #50 na tabela de classes. |

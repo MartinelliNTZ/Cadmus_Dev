@@ -54,7 +54,7 @@ class AppBarWidget(QFrame):
         self.setFixedHeight(h)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 0, 12, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
         # Título

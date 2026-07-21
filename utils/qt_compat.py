@@ -51,3 +51,8 @@ def resolve_qframe_shadow(name: str):
         return getattr(QFrame.Shadow, name)
     except AttributeError:
         return getattr(QFrame, name)
+
+
+def resolve_qt_window_modality(name: str):
+    """Qt.WindowModality.WindowModal → Qt.WindowModal"""
+    return resolve_qt_enum(Qt, name, "WindowModality", name)

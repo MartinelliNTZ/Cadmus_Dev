@@ -308,14 +308,21 @@ class AppStyles:
     @classmethod
     def app_bar(cls) -> str:
         theme = cls._get_theme()
+
+        # Ajusta o raio do appbar descontando a espessura do border do container,
+        # para o arco do appbar coincidir com o arco externo do main_container.
+        border_px = int(theme.CONTAINER_MAIN_BORDER_SIZE.replace("px", ""))
+        radius_px = int(theme.BORDER_RADIUS_CONTAINER_MAIN.replace("px", ""))
+        appbar_radius = f"{max(0, radius_px - border_px)}px"
+
         return (
             "#app_bar {"
             "    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,"
             f"        stop:0 {theme.COLOR_PRIMARY_DARK},"
             f"        stop:1 {theme.COLOR_PRIMARY});"
             f"    border-bottom: {theme.PXBORDER_ONE} {theme.COLOR_BORDER_DEFAULT};"
-            f"    border-top-left-radius: {theme.BORDER_RADIUS_CONTAINER_MAIN};"
-            f"    border-top-right-radius: {theme.BORDER_RADIUS_CONTAINER_MAIN};"
+            f"    border-top-left-radius: {appbar_radius};"
+            f"    border-top-right-radius: {appbar_radius};"
             "    border-bottom-left-radius: 0px;"
             "    border-bottom-right-radius: 0px;"
             f"    min-height: {theme.APP_BAR_MIN_HEIGHT};"

@@ -57,47 +57,57 @@ class BaseDialog(QDialog):
         )
 
     def set_layout(
-        self,
-        enable_scroll=True,
-        icon_path=None,
-        title="Cadmus",
-        minimum_size=(300, 300),
-        old=False,
-    ):
-        """Define o layout principal do plugin usando o novo MainLayout."""
-        self.logger.debug(f"Construindo UI para plugin: {self.PLUGIN_NAME}")
-        if old:
-            self.layout = MainLayoutOld(
-                self,
-                enable_scroll=enable_scroll,
-                title=title,
-            )
-        else:
-            self.layout = MainLayout(
-                self,
-                enable_scroll=enable_scroll,
-                title=title,
-            )
-        self.setWindowFlags(
-            _qt_window_type("Dialog") | _qt_window_type("FramelessWindowHint")
-        )
-        self.setAttribute(_qt_widget_attr("WA_TranslucentBackground"), True)
-        self.setMinimumSize(*minimum_size)
-        # Size grip (resize visual indicator)
-        self.size_grip = QSizeGrip(self.layout._frame)
-        self.size_grip.setFixedSize(16, 16)
-        self.layout.addWidget(
-            self.size_grip,
-            alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight,
-        )
-        # Ícone
-        icon_path = os.path.join(
-            os.path.dirname(__file__), "..", "resources", "icons", icon_path
-        )
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
-            self.logger.debug(f"Ícone carregado de: {icon_path}")
+            self,
+            enable_scroll=True,
+            icon_path=None,
+            title="Cadmus",
+            minimum_size=(300, 300),
+            old=False,
+        ):
+            """Define o layout principal do plugin usando o novo MainLayout."""
+            self.logger.debug(f"Construindo UI para plugin: {self.PLUGIN_NAME}")
 
+            # Flags e atributos de janela precisam ser setados ANTES de criar
+            # o MainLayout/EdgeFrame, para que a transparência seja aplicada
+            # corretamente em toda a hierarquia de widgets filhos.
+            self.setWindowFlags(
+                _qt_window_type("Dialog") | _qt_window_type("FramelessWindowHint")
+            )
+            self.setAttribute(_qt_widget_attr("WA_TranslucentBackground"), True)
+            # Reforça: o QDialog em si não pode pintar nenhum fundo opaco,
+            # senão ele "vaza" atrás do border-radius do #main_container.
+            self.setStyleSheet("QDialog { background: transparent; }")
+
+            if old:
+                self.layout = MainLayoutOld(
+                    self,
+                    enable_scroll=enable_scroll,
+                    title=title,
+                )
+            else:
+                self.layout = MainLayout(
+                    self,
+                    enable_scroll=enable_scroll,
+                    title=title,
+                )
+
+            self.setMinimumSize(*minimum_size)
+
+            # Size grip (resize visual indicator)
+            self.size_grip = QSizeGrip(self.layout._frame)
+            self.size_grip.setFixedSize(16, 16)
+            self.layout.addWidget(
+                self.size_grip,
+                alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight,
+            )
+
+            # Ícone
+            icon_path = os.path.join(
+                os.path.dirname(__file__), "..", "resources", "icons", icon_path
+            )
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+                self.logger.debug(f"Ícone carregado de: {icon_path}")
     def mousePressEvent(self, event):
         """Delega evento de mouse para detecção de bordas e início de resize do MainLayout."""
         if self.layout and hasattr(self.layout, "handle_mouse_press"):

@@ -3,9 +3,11 @@ import os
 from qgis.PyQt.QtCore import Qt
 from ..core.config.LogUtils import LogUtils
 from .BaseDialog import BaseDialog
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..utils.ToolKeys import ToolKey
 from ..i18n.TranslationManager import STR
+from ..resources.new_widgets.grid.GridLabel import GridLabel
+from ..resources.new_widgets.grid.GridButton import GridButton
+from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
 
 
 def _qt_text_browser_interaction():
@@ -36,17 +38,6 @@ class AboutDialog(BaseDialog):
             )
             self.logger.debug("AboutDialog _build_ui concluído")
 
-            lbl_title = WidgetFactory.create_label(
-                text=f"<h2>{STR.APP_NAME}</h2>",
-                bold=False,
-                word_wrap=True,
-                parent=self,
-                text_format=Qt.TextFormat.RichText,
-                alignment=Qt.AlignmentFlag.AlignCenter,
-            )
-            self.layout.addWidget(lbl_title)
-            self.logger.debug("Título adicionado")
-
             info_text = self.tr(
                 f"<b>{STR.VERSION}:</b> 3.0.0.3.2<br>"
                 f"<b>{STR.UPDATED_ON}:</b> 20 / 07 / 2026<br>"
@@ -56,18 +47,16 @@ class AboutDialog(BaseDialog):
                 '<b>Site:</b> <a href="https://github.com/MartinelliNTZ/Cadmus">github.com/MartinelliNTZ/Cadmus</a>'
             )
 
-            lbl_info = WidgetFactory.create_label(
-                text=info_text,
-                bold=False,
-                word_wrap=True,
+            # Labels via GridLabel
+            self.grid_info = GridLabel(
+                items=[
+                    f"<h2>{STR.APP_NAME}</h2>",
+                    info_text,
+                ],
                 parent=self,
-                text_format=Qt.TextFormat.RichText,
-                text_interaction_flags=_qt_text_browser_interaction(),
-                open_external_links=True,
-                alignment=Qt.AlignmentFlag.AlignCenter,
             )
-            self.layout.addWidget(lbl_info)
-            self.logger.debug("Informações adicionadas")
+            self.layout.addWidget(self.grid_info)
+            self.logger.debug("Informações adicionadas via GridLabel")
 
             # Social icons row
             from ..resources.IconManager import IconManager as IM
@@ -119,15 +108,16 @@ class AboutDialog(BaseDialog):
             self.layout.addLayout(social_layout)
             self.logger.debug("Ícones sociais adicionados")
 
-            close_layout, close_button = WidgetFactory.create_simple_button(
-                text=STR.CLOSE,
+            # Separador antes do botão fechar
+            self.layout.addWidget(SeparatorWidget())
+
+            # Botão fechar via GridButton
+            self.action_buttons = GridButton(
+                close_callback=self.close,
                 parent=self,
-                separator_top=True,
-                separator_bottom=False,
             )
-            close_button.clicked.connect(self.close)
-            self.layout.addLayout(close_layout)
-            self.logger.debug("Botão Fechar adicionado")
+            self.layout.addWidget(self.action_buttons)
+            self.logger.debug("Botão Fechar adicionado via GridButton")
 
             self.logger.debug("AboutDialog UI construída com sucesso")
         except Exception as ex:

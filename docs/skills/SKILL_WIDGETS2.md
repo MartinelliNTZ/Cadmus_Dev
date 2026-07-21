@@ -72,7 +72,28 @@ widget.setStyleSheet("color: red")
 
 # ❌ NUNCA unidades fixas em CSS:
 min-height: 12px;  # certo: {theme.INPUT_FIELD_MIN_HEIGHT}
+
+# ❌ NUNCA conectar sinais Qt em widgets diretamente:
+widget.btn_close.clicked.connect(self.close)
 ```
+
+### 📞 Regra de Callbacks
+
+Widgets **não expõem sinais Qt** para o plugin. Em vez disso, o plugin passa **funções callback** como parâmetros no construtor do widget. O widget conecta os sinais internamente.
+
+```python
+# ✅ CERTO — plugin passa callback:
+actions = GridButton(
+    close_callback=self.close,
+    run_callback=self.execute_tool,
+    parent=self,
+)
+
+# ❌ ERRADO — plugin conecta sinal no widget:
+actions.btn_close.clicked.connect(self.close)
+```
+
+**Motivo:** O widget é responsável por seu próprio comportamento interno. O plugin só declara "o que fazer quando" via callbacks, sem conhecer a estrutura interna do widget.
 
 ---
 
@@ -200,3 +221,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | Data | Versão | Descrição |
 |------|--------|-----------|
 | 2026-07-21 | 1.0.0 | Criação inicial — Novo sistema de widgets autoconfiguráveis |
+| 2026-07-21 | 1.1.0 | Adicionada regra de callbacks (widget não expõe sinais Qt, plugin passa funções callback como parâmetros) |

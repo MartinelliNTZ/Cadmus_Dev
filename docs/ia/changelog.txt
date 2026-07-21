@@ -427,6 +427,20 @@
   - _resolve_base_folder agora redireciona para _prompt_and_persist_base_folder() quando pasta configurada esta inacessivel (fallback)
   - _prompt_and_persist_base_folder alterado de nao-modal (show) para modal (exec), garantindo sincronismo
   - Adicionado modal_warning quando usuario cancela definicao da pasta padrao
-  - _resolve_project_name protegido contra base_folder vazio com guard clause + modal_error
+   - _resolve_project_name protegido contra base_folder vazio com guard clause + modal_error
+2.3.62 21/07/2026
+[2.3.62.1][21/07/2026] FASE 0 — Fundação do novo sistema de widgets autoconfiguráveis:
+   - Adicionados tokens descritivos em BaseTheme.py
+   - Criado resources/styles/AppStyles.py
+   - Criado utils/qt_compat.py
+   - Adicionado BaseTheme como tema registrado no ThemeManager (chave "base")
+   - Criado docs/skills/SKILL_WIDGETS2.md e docs/plano_acao_aboutdialog.md
+[2.3.62.2][21/07/2026] Primeiro plugin migrado para new_widgets — AboutDialog:
+   - Criados SimpleLabel e SimpleButton em resources/new_widgets/simple/
+   - Criados GridLabel e GridButton em resources/new_widgets/grid/
+   - Criado SeparatorWidget em resources/new_widgets/
+   - Migrado plugins/AboutDialog.py: substituído WidgetFactory.create_label() por GridLabel,
+     create_simple_button() por GridButton + SeparatorWidget
+   - Removido import de WidgetFactory de AboutDialog
 
 

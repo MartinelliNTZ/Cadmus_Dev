@@ -1,0 +1,75 @@
+# -*- coding: utf-8 -*-
+"""
+GridButton — Container de botões de ação para plugins.
+Plugins USAM este widget (composto de SimpleButton internamente).
+
+Callbacks são passadas via parâmetros, não por sinais Qt.
+Widgets não expõem sinais — o plugin passa funções callback.
+"""
+
+from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout
+from ..simple.SimpleButton import SimpleButton
+from ...styles.AppStyles import AppStyles
+
+
+class GridButton(QWidget):
+    """
+    Container com botões de ação (fechar, executar, info).
+
+    Uso em plugins:
+        actions = GridButton(
+            close_callback=self.close,
+            run_callback=self.execute_tool,
+            info_callback=self.show_info_dialog,
+            parent=self,
+        )
+        layout.addWidget(actions)
+
+    Parâmetros
+    ----------
+    close_callback : callable, optional
+        Função chamada ao clicar em Fechar.
+    run_callback : callable, optional
+        Função chamada ao clicar em Executar.
+    info_callback : callable, optional
+        Função chamada ao clicar em Info.
+    parent : QWidget, optional
+        Widget pai.
+    """
+
+    def __init__(
+        self,
+        close_callback=None,
+        run_callback=None,
+        info_callback=None,
+        parent=None,
+    ):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(AppStyles._get_theme().LAYOUT_HORIZONTAL_SPACING)
+
+        if close_callback:
+            self.btn_close = SimpleButton(text="Fechar", parent=self)
+            self.btn_close.clicked.connect(close_callback)
+            layout.addWidget(self.btn_close)
+
+        if run_callback:
+            self.btn_run = SimpleButton(text="Executar", parent=self)
+            self.btn_run.clicked.connect(run_callback)
+            layout.addWidget(self.btn_run)
+
+        if info_callback:
+            self.btn_info = SimpleButton(text="Info", parent=self)
+            self.btn_info.clicked.connect(info_callback)
+            layout.addWidget(self.btn_info)
+
+        self._apply_styles()
+
+    def _apply_styles(self):
+        combined = self._specific_style()
+        if combined:
+            self.setStyleSheet(combined)
+
+    def _specific_style(self) -> str:
+        return ""

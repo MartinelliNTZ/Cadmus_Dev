@@ -405,6 +405,21 @@
     mesmo quando os dados vinham exclusivamente do arquivo MRK.
   - A correção beneficia pipelines com fotos sem EXIF GPS (ex: DJI sem GPS de câmera,
     mas com arquivo .mrk contendo coordenadas).
+2.3.61 21/07/2026
+[2.3.61.1][21/07/2026] Novo sistema de temas desacoplado (BaseTheme → ThemeManager → BaseStyles):
+   - Criado resources/styles/BaseTheme.py — classe base com todos os tokens visuais
+     (cores, fontes, dimensões, espaçamentos). Temas concretos (CoffeTheme) herdam e sobrescrevem.
+   - Criado resources/styles/ThemeManager.py — gerenciador singleton do tema ativo,
+     com importação direta das classes de tema (sem __import__ dinâmico) para compatibilidade
+     com sistema de módulos do QGIS.
+   - CoffeTheme atualizado para herdar de BaseTheme.
+   - BaseStyles refatorado: não importa mais CoffeTheme diretamente — usa
+     `current_theme = theme_manager.theme` e copia os tokens como atributos de classe.
+     Métodos estáticos (.button(), .input(), etc.) usam current_theme diretamente.
+     Sem descriptors, sem lambdas, sem complexidade.
+   - resources/__init__.py exporta BaseTheme, ThemeManager, theme_manager.
+   - Nenhuma quebra de contrato: Styles, WidgetFactory e todos os widgets continuam
+     usando Styles.* sem alteração.
 2.3.60 21/07/2026
 [2.3.60.1][21/07/2026] Corrigido fluxo do CreateProjectPlugin (9 bugs):
   - Removido on_finish_plugin() do inicio de execute_tool(), movido para apos criacao bem-sucedida

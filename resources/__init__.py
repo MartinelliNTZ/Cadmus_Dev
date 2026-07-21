@@ -11,7 +11,9 @@ como `from Cadmus.resources import AppBarWidget`.
 # Styles
 from .styles.BaseStyles import BaseStyles
 from .styles.Styles import Styles
+from .styles.BaseTheme import BaseTheme
 from .styles.CoffeTheme import CoffeTheme
+from .styles.ThemeManager import ThemeManager, theme_manager
 
 # Widgets
 from .widgets.system.AppBarWidget import AppBarWidget
@@ -32,7 +34,10 @@ __all__ = [
     # styles
     "BaseStyles",
     "Styles",
+    "BaseTheme",
     "CoffeTheme",
+    "ThemeManager",
+    "theme_manager",
     # widgets
     "AppBarWidget",
     "AttributeSelectorWidget",

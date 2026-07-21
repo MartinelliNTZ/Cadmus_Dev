@@ -2,143 +2,154 @@
 """
 Centraliza o tema visual do plugin.
 Responsável apenas por DEFINIR estilos, não por aplicar lógica.
+
+Uso:
+    from resources.styles.BaseStyles import BaseStyles
+    style = BaseStyles.button()
 """
 
+from __future__ import annotations
 
-from .CoffeTheme import CoffeTheme
+from .ThemeManager import theme_manager
+
+
+# Instância do tema ativo (CoffeTheme, DarkCharcoalTheme, etc.)
+current_theme = theme_manager.theme
 
 
 class BaseStyles:
     """
     Estilos base reutilizáveis entre diversos widgets.
+    Todos os tokens visuais são lidos diretamente de current_theme,
+    que por sua vez é resolvido pelo ThemeManager.
     """
 
     # ==========================================================
-    # TEMA (CORES)
+    # CORES
     # ==========================================================
 
-    COLOR_PRIMARY = CoffeTheme.COLOR_PRIMARY
-    COLOR_PRIMARY_LIGHT = CoffeTheme.COLOR_PRIMARY_LIGHT
-    COLOR_PRIMARY_DARK = CoffeTheme.COLOR_PRIMARY_DARK
+    COLOR_PRIMARY = current_theme.COLOR_PRIMARY
+    COLOR_PRIMARY_LIGHT = current_theme.COLOR_PRIMARY_LIGHT
+    COLOR_PRIMARY_DARK = current_theme.COLOR_PRIMARY_DARK
 
-    COLOR_BACKGROUND_MAIN = CoffeTheme.COLOR_BACKGROUND_MAIN
-    COLOR_BACKGROUND_PANEL = CoffeTheme.COLOR_BACKGROUND_PANEL
-    COLOR_BACKGROUND_SOFT = CoffeTheme.COLOR_BACKGROUND_SOFT
-    COLOR_BACKGROUN_TRANSPARENT = CoffeTheme.COLOR_BACKGROUND_TRANSPARENT
+    COLOR_BACKGROUND_MAIN = current_theme.COLOR_BACKGROUND_MAIN
+    COLOR_BACKGROUND_PANEL = current_theme.COLOR_BACKGROUND_PANEL
+    COLOR_BACKGROUND_SOFT = current_theme.COLOR_BACKGROUND_SOFT
+    COLOR_BACKGROUN_TRANSPARENT = current_theme.COLOR_BACKGROUND_TRANSPARENT
 
-    COLOR_TEXT_PRIMARY = CoffeTheme.COLOR_TEXT_PRIMARY
-    COLOR_TEXT_SECONDARY = CoffeTheme.COLOR_TEXT_SECONDARY
-    COLOR_BUTTON_TEXT = CoffeTheme.COLOR_BUTTON_TEXT
+    COLOR_TEXT_PRIMARY = current_theme.COLOR_TEXT_PRIMARY
+    COLOR_TEXT_SECONDARY = current_theme.COLOR_TEXT_SECONDARY
+    COLOR_BUTTON_TEXT = current_theme.COLOR_BUTTON_TEXT
 
-    COLOR_BORDER = CoffeTheme.COLOR_BORDER
+    COLOR_BORDER = current_theme.COLOR_BORDER
+    COLOR_CHECKBOX_BG = current_theme.COLOR_CHECKBOX_BG
 
-    COLOR_APPBAR_INFO_BG = CoffeTheme.COLOR_APPBAR_INFO_BG
-    COLOR_APPBAR_INFO_BG_HOVER = CoffeTheme.COLOR_APPBAR_INFO_BG_HOVER
+    COLOR_APPBAR_INFO_BG = current_theme.COLOR_APPBAR_INFO_BG
+    COLOR_APPBAR_INFO_BG_HOVER = current_theme.COLOR_APPBAR_INFO_BG_HOVER
 
-    COLOR_LIST_SELECTION = CoffeTheme.COLOR_LIST_SELECTION
-    COLOR_LIST_SELECTION_HOVER = CoffeTheme.COLOR_LIST_SELECTION_HOVER
+    COLOR_LIST_SELECTION = current_theme.COLOR_LIST_SELECTION
+    COLOR_LIST_SELECTION_HOVER = current_theme.COLOR_LIST_SELECTION_HOVER
 
-    COLOR_COLLAPSIBLE_HEADER_START = CoffeTheme.COLOR_COLLAPSIBLE_HEADER_START
-    COLOR_COLLAPSIBLE_HEADER_END = CoffeTheme.COLOR_COLLAPSIBLE_HEADER_END
+    COLOR_COLLAPSIBLE_HEADER_START = current_theme.COLOR_COLLAPSIBLE_HEADER_START
+    COLOR_COLLAPSIBLE_HEADER_END = current_theme.COLOR_COLLAPSIBLE_HEADER_END
 
     COLOR_COLLAPSIBLE_HEADER_HOVER_START = (
-        CoffeTheme.COLOR_COLLAPSIBLE_HEADER_HOVER_START
+        current_theme.COLOR_COLLAPSIBLE_HEADER_HOVER_START
     )
-    COLOR_COLLAPSIBLE_HEADER_HOVER_END = CoffeTheme.COLOR_COLLAPSIBLE_HEADER_HOVER_END
-    COLOR_CHECKBOX_BG = CoffeTheme.COLOR_CHECKBOX_BG
+    COLOR_COLLAPSIBLE_HEADER_HOVER_END = current_theme.COLOR_COLLAPSIBLE_HEADER_HOVER_END
 
     # ==========================================================
     # FONTES
     # ==========================================================
 
-    FONT_FAMILY_DEFAULT = CoffeTheme.FONT_FAMILY_DEFAULT
-    FONT_SIZE_TITLE = CoffeTheme.FONT_SIZE_TITLE
-    FONT_SIZE_NORMAL = CoffeTheme.FONT_SIZE_NORMAL
-    FONT_SIZE_SMALL = CoffeTheme.FONT_SIZE_SMALL
-    FONT_SIZE_BIG = CoffeTheme.FONT_SIZE_BIG
+    FONT_FAMILY_DEFAULT = current_theme.FONT_FAMILY_DEFAULT
+    FONT_SIZE_TITLE = current_theme.FONT_SIZE_TITLE
+    FONT_SIZE_NORMAL = current_theme.FONT_SIZE_NORMAL
+    FONT_SIZE_SMALL = current_theme.FONT_SIZE_SMALL
+    FONT_SIZE_BIG = current_theme.FONT_SIZE_BIG
 
     # ==========================================================
     # DIMENSÕES
     # ==========================================================
 
-    STANDARD_SIZE = CoffeTheme.STANDARD_SIZE
+    STANDARD_SIZE = current_theme.STANDARD_SIZE
+    INPUT_HEIGHT = current_theme.INPUT_HEIGHT
+    BUTTON_HEIGHT = current_theme.BUTTON_HEIGHT
+    ITEM_HEIGHT = current_theme.ITEM_HEIGHT
 
-    INPUT_HEIGHT = CoffeTheme.INPUT_HEIGHT
-    BUTTON_HEIGHT = CoffeTheme.BUTTON_HEIGHT
+    CHECKBOX_SIZE = current_theme.CHECKBOX_SIZE
+    RADIO_SIZE = current_theme.RADIO_SIZE
 
-    ITEM_HEIGHT = CoffeTheme.ITEM_HEIGHT
-    LAYOUT_V_SPACING = CoffeTheme.LAYOUT_V_SPACING
-    LAYOUT_H_SPACING = CoffeTheme.LAYOUT_H_SPACING
-    CONTENT_PADDING = CoffeTheme.CONTENT_PADDING
-    CHECKBOX_SIZE = CoffeTheme.CHECKBOX_SIZE
-    RADIO_SIZE = CoffeTheme.RADIO_SIZE
-    COLOR_BUTTON_HEX_HEIGHT = CoffeTheme.COLOR_BUTTON_HEX_HEIGHT
-    COLOR_BUTTON_PICKER_HEIGHT = CoffeTheme.COLOR_BUTTON_PICKER_HEIGHT
-    COLOR_BUTTON_COPY_SIZE = CoffeTheme.COLOR_BUTTON_COPY_SIZE
-    COLOR_BUTTON_COPY_ICON_SIZE = CoffeTheme.COLOR_BUTTON_COPY_ICON_SIZE
+    COLOR_BUTTON_HEX_HEIGHT = current_theme.COLOR_BUTTON_HEX_HEIGHT
+    COLOR_BUTTON_PICKER_HEIGHT = current_theme.COLOR_BUTTON_PICKER_HEIGHT
+    COLOR_BUTTON_COPY_SIZE = current_theme.COLOR_BUTTON_COPY_SIZE
+    COLOR_BUTTON_COPY_ICON_SIZE = current_theme.COLOR_BUTTON_COPY_ICON_SIZE
 
     # ==========================================================
-    # CHECKBOX
+    # ESPAÇAMENTOS
     # ==========================================================
 
-    CHECKBOX_BORDER_RADIUS = CoffeTheme.CHECKBOX_BORDER_RADIUS
-    CHECKBOX_BORDER_WIDTH = CoffeTheme.CHECKBOX_BORDER_WIDTH
-    CHECKBOX_SPACING = CoffeTheme.CHECKBOX_SPACING
+    LAYOUT_V_SPACING = current_theme.LAYOUT_V_SPACING
+    LAYOUT_H_SPACING = current_theme.LAYOUT_H_SPACING
+    CONTENT_PADDING = current_theme.CONTENT_PADDING
 
     # ==========================================================
-    # RADIO BUTTON
+    # CHECKBOX / RADIO
     # ==========================================================
 
-    RADIO_BORDER_RADIUS = CoffeTheme.RADIO_BORDER_RADIUS
+    CHECKBOX_BORDER_RADIUS = current_theme.CHECKBOX_BORDER_RADIUS
+    CHECKBOX_BORDER_WIDTH = current_theme.CHECKBOX_BORDER_WIDTH
+    CHECKBOX_SPACING = current_theme.CHECKBOX_SPACING
+    RADIO_BORDER_RADIUS = current_theme.RADIO_BORDER_RADIUS
 
     # ==========================================================
     # BOTÕES
     # ==========================================================
 
-    BUTTON_BORDER_RADIUS = CoffeTheme.BUTTON_BORDER_RADIUS
-    BUTTON_PADDING = CoffeTheme.BUTTON_PADDING
+    BUTTON_BORDER_RADIUS = current_theme.BUTTON_BORDER_RADIUS
+    BUTTON_PADDING = current_theme.BUTTON_PADDING
 
     # ==========================================================
     # INPUTS
     # ==========================================================
 
-    INPUT_BORDER_RADIUS = CoffeTheme.INPUT_BORDER_RADIUS
-    INPUT_PADDING = CoffeTheme.INPUT_PADDING
+    INPUT_BORDER_RADIUS = current_theme.INPUT_BORDER_RADIUS
+    INPUT_PADDING = current_theme.INPUT_PADDING
 
     # ==========================================================
-    # HELPERS
+    # HELPERS DE ESTILO
     # ==========================================================
 
     @staticmethod
-    def spinbox():
+    def spinbox() -> str:
         return f"""
         QSpinBox,
         QDoubleSpinBox {{
-            background: {BaseStyles.COLOR_BACKGROUND_PANEL};
-            color: {BaseStyles.COLOR_TEXT_PRIMARY};
-            font-family: {BaseStyles.FONT_FAMILY_DEFAULT};
-            font-size: {BaseStyles.FONT_SIZE_NORMAL};
-            border: 1px solid {BaseStyles.COLOR_BORDER};
-            border-radius: {BaseStyles.INPUT_BORDER_RADIUS}px;
-            min-height: {BaseStyles.INPUT_HEIGHT}px;
+            background: {current_theme.COLOR_BACKGROUND_PANEL};
+            color: {current_theme.COLOR_TEXT_PRIMARY};
+            font-family: {current_theme.FONT_FAMILY_DEFAULT};
+            font-size: {current_theme.FONT_SIZE_NORMAL};
+            border: 1px solid {current_theme.COLOR_BORDER};
+            border-radius: {current_theme.INPUT_BORDER_RADIUS}px;
+            min-height: {current_theme.INPUT_HEIGHT}px;
             padding: 2px 4px;
             padding-right: 18px;
         }}
 
         QSpinBox:hover,
         QDoubleSpinBox:hover {{
-            border: 1px solid {BaseStyles.COLOR_PRIMARY_LIGHT};
+            border: 1px solid {current_theme.COLOR_PRIMARY_LIGHT};
         }}
 
         QSpinBox:focus,
         QDoubleSpinBox:focus {{
-            border: 1px solid {BaseStyles.COLOR_PRIMARY};
+            border: 1px solid {current_theme.COLOR_PRIMARY};
         }}
 
         QSpinBox:disabled,
         QDoubleSpinBox:disabled {{
-            background: {BaseStyles.COLOR_BACKGROUND_SOFT};
-            color: {BaseStyles.COLOR_TEXT_SECONDARY};
+            background: {current_theme.COLOR_BACKGROUND_SOFT};
+            color: {current_theme.COLOR_TEXT_SECONDARY};
         }}
 
         QSpinBox::up-button,
@@ -146,10 +157,10 @@ class BaseStyles:
         QDoubleSpinBox::up-button,
         QDoubleSpinBox::down-button {{
             width: 16px;
-            height: {BaseStyles.INPUT_HEIGHT}px;
+            height: {current_theme.INPUT_HEIGHT}px;
             border-radius: 2px;
-            border-left: 1px solid {BaseStyles.COLOR_BORDER};
-            background: {BaseStyles.COLOR_PRIMARY};
+            border-left: 1px solid {current_theme.COLOR_BORDER};
+            background: {current_theme.COLOR_PRIMARY};
             padding: 0px;
             margin: 0px;
         }}
@@ -158,144 +169,143 @@ class BaseStyles:
         QSpinBox::down-button:hover,
         QDoubleSpinBox::up-button:hover,
         QDoubleSpinBox::down-button:hover {{
-            background: {BaseStyles.COLOR_PRIMARY_LIGHT};
+            background: {current_theme.COLOR_PRIMARY_LIGHT};
         }}
 
         QSpinBox::up-button:pressed,
         QSpinBox::down-button:pressed,
         QDoubleSpinBox::up-button:pressed,
         QDoubleSpinBox::down-button:pressed {{
-            background: {BaseStyles.COLOR_PRIMARY_DARK};
+            background: {current_theme.COLOR_PRIMARY_DARK};
         }}
         """
 
     @staticmethod
-    def checkbox():
+    def checkbox() -> str:
         return f"""
         QCheckBox {{
-            color: {BaseStyles.COLOR_TEXT_PRIMARY};
-            font-family: {BaseStyles.FONT_FAMILY_DEFAULT};
-            font-size: {BaseStyles.FONT_SIZE_NORMAL};
-            spacing: {BaseStyles.CHECKBOX_SPACING}px;
+            color: {current_theme.COLOR_TEXT_PRIMARY};
+            font-family: {current_theme.FONT_FAMILY_DEFAULT};
+            font-size: {current_theme.FONT_SIZE_NORMAL};
+            spacing: {current_theme.CHECKBOX_SPACING}px;
         }}
 
         QCheckBox::indicator {{
-            width: {BaseStyles.CHECKBOX_SIZE}px;
-            height: {BaseStyles.CHECKBOX_SIZE}px;
-            border-radius: {BaseStyles.CHECKBOX_BORDER_RADIUS}px;
-            border: {BaseStyles.CHECKBOX_BORDER_WIDTH}px solid {BaseStyles.COLOR_BORDER};
-            background: {BaseStyles.COLOR_CHECKBOX_BG};
+            width: {current_theme.CHECKBOX_SIZE}px;
+            height: {current_theme.CHECKBOX_SIZE}px;
+            border-radius: {current_theme.CHECKBOX_BORDER_RADIUS}px;
+            border: {current_theme.CHECKBOX_BORDER_WIDTH}px solid {current_theme.COLOR_BORDER};
+            background: {current_theme.COLOR_CHECKBOX_BG};
         }}
 
         QCheckBox::indicator:checked {{
-            background: {BaseStyles.COLOR_PRIMARY};
-            border: {BaseStyles.CHECKBOX_BORDER_WIDTH}px solid {BaseStyles.COLOR_PRIMARY_DARK};
+            background: {current_theme.COLOR_PRIMARY};
+            border: {current_theme.CHECKBOX_BORDER_WIDTH}px solid {current_theme.COLOR_PRIMARY_DARK};
         }}
         """
 
     @staticmethod
-    def radio_button():
+    def radio_button() -> str:
         return f"""
         QRadioButton {{
-            color: {BaseStyles.COLOR_TEXT_PRIMARY};
-            font-family: {BaseStyles.FONT_FAMILY_DEFAULT};
-            font-size: {BaseStyles.FONT_SIZE_NORMAL};
-            spacing: {BaseStyles.CHECKBOX_SPACING}px;
+            color: {current_theme.COLOR_TEXT_PRIMARY};
+            font-family: {current_theme.FONT_FAMILY_DEFAULT};
+            font-size: {current_theme.FONT_SIZE_NORMAL};
+            spacing: {current_theme.CHECKBOX_SPACING}px;
         }}
 
         QRadioButton::indicator {{
-            width: {BaseStyles.RADIO_SIZE}px;
-            height: {BaseStyles.RADIO_SIZE}px;
-            border-radius: {BaseStyles.RADIO_BORDER_RADIUS}px;
-            border: {BaseStyles.CHECKBOX_BORDER_WIDTH}px solid {BaseStyles.COLOR_BORDER};
-            background: {BaseStyles.COLOR_BACKGROUND_PANEL};
+            width: {current_theme.RADIO_SIZE}px;
+            height: {current_theme.RADIO_SIZE}px;
+            border-radius: {current_theme.RADIO_BORDER_RADIUS}px;
+            border: {current_theme.CHECKBOX_BORDER_WIDTH}px solid {current_theme.COLOR_BORDER};
+            background: {current_theme.COLOR_BACKGROUND_PANEL};
         }}
 
         QRadioButton::indicator:checked {{
-            background: {BaseStyles.COLOR_PRIMARY};
+            background: {current_theme.COLOR_PRIMARY};
         }}
         """
 
     @staticmethod
-    def button():
-
+    def button() -> str:
         return f"""
         QPushButton {{
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 {BaseStyles.COLOR_PRIMARY},
-                stop:1 {BaseStyles.COLOR_PRIMARY_DARK});
-            color: {BaseStyles.COLOR_BUTTON_TEXT};
-            border: 1px solid {BaseStyles.COLOR_PRIMARY_DARK};
-            border-radius: {BaseStyles.BUTTON_BORDER_RADIUS}px;
-            padding: {BaseStyles.BUTTON_PADDING};
-            min-height: {BaseStyles.BUTTON_HEIGHT}px;
+                stop:0 {current_theme.COLOR_PRIMARY},
+                stop:1 {current_theme.COLOR_PRIMARY_DARK});
+            color: {current_theme.COLOR_BUTTON_TEXT};
+            border: 1px solid {current_theme.COLOR_PRIMARY_DARK};
+            border-radius: {current_theme.BUTTON_BORDER_RADIUS}px;
+            padding: {current_theme.BUTTON_PADDING};
+            min-height: {current_theme.BUTTON_HEIGHT}px;
         }}
 
         QPushButton:hover {{
-            background: {BaseStyles.COLOR_PRIMARY_LIGHT};
+            background: {current_theme.COLOR_PRIMARY_LIGHT};
         }}
 
         QPushButton:pressed {{
-            background: {BaseStyles.COLOR_PRIMARY_DARK};
+            background: {current_theme.COLOR_PRIMARY_DARK};
         }}
 
         QPushButton:disabled {{
-            background: {BaseStyles.COLOR_BACKGROUND_SOFT};
-            color: {BaseStyles.COLOR_TEXT_SECONDARY};
+            background: {current_theme.COLOR_BACKGROUND_SOFT};
+            color: {current_theme.COLOR_TEXT_SECONDARY};
         }}
         """
 
     @staticmethod
-    def label():
+    def label() -> str:
         return f"""
         QLabel {{
-            color: {BaseStyles.COLOR_TEXT_PRIMARY};
-            font-family: {BaseStyles.FONT_FAMILY_DEFAULT};
-            font-size: {BaseStyles.FONT_SIZE_NORMAL};
+            color: {current_theme.COLOR_TEXT_PRIMARY};
+            font-family: {current_theme.FONT_FAMILY_DEFAULT};
+            font-size: {current_theme.FONT_SIZE_NORMAL};
         }}
         """
 
     @staticmethod
-    def input():
+    def input() -> str:
         return f"""
         QLineEdit,
         QSpinBox,
         QDoubleSpinBox {{
-            background: {BaseStyles.COLOR_BACKGROUND_PANEL};
-            color: {BaseStyles.COLOR_TEXT_PRIMARY};
-            border: 1px solid {BaseStyles.COLOR_BORDER};
-            border-radius: {BaseStyles.INPUT_BORDER_RADIUS}px;
-            padding: {BaseStyles.INPUT_PADDING};
-            min-height: {BaseStyles.INPUT_HEIGHT}px;
-            max-height: {BaseStyles.INPUT_HEIGHT + 6}px;
+            background: {current_theme.COLOR_BACKGROUND_PANEL};
+            color: {current_theme.COLOR_TEXT_PRIMARY};
+            border: 1px solid {current_theme.COLOR_BORDER};
+            border-radius: {current_theme.INPUT_BORDER_RADIUS}px;
+            padding: {current_theme.INPUT_PADDING};
+            min-height: {current_theme.INPUT_HEIGHT}px;
+            max-height: {current_theme.INPUT_HEIGHT + 6}px;
         }}
 
         QLineEdit:focus,
         QSpinBox:focus,
         QDoubleSpinBox:focus {{
-            border: 1px solid {BaseStyles.COLOR_PRIMARY};
+            border: 1px solid {current_theme.COLOR_PRIMARY};
         }}
         """
 
     @staticmethod
-    def map_layer_combobox():
+    def map_layer_combobox() -> str:
         return f"""
         QgsMapLayerComboBox {{
-            background: {BaseStyles.COLOR_BACKGROUND_PANEL};
-            color: {BaseStyles.COLOR_TEXT_PRIMARY};
-            border: 1px solid {BaseStyles.COLOR_BORDER};
-            border-radius: {BaseStyles.INPUT_BORDER_RADIUS}px;
-            padding: {BaseStyles.INPUT_PADDING};
-            min-height: {BaseStyles.INPUT_HEIGHT}px;
+            background: {current_theme.COLOR_BACKGROUND_PANEL};
+            color: {current_theme.COLOR_TEXT_PRIMARY};
+            border: 1px solid {current_theme.COLOR_BORDER};
+            border-radius: {current_theme.INPUT_BORDER_RADIUS}px;
+            padding: {current_theme.INPUT_PADDING};
+            min-height: {current_theme.INPUT_HEIGHT}px;
         }}
 
         QgsMapLayerComboBox:hover {{
-            border: 1px solid {BaseStyles.COLOR_PRIMARY_LIGHT};
+            border: 1px solid {current_theme.COLOR_PRIMARY_LIGHT};
         }}
         """
 
     @staticmethod
-    def scroll_area():
+    def scroll_area() -> str:
         return f"""
         QScrollArea {{
             border: none;
@@ -308,11 +318,11 @@ class BaseStyles:
         }}
 
         QScrollBar::handle:vertical {{
-            background: {BaseStyles.COLOR_PRIMARY};
+            background: {current_theme.COLOR_PRIMARY};
             border-radius: 4px;
         }}
 
         QScrollBar::handle:vertical:hover {{
-            background: {BaseStyles.COLOR_PRIMARY_LIGHT};
+            background: {current_theme.COLOR_PRIMARY_LIGHT};
         }}
         """

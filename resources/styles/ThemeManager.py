@@ -51,17 +51,16 @@ from .CoffeTheme import CoffeTheme
 # ═══════════════════════════════════════════════════════════════
 
 THEMES: dict[str, dict[str, Any]] = {
-    "coffe": {
-        "class":       CoffeTheme,
-        "label":       "Coffe Theme",
-        "description": "Tema acobreado/café com paleta quente em tons de "
-                       "marrom e caramelo, fundo escuro e texto suave.",
+    "base": {
+        "class":       BaseTheme,
+        "label":       "Base Theme",
+        "description": "Tema padrão base do Cadmus.",
         "author":      "Cadmus",
         "version":     "1.0.0",
     },
 }
 
-_DEFAULT_THEME_KEY: str = "coffe"
+_DEFAULT_THEME_KEY: str = "base"
 __CURRENT_THEME_KEY: str | None = None
 
 

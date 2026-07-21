@@ -117,8 +117,8 @@ class AboutDialog(BaseDialog):
                 tool_key=ToolKey.ABOUT_DIALOG,
                 parent=self,
             )
-            self.layout.addWidget(self.action_buttons)
-            self.logger.debug("Botões de ação adicionados via GridExecutionButtons")
+            self.layout.add_execution_buttons(self.action_buttons)
+            self.logger.debug("Botões de ação adicionados via add_execution_buttons")
 
             self.logger.debug("AboutDialog UI construída com sucesso")
         except Exception as ex:

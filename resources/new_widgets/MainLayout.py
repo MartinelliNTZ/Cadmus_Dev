@@ -213,6 +213,27 @@ class MainLayout(QVBoxLayout):
     def addSpacing(self, *args, **kwargs):
         self._inner_layout.addSpacing(*args, **kwargs)
 
+    def add_execution_buttons(self, buttons_widget):
+        """
+        Adiciona widget de botões de execução fixo na parte inferior,
+        SEMPRE fora da área de scroll (se houver).
+
+        - Se scroll está habilitado: adiciona diretamente ao _inner_layout
+          após o scroll, com stretch antes para empurrar para baixo.
+        - Se scroll está desabilitado: adiciona ao _inner_layout
+          após os demais widgets, com stretch antes.
+        - Adiciona um pequeno espaçamento (LAYOUT_VERTICAL_SPACING) após
+          os botões para não colar na borda inferior.
+        """
+        # Stretch antes dos botões para empurrá-los para baixo
+        self._inner_layout.addStretch()
+        # Botões fixos no final (fora do scroll)
+        self._inner_layout.addWidget(buttons_widget)
+        # Pequeno espaçamento após os botões para não colar na borda
+        self._inner_layout.addSpacing(
+            AppStyles._get_theme().LAYOUT_VERTICAL_SPACING
+        )
+
     def add_items(self, items):
         """
         Adiciona widgets e/ou layouts ao layout.

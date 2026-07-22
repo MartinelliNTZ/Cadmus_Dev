@@ -40,31 +40,87 @@ class BaseTheme:
         return f"rgba({r},{g},{b},{alpha})"
 
     # ════════════════════════════════════════════════════════════
-    # CORES
+    # PALETA BASE — 9 CORES (3 grupos × 3 variações)
     # ════════════════════════════════════════════════════════════
 
+    # ── Primary ────────────────────────────────────────────────
     COLOR_PRIMARY: str = "#8b5cf6"
     COLOR_PRIMARY_LIGHT: str = "#a78bfa"
     COLOR_PRIMARY_DARK: str = "#6d28d9"
+
+    # ── Secondary ──────────────────────────────────────────────
+    COLOR_SECONDARY: str = "#f59e0b"
+    COLOR_SECONDARY_LIGHT: str = "#fbbf24"
+    COLOR_SECONDARY_DARK: str = "#d97706"
+
+    # ── Neutral ────────────────────────────────────────────────
+    COLOR_NEUTRAL: str = "#6b7280"
+    COLOR_NEUTRAL_LIGHT: str = "#9ca3af"
+    COLOR_NEUTRAL_DARK: str = "#4b5563"
+
+    # ════════════════════════════════════════════════════════════
+    # CORES FIXAS (não variam entre temas)
+    # ════════════════════════════════════════════════════════════
+
+    COLOR_WHITE: str = "#ffffff"
+    COLOR_BLACK: str = "#000000"
+    COLOR_RED: str = "#ef4444"
+
+    # ════════════════════════════════════════════════════════════
+    # GLOW COLORS (para QGraphicsDropShadowEffect)
+    # HEX + alpha separado para construir QColor via rgba()
+    # ════════════════════════════════════════════════════════════
+
+    COLOR_GLOW_PRIMARY: str = "#1446A0"
+    COLOR_GLOW_PRIMARY_ALPHA: int = 110
+
+    COLOR_GLOW_SECONDARY: str = "#d97706"
+    COLOR_GLOW_SECONDARY_ALPHA: int = 110
+
+    COLOR_GLOW_NEUTRAL: str = "#1f2937"
+    COLOR_GLOW_NEUTRAL_ALPHA: int = 130
+
+    # ════════════════════════════════════════════════════════════
+    # CORES DE FUNDO / PAINEL
+    # ════════════════════════════════════════════════════════════
 
     COLOR_BACKGROUND_MAIN: str = "#0f0f17"
     COLOR_BACKGROUND_PANEL: str = "#1b1b2b"
     COLOR_BACKGROUND_SOFT: str = "rgba(27, 27, 43, 220)"
     COLOR_BACKGROUND_TRANSPARENT: str = "transparent"
 
+    # ════════════════════════════════════════════════════════════
+    # CORES DE TEXTO
+    # ════════════════════════════════════════════════════════════
+
     COLOR_TEXT_PRIMARY: str = "#f5f3ff"
     COLOR_TEXT_SECONDARY: str = "#c4b5fd"
     COLOR_BUTTON_TEXT: str = "#ffffff"
 
+    # ════════════════════════════════════════════════════════════
+    # CORES DE BORDA / CHECKBOX
+    # ════════════════════════════════════════════════════════════
+
     COLOR_BORDER_DEFAULT: str = "#6d28d9"
     COLOR_CHECKBOX_BACKGROUND: str = "#312e81"
 
+    # ════════════════════════════════════════════════════════════
+    # CORES DE LISTA / SELEÇÃO
+    # ════════════════════════════════════════════════════════════
 
     COLOR_LIST_SELECTION_BACKGROUND: str = "rgba(166, 120, 79, 120)"
     COLOR_LIST_SELECTION_HOVER_BACKGROUND: str = "rgba(166, 120, 79, 60)"
 
+    # ════════════════════════════════════════════════════════════
+    # CORES APP BAR
+    # ════════════════════════════════════════════════════════════
+
     COLOR_APP_BAR_INFO_BUTTON_BACKGROUND: str = "rgba(255, 255, 255, 20)"
     COLOR_APP_BAR_INFO_BUTTON_HOVER_BACKGROUND: str = "rgba(255, 255, 255, 40)"
+
+    # ════════════════════════════════════════════════════════════
+    # CORES COLLAPSIBLE HEADER
+    # ════════════════════════════════════════════════════════════
 
     COLOR_COLLAPSIBLE_HEADER_START_GRADIENT: str = "rgba(106, 74, 47, 100)"
     COLOR_COLLAPSIBLE_HEADER_END_GRADIENT: str = "rgba(166, 120, 79, 100)"
@@ -102,6 +158,25 @@ class BaseTheme:
     APP_BAR_MIN_HEIGHT: str = "35px"
 
     SCROLL_BAR_VERTICAL_WIDTH: str = "8px"
+
+    # ════════════════════════════════════════════════════════════
+    # DIMENSÕES — BOTÕES MODERNOS (GridExecutionButtons)
+    # ════════════════════════════════════════════════════════════
+
+    BUTTON_MIN_HEIGHT: str = "36px"
+    BUTTON_ROUND_ICON_SIZE: str = "32px"
+    BUTTON_PADDING: str = "7px 22px"
+    BUTTON_FONT_SIZE: str = "12px"
+    BUTTON_FONT_WEIGHT: str = "600"
+
+    # ════════════════════════════════════════════════════════════
+    # SOMBRA — BOTÕES MODERNOS (GridExecutionButtons)
+    # ════════════════════════════════════════════════════════════
+
+    BUTTON_SHADOW_BLUR_NORMAL: int = 12
+    BUTTON_SHADOW_BLUR_PRESSED: int = 4
+    BUTTON_SHADOW_OFFSET_NORMAL: int = 3
+    BUTTON_SHADOW_OFFSET_PRESSED: int = 1
 
     # ════════════════════════════════════════════════════════════
     # BORDAS — TODAS COM UNIDADE

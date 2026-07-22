@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 """
 GridExecutionButtons — Container de botões de execução configurável via dict.
+============================================================================
 Plugins USAM este widget.
 
-Versão com botões modernos: QPushButton customizado com gradiente vertical
+Versão com botões modernos: QPushButton customizado com gradiente de 3 stops
 e QGraphicsDropShadowEffect, dando impressão de elevação/3D. Ao pressionar,
 a sombra "recolhe" e o gradiente inverte, simulando o botão afundando —
 feedback tátil visual.
+
+TODOS os estilos são gerenciados pelo AppStyles + tokens do BaseTheme.
+NENHUM valor de cor/dimensão/sombra é hardcoded aqui.
 
 Cada item do config dict define um botão com:
     label (obrigatório): texto do botão
     callback (obrigatório): função chamada ao clicar
     description (opcional): tooltip do botão
     is_run_button (opcional): bool, True destaca o botão como principal
-        (gradiente na cor primária, mais proeminente)
+        (usa estilo primary com gradiente na paleta PRIMARY)
 
 Botões built-in:
     enable_close_button=True → adiciona botão Fechar
@@ -67,10 +71,6 @@ from ...IconManager import IconManager
 
 
 # ── Compatibilidade Qt5 / Qt6 ──────────────────────────────────
-# No Qt6 (PyQt6/PySide6) os enums viraram "scoped" (ex.: Qt.CursorShape.X,
-# QSizePolicy.Policy.X). No Qt5 eles ficam soltos direto na classe
-# (Qt.X, QSizePolicy.X). Resolvemos em tempo de import, com fallback,
-# para o mesmo código rodar em ambas as versões sem alterações.
 try:
     _CURSOR_POINTING_HAND = Qt.CursorShape.PointingHandCursor  # Qt6
 except AttributeError:
@@ -84,15 +84,23 @@ except AttributeError:
     _SIZE_POLICY_FIXED = QSizePolicy.Fixed  # Qt5
 
 
+def _glow_qcolor(hex_color: str, alpha: int) -> QColor:
+    """Constrói QColor a partir de HEX + alpha (usa método estático do tema)."""
+    from ...styles.BaseTheme import BaseTheme  # pylint: disable=import-outside-toplevel
+    rgba_str = BaseTheme.rgba(hex_color, alpha)
+    # Formato: "rgba(r,g,b,alpha)"
+    rgba_str = rgba_str.replace("rgba(", "").replace(")", "")
+    parts = [int(x.strip()) for x in rgba_str.split(",")]
+    return QColor(*parts)
+
+
 class ModernButton(QPushButton):
     """
     QPushButton sem borda, com gradiente de 3 stops (luz vindo de cima) +
-    sombra colorida (glow), dando efeito de elevação/3D real mesmo sobre
-    fundo escuro (sombra preta se perde num fundo escuro, por isso usamos
-    uma sombra com cor/alpha ao invés de preto puro).
+    sombra colorida (glow), dando efeito de elevação/3D.
 
-    Cores fixas (hardcoded) — não dependem do ThemeManager, para garantir
-    contraste e acabamento visual consistentes.
+    CORES E DIMENSÕES VEM DO TEMA via AppStyles.
+    Nada hardcoded aqui.
 
     Parâmetros
     ----------
@@ -100,41 +108,11 @@ class ModernButton(QPushButton):
         Texto do botão.
     parent : QWidget, optional
     primary : bool, optional
-        True → paleta azul vibrante (botão de destaque/executar).
-        False → paleta neutra grafite (estilo secundário).
+        True → estilo primary (paleta PRIMARY do tema).
+        False → estilo secondary (paleta NEUTRAL do tema).
     round_icon : bool, optional
-        True → botão circular pequeno (usado para ícones como config/info).
+        True → botão circular pequeno (ícone config/info).
     """
-
-    # Border-radius padrão — leve, só pra arredondar as pontas (mesmo valor
-    # pra todos os botões, incluindo os de ícone; nada de círculo perfeito).
-    _RADIUS = "6px"
-
-    # Paleta primária (azul) — 3 stops: claro (luz) → médio → escuro (sombra própria)
-    _PRIMARY_TOP = "#5FB4FF"
-    _PRIMARY_MID = "#2E86F5"
-    _PRIMARY_BOTTOM = "#0B5AC9"
-    _PRIMARY_HOVER_TOP = "#7CC4FF"
-    _PRIMARY_HOVER_MID = "#4A98FF"
-    _PRIMARY_HOVER_BOTTOM = "#1468DB"
-    _PRIMARY_PRESSED_TOP = "#0B5AC9"
-    _PRIMARY_PRESSED_MID = "#0A4CA8"
-    _PRIMARY_PRESSED_BOTTOM = "#083E8A"
-    _PRIMARY_TEXT = "#FFFFFF"
-    _PRIMARY_GLOW = QColor(20, 70, 160, 110)
-
-    # Paleta neutra (grafite) — para botões secundários (Fechar, extras)
-    _NEUTRAL_TOP = "#6A7280"
-    _NEUTRAL_MID = "#484F5A"
-    _NEUTRAL_BOTTOM = "#2C3138"
-    _NEUTRAL_HOVER_TOP = "#7C8492"
-    _NEUTRAL_HOVER_MID = "#59616D"
-    _NEUTRAL_HOVER_BOTTOM = "#383E46"
-    _NEUTRAL_PRESSED_TOP = "#2C3138"
-    _NEUTRAL_PRESSED_MID = "#23272D"
-    _NEUTRAL_PRESSED_BOTTOM = "#191C20"
-    _NEUTRAL_TEXT = "#F0F1F3"
-    _NEUTRAL_GLOW = QColor(10, 12, 16, 130)
 
     def __init__(
         self,
@@ -147,39 +125,55 @@ class ModernButton(QPushButton):
         super().__init__(text, parent)
         self._primary = primary
         self._round_icon = round_icon
-        # object_name customizado (ex.: "btn_run_execution") permite que
-        # código externo continue localizando/estilizando este botão por
-        # nome; senão, gera um nome único (id do próprio objeto) só pra
-        # garantir especificidade máxima no seletor QSS.
         self._object_name = object_name or f"modern_btn_{id(self)}"
         self.setObjectName(self._object_name)
 
         self.setCursor(_CURSOR_POINTING_HAND)
         self.setSizePolicy(_SIZE_POLICY_PREFERRED, _SIZE_POLICY_FIXED)
-        self.setFlat(True)  # remove chrome nativo do estilo do SO
+        self.setFlat(True)
 
+        # ── Dimensões do tema ──────────────────────────────────
+        theme = self._get_theme()
         if round_icon:
-            self.setFixedSize(32, 32)
+            sz = int(theme.BUTTON_ROUND_ICON_SIZE.replace("px", ""))
+            self.setFixedSize(sz, sz)
             self.setIconSize(self._icon_size())
         else:
-            self.setMinimumHeight(36)
+            min_h = int(theme.BUTTON_MIN_HEIGHT.replace("px", ""))
+            self.setMinimumHeight(min_h)
 
-        # Sombra sutil (glow escuro/translúcido) — dá elevação sem "brilhar"
-        # como um halo branco.
+        # ── Sombra (glow) ──────────────────────────────────────
         self._shadow = QGraphicsDropShadowEffect(self)
-        self._shadow_blur_normal = 12
-        self._shadow_blur_pressed = 4
-        self._shadow_offset_normal = 3
-        self._shadow_offset_pressed = 1
+        if primary:
+            glow_color = _glow_qcolor(
+                theme.COLOR_GLOW_PRIMARY, theme.COLOR_GLOW_PRIMARY_ALPHA
+            )
+        else:
+            glow_color = _glow_qcolor(
+                theme.COLOR_GLOW_NEUTRAL, theme.COLOR_GLOW_NEUTRAL_ALPHA
+            )
+        self._shadow_blur_normal = theme.BUTTON_SHADOW_BLUR_NORMAL
+        self._shadow_blur_pressed = theme.BUTTON_SHADOW_BLUR_PRESSED
+        self._shadow_offset_normal = theme.BUTTON_SHADOW_OFFSET_NORMAL
+        self._shadow_offset_pressed = theme.BUTTON_SHADOW_OFFSET_PRESSED
         self._shadow.setBlurRadius(self._shadow_blur_normal)
         self._shadow.setOffset(0, self._shadow_offset_normal)
-        self._shadow.setColor(self._PRIMARY_GLOW if primary else self._NEUTRAL_GLOW)
+        self._shadow.setColor(glow_color)
         self.setGraphicsEffect(self._shadow)
 
+        # ── Sinais ─────────────────────────────────────────────
         self.pressed.connect(self._on_pressed)
         self.released.connect(self._on_released)
 
+        # ── Aplica estilo do AppStyles ─────────────────────────
         self._apply_style()
+
+    # ── Helpers ────────────────────────────────────────────────
+
+    @staticmethod
+    def _get_theme():
+        """Retorna tema atual via AppStyles (usa cache do AppStyles)."""
+        return AppStyles._get_theme()
 
     @staticmethod
     def _icon_size():
@@ -195,48 +189,14 @@ class ModernButton(QPushButton):
         self._shadow.setOffset(0, self._shadow_offset_normal)
 
     def _apply_style(self):
-        if self._primary:
-            top, mid, bottom = self._PRIMARY_TOP, self._PRIMARY_MID, self._PRIMARY_BOTTOM
-            h_top, h_mid, h_bottom = self._PRIMARY_HOVER_TOP, self._PRIMARY_HOVER_MID, self._PRIMARY_HOVER_BOTTOM
-            p_top, p_mid, p_bottom = self._PRIMARY_PRESSED_TOP, self._PRIMARY_PRESSED_MID, self._PRIMARY_PRESSED_BOTTOM
-            text_color = self._PRIMARY_TEXT
+        """Aplica QSS via AppStyles conforme tipo do botão."""
+        if self._round_icon:
+            qss = AppStyles.modern_button_round_icon(self._object_name)
+        elif self._primary:
+            qss = AppStyles.modern_button_primary(self._object_name)
         else:
-            top, mid, bottom = self._NEUTRAL_TOP, self._NEUTRAL_MID, self._NEUTRAL_BOTTOM
-            h_top, h_mid, h_bottom = self._NEUTRAL_HOVER_TOP, self._NEUTRAL_HOVER_MID, self._NEUTRAL_HOVER_BOTTOM
-            p_top, p_mid, p_bottom = self._NEUTRAL_PRESSED_TOP, self._NEUTRAL_PRESSED_MID, self._NEUTRAL_PRESSED_BOTTOM
-            text_color = self._NEUTRAL_TEXT
-
-        padding = "0px" if self._round_icon else "7px 22px"
-
-        # Seletor por #objectName: especificidade máxima, garante que nenhum
-        # stylesheet global (aplicado num ancestral) sobrescreva o border-radius
-        # ou o "border: none" deste botão especificamente.
-        sel = f"QPushButton#{self._object_name}"
-
-        self.setStyleSheet(f"""
-            {sel} {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {top}, stop:0.5 {mid}, stop:1 {bottom});
-                color: {text_color};
-                border: none;
-                border-radius: {self._RADIUS};
-                padding: {padding};
-                font-weight: 600;
-                font-size: 12px;
-            }}
-            {sel}:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {h_top}, stop:0.5 {h_mid}, stop:1 {h_bottom});
-            }}
-            {sel}:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {p_top}, stop:0.5 {p_mid}, stop:1 {p_bottom});
-            }}
-            {sel}:disabled {{
-                background: #3A3D42;
-                color: #8A8D93;
-            }}
-        """)
+            qss = AppStyles.modern_button_secondary(self._object_name)
+        self.setStyleSheet(qss)
 
 
 class GridExecutionButtons(QWidget):
@@ -307,8 +267,7 @@ class GridExecutionButtons(QWidget):
             outer_layout.addWidget(SeparatorWidget())
 
         layout = QHBoxLayout()
-        # Margens não-zero: a sombra (QGraphicsDropShadowEffect) precisa de
-        # espaço "livre" ao redor do botão pra não ser cortada pelo container.
+        # Margens: sombra precisa de espaço livre ao redor do botão
         layout.setContentsMargins(6, 10, 6, 10)
         layout.setSpacing(AppStyles._get_theme().LAYOUT_HORIZONTAL_SPACING)
 

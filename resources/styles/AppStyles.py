@@ -414,6 +414,142 @@ class AppStyles:
             "}"
         )
 
+    # ── Modern Button Styles (GridExecutionButtons) ──────────────────────
+
+    @classmethod
+    def modern_button_primary(cls, object_name: str = None) -> str:
+        """
+        Estilo para botão primário (run/executar).
+        Gradiente 3 stops usando paleta PRIMARY do tema.
+        Sem borda. Dimensões setadas via Python (setMinimumHeight).
+
+        Parâmetros
+        ----------
+        object_name : str, optional
+            Se fornecido, usa seletor QPushButton#object_name para
+            especificidade máxima. Se None, usa QPushButton genérico.
+        """
+        theme = cls._get_theme()
+        sel = f"QPushButton#{object_name}" if object_name else "QPushButton"
+        return (
+            f"{sel} {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_PRIMARY_LIGHT},"
+            f"        stop:0.5 {theme.COLOR_PRIMARY},"
+            f"        stop:1 {theme.COLOR_PRIMARY_DARK});"
+            f"    color: {theme.COLOR_BUTTON_TEXT};"
+            "    border: none;"
+            f"    border-radius: {theme.BORDER_RADIUS_BUTTON_DEFAULT};"
+            f"    padding: {theme.BUTTON_PADDING};"
+            f"    font-size: {theme.BUTTON_FONT_SIZE};"
+            f"    font-weight: {theme.BUTTON_FONT_WEIGHT};"
+            "}"
+            f"{sel}:hover {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_PRIMARY},"
+            f"        stop:0.5 {theme.COLOR_PRIMARY},"
+            f"        stop:1 {theme.COLOR_PRIMARY_DARK});"
+            "}"
+            f"{sel}:pressed {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_PRIMARY_DARK},"
+            f"        stop:0.5 {theme.COLOR_PRIMARY_DARK},"
+            f"        stop:1 {theme.COLOR_PRIMARY_DARK});"
+            "}"
+            f"{sel}:disabled {{"
+            f"    background: {theme.COLOR_NEUTRAL_DARK};"
+            f"    color: {theme.COLOR_NEUTRAL};"
+            "}"
+        )
+
+    @classmethod
+    def modern_button_secondary(cls, object_name: str = None) -> str:
+        """
+        Estilo para botão secundário (Fechar, extras).
+        Gradiente 3 stops usando paleta NEUTRAL do tema.
+        Sem borda. Dimensões setadas via Python.
+
+        Parâmetros
+        ----------
+        object_name : str, optional
+            Se fornecido, usa seletor QPushButton#object_name.
+        """
+        theme = cls._get_theme()
+        sel = f"QPushButton#{object_name}" if object_name else "QPushButton"
+        return (
+            f"{sel} {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL_LIGHT},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            f"    color: {theme.COLOR_WHITE};"
+            "    border: none;"
+            f"    border-radius: {theme.BORDER_RADIUS_BUTTON_DEFAULT};"
+            f"    padding: {theme.BUTTON_PADDING};"
+            f"    font-size: {theme.BUTTON_FONT_SIZE};"
+            f"    font-weight: {theme.BUTTON_FONT_WEIGHT};"
+            "}"
+            f"{sel}:hover {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            "}"
+            f"{sel}:pressed {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL_DARK},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL_DARK},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            "}"
+            f"{sel}:disabled {{"
+            f"    background: {theme.COLOR_NEUTRAL_DARK};"
+            f"    color: {theme.COLOR_NEUTRAL};"
+            "}"
+        )
+
+    @classmethod
+    def modern_button_round_icon(cls, object_name: str = None) -> str:
+        """
+        Estilo para botão redondo de ícone (Config, Info).
+        Usa paleta NEUTRAL, border-radius padrão (6px) como os demais botões.
+        Dimensões fixas setadas via Python (setFixedSize).
+
+        Parâmetros
+        ----------
+        object_name : str, optional
+            Se fornecido, usa seletor QPushButton#object_name.
+        """
+        theme = cls._get_theme()
+        sel = f"QPushButton#{object_name}" if object_name else "QPushButton"
+        return (
+            f"{sel} {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL_LIGHT},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            f"    color: {theme.COLOR_WHITE};"
+            "    border: none;"
+            f"    border-radius: {theme.BORDER_RADIUS_BUTTON_DEFAULT};"
+            "    padding: 0px;"
+            "}"
+            f"{sel}:hover {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            "}"
+            f"{sel}:pressed {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL_DARK},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL_DARK},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            "}"
+            f"{sel}:disabled {{"
+            f"    background: {theme.COLOR_NEUTRAL_DARK};"
+            f"    color: {theme.COLOR_NEUTRAL};"
+            "}"
+        )
+
     @classmethod
     def calc_checkbox_grid_height(cls, num_items: int, items_per_row: int = 1) -> int:
         """Calcula altura total de um grid de checkboxes."""

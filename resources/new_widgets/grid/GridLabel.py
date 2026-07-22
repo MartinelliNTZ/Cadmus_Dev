@@ -11,6 +11,7 @@ e o valor é um dict com:
 
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout
 from ..simple.SimpleLabel import SimpleLabel
+from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
 
 
@@ -31,20 +32,28 @@ class GridLabel(QWidget):
         Dict de labels. Cada chave é identificador, valor é dict com:
         - "text" (str): texto do label
         - "description" (str, optional): tooltip
+    separator_top : bool, optional
+        Adiciona separador antes do widget.
+    separator_bottom : bool, optional
+        Adiciona separador após o widget.
     parent : QWidget, optional
         Widget pai.
     """
 
-    def __init__(self, config: dict, parent=None):
+    def __init__(self, config: dict, separator_top: bool = False, separator_bottom: bool = False, parent=None):
         super().__init__(parent)
         if not config:
             config = {"label": {"text": ""}}
 
         self._labels = []
         self._label_map = {}  # key → SimpleLabel
+        theme = AppStyles._get_theme()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(AppStyles._get_theme().LAYOUT_VERTICAL_SPACING)
+        layout.setSpacing(theme.LAYOUT_VERTICAL_SPACING)
+
+        if separator_top:
+            layout.addWidget(SeparatorWidget())
 
         for key, cfg in config.items():
             text = cfg.get("text", "")
@@ -57,6 +66,9 @@ class GridLabel(QWidget):
             self._labels.append(label)
             self._label_map[key] = label
             layout.addWidget(label)
+
+        if separator_bottom:
+            layout.addWidget(SeparatorWidget())
 
         self._apply_styles()
 

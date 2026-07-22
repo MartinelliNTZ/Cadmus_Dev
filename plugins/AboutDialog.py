@@ -6,7 +6,6 @@ from ..i18n.TranslationManager import STR
 from ..resources.new_widgets.grid.GridLabel import GridLabel
 from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ..resources.new_widgets.grid.GridIconButton import GridIconButton
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
 from ..resources.IconManager import IconManager
 import webbrowser
 
@@ -86,9 +85,6 @@ class AboutDialog(BaseDialog):
             )
             self.layout.addWidget(self.social_buttons)
             self.logger.debug("Ícones sociais adicionados via GridIconButton")
-
-            # Separador antes do botão fechar
-            self.layout.addWidget(SeparatorWidget())
 
             # Botões de ação via GridExecutionButtons
             # 3 botões extras (teste) + info + close, alinhados à direita

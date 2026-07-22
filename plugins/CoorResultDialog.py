@@ -10,7 +10,6 @@ from ..resources.new_widgets.grid.GridReadOnly import GridReadOnly
 from ..resources.new_widgets.grid.GridLabel import GridLabel
 from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ..resources.new_widgets.simple.SimpleLabel import SimpleLabel
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
 
 
 class CoordResultDialog(BasePluginMTL):
@@ -45,11 +44,10 @@ class CoordResultDialog(BasePluginMTL):
                 "lat_dms": {"title": STR.LATITUDE_DMS, "value": ""},
                 "lon_dms": {"title": STR.LONGITUDE_DMS, "value": ""},
             },
+            separator_bottom=True,
             parent=self,
         )
         self.layout.addWidget(self.wgs_widget)
-
-        self.layout.addWidget(SeparatorWidget())
 
         # ── UTM ReadOnly ─────────────────────────────────────
         self.utm_widget = GridReadOnly(
@@ -66,8 +64,6 @@ class CoordResultDialog(BasePluginMTL):
         self.lbl_utm_info = SimpleLabel(text="", parent=self)
         self.layout.addWidget(self.lbl_utm_info)
 
-        self.layout.addWidget(SeparatorWidget())
-
         # ── Altimetria ReadOnly ──────────────────────────────
         self.alt_widget = GridReadOnly(
             title=STR.ALTIMETRY_OPENTOPO,
@@ -77,11 +73,11 @@ class CoordResultDialog(BasePluginMTL):
                     "value": STR.LOADING,
                 }
             },
+            separator_top=True,
+            separator_bottom=True,
             parent=self,
         )
         self.layout.addWidget(self.alt_widget)
-
-        self.layout.addWidget(SeparatorWidget())
 
         # ── Labels de Endereço ────────────────────────────────
         self.address_labels = GridLabel(config={
@@ -90,10 +86,8 @@ class CoordResultDialog(BasePluginMTL):
             "state": {"text": f"{STR.STATE}: {STR.LOADING_LOWER}"},
             "region": {"text": f"{STR.REGION}: {STR.LOADING_LOWER}"},
             "country": {"text": f"{STR.COUNTRY}: {STR.LOADING_LOWER}"},
-        }, parent=self)
+        }, separator_bottom=True, parent=self)
         self.layout.addWidget(self.address_labels)
-
-        self.layout.addWidget(SeparatorWidget())
 
         # ── Botões de Ação (Copiar Tudo + Fechar + Info) ─────
         self.action_buttons = GridExecutionButtons(

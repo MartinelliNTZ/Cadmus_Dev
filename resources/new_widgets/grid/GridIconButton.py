@@ -26,9 +26,10 @@ Uso em plugins:
     layout.addWidget(social)
 """
 
-from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout
+from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
 from qgis.PyQt.QtCore import QSize, Qt
 from ..simple.SimpleIconButton import SimpleIconButton
+from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
 import os
 
@@ -52,6 +53,10 @@ class GridIconButton(QWidget):
     config : dict
         Dicionário de configuração onde cada chave é o identificador
         e cada valor é um dict com "label", "icon", "callback" e opcionais.
+    separator_top : bool, optional
+        Adiciona separador antes do widget.
+    separator_bottom : bool, optional
+        Adiciona separador após o widget.
     parent : QWidget, optional
         Widget pai.
     """
@@ -59,16 +64,30 @@ class GridIconButton(QWidget):
     def __init__(
         self,
         config: dict = None,
+        separator_top: bool = False,
+        separator_bottom: bool = False,
         parent=None,
     ):
         super().__init__(parent)
 
         self._config = config or {}
 
-        layout = QHBoxLayout(self)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        if separator_top:
+            outer_layout.addWidget(SeparatorWidget())
+
+        layout = QHBoxLayout()
         layout.setContentsMargins(0, 8, 0, 4)
         layout.setSpacing(10)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        outer_layout.addLayout(layout)
+
+        if separator_bottom:
+            outer_layout.addWidget(SeparatorWidget())
 
         icons_dir = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", "resources", "icons"

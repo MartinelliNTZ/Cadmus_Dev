@@ -100,16 +100,6 @@ class AboutDialog(BaseDialog):
                         "callback": lambda: None,
                         "is_run_button": True,
                     },
-                    "extra1": {
-                        "label": "Extra 1",
-                        "description": "Botão extra 1 (teste)",
-                        "callback": lambda: None,
-                    },
-                    "extra2": {
-                        "label": "Extra 2",
-                        "description": "Botão extra 2 (teste)",
-                        "callback": lambda: None,
-                    },
                 },
                 enable_close_button=True,
                 enable_info=True,

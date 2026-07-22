@@ -450,4 +450,14 @@
    - SKILL_UTILS.md atualizado: adicionada entrada qt_compat na tabela de classes
      e no histórico
 
+2.3.63 22/07/2026
+[2.3.63.1][22/07/2026] Corrigido ImportError "No module named 'sip'" em CoordClickTool.py (Qt6/QGIS 4.x):
+   - Substituído `import sip` por `from qgis.PyQt import sip`
+   - `import sip` falha no Qt6 (QGIS 4.x) porque o módulo sip não está mais disponível
+     diretamente no PYTHONPATH do sistema
+   - `from qgis.PyQt import sip` é garantido funcionar em Qt5 e Qt6, pois o QGIS sempre
+     expõe o sip via seu próprio pacote PyQt
+   - Método _cancel_task() agora importa sip corretamente, permitindo verificar
+     objetos deletados antes de chamar task.cancel()
+
 

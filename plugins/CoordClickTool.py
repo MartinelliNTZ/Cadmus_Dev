@@ -1,6 +1,6 @@
 from qgis.gui import QgsMapTool
 from qgis.core import QgsApplication
-import sip
+from qgis.PyQt import sip
 
 from ..core.task.ReverseGeocodeTask import ReverseGeocodeTask
 from ..core.task.AltimetryTask import AltimetriaTask

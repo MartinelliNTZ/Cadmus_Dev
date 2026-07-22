@@ -203,18 +203,14 @@ class MainLayout(QVBoxLayout):
     def addWidget(self, widget, *args, **kwargs):
         """Adiciona widget ao layout (scroll ou content)."""
         if self._scroll is not None:
-            container = QWidget()
-            layout = QVBoxLayout(container)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.addWidget(widget)
-            self._scroll.add_layout_as_content(layout)
+            self._scroll.addWidget(widget)
         else:
             self._content_layout.addWidget(widget, *args, **kwargs)
 
     def addLayout(self, layout, *args, **kwargs):
         """Adiciona layout ao layout (scroll ou content)."""
         if self._scroll is not None:
-            self._scroll.add_layout_as_content(layout)
+            self._scroll.addLayout(layout)
         else:
             self._content_layout.addLayout(layout, *args, **kwargs)
 

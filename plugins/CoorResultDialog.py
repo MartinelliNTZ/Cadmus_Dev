@@ -2,11 +2,15 @@
 from ..utils.ToolKeys import ToolKey
 
 from .BasePlugin import BasePluginMTL
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..utils.ProjectUtils import ProjectUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.Preferences import Preferences
 from ..i18n.TranslationManager import STR
+from ..resources.new_widgets.grid.GridReadOnly import GridReadOnly
+from ..resources.new_widgets.grid.GridLabel import GridLabel
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.new_widgets.simple.SimpleLabel import SimpleLabel
+from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
 
 
 class CoordResultDialog(BasePluginMTL):
@@ -32,8 +36,8 @@ class CoordResultDialog(BasePluginMTL):
             enable_scroll=True,
         )
 
-        ro_layout, self.wgs_widget = WidgetFactory.create_readonly_field(
-            parent=self,
+        # ── WGS84 ReadOnly ────────────────────────────────────
+        self.wgs_widget = GridReadOnly(
             title=STR.WGS84_EPSG4326,
             fields={
                 "lat_dec": {"title": STR.LATITUDE_DECIMAL, "value": ""},
@@ -41,25 +45,31 @@ class CoordResultDialog(BasePluginMTL):
                 "lat_dms": {"title": STR.LATITUDE_DMS, "value": ""},
                 "lon_dms": {"title": STR.LONGITUDE_DMS, "value": ""},
             },
-            num_columns=1,
-            copy_all_button_title=STR.COPY_WGS84_FULL,
-        )
-
-        ro_layout2, self.utm_widget = WidgetFactory.create_readonly_field(
             parent=self,
+        )
+        self.layout.addWidget(self.wgs_widget)
+
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── UTM ReadOnly ─────────────────────────────────────
+        self.utm_widget = GridReadOnly(
             title=STR.UTM_SIRGAS_2000,
             fields={
                 "utm_x": {"title": STR.EASTING_X, "value": ""},
                 "utm_y": {"title": STR.NORTHING_Y, "value": ""},
             },
-            num_columns=1,
-            copy_all_button_title=STR.COPY_UTM_FULL,
-            separator_bottom=False,
-        )
-        self.lbl_utm_info = WidgetFactory.create_label(text="", parent=self)
-
-        ro_layout3, self.alt_widget = WidgetFactory.create_readonly_field(
             parent=self,
+        )
+        self.layout.addWidget(self.utm_widget)
+
+        # ── UTM Info Label ────────────────────────────────────
+        self.lbl_utm_info = SimpleLabel(text="", parent=self)
+        self.layout.addWidget(self.lbl_utm_info)
+
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Altimetria ReadOnly ──────────────────────────────
+        self.alt_widget = GridReadOnly(
             title=STR.ALTIMETRY_OPENTOPO,
             fields={
                 "altitude": {
@@ -67,52 +77,40 @@ class CoordResultDialog(BasePluginMTL):
                     "value": STR.LOADING,
                 }
             },
-            num_columns=1,
-            copy_all_button_title=None,
-            separator_top=True,
-        )
-
-        self.lbl_municipio = WidgetFactory.create_label(text="", parent=self)
-        self.lbl_state_district = WidgetFactory.create_label(text="", parent=self)
-        self.lbl_state = WidgetFactory.create_label(text="", parent=self)
-        self.lbl_region = WidgetFactory.create_label(text="", parent=self)
-        self.lbl_country = WidgetFactory.create_label(text="", parent=self)
-
-        copy_layout, self.btn_copy_all = WidgetFactory.create_simple_button(
-            text=STR.COPY_LOCATION_FULL,
             parent=self,
-            separator_top=False,
-            separator_bottom=False,
         )
-        self.btn_copy_all.clicked.connect(self.copy_all_info)
+        self.layout.addWidget(self.alt_widget)
 
-        btn_layout, _ = WidgetFactory.create_bottom_action_buttons(
-            parent=self,
-            run_callback=lambda: self.close(),
-            close_callback=lambda: self.close(),
-            info_callback=lambda: self.show_info_dialog(),
-            separator_top=False,
-            separator_bottom=False,
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Labels de Endereço ────────────────────────────────
+        self.address_labels = GridLabel(config={
+            "municipio": {"text": f"{STR.CITY}: {STR.LOADING_LOWER}"},
+            "state_district": {"text": f"{STR.INTERMEDIATE_REGION}: {STR.LOADING_LOWER}"},
+            "state": {"text": f"{STR.STATE}: {STR.LOADING_LOWER}"},
+            "region": {"text": f"{STR.REGION}: {STR.LOADING_LOWER}"},
+            "country": {"text": f"{STR.COUNTRY}: {STR.LOADING_LOWER}"},
+        }, parent=self)
+        self.layout.addWidget(self.address_labels)
+
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Botões de Ação (Copiar Tudo + Fechar + Info) ─────
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "copy_all": {
+                    "label": STR.COPY_LOCATION_FULL,
+                    "description": "Copia todas as coordenadas e endereço",
+                    "callback": self.copy_all_info,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_info=True,
             tool_key=self.TOOL_KEY,
-            run_text=STR.EXECUTE,
-            close_text=STR.CLOSE,
+            parent=self,
         )
-
-        self.layout.add_items(
-            [
-                ro_layout,
-                ro_layout2,
-                self.lbl_utm_info,
-                ro_layout3,
-                self.lbl_municipio,
-                self.lbl_state_district,
-                self.lbl_state,
-                self.lbl_region,
-                self.lbl_country,
-                copy_layout,
-                btn_layout,
-            ]
-        )
+        self.layout.add_execution_buttons(self.action_buttons)
 
     def _load_prefs(self):
         self.logger.debug(
@@ -150,11 +148,11 @@ class CoordResultDialog(BasePluginMTL):
         parts.append(f"{STR.APPROX_ALTITUDE_METERS}: {alt}")
 
         parts.append(STR.ADDRESS_OSM)
-        parts.append(self.lbl_municipio.text())
-        parts.append(self.lbl_state_district.text())
-        parts.append(self.lbl_state.text())
-        parts.append(self.lbl_region.text())
-        parts.append(self.lbl_country.text())
+        parts.append(self.address_labels.get_text("municipio"))
+        parts.append(self.address_labels.get_text("state_district"))
+        parts.append(self.address_labels.get_text("state"))
+        parts.append(self.address_labels.get_text("region"))
+        parts.append(self.address_labels.get_text("country"))
 
         text = "\n".join(parts)
         ok = ProjectUtils.set_clipboard_text(text)
@@ -200,32 +198,32 @@ class CoordResultDialog(BasePluginMTL):
 
     def set_address(self, data):
         if not data:
-            self.lbl_municipio.setText(f"{STR.CITY}: {STR.LOADING_LOWER}")
-            self.lbl_state_district.setText(
-                f"{STR.INTERMEDIATE_REGION}: {STR.LOADING_LOWER}"
-            )
-            self.lbl_state.setText(f"{STR.STATE}: {STR.LOADING_LOWER}")
-            self.lbl_region.setText(f"{STR.REGION}: {STR.LOADING_LOWER}")
-            self.lbl_country.setText(f"{STR.COUNTRY}: {STR.LOADING_LOWER}")
+            self.address_labels.set_config({
+                "municipio": {"text": f"{STR.CITY}: {STR.LOADING_LOWER}"},
+                "state_district": {"text": f"{STR.INTERMEDIATE_REGION}: {STR.LOADING_LOWER}"},
+                "state": {"text": f"{STR.STATE}: {STR.LOADING_LOWER}"},
+                "region": {"text": f"{STR.REGION}: {STR.LOADING_LOWER}"},
+                "country": {"text": f"{STR.COUNTRY}: {STR.LOADING_LOWER}"},
+            })
             return
 
-        self.lbl_municipio.setText(f"{STR.CITY}: {data.get('municipio', '-')}")
-        self.lbl_state_district.setText(
-            f"{STR.INTERMEDIATE_REGION}: {data.get('state_district', '-')}"
-        )
-        self.lbl_state.setText(f"{STR.STATE}: {data.get('state', '-')}")
-        self.lbl_region.setText(f"{STR.REGION}: {data.get('region', '-')}")
-        self.lbl_country.setText(f"{STR.COUNTRY}: {data.get('country', '-')}")
+        self.address_labels.set_config({
+            "municipio": {"text": f"{STR.CITY}: {data.get('municipio', '-')}"},
+            "state_district": {"text": f"{STR.INTERMEDIATE_REGION}: {data.get('state_district', '-')}"},
+            "state": {"text": f"{STR.STATE}: {data.get('state', '-')}"},
+            "region": {"text": f"{STR.REGION}: {data.get('region', '-')}"},
+            "country": {"text": f"{STR.COUNTRY}: {data.get('country', '-')}"},
+        })
         self.logger.debug(f"set_address: {data}")
 
     def copy_address(self):
-        text = (
-            f"{self.lbl_municipio.text()}\n"
-            f"{self.lbl_state_district.text()}\n"
-            f"{self.lbl_state.text()}\n"
-            f"{self.lbl_region.text()}\n"
-            f"{self.lbl_country.text()}"
-        )
+        text_parts = []
+        text_parts.append(self.address_labels.get_text("municipio"))
+        text_parts.append(self.address_labels.get_text("state_district"))
+        text_parts.append(self.address_labels.get_text("state"))
+        text_parts.append(self.address_labels.get_text("region"))
+        text_parts.append(self.address_labels.get_text("country"))
+        text = "\n".join(text_parts)
         ok = ProjectUtils.set_clipboard_text(text)
         if ok:
             QgisMessageUtil.bar_success(

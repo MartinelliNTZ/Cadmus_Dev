@@ -6,8 +6,9 @@ Plugins NUNCA importam Simple diretamente.
 """
 
 from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QSize
 from ...styles.AppStyles import AppStyles
+from ...IconManager import IconManager
 
 
 class SimpleReadOnly(QWidget):
@@ -44,14 +45,17 @@ class SimpleReadOnly(QWidget):
         layout.addWidget(self._line_edit, stretch=1)
 
         if show_copy_button:
-            self._copy_btn = QPushButton("📋", self)
-            self._copy_btn.setFixedSize(20, 20)
+            self._copy_btn = QPushButton(self)
+            self._copy_btn.setIcon(IconManager.icon(IconManager.COPY2))
+            self._copy_btn.setIconSize(QSize(14, 14))
+            self._copy_btn.setFixedSize(22, 22)
             self._copy_btn.setToolTip("Copiar")
+            self._copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._copy_btn.setFlat(True)
             self._copy_btn.setStyleSheet("""
                 QPushButton {
                     background: transparent;
                     border: none;
-                    font-size: 10px;
                     padding: 0px;
                 }
                 QPushButton:hover {

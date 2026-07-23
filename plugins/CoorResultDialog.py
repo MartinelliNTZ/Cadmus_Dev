@@ -44,6 +44,7 @@ class CoordResultDialog(BasePluginMTL):
                 "lat_dms": {"title": STR.LATITUDE_DMS, "value": ""},
                 "lon_dms": {"title": STR.LONGITUDE_DMS, "value": ""},
             },
+            show_copy_buttons=True,
             separator_bottom=True,
             parent=self,
         )
@@ -56,6 +57,7 @@ class CoordResultDialog(BasePluginMTL):
                 "utm_x": {"title": STR.EASTING_X, "value": ""},
                 "utm_y": {"title": STR.NORTHING_Y, "value": ""},
             },
+            show_copy_buttons=True,
             parent=self,
         )
         self.layout.addWidget(self.utm_widget)
@@ -73,6 +75,7 @@ class CoordResultDialog(BasePluginMTL):
                     "value": STR.LOADING,
                 }
             },
+            show_copy_buttons=True,
             separator_top=True,
             separator_bottom=True,
             parent=self,

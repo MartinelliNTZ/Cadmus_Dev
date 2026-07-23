@@ -202,7 +202,7 @@ class BaseTheme:
     # BORDER RADIUS — TODOS COM UNIDADE
     # ════════════════════════════════════════════════════════════
 
-    BORDER_RADIUS_INPUT_FIELD: str = "4px"
+    BORDER_RADIUS_INPUT_FIELD: str = "6px"
     BORDER_RADIUS_BUTTON_DEFAULT: str = "6px"
     BORDER_RADIUS_CHECKBOX: str = "3px"
     BORDER_RADIUS_RADIO_BUTTON: str = "6px"

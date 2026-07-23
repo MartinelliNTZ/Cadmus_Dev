@@ -227,15 +227,18 @@ class MainLayout(QVBoxLayout):
         do _content_layout (respeitando a margem de 5px).
 
         - Se scroll está habilitado: adiciona diretamente ao
-          _content_layout após o scroll, com stretch antes para
-          empurrar para baixo.
+          _content_layout após o scroll, SEM stretch (o scroll
+          já ocupa o espaço disponível acima).
         - Se scroll está desabilitado: adiciona ao _content_layout
-          após os demais widgets, com stretch antes.
+          após os demais widgets, com stretch antes para empurrar
+          para baixo.
         - Adiciona um pequeno espaçamento (LAYOUT_VERTICAL_SPACING) após
           os botões para não colar na borda inferior.
         """
-        # Stretch antes dos botões para empurrá-los para baixo
-        self._content_layout.addStretch()
+        # Stretch antes dos botões APENAS quando não há scroll
+        # (com scroll, o scroll widget já ocupa o espaço disponível)
+        if self._scroll is None:
+            self._content_layout.addStretch()
         # Botões fixos no final (fora do scroll)
         self._content_layout.addWidget(buttons_widget)
         # Pequeno espaçamento após os botões para não colar na borda

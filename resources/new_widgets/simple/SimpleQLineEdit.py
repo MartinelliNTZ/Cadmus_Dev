@@ -72,7 +72,9 @@ class SimpleQLineEdit(QLineEdit):
         # ── Dimensões do tema ──────────────────────────────────
         theme = self._get_theme()
         min_h = int(theme.INPUT_FIELD_MIN_HEIGHT.replace("px", ""))
+        max_h = int(theme.INPUT_FIELD_MAX_HEIGHT.replace("px", ""))
         self.setMinimumHeight(min_h)
+        self.setMaximumHeight(max_h)
 
         # ── Sombra (glow) ──────────────────────────────────────
         self._shadow = QGraphicsDropShadowEffect(self)

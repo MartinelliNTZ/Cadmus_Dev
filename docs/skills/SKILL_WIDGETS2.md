@@ -29,7 +29,10 @@ Plugin
 
 resources/styles/AppStyles.py
   ├─ Lê de ThemeManager (com cache)
-  ├─ Só métodos GLOBAIS: button(), label(), input(), checkbox()
+  ├─ Métodos GLOBAIS: button(), label(), input(), checkbox()
+  ├─ Métodos MODERNOS: modern_button_primary(), modern_button_secondary(),
+  │                    modern_button_round_icon(), modern_input_primary(),
+  │                    modern_input_secondary()
   └─ NUNCA coloca px — tokens já vêm do tema com unidade
 
 resources/styles/ThemeManager.py
@@ -40,10 +43,288 @@ resources/styles/BaseTheme.py
   └─ Classe de tema com todos os tokens visuais descritivos
 
 resources/new_widgets/
-  ├── (raiz)      → widget SEM versão grid
+  ├── (raiz)      → widget SEM versão grid (MainLayout, ScrollWidget, etc)
   ├── simple/     → widget TEM versão grid (uso INTERNO)
   └── grid/       → versão grid do widget (plugins USAM esta)
 ```
+
+---
+
+## 📦 CATÁLOGO DE WIDGETS SIMPLE (uso interno)
+
+Widgets em `resources/new_widgets/simple/` — NUNCA importados por plugins.
+
+### SimpleLabel
+`QLabel` com estilo global `AppStyles.label()`.
+```python
+# Uso em Simple/Grid widgets internos
+label = SimpleLabel(text="<b>Título</b>", parent=self)
+```
+
+### SimpleButton
+`QPushButton` com estilo global `AppStyles.button()`.
+```python
+# Uso em GridButton internamente
+btn = SimpleButton(text="Fechar", parent=self)
+```
+
+### SimpleIconButton
+`QPushButton` com ícone + `AppStyles.button()` + `_specific_style()` transparente.
+```python
+# Uso em GridIconButton internamente
+btn = SimpleIconButton(
+    icon_path="/path/to/icon.ico",
+    tooltip="GitHub",
+    icon_size=QSize(32, 32),
+    button_size=QSize(40, 40),
+    parent=self,
+)
+```
+
+### SimpleModernButton 🆕
+`QPushButton` **sem borda**, com **gradiente 3 stops** + **glow shadow** (`QGraphicsDropShadowEffect`).  
+Ao pressionar, a sombra "recolhe" — feedback tátil visual.
+
+**CORES E DIMENSÕES VEM DO TEMA via AppStyles. Nada hardcoded.**
+
+```python
+from .SimpleModernButton import SimpleModernButton
+
+# Botão de texto (primary/secondary)
+btn = SimpleModernButton(
+    text="Executar",
+    parent=self,
+    primary=True,           # True → PRIMARY, False → NEUTRAL
+    object_name="btn_run",  # para seletor CSS específico
+)
+
+# Botão de ícone redondo
+btn = SimpleModernButton(
+    icon=IconManager.icon(IconManager.COPY2),
+    icon_size=QSize(14, 14),
+    fixed_size=22,           # int = width e height iguais
+    tooltip="Copiar",
+    parent=self,
+    round_icon=True,         # usa estilo modern_button_round_icon
+)
+```
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `text` | str | `""` | Texto do botão |
+| `icon` | QIcon | `None` | Ícone do botão |
+| `icon_size` | QSize | `None` | Tamanho do ícone (default: 16x16 para round_icon) |
+| `fixed_size` | QSize / int | `None` | Tamanho fixo (int = quadrado) |
+| `tooltip` | str | `""` | Tooltip do botão |
+| `parent` | QWidget | `None` | Widget pai |
+| `primary` | bool | `False` | `True` → PRIMARY, `False` → NEUTRAL |
+| `round_icon` | bool | `False` | `True` → estilo `modern_button_round_icon` |
+| `object_name` | str | `None` | Nome para seletor CSS (auto-gerado se None) |
+
+**Tokens do tema usados:**
+- `BUTTON_MIN_HEIGHT`, `BUTTON_ROUND_ICON_SIZE`, `BUTTON_PADDING`, `BUTTON_FONT_SIZE`, `BUTTON_FONT_WEIGHT`
+- `BUTTON_SHADOW_BLUR_NORMAL/PRESSED`, `BUTTON_SHADOW_OFFSET_NORMAL/PRESSED`
+- `COLOR_GLOW_PRIMARY/NEUTRAL`, `COLOR_GLOW_PRIMARY/NEUTRAL_ALPHA`
+
+**Estilos AppStyles usados:**
+- `modern_button_primary(object_name)` — gradiente PRIMARY
+- `modern_button_secondary(object_name)` — gradiente NEUTRAL
+- `modern_button_round_icon(object_name)` — gradiente NEUTRAL, sem padding
+
+### SimpleQLineEdit 🆕
+`QLineEdit` **sem borda**, com **gradiente 3 stops** + **glow shadow**, condizente com `SimpleModernButton`.
+
+```python
+from .SimpleQLineEdit import SimpleQLineEdit
+
+# Input readonly primário
+input_edit = SimpleQLineEdit(
+    text="valor",
+    placeholder="Digite...",
+    read_only=True,
+    primary=True,
+    parent=self,
+)
+```
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `text` | str | `""` | Texto inicial |
+| `placeholder` | str | `""` | Placeholder |
+| `read_only` | bool | `False` | `True` ⇒ readonly |
+| `primary` | bool | `True` | `True` → PRIMARY, `False` → NEUTRAL |
+| `object_name` | str | `None` | Nome para seletor CSS (auto-gerado se None) |
+| `parent` | QWidget | `None` | Widget pai |
+
+**Comportamento visual:**
+- Sombra expande ao ganhar foco (`focusInEvent`) e recolhe ao perder (`focusOutEvent`)
+- `setMinimumHeight` + `setMaximumHeight` respeitam os tokens do tema
+
+**Tokens do tema usados:**
+- `INPUT_FIELD_MIN_HEIGHT: "32px"`, `INPUT_FIELD_MAX_HEIGHT: "36px"`
+- `INPUT_FIELD_PADDING: "4px 10px"`, `INPUT_FIELD_FONT_SIZE: "11px"`, `INPUT_FIELD_FONT_WEIGHT: "500"`
+- `INPUT_SHADOW_BLUR_NORMAL/FOCUSED`, `INPUT_SHADOW_OFFSET_NORMAL/FOCUSED`
+
+**Estilos AppStyles usados:**
+- `modern_input_primary(object_name)` — gradiente PANEL com destaque PRIMARY no foco
+- `modern_input_secondary(object_name)` — gradiente NEUTRAL
+
+### SimpleReadOnly
+Campo readonly composto por `SimpleQLineEdit` + botão copiar (`SimpleModernButton`) opcional.
+
+```python
+from .SimpleReadOnly import SimpleReadOnly
+
+# Com botão copiar (primary)
+readonly = SimpleReadOnly(
+    text="-10.12345678",
+    show_copy_button=True,
+    primary=True,       # estilo do input (True=PRIMARY, False=NEUTRAL)
+    parent=self,
+)
+
+# Sem botão copiar (padrão)
+readonly = SimpleReadOnly(text="valor", parent=self)
+```
+
+**API pública:**
+- `setText(text)` — define o texto (aceita `None`)
+- `text()` — retorna o texto
+- `setPlaceholderText(text)` — define placeholder
+
+---
+
+## 📦 CATÁLOGO DE WIDGETS GRID (uso em plugins)
+
+Widgets em `resources/new_widgets/grid/` — plugins USAM estes.
+
+### GridLabel
+Container de labels em layout vertical. Configuração via dict.
+
+```python
+info = GridLabel(config={
+    "title": {"text": "<h2>Meu App</h2>"},
+    "version": {"text": "Versão 1.0", "description": "Data de atualização"},
+}, parent=self)
+```
+
+**API pública:**
+- `set_text(key, text)` — atualiza texto
+- `get_text(key)` → str
+- `set_config(config)` — atualiza múltiplos labels
+
+### GridReadOnly
+Container com título + campos readonly (`SimpleReadOnly`). Cada campo pode ter botão copiar individual.
+
+```python
+wgs84 = GridReadOnly(
+    title="WGS84 (EPSG:4326)",
+    fields={
+        "lat_dec": {"title": "Latitude", "value": ""},
+        "lon_dec": {"title": "Longitude", "value": ""},
+    },
+    show_copy_buttons=True,   # botão copiar em cada campo (usa SimpleModernButton + COPY2)
+    separator_bottom=True,
+    parent=self,
+)
+layout.addWidget(wgs84)
+
+# API pública
+wgs84.set_value("lat_dec", "-10.12345678")
+wgs84.get_value("lat_dec")  # → "-10.12345678"
+```
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `title` | str | `""` | Título do bloco |
+| `fields` | dict | `{}` | Dict de campos (chave → `{"title", "value"}`) |
+| `show_copy_buttons` | bool | `False` | Botão copiar por campo |
+| `separator_top` | bool | `False` | Separador antes |
+| `separator_bottom` | bool | `False` | Separador depois |
+| `parent` | QWidget | `None` | Widget pai |
+
+### GridExecutionButtons
+Container de botões de execução configurável via dict. Usa `SimpleModernButton` internamente.
+
+```python
+actions = GridExecutionButtons(
+    config={
+        "run": {
+            "label": "Executar",
+            "description": "Inicia o processamento",
+            "callback": self.execute_tool,
+            "is_run_button": True,
+        },
+    },
+    enable_close_button=True,
+    enable_info=True,
+    tool_key=self.TOOL_KEY,
+    parent=self,
+)
+layout.add_execution_buttons(actions)  # via MainLayout
+```
+
+**Parâmetros adicionais:**
+- `enable_config_button` + `config_callback` — botão Config ⚙️
+- `separator_top/bottom` — separadores
+
+### GridIconButton
+Container de botões com ícone (`SimpleIconButton`). Configuração via dict.
+
+```python
+social = GridIconButton(config={
+    "github": {
+        "label": "GitHub",
+        "icon": IconManager.GITHUB,
+        "callback": lambda: webbrowser.open("https://github.com/user"),
+    },
+}, parent=self)
+layout.addWidget(social)
+```
+
+### GridButton (legado — prefira GridExecutionButtons)
+Container simples com botões Fechar/Executar/Info.
+
+---
+
+## 🧩 WIDGETS RAIZ (sem versão grid)
+
+### MainLayout
+Layout principal dos diálogos. Substitui o antigo `BaseLayout`.
+
+```python
+# No BaseDialog:
+self.layout = MainLayout(
+    self,
+    title="Meu Plugin",
+    enable_scroll=True,
+    show_run=False,
+    show_info=False,
+    show_close=True,
+)
+```
+
+**Métodos:**
+- `addWidget(widget)` — adiciona ao scroll (se habilitado) ou content
+- `addLayout(layout)` — adiciona layout
+- `add_execution_buttons(buttons_widget)` — adiciona botões FIXOS fora do scroll
+- `add_items(items)` — adiciona múltiplos widgets/layouts
+- `set_appbar_title(title)` — atualiza título
+
+### AppBarWidget
+Barra superior com título, botões e drag. Instanciado pelo `MainLayout`.
+
+### ScrollWidget
+QScrollArea com estilo `AppStyles.scroll_area()`. Instanciado pelo `MainLayout`.
+
+### SeparatorWidget
+QFrame HLine com gradiente horizontal.
 
 ---
 
@@ -58,6 +339,7 @@ resources/new_widgets/
 5. **Separadores** → `SeparatorWidget()` entre widgets no layout
 6. **Unidades** sempre no tema (`BaseTheme`), nunca `px` no widget ou `AppStyles`
 7. **Variável do tema** sempre `theme`, nunca `t`
+8. **Widgets que precisam de gradiente + glow** → use `SimpleModernButton` (botões) e `SimpleQLineEdit` (inputs)
 
 ### ❌ NUNCA FAZER:
 
@@ -75,6 +357,12 @@ min-height: 12px;  # certo: {theme.INPUT_FIELD_MIN_HEIGHT}
 
 # ❌ NUNCA conectar sinais Qt em widgets diretamente:
 widget.btn_close.clicked.connect(self.close)
+
+# ❌ NUNCA usar QPushButton cru em Simple widgets quando precisar de gradiente:
+# Use SimpleModernButton em vez disso.
+
+# ❌ NUNCA usar QLineEdit cru em Simple widgets quando precisar de gradiente:
+# Use SimpleQLineEdit em vez disso.
 ```
 
 ### 📋 ⚠️ REGRA ABSOLUTA: Configuração via Dict `config={}`
@@ -93,27 +381,10 @@ self.social = GridIconButton(config={
         "callback": lambda: webbrowser.open("https://github.com/user"),
         "description": "Visite o GitHub",
     },
-    "linkedin": {
-        "label": "LinkedIn",
-        "icon": IconManager.LINKEDIN,
-        "callback": lambda: webbrowser.open("https://linkedin.com/in/user"),
-    },
 }, parent=self)
 
-# ❌ ERRADO — callback global (quem define a ação é o plugin, não o widget)
-self.social = GridIconButton(config={
-    "github": {"label": "GitHub", "icon": IconManager.GITHUB, "url": "..."},
-}, url_callback=lambda url: ..., parent=self)
-
 # ❌ ERRADO — lista de tuplas (NUNCA use isso)
-self.social = GridIconButton(items=[
-    ("GitHub", IconManager.GITHUB, "https://github.com/user"),
-], parent=self)
-
-# ❌ ERRADO — lista de dicts sem chave identificadora
-self.social = GridIconButton(items=[
-    {"label": "GitHub", "icon": IconManager.GITHUB},
-], parent=self)
+self.social = GridIconButton(items=[...], parent=self)
 ```
 
 **Propriedades comuns do dict de cada componente:**
@@ -139,9 +410,8 @@ Widgets **não expõem sinais Qt** para o plugin. Em vez disso, o plugin passa *
 
 ```python
 # ✅ CERTO — plugin passa callback:
-actions = GridButton(
-    close_callback=self.close,
-    run_callback=self.execute_tool,
+actions = GridExecutionButtons(
+    config={"run": {"label": "Executar", "callback": self.execute_tool}},
     parent=self,
 )
 
@@ -153,7 +423,7 @@ actions.btn_close.clicked.connect(self.close)
 
 ---
 
-## 🧬 CONTRATO DO WIDGET (Template)
+### 🧬 CONTRATO DO WIDGET (Template)
 
 ```python
 # resources/new_widgets/grid/GridExemplo.py
@@ -235,7 +505,7 @@ border: 1px solid {theme.COLOR_BORDER};
 **CERTO:**
 ```python
 # ✅ UNIDADE SEMPRE NO TEMA
-# No tema:  INPUT_FIELD_MIN_HEIGHT = "12px"
+# No tema:  INPUT_FIELD_MIN_HEIGHT = "32px"
 # No estilo: min-height: {theme.INPUT_FIELD_MIN_HEIGHT};
 
 # No tema:  PXBORDER_ONE = "1px solid"
@@ -249,11 +519,15 @@ border: 1px solid {theme.COLOR_BORDER};
 | Aspecto | AppStyles (NOVO) | Styles.py (ANTIGO) |
 |---------|-----------------|-------------------|
 | Fonte do tema | `ThemeManager` | `BaseStyles.current_theme = CoffeTheme()` |
-| Unidades | Tokens já têm unidade: `"12px"` | Tokens sem unidade: `12` |
+| Unidades | Tokens já têm unidade: `"32px"` | Tokens sem unidade: `12` |
 | Nomes tokens | `INPUT_FIELD_MIN_HEIGHT` | `INPUT_HEIGHT` |
 | Cache | Sim (`_theme` classvar) | Não |
 | `_specific_style()` | Cada widget pode ter | Não tem |
 | Separadores | Widget separado (`SeparatorWidget`) | Parâmetro `separator_top/bottom` |
+| Botões com glow | `SimpleModernButton` + `modern_button_*()` | Não tinha |
+| Inputs com glow | `SimpleQLineEdit` + `modern_input_*()` | Não tinha |
+| `add_execution_buttons` | Fora do scroll (fixo embaixo) | Dentro do scroll |
+| `show_copy_buttons` | Botão copiar com `COPY2` + `SimpleModernButton` | Emoji 📋 |
 
 ---
 
@@ -269,6 +543,9 @@ border: 1px solid {theme.COLOR_BORDER};
 - [ ] 8. Se tem versão grid → `simple/` + `grid/`
 - [ ] 9. Se não tem versão grid → raiz de `new_widgets/`
 - [ ] 10. Plugin usa versão grid (nunca simple)
+- [ ] 11. Botão com gradiente/glow → `SimpleModernButton`
+- [ ] 12. Input com gradiente/glow → `SimpleQLineEdit`
+- [ ] 13. `add_execution_buttons` SEM stretch se scroll estiver habilitado
 
 ---
 
@@ -279,3 +556,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-21 | 1.0.0 | Criação inicial — Novo sistema de widgets autoconfiguráveis |
 | 2026-07-21 | 1.1.0 | Adicionada regra de callbacks (widget não expõe sinais Qt, plugin passa funções callback como parâmetros) |
 | 2026-07-21 | 1.2.0 | Adicionado padrão de configuração via dict `config={}` com chaves identificadoras e suporte a `description` para tooltip |
+| 2026-07-23 | 2.0.0 | Adicionados `SimpleModernButton` (gradiente + glow), `SimpleQLineEdit` (gradiente + glow), `SimpleReadOnly` atualizado com `SimpleModernButton` + `SimpleQLineEdit` + ícone COPY2. Adicionados tokens `INPUT_FIELD_PADDING`, `INPUT_FIELD_FONT_SIZE`, `INPUT_FIELD_FONT_WEIGHT`, `INPUT_SHADOW_*`. Adicionados métodos `modern_input_primary()`, `modern_input_secondary()`. Documentado comportamento de `add_execution_buttons` sem stretch com scroll. |

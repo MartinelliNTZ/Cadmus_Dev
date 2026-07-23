@@ -57,146 +57,20 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QVBoxLayout,
-    QPushButton,
-    QGraphicsDropShadowEffect,
-    QSizePolicy,
 )
-from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtCore import Qt
 
+from ..simple.SimpleModernButton import SimpleModernButton
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
 from ...InstructionsManager import InstructionsManager
 from ...IconManager import IconManager
-
 
 # ── Compatibilidade Qt5 / Qt6 ──────────────────────────────────
 try:
     _CURSOR_POINTING_HAND = Qt.CursorShape.PointingHandCursor  # Qt6
 except AttributeError:
     _CURSOR_POINTING_HAND = Qt.PointingHandCursor  # Qt5
-
-try:
-    _SIZE_POLICY_PREFERRED = QSizePolicy.Policy.Preferred  # Qt6
-    _SIZE_POLICY_FIXED = QSizePolicy.Policy.Fixed  # Qt6
-except AttributeError:
-    _SIZE_POLICY_PREFERRED = QSizePolicy.Preferred  # Qt5
-    _SIZE_POLICY_FIXED = QSizePolicy.Fixed  # Qt5
-
-
-def _glow_qcolor(hex_color: str, alpha: int) -> QColor:
-    """Constrói QColor a partir de HEX + alpha (usa método estático do tema)."""
-    from ...styles.BaseTheme import BaseTheme  # pylint: disable=import-outside-toplevel
-    rgba_str = BaseTheme.rgba(hex_color, alpha)
-    # Formato: "rgba(r,g,b,alpha)"
-    rgba_str = rgba_str.replace("rgba(", "").replace(")", "")
-    parts = [int(x.strip()) for x in rgba_str.split(",")]
-    return QColor(*parts)
-
-
-class ModernButton(QPushButton):
-    """
-    QPushButton sem borda, com gradiente de 3 stops (luz vindo de cima) +
-    sombra colorida (glow), dando efeito de elevação/3D.
-
-    CORES E DIMENSÕES VEM DO TEMA via AppStyles.
-    Nada hardcoded aqui.
-
-    Parâmetros
-    ----------
-    text : str
-        Texto do botão.
-    parent : QWidget, optional
-    primary : bool, optional
-        True → estilo primary (paleta PRIMARY do tema).
-        False → estilo secondary (paleta NEUTRAL do tema).
-    round_icon : bool, optional
-        True → botão circular pequeno (ícone config/info).
-    """
-
-    def __init__(
-        self,
-        text="",
-        parent=None,
-        primary: bool = False,
-        round_icon: bool = False,
-        object_name: str = None,
-    ):
-        super().__init__(text, parent)
-        self._primary = primary
-        self._round_icon = round_icon
-        self._object_name = object_name or f"modern_btn_{id(self)}"
-        self.setObjectName(self._object_name)
-
-        self.setCursor(_CURSOR_POINTING_HAND)
-        self.setSizePolicy(_SIZE_POLICY_PREFERRED, _SIZE_POLICY_FIXED)
-        self.setFlat(True)
-
-        # ── Dimensões do tema ──────────────────────────────────
-        theme = self._get_theme()
-        if round_icon:
-            sz = int(theme.BUTTON_ROUND_ICON_SIZE.replace("px", ""))
-            self.setFixedSize(sz, sz)
-            self.setIconSize(self._icon_size())
-        else:
-            min_h = int(theme.BUTTON_MIN_HEIGHT.replace("px", ""))
-            self.setMinimumHeight(min_h)
-
-        # ── Sombra (glow) ──────────────────────────────────────
-        self._shadow = QGraphicsDropShadowEffect(self)
-        if primary:
-            glow_color = _glow_qcolor(
-                theme.COLOR_GLOW_PRIMARY, theme.COLOR_GLOW_PRIMARY_ALPHA
-            )
-        else:
-            glow_color = _glow_qcolor(
-                theme.COLOR_GLOW_NEUTRAL, theme.COLOR_GLOW_NEUTRAL_ALPHA
-            )
-        self._shadow_blur_normal = theme.BUTTON_SHADOW_BLUR_NORMAL
-        self._shadow_blur_pressed = theme.BUTTON_SHADOW_BLUR_PRESSED
-        self._shadow_offset_normal = theme.BUTTON_SHADOW_OFFSET_NORMAL
-        self._shadow_offset_pressed = theme.BUTTON_SHADOW_OFFSET_PRESSED
-        self._shadow.setBlurRadius(self._shadow_blur_normal)
-        self._shadow.setOffset(0, self._shadow_offset_normal)
-        self._shadow.setColor(glow_color)
-        self.setGraphicsEffect(self._shadow)
-
-        # ── Sinais ─────────────────────────────────────────────
-        self.pressed.connect(self._on_pressed)
-        self.released.connect(self._on_released)
-
-        # ── Aplica estilo do AppStyles ─────────────────────────
-        self._apply_style()
-
-    # ── Helpers ────────────────────────────────────────────────
-
-    @staticmethod
-    def _get_theme():
-        """Retorna tema atual via AppStyles (usa cache do AppStyles)."""
-        return AppStyles._get_theme()
-
-    @staticmethod
-    def _icon_size():
-        from qgis.PyQt.QtCore import QSize
-        return QSize(16, 16)
-
-    def _on_pressed(self):
-        self._shadow.setBlurRadius(self._shadow_blur_pressed)
-        self._shadow.setOffset(0, self._shadow_offset_pressed)
-
-    def _on_released(self):
-        self._shadow.setBlurRadius(self._shadow_blur_normal)
-        self._shadow.setOffset(0, self._shadow_offset_normal)
-
-    def _apply_style(self):
-        """Aplica QSS via AppStyles conforme tipo do botão."""
-        if self._round_icon:
-            qss = AppStyles.modern_button_round_icon(self._object_name)
-        elif self._primary:
-            qss = AppStyles.modern_button_primary(self._object_name)
-        else:
-            qss = AppStyles.modern_button_secondary(self._object_name)
-        self.setStyleSheet(qss)
 
 
 class GridExecutionButtons(QWidget):
@@ -281,7 +155,7 @@ class GridExecutionButtons(QWidget):
             description = btn_config.get("description", "")
             is_run = btn_config.get("is_run_button", False)
 
-            btn = ModernButton(
+            btn = SimpleModernButton(
                 text=label,
                 parent=self,
                 primary=is_run,
@@ -299,14 +173,14 @@ class GridExecutionButtons(QWidget):
 
         # 2. Botão Close
         if self._enable_close:
-            self.btn_close = ModernButton(text="Fechar", parent=self, primary=False)
+            self.btn_close = SimpleModernButton(text="Fechar", parent=self, primary=False)
             self.btn_close.clicked.connect(self._on_close_clicked)
             self.btn_close.setToolTip("Fecha a janela atual")
             layout.addWidget(self.btn_close)
 
         # 3. Botão Config ⚙️ (entre close e info)
         if self._enable_config:
-            self.btn_config = ModernButton(parent=self, primary=False, round_icon=True)
+            self.btn_config = SimpleModernButton(parent=self, primary=False, round_icon=True)
             self.btn_config.setIcon(IconManager.icon(IconManager.CONFIG3))
             self.btn_config.setToolTip("Abre as configurações do plugin")
             if self._config_callback:
@@ -317,7 +191,7 @@ class GridExecutionButtons(QWidget):
 
         # 4. Botão Info
         if self._enable_info:
-            self.btn_info = ModernButton(parent=self, primary=False, round_icon=True)
+            self.btn_info = SimpleModernButton(parent=self, primary=False, round_icon=True)
             self.btn_info.setIcon(IconManager.icon(IconManager.INFO))
             self.btn_info.setToolTip("Exibe instruções e informações do plugin")
             if self._tool_key:

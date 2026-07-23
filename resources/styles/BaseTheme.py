@@ -160,6 +160,24 @@ class BaseTheme:
     SCROLL_BAR_VERTICAL_WIDTH: str = "8px"
 
     # ════════════════════════════════════════════════════════════
+    # DIMENSÕES — INPUT MODERNO (SimpleQLineEdit)
+    # ════════════════════════════════════════════════════════════
+
+    MODERN_INPUT_MIN_HEIGHT: str = "32px"
+    MODERN_INPUT_PADDING: str = "4px 10px"
+    MODERN_INPUT_FONT_SIZE: str = "11px"
+    MODERN_INPUT_FONT_WEIGHT: str = "500"
+
+    # ════════════════════════════════════════════════════════════
+    # SOMBRA — INPUT MODERNO (SimpleQLineEdit)
+    # ════════════════════════════════════════════════════════════
+
+    MODERN_INPUT_SHADOW_BLUR_NORMAL: int = 8
+    MODERN_INPUT_SHADOW_BLUR_FOCUSED: int = 12
+    MODERN_INPUT_SHADOW_OFFSET_NORMAL: int = 2
+    MODERN_INPUT_SHADOW_OFFSET_FOCUSED: int = 2
+
+    # ════════════════════════════════════════════════════════════
     # DIMENSÕES — BOTÕES MODERNOS (GridExecutionButtons)
     # ════════════════════════════════════════════════════════════
 

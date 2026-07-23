@@ -5,11 +5,11 @@ USO INTERNO — GridReadOnly usa este widget.
 Plugins NUNCA importam Simple diretamente.
 """
 
-from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QLineEdit
+from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout
 from qgis.PyQt.QtCore import QSize
-from ...styles.AppStyles import AppStyles
 from ...IconManager import IconManager
 from .SimpleModernButton import SimpleModernButton
+from .SimpleQLineEdit import SimpleQLineEdit
 
 
 class SimpleReadOnly(QWidget):
@@ -24,24 +24,27 @@ class SimpleReadOnly(QWidget):
         Placeholder text.
     show_copy_button : bool, optional
         Se True, exibe botão copiar ao lado do campo.
+    primary : bool, optional
+        True → estilo primary (paleta PRIMARY do tema).
+        False → estilo secondary (paleta NEUTRAL do tema).
     parent : QWidget, optional
         Widget pai.
     """
 
-    def __init__(self, text: str = "", placeholder: str = "", show_copy_button: bool = False, parent=None):
+    def __init__(self, text: str = "", placeholder: str = "", show_copy_button: bool = False, primary: bool = True, parent=None):
         super().__init__(parent)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
 
-        self._line_edit = QLineEdit(self)
-        self._line_edit.setReadOnly(True)
-        if text:
-            self._line_edit.setText(str(text))
-        if placeholder:
-            self._line_edit.setPlaceholderText(placeholder)
-        self._line_edit.setStyleSheet(AppStyles.input())
+        self._line_edit = SimpleQLineEdit(
+            text=text,
+            placeholder=placeholder,
+            read_only=True,
+            primary=primary,
+            parent=self,
+        )
 
         layout.addWidget(self._line_edit, stretch=1)
 

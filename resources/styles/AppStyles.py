@@ -414,6 +414,86 @@ class AppStyles:
             "}"
         )
 
+    # ── Modern Input Styles (SimpleQLineEdit) ────────────────────────────
+
+    @classmethod
+    def modern_input_primary(cls, object_name: str = None) -> str:
+        """
+        Estilo para QLineEdit primário (modo normal/foco).
+        Gradiente 3 stops na paleta PRIMARY, sem borda.
+        Dimensões via Python (setMinimumHeight).
+
+        Parâmetros
+        ----------
+        object_name : str, optional
+            Se fornecido, usa seletor QLineEdit#object_name.
+        """
+        theme = cls._get_theme()
+        sel = f"QLineEdit#{object_name}" if object_name else "QLineEdit"
+        return (
+            f"{sel} {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_BACKGROUND_PANEL},"
+            f"        stop:0.5 {theme.COLOR_BACKGROUND_SOFT},"
+            f"        stop:1 {theme.COLOR_BACKGROUND_PANEL});"
+            f"    color: {theme.COLOR_TEXT_PRIMARY};"
+            "    border: none;"
+            f"    border-radius: {theme.BORDER_RADIUS_INPUT_FIELD};"
+            f"    padding: {theme.MODERN_INPUT_PADDING};"
+            f"    font-size: {theme.MODERN_INPUT_FONT_SIZE};"
+            f"    font-weight: {theme.MODERN_INPUT_FONT_WEIGHT};"
+            "}"
+            f"{sel}:focus {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_PRIMARY_DARK},"
+            f"        stop:0.3 {theme.COLOR_BACKGROUND_PANEL},"
+            f"        stop:1 {theme.COLOR_BACKGROUND_PANEL});"
+            "}"
+            f"{sel}:disabled {{"
+            f"    background: {theme.COLOR_NEUTRAL_DARK};"
+            f"    color: {theme.COLOR_NEUTRAL};"
+            "}"
+        )
+
+    @classmethod
+    def modern_input_secondary(cls, object_name: str = None) -> str:
+        """
+        Estilo para QLineEdit secundário (modo normal/foco).
+        Gradiente 3 stops na paleta NEUTRAL, sem borda.
+        Dimensões via Python (setMinimumHeight).
+
+        Parâmetros
+        ----------
+        object_name : str, optional
+            Se fornecido, usa seletor QLineEdit#object_name.
+        """
+        theme = cls._get_theme()
+        sel = f"QLineEdit#{object_name}" if object_name else "QLineEdit"
+        return (
+            f"{sel} {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL_LIGHT},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            f"    color: {theme.COLOR_WHITE};"
+            "    border: none;"
+            f"    border-radius: {theme.BORDER_RADIUS_INPUT_FIELD};"
+            f"    padding: {theme.MODERN_INPUT_PADDING};"
+            f"    font-size: {theme.MODERN_INPUT_FONT_SIZE};"
+            f"    font-weight: {theme.MODERN_INPUT_FONT_WEIGHT};"
+            "}"
+            f"{sel}:focus {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL_DARK},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            "}"
+            f"{sel}:disabled {{"
+            f"    background: {theme.COLOR_NEUTRAL_DARK};"
+            f"    color: {theme.COLOR_NEUTRAL};"
+            "}"
+        )
+
     # ── Modern Button Styles (GridExecutionButtons) ──────────────────────
 
     @classmethod

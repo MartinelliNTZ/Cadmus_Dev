@@ -25,6 +25,7 @@ class IconManager:
     CONFIG1 = "config1.ico"
     CONFIG2 = "config2.ico"
     CONFIG3 = "config3.ico"
+    COPY2 = "copy2.ico"
 
     # Menus
     AGRICULTURE = "agriculture.ico"

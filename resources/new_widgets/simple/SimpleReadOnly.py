@@ -51,8 +51,8 @@ class SimpleReadOnly(QWidget):
         if show_copy_button:
             self._copy_btn = SimpleModernButton(
                 icon=IconManager.icon(IconManager.COPY2),
-                icon_size=QSize(14, 14),
-                fixed_size=22,
+                icon_size=QSize(16, 16),
+                fixed_size=32,
                 tooltip="Copiar",
                 parent=self,
                 round_icon=True,

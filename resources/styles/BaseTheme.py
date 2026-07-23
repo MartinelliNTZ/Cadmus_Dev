@@ -143,8 +143,11 @@ class BaseTheme:
     # DIMENSÕES — TODAS COM UNIDADE
     # ════════════════════════════════════════════════════════════
 
-    INPUT_FIELD_MIN_HEIGHT: str = "12px"
-    INPUT_FIELD_MAX_HEIGHT: str = "18px"
+    INPUT_FIELD_MIN_HEIGHT: str = "30px"
+    INPUT_FIELD_MAX_HEIGHT: str = "30px"
+    INPUT_FIELD_PADDING: str = "4px 10px"
+    INPUT_FIELD_FONT_SIZE: str = "11px"
+    INPUT_FIELD_FONT_WEIGHT: str = "50"
     BUTTON_DEFAULT_MIN_HEIGHT: str = "12px"
     ITEM_DEFAULT_HEIGHT: str = "12px"
 
@@ -160,29 +163,20 @@ class BaseTheme:
     SCROLL_BAR_VERTICAL_WIDTH: str = "8px"
 
     # ════════════════════════════════════════════════════════════
-    # DIMENSÕES — INPUT MODERNO (SimpleQLineEdit)
+    # SOMBRA — INPUT FIELD
     # ════════════════════════════════════════════════════════════
 
-    MODERN_INPUT_MIN_HEIGHT: str = "32px"
-    MODERN_INPUT_PADDING: str = "4px 10px"
-    MODERN_INPUT_FONT_SIZE: str = "11px"
-    MODERN_INPUT_FONT_WEIGHT: str = "500"
-
-    # ════════════════════════════════════════════════════════════
-    # SOMBRA — INPUT MODERNO (SimpleQLineEdit)
-    # ════════════════════════════════════════════════════════════
-
-    MODERN_INPUT_SHADOW_BLUR_NORMAL: int = 8
-    MODERN_INPUT_SHADOW_BLUR_FOCUSED: int = 12
-    MODERN_INPUT_SHADOW_OFFSET_NORMAL: int = 2
-    MODERN_INPUT_SHADOW_OFFSET_FOCUSED: int = 2
+    INPUT_SHADOW_BLUR_NORMAL: int = 8
+    INPUT_SHADOW_BLUR_FOCUSED: int = 12
+    INPUT_SHADOW_OFFSET_NORMAL: int = 2
+    INPUT_SHADOW_OFFSET_FOCUSED: int = 2
 
     # ════════════════════════════════════════════════════════════
     # DIMENSÕES — BOTÕES MODERNOS (GridExecutionButtons)
     # ════════════════════════════════════════════════════════════
 
-    BUTTON_MIN_HEIGHT: str = "36px"
-    BUTTON_ROUND_ICON_SIZE: str = "32px"
+    BUTTON_MIN_HEIGHT: str = "30px"
+    BUTTON_ROUND_ICON_SIZE: str = "30px"
     BUTTON_PADDING: str = "7px 22px"
     BUTTON_FONT_SIZE: str = "12px"
     BUTTON_FONT_WEIGHT: str = "600"

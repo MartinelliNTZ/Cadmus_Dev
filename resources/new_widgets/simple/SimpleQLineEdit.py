@@ -71,7 +71,7 @@ class SimpleQLineEdit(QLineEdit):
 
         # ── Dimensões do tema ──────────────────────────────────
         theme = self._get_theme()
-        min_h = int(theme.MODERN_INPUT_MIN_HEIGHT.replace("px", ""))
+        min_h = int(theme.INPUT_FIELD_MIN_HEIGHT.replace("px", ""))
         self.setMinimumHeight(min_h)
 
         # ── Sombra (glow) ──────────────────────────────────────
@@ -84,10 +84,10 @@ class SimpleQLineEdit(QLineEdit):
             glow_color = _glow_qcolor(
                 theme.COLOR_GLOW_NEUTRAL, theme.COLOR_GLOW_NEUTRAL_ALPHA
             )
-        self._shadow_blur_normal = theme.MODERN_INPUT_SHADOW_BLUR_NORMAL
-        self._shadow_blur_focused = theme.MODERN_INPUT_SHADOW_BLUR_FOCUSED
-        self._shadow_offset_normal = theme.MODERN_INPUT_SHADOW_OFFSET_NORMAL
-        self._shadow_offset_focused = theme.MODERN_INPUT_SHADOW_OFFSET_FOCUSED
+        self._shadow_blur_normal = theme.INPUT_SHADOW_BLUR_NORMAL
+        self._shadow_blur_focused = theme.INPUT_SHADOW_BLUR_FOCUSED
+        self._shadow_offset_normal = theme.INPUT_SHADOW_OFFSET_NORMAL
+        self._shadow_offset_focused = theme.INPUT_SHADOW_OFFSET_FOCUSED
         self._shadow.setBlurRadius(self._shadow_blur_normal)
         self._shadow.setOffset(0, self._shadow_offset_normal)
         self._shadow.setColor(glow_color)

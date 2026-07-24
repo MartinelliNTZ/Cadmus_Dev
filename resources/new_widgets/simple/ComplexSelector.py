@@ -214,7 +214,7 @@ class ComplexSelector(QWidget):
         # 📄 (project — só input, alterna line edit <-> combo)
         if self._mode_type == "input" and self._allow_file:
             self._btn_project = SquareIconButton(
-                icon=IconManager.icon(IconManager.PROJECT),
+                icon=IconManager.icon(IconManager.LAYER2),
                 tooltip="Alternar para seleção de camada",
                 parent=self,
             )
@@ -234,7 +234,7 @@ class ComplexSelector(QWidget):
         # 🛠️ (suggest — só output)
         if self._mode_type == "output":
             self._btn_suggest = SquareIconButton(
-                icon=IconManager.icon(IconManager.SUGESTION),
+                icon=IconManager.icon(IconManager.PROJECT_FOLDER1),
                 tooltip="Usar pasta do projeto",
                 parent=self,
             )

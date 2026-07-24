@@ -18,6 +18,9 @@ class IconManager:
     INFO = "info.ico"
     SUGESTION = "sugest.ico"
     PROJECT = "project.ico"
+    PROJECT2 = "project2.ico"
+    PROJECT_FOLDER1 = "project_folder1.ico"
+    PROJECT_FOLDER2 = "project_folder2.ico"
     FOLDER = "folder.ico"
     FILE1 = "file1.ico"
     FILE2 = "file2.ico"
@@ -27,6 +30,7 @@ class IconManager:
     CONFIG3 = "config3.ico"
     COPY2 = "copy2.ico"
     ORIGIN = "origin.ico"
+    LAYER2 = "layer2.ico"
 
     # Menus
     AGRICULTURE = "agriculture.ico"

@@ -126,6 +126,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
                     "label": STR.OUTPUT_FOLDER,
                     "description": "Pasta onde os arquivos exportados serão salvos",
                     "path": default_path,
+                    "mode_type": "output",
                     "allow_file": False,
                     "allow_folder": True,
                     "subfolder": "exports",

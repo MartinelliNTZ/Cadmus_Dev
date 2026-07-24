@@ -56,7 +56,7 @@ class BaseTheme:
     # ── Neutral ────────────────────────────────────────────────
     COLOR_NEUTRAL: str = "#52525b"
     COLOR_NEUTRAL_LIGHT: str = "#71717a"
-    COLOR_NEUTRAL_DARK: str = "#27272a"
+    COLOR_NEUTRAL_DARK: str = "#535363"
 
     # ════════════════════════════════════════════════════════════
     # CORES FIXAS (não variam entre temas)

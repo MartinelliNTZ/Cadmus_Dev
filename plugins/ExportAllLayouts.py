@@ -12,6 +12,7 @@ from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
 from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
 from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
 from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from qgis.core import QgsMapLayerProxyModel
 from ..utils.DependenciesManager import DependenciesManager
 from ..utils.PDFUtils import PDFUtils
 from ..utils.Preferences import Preferences
@@ -137,6 +138,108 @@ class ExportAllLayoutsDialog(BasePluginMTL):
         self.layout.addWidget(self.folder_selector)
         self.logger.debug("Path Selector de pasta de saída criado")
 
+        # ── TESTE: GridComplexSelector com todos os cenários ─────────
+        self.logger.info("Criando GridComplexSelector de teste com todos os cenários")
+        self.test_selector = GridComplexSelector(
+            config={
+                # CENÁRIO 1: Input simples, apenas arquivo .las/.laz, sem layer filter
+                "input_las": {
+                    "label": "LAS/LAZ Input",
+                    "description": "CENÁRIO 1: Input simples, allow_file=True, allow_folder=False, file_filter=LAS/LAZ (*.las *.laz). Deve mostrar 🔍📄➡️",
+                    "mode_type": "input",
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "file_filter": "LAS/LAZ (*.las *.laz)",
+                },
+                # CENÁRIO 2: Input com layer filter (PointLayer), começa com combo
+                "input_layer": {
+                    "label": "Camada PointLayer",
+                    "description": "CENÁRIO 2: Input com layer_filters=PointLayer. Deve começar com QgsMapLayerComboBox visível. 📄 alterna line edit <-> combo. 🔍📁➡️ disponíveis",
+                    "mode_type": "input",
+                    "allow_file": True,
+                    "allow_folder": True,
+                    "layer_filters": QgsMapLayerProxyModel.PointLayer,
+                },
+                # CENÁRIO 3: Input apenas pasta, sem file
+                "input_folder": {
+                    "label": "Pasta de entrada",
+                    "description": "CENÁRIO 3: Input apenas pasta (allow_file=False, allow_folder=True). Deve mostrar apenas 📁📄➡️ (sem 🔍)",
+                    "mode_type": "input",
+                    "allow_file": False,
+                    "allow_folder": True,
+                },
+                # CENÁRIO 4: Output com parent (usa 📥)
+                "output_com_parent": {
+                    "label": "Output c/ parent",
+                    "description": "CENÁRIO 4: Output com parent='input_las', suffix='_processed', fixed_extension='gpkg'. 📥 gera nome baseado no parent. 🛠️ gera via ProjectUtils. ➡️ abre Explorer",
+                    "mode_type": "output",
+                    "parent": "input_las",
+                    "suffix": "_processed",
+                    "fixed_extension": "gpkg",
+                    "subfolder": "output",
+                    "fixed_name": "resultado.gpkg",
+                },
+                # CENÁRIO 5: Output sem parent (apenas 🛠️)
+                "output_sem_parent": {
+                    "label": "Output s/ parent",
+                    "description": "CENÁRIO 5: Output sem parent. Apenas 🛠️ (suggest via ProjectUtils) + 🔍📁➡️. Sem 📥",
+                    "mode_type": "output",
+                    "allow_file": True,
+                    "allow_folder": True,
+                    "subfolder": "exports",
+                    "fixed_name": "meu_arquivo.pdf",
+                    "fixed_extension": "pdf",
+                },
+                # CENÁRIO 6: Output com parent, sem suffix, usa extensão do parent
+                "output_parent_sem_suffix": {
+                    "label": "Output parent s/ suffix",
+                    "description": "CENÁRIO 6: Output com parent='input_las', sem suffix, sem fixed_extension. 📥 deve usar extensão original do parent (.las). 🛠️ disponível",
+                    "mode_type": "output",
+                    "parent": "input_las",
+                    "subfolder": "converted",
+                },
+                # CENÁRIO 7: Input com múltiplos arquivos
+                "input_multiplos": {
+                    "label": "Múltiplos arquivos",
+                    "description": "CENÁRIO 7: Input com multiple=True, allow_file=True. 🔍 permite selecionar vários arquivos. Line edit mostra separados por ;",
+                    "mode_type": "input",
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "multiple": True,
+                    "file_filter": "TIFF/GeoTIFF (*.tif *.tiff)",
+                },
+                # CENÁRIO 8: Output com parent, fixed_extension sem suffix
+                "output_fixed_ext": {
+                    "label": "Output fixed_ext",
+                    "description": "CENÁRIO 8: Output com parent='input_multiplos', fixed_extension='jpg', sem suffix. 📥 gera nome do parent + .jpg",
+                    "mode_type": "output",
+                    "parent": "input_multiplos",
+                    "fixed_extension": "jpg",
+                    "subfolder": "images",
+                },
+                # CENÁRIO 9: Output com parent + allow_folder (igual CENÁRIO 4 + allow_folder)
+                "output_com_parent_folder": {
+                    "label": "Output parent + folder",
+                    "description": "CENÁRIO 9: Output com parent='input_las', suffix='_backup', fixed_extension='bak', allow_folder=True. 📥 gera nome baseado no parent. 📁 visível para selecionar pasta. 🛠️ disponível",
+                    "mode_type": "output",
+                    "parent": "input_las",
+                    "suffix": "_backup",
+                    "fixed_extension": "bak",
+                    "subfolder": "backup",
+                    "fixed_name": "backup.bak",
+                    "allow_file": True,
+                    "allow_folder": True,
+                },
+            },
+            tool_key=self.TOOL_KEY,
+            separator_top=True,
+            separator_bottom=True,
+            parent=self,
+        )
+        self.layout.addWidget(self.test_selector)
+        self.logger.info("GridComplexSelector de teste adicionado ao layout")
+        # ── Fim do teste ─────────────────────────────────────────────
+
         # ── Execution Buttons ─────────────────────────────────────
         self.action_buttons = GridExecutionButtons(
             config={
@@ -157,6 +260,15 @@ class ExportAllLayoutsDialog(BasePluginMTL):
         self.logger.debug("Botões de ação criados")
 
         self.logger.info("Interface de exportação construída com sucesso")
+        
+        w = self.test_selector
+        while w:
+            self.logger.info(type(w).__name__)
+            w = w.parentWidget()
+            self.logger.info(f"Parent: {w}")
+        self.logger.info(f"Estilo do seletor de teste: {self.test_selector.styleSheet()}")
+        self.logger.info(f"Estilo do seletor de teste: {self.action_buttons.styleSheet()}")
+        
 
     def _ensure_merge_dependency(
         self, *, checkbox_key: str, dependency_name: str, message: str

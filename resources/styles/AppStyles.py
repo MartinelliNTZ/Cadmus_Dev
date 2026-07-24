@@ -632,6 +632,51 @@ class AppStyles:
         )
 
     @classmethod
+    def square_icon_button(cls, object_name: str = None) -> str:
+        """
+        Estilo para SquareIconButton (botão quadrado de ícone).
+        Gradiente 3 stops na paleta NEUTRAL, sem borda, sem padding.
+        Dimensões fixas setadas via Python (setFixedSize).
+
+        Parâmetros
+        ----------
+        object_name : str, optional
+            Se fornecido, usa seletor QPushButton#object_name.
+        """
+        theme = cls._get_theme()
+        sel = f"QPushButton#{object_name}" if object_name else "QPushButton"
+        return (
+            f"{sel} {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL_LIGHT},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            f"    color: {theme.COLOR_WHITE};"
+            "    border: none;"
+            f"    border-radius: {theme.BORDER_RADIUS_BUTTON_DEFAULT};"
+            "    padding: 0px;"
+            "    min-height: 30px;"
+            "    max-height: 30px;"
+            "}"
+            f"{sel}:hover {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            "}"
+            f"{sel}:pressed {{"
+            "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            f"        stop:0 {theme.COLOR_NEUTRAL_DARK},"
+            f"        stop:0.5 {theme.COLOR_NEUTRAL_DARK},"
+            f"        stop:1 {theme.COLOR_NEUTRAL_DARK});"
+            "}"
+            f"{sel}:disabled {{"
+            f"    background: {theme.COLOR_NEUTRAL_DARK};"
+            f"    color: {theme.COLOR_NEUTRAL};"
+            "}"
+        )
+
+    @classmethod
     def text_browser(cls) -> str:
         """Estilo global para QTextBrowser — sem borda, fundo transparente."""
         theme = cls._get_theme()

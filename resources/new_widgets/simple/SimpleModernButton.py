@@ -93,9 +93,7 @@ class SimpleModernButton(QPushButton):
 
         self.setCursor(_CURSOR_POINTING_HAND)
         self.setSizePolicy(_SIZE_POLICY_PREFERRED, _SIZE_POLICY_FIXED)
-        # Só setFlat se não for round_icon com fixed_size (flat limita altura)
-        if not (round_icon and fixed_size is not None):
-            self.setFlat(True)
+        self.setFlat(True)
 
         if tooltip:
             self.setToolTip(tooltip)
@@ -115,6 +113,8 @@ class SimpleModernButton(QPushButton):
                 self.setFixedSize(fixed_size, fixed_size)
             else:
                 self.setFixedSize(fixed_size)
+            if round_icon and icon_size is None:
+                self.setIconSize(QSize(16, 16))
         elif round_icon:
             sz = int(theme.BUTTON_ROUND_ICON_SIZE.replace("px", ""))
             self.setFixedSize(sz, sz)

@@ -6,9 +6,9 @@ Plugins NUNCA importam Simple diretamente.
 """
 
 from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout
-from qgis.PyQt.QtCore import QSize
+
 from ...IconManager import IconManager
-from .SimpleModernButton import SimpleModernButton
+from .SquareIconButton import SquareIconButton
 from .SimpleQLineEdit import SimpleQLineEdit
 from ....utils.ProjectUtils import ProjectUtils
 
@@ -50,13 +50,10 @@ class SimpleReadOnly(QWidget):
         layout.addWidget(self._line_edit, stretch=1)
 
         if show_copy_button:
-            self._copy_btn = SimpleModernButton(
+            self._copy_btn = SquareIconButton(
                 icon=IconManager.icon(IconManager.COPY2),
-                icon_size=QSize(16, 16),
-                fixed_size=32,
                 tooltip="Copiar",
                 parent=self,
-                round_icon=True,
             )
             self._copy_btn.clicked.connect(self._copy_to_clipboard)
             layout.addWidget(self._copy_btn)

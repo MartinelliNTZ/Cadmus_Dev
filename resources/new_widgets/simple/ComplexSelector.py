@@ -26,7 +26,7 @@ from typing import Callable, Optional
 from qgis.PyQt.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget, QSizePolicy
 )
-from qgis.PyQt.QtCore import pyqtSignal, Qt, QSize
+from qgis.PyQt.QtCore import pyqtSignal, Qt
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsProject
 
@@ -36,7 +36,7 @@ from ....utils.ExplorerUtils import ExplorerUtils
 from ....utils.ProjectUtils import ProjectUtils
 from ....utils.QgisMessageUtil import QgisMessageUtil
 from ...IconManager import IconManager
-from .SimpleModernButton import SimpleModernButton
+from .SquareIconButton import SquareIconButton
 
 
 class ComplexSelector(QWidget):
@@ -186,90 +186,65 @@ class ComplexSelector(QWidget):
 
         self._update_display()
 
-    def _get_button_size(self) -> int:
-        """Retorna tamanho do botão baseado na altura do input (INPUT_FIELD_MIN_HEIGHT)."""
-        return int(AppStyles._get_theme().INPUT_FIELD_MIN_HEIGHT.replace("px", ""))
-
     def _add_buttons(self, layout):
         """Adiciona botões conforme configuração. Todos com mesmo tamanho do input."""
-        btn_size = self._get_button_size()
-
         # 🔍 (file)
         if self._allow_file:
-            self._btn_file = SimpleModernButton(
-                parent=self,
-                primary=False,
-                round_icon=True,
-                fixed_size=btn_size,
+            self._btn_file = SquareIconButton(
+                icon=IconManager.icon(IconManager.CONFIG3),
                 tooltip="Selecionar arquivos" if self._multiple else "Selecionar arquivo",
+                parent=self,
             )
-            self._btn_file.setIcon(IconManager.icon(IconManager.FILE1))
             self._btn_file.clicked.connect(self._browse_file)
             layout.addWidget(self._btn_file, 0, Qt.AlignmentFlag.AlignVCenter)
 
         # 📁 (folder)
         if self._allow_folder:
-            self._btn_folder = SimpleModernButton(
-                parent=self,
-                primary=False,
-                round_icon=True,
-                fixed_size=btn_size,
+            self._btn_folder = SquareIconButton(
+                icon=IconManager.icon(IconManager.FOLDER),
                 tooltip="Selecionar pastas" if self._multiple else "Selecionar pasta",
+                parent=self,
             )
-            self._btn_folder.setIcon(IconManager.icon(IconManager.FOLDER))
             self._btn_folder.clicked.connect(self._browse_folder)
             layout.addWidget(self._btn_folder, 0, Qt.AlignmentFlag.AlignVCenter)
 
         # 📄 (project — só input, alterna line edit <-> combo)
         if self._mode_type == "input" and self._allow_file:
-            self._btn_project = SimpleModernButton(
-                parent=self,
-                primary=False,
-                round_icon=True,
-                icon_size=QSize(16, 16),
-                fixed_size=32,
+            self._btn_project = SquareIconButton(
+                icon=IconManager.icon(IconManager.PROJECT),
                 tooltip="Alternar para seleção de camada",
+                parent=self,
             )
-            self._btn_project.setIcon(IconManager.icon(IconManager.PROJECT))
             self._btn_project.clicked.connect(self._on_project_clicked)
             layout.addWidget(self._btn_project, 0, Qt.AlignmentFlag.AlignVCenter)
 
         # 📥 (origin — só output)
         if self._mode_type == "output" and self._parent_selector is not None:
-            self._btn_origin = SimpleModernButton(
-                parent=self,
-                primary=False,
-                round_icon=True,
-                fixed_size=btn_size,
+            self._btn_origin = SquareIconButton(
+                icon=IconManager.icon(IconManager.SUGESTION),
                 tooltip="Usar mesmo diretório da origem",
+                parent=self,
             )
-            self._btn_origin.setIcon(IconManager.icon(IconManager.SUGESTION))
             self._btn_origin.clicked.connect(self._on_origin_clicked)
             layout.addWidget(self._btn_origin, 0, Qt.AlignmentFlag.AlignVCenter)
 
         # 🛠️ (suggest — só output)
         if self._mode_type == "output":
-            self._btn_suggest = SimpleModernButton(
-                parent=self,
-                primary=False,
-                round_icon=True,
-                fixed_size=btn_size,
+            self._btn_suggest = SquareIconButton(
+                icon=IconManager.icon(IconManager.CONFIG2),
                 tooltip="Usar pasta do projeto",
+                parent=self,
             )
-            self._btn_suggest.setIcon(IconManager.icon(IconManager.CONFIG2))
             self._btn_suggest.clicked.connect(self._on_suggest_clicked)
             layout.addWidget(self._btn_suggest, 0, Qt.AlignmentFlag.AlignVCenter)
 
         # ➡️ (explorer)
         if self._show_explorer_button:
-            self._btn_explorer = SimpleModernButton(
-                parent=self,
-                primary=False,
-                round_icon=True,
-                fixed_size=btn_size,
+            self._btn_explorer = SquareIconButton(
+                icon=IconManager.icon(IconManager.EXPLORER),
                 tooltip="Abrir localização no Explorer",
+                parent=self,
             )
-            self._btn_explorer.setIcon(IconManager.icon(IconManager.EXPLORER))
             self._btn_explorer.clicked.connect(self._open_explorer)
             layout.addWidget(self._btn_explorer, 0, Qt.AlignmentFlag.AlignVCenter)
 

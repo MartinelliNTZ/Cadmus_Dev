@@ -60,6 +60,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtCore import Qt
 
+from ..simple.SquareIconButton import SquareIconButton
 from ..simple.SimpleModernButton import SimpleModernButton
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
@@ -180,9 +181,11 @@ class GridExecutionButtons(QWidget):
 
         # 3. Botão Config ⚙️ (entre close e info)
         if self._enable_config:
-            self.btn_config = SimpleModernButton(parent=self, primary=False, round_icon=True)
-            self.btn_config.setIcon(IconManager.icon(IconManager.CONFIG3))
-            self.btn_config.setToolTip("Abre as configurações do plugin")
+            self.btn_config = SquareIconButton(
+                icon=IconManager.icon(IconManager.CONFIG3),
+                tooltip="Abre as configurações do plugin",
+                parent=self,
+            )
             if self._config_callback:
                 self.btn_config.clicked.connect(self._config_callback)
             else:
@@ -191,9 +194,11 @@ class GridExecutionButtons(QWidget):
 
         # 4. Botão Info
         if self._enable_info:
-            self.btn_info = SimpleModernButton(parent=self, primary=False, round_icon=True)
-            self.btn_info.setIcon(IconManager.icon(IconManager.INFO))
-            self.btn_info.setToolTip("Exibe instruções e informações do plugin")
+            self.btn_info = SquareIconButton(
+                icon=IconManager.icon(IconManager.INFO),
+                tooltip="Exibe instruções e informações do plugin",
+                parent=self,
+            )
             if self._tool_key:
                 instructions_path = InstructionsManager.get(self._tool_key)
                 self.btn_info.clicked.connect(

@@ -48,417 +48,146 @@
 [2.3.35.3][09/07/2026] Plugins 100% convertidos para novo padrão (sem contexto legado):
   - DroneCoordinates.py: executa pipeline com steps parametrizados, context só com atributos canônicos
   - DroneCoordinatesRunner.py: executa pipeline com steps parametrizados, context só com atributos canônicos
-  - PhotoVectorizationPlugin.py: executa pipeline com steps parametrizados, context só com atributos canônicos
-  - Nenhum context.set() ou context.get() para configuração de steps — tudo via parâmetros nomeados
-[2.3.35.4][09/07/2026] Skills atualizadas com novo padrão:
-  - SKILL_ASYNC_PAPELINE.md: seção 3 (Step parametrizado), seção 4 (ExecutionContext canônico), seção 18-19 (exemplos + resumo)
-  - SKILL_METADATA_PIPELINE.md: versão 3.0.0 — exemplos migrados para novo padrão, tabelas de parâmetros dos steps
-  - changelog.txt registrado como 2.3.35.4
-2.3.36 09/07/2026
-[2.3.36.1][09/07/2026] MRK como agregado opcional, coordenadas SEMPRE das fotos:
-  - DroneCoordinates: adicionado checkbox "Obter dados MRK" (default: True para compatibilidade retroativa)
-  - DroneCoordinates._on_use_mrk_changed(): habilita/desabilita seção MRK Fields
-  - DroneCoordinates._resolve_track_group_fields(): fallback sem MRK (agrupa por FolderLevel1)
-  - PhotoMetadata._enrich_with_mrk(): NÃO seta mais CoordSource=MRK nem QUALITY_FLAG=OK
-  - JsonToVectorTranslator._resolve_geometry(): remove fallback Lat/Lon (MRK)
-  - DroneCoordinatesRunner: respeita preferência use_mrk das prefs
-  - i18n: nova string USE_MRK_DATA em pt_BR, en, es, de
-  - SKILL_METADATA_PIPELINE.md: v3.1.0 — MRK como agregado
-[2.3.36.2][09/07/2026] Correção DroneCoordinatesRunner — defaults e campos alinhados com DroneCoordinates (UI):
-  - apply_photos default alterado de False para True (mesmo do UI)
-  - adicionado is_recursive lido das prefs (default True), antes era False hardcoded
-  - recursive no PhotoEnrichmentStep agora usa is_recursive das prefs
-  - selected_required_fields agora carrega das chaves exif_fields_selected + xmp_fields_selected
-    (antes usava required_fields_selected que nunca era salva pelo UI)
-2.3.37 09/07/2026
-[2.3.37.1][09/07/2026] Unificação do pipeline drone em DronePipelineService:
-  - Criado core/services/DronePipelineService.py — serviço único com DEFAULTS centralizado,
-    método execute() e callback _on_pipeline_finished() unificado
-  - MrkDropHandler simplificado: delega diretamente para DronePipelineService.execute()
-  - DroneCoordinatesRunner removido — não era mais necessário (MrkDropHandler e DroneCoordinates
-    chamam o Service diretamente)
-  - DroneCoordinates.execute_tool() simplificado: salva prefs e chama DronePipelineService.execute()
-  - Removidos métodos duplicados _resolve_track_order_field e _resolve_track_group_fields
-    do DroneCoordinates (agora no Service)
-  - Criado docs/plano_refatoracao_unificar_drone_pipeline.md com análise e proposta
-2.3.40 09/07/2026
-[2.3.40.1][09/07/2026] ReverseGeocodeStep integrado ao pipeline de drone + novo modo JSON:
-  - ReverseGeocodeStep refatorado: agora aceita json_path no __init__ e extrai coordenadas
-    da primeira foto do JSON (Lat/Lon), mantendo compatibilidade com modo legado (lat/lon direto)
-  - Adicionado `_get_first_photo_coords()` que percorre groups/records do JSON v2.0
-  - Adicionado `_resolve_coords()` com prioridade: __init__ > context > JSON
-  - on_success agora persiste dados no JSON via `JsonUtil.update_geocode_data()`
-    e timestamps `geocode_start`/`geocode_end` via `JsonUtil.update_timestamps()`
-  - should_run() retorna False se coordenadas não disponíveis (step pulável)
-[2.3.40.2][09/07/2026] JsonUtil.update_geocode_data() adicionado:
-  - Abre JSON existente e adiciona `geocode.municipio`, `geocode.state`, etc. no cabeçalho
-  - Usado pelo ReverseGeocodeStep.on_success() para persistir localização
-[2.3.40.3][09/07/2026] DronePipelineService pipeline atualizado:
-  - Pipeline agora: PhotoEnrichmentStep → ReverseGeocodeStep → JsonVectorizationStep → (ReportGenerationStep?)
-  - ReverseGeocodeStep() sem parâmetros: lê json_path do context automaticamente
-  - SKILL_METADATA_PIPELINE.md atualizado para v3.2.0 com novo fluxo
-[2.3.40.4][09/07/2026] AltimetryStep padronizado + altimetry_task migrado para BaseTask:
-  - altimetry_task.py: migrado de QgsTask direto para BaseTask, assinatura `AltimetriaTask(lat, lon, tool_key=...)`
-  - AltimetryStep.py: refatorado com `__init__` parametrizado (`lat`, `lon`, `report_metadata_mode`), usa `context.tool_key` canônico
-  - AltimetryStep.on_success: persiste altitude no JSON via `JsonUtil.update_geocode_data({"altitude": ...})` + timestamps altimetry_start/altimetry_end
-  - CoordClickTool fallback atualizado para nova assinatura AltimetriaTask(..., tool_key=...)
-  - ReverseGeocodeStep: removido json_path do __init__, adicionado report_metadata_mode, simplificado sem fallback legado
-[2.3.40.5][09/07/2026] Correções de contrato (PLUGIN_CONTRACT.md):
-  - BaseStep: adicionado `__init__` com `self.logger` + `_init_logger(context)` que cria LogUtils a partir de context.tool_key
-  - ReverseGeocodeStep e AltimetryStep: removidos `logger = LogUtils(...)` locais → usam `self.logger` via `_init_logger(context)`
-  - _get_first_photo_coords: removido `except Exception:` silencioso → `except (json.JSONDecodeError, IOError, OSError, ValueError, KeyError)` com log via `self.logger.warning()`
-  - on_success: exceções logadas com `self.logger.exception(e, code="...")`
-  - on_error: exceções de salvamento de timestamp logadas com `self.logger.warning()`
-  - Nova utils/JsonUtil.py: `update_altitude_data()` — escreve altitude no nível raiz do JSON (fora de geocode)
-2.3.41 09/07/2026
-[2.3.41.1][09/07/2026] Extraída lógica de busca da primeira foto para Etapa 6 do PhotoMetadata:
-  - Adicionada Etapa 6 em PhotoMetadata.run_pipeline(): percorre records enriquecidos e salva
-    lat/lon da primeira foto com GPS em _first_photo_raw_coord (cache estático)
-  - Adicionado PhotoMetadata.get_first_photo_raw_coord() — getter público para o cache
-  - PhotoEnrichmentStep.on_success() (main thread): lê raw_coord do cache, chama
-    VectorLayerProjection.get_coordinate_info() para enriquecer com EPSG, zona UTM e hemisfério,
-    salva no context (first_photo_lat, first_photo_lon, first_photo_coord_info) e no JSON
-    via JsonUtil.update_first_photo_coord()
-  - Adicionado JsonUtil.update_first_photo_coord() — escreve dict coord_info no cabeçalho do JSON
-  - ReverseGeocodeStep refatorado: remove _get_first_photo_coords(), lê first_photo_lat/lon do context
-  - AltimetryStep refatorado: remove _get_first_photo_coords(), lê first_photo_lat/lon do context
-  - Ambos os steps não buscam mais a primeira foto diretamente — eliminada lógica duplicada
-  - SKILL_METADATA_PIPELINE.md atualizado para v3.3.0 com novo fluxo
-
-2.3.39 09/07/2026
-[2.3.39.1][09/07/2026] Refatorado DronePipelineService para usar Preferences corretamente:
-  - Substituído import `from ...utils.Preferences import load_tool_prefs` (depreciado) por `from ...utils.Preferences import Preferences`
-  - Substituídas todas as chamadas de `load_tool_prefs()` por `Preferences.load_tool_prefs()`
-  - Substituído acesso a dict com bracket (`prefs["key"]`) por `.get("key", default)` — prevenção de KeyError
-  - Afetados: `execute()`, `_on_pipeline_finished()`, `_load_safe_prefs()`
-2.3.38 09/07/2026
-[2.3.38.1][09/07/2026] Removida ferramenta PhotoVectorizationPlugin (plugins/PhotoVectorizationPlugin.py):
-  - Deletado arquivo do plugin PhotoVectorizationPlugin.py
-  - Removido ToolKey.PHOTO_VECTORIZATION de utils/ToolKeys.py
-  - Removida cor TOOL_KEY_COLORS[PHOTO_VECTORIZATION] em utils/ToolKeys.py
-  - Removidas strings PHOTO_VECTORIZATION_TITLE e PHOTO_VECTORIZATION_TOOLTIP de i18n/Strings_pt_BR.py, Strings_en.py, Strings_es.py, Strings_de.py
-  - Removidas strings PHOTO_FOLDER, VECTORIZE_PHOTOS, PHOTOS_WITHOUT_MRK_LAYER_NAME de pt_BR, en, es, de
-  - Removido registro photo_vectorization Tool de core/config/ToolRegistry.py
-  - Removida constante PHOTO_VECTORIZATION de resources/IconManager.py
-  - Deletado ícone resources/icons/photo_vectorization.ico
-  - Nenhum outro plugin foi alterado
-2.3.42 09/07/2026
-[2.3.42.1][09/07/2026] lat/lon promovidos a atributos canônicos do ExecutionContext:
-  - Adicionados `lat`/`lon` como atributos canônicos (type float | None) em ExecutionContext.py
-  - Adicionados parâmetros `lat`/`lon` no __init__() do ExecutionContext
-  - set_result()/get_result()/set()/get()/require() sincronizam com lat/lon
-  - clear() reseta lat/lon para None
-  - __repr__ agora exibe lat/lon
-[2.3.42.2][09/07/2026] PhotoEnrichmentStep.on_success() usa context.lat/context.lon:
-  - Substituído `context.set_result("first_photo_lat", ...)` e `context.set_result("first_photo_lon", ...)`
-    por `context.lat = ...` e `context.lon = ...` (atributos canônicos)
-  - Mantido `context.set_result("first_photo_coord_info", enrich_result)` para dados completos
-[2.3.42.3][09/07/2026] AltimetryStep simplificado (sem __init__ params, sem report_metadata_mode):
-  - Removeu __init__(lat, lon, report_metadata_mode) → agora __init__() vazio
-  - should_run() lê context.lat/context.lon (sempre)
-  - create_task() lê context.lat/context.lon (sempre)
-  - on_success() persiste no JSON se context.json_path existir (independente de cenário)
-  - on_error() persiste erro no JSON se context.json_path existir (independente de cenário)
-[2.3.42.4][09/07/2026] ReverseGeocodeStep simplificado (sem __init__ params, sem report_metadata_mode):
-  - Removeu __init__(lat, lon, report_metadata_mode) → agora __init__() vazio
-  - should_run() lê context.lat/context.lon (sempre)
-  - create_task() lê context.lat/context.lon (sempre)
-  - on_success() persiste no JSON se context.json_path existir (independente de cenário)
-  - on_error() persiste erro no JSON se context.json_path existir (independente de cenário)
-[2.3.42.5][09/07/2026] CoordClickTool atualizado para novo padrão:
-  - ExecutionContext criado com lat=lat, lon=lon
-  - ReverseGeocodeStep() e AltimetryStep() sem parâmetros (lêem do context)
-[2.3.42.6][09/07/2026] DronePipelineService atualizado:
-  - ReverseGeocodeStep() e AltimetryStep() sem parâmetros (lêem do context via atributos canônicos)
-  - Comentários atualizados refletindo novo fluxo
-[2.3.42.7][09/07/2026] Adicionado JsonUtil.update_json() genérico:
-  - Novo método estático que recebe json_path e updates dict
-  - Abre JSON, aplica dict.update() no nível raiz, salva
-  - Útil para steps que precisam adicionar dados simples sem criar método específico
-[2.3.42.8][09/07/2026] Removidos métodos específicos de JsonUtil (unificados em update_json()):
-  - Removido update_geocode_data() → substituído por update_json(json_path, {"geocode": payload})
-  - Removido update_altitude_data() → substituído por update_json(json_path, {"altitude": value})
-  - Removido update_first_photo_coord() → substituído por update_json(json_path, {"first_photo_coord": coord_info})
-  - Callers atualizados: PhotoMetadata.enrich_first_photo_coord(), AltimetryStep.on_success(), ReverseGeocodeStep.on_success()
-[2.3.42.9][09/07/2026] Skills atualizadas para v4.0.0 (lat/lon canônicos):
-  - SKILL_ASYNC_PAPELINE.md: seção 4 inclui context.lat/context.lon como atributos canônicos
-  - SKILL_AGENT.md: regra 3 atualizada (atributos canônicos + set_result/get_result), nova regra 4 (lat/lon)
-  - SKILL_METADATA_PIPELINE.md: v4.0.0 — tabela ExecutionContext inclui lat/lon, ReverseGeocodeStep simplificado,
-    histórico com entrada 4.0.0, referências a FirstPhotoCoordStep removidas
-2.3.43 09/07/2026
-[2.3.43.1][09/07/2026] Corrigido bug 'dict' object is not callable em PhotoMetadata.enrich_first_photo_coord():
-   - Linha `raw_coord = PhotoMetadata._first_photo_raw_coord()` alterada para
-     `raw_coord = PhotoMetadata._first_photo_raw_coord` (acesso a atributo, não chamada de método)
-   - O erro ocorria porque _first_photo_raw_coord é um dict (ou None), não um método/função
-2.3.44 09/07/2026
-[2.3.44.1][09/07/2026] Adicionadas informações geoespaciais no cabeçalho do relatório HTML:
-   - JsonMetadataManager.load_json_metadata() agora extrai first_photo_coord (zona_num, zona_letra, hemisferio, epsg),
-     geocode (municipio, state_district, state, region, country) e altitude do JSON raiz
-   - Template HTML atualizado: nova seção no cabeçalho exibindo EPSG, MUNICIPIO, DISTRITO, ESTADO,
-     REGIAO, PAIS e ALTITUDE SRTM quando disponíveis no json_meta
-   - SKILL_REPORT_SYSTEM.md atualizado com novos campos do json_meta
-2.3.45 10/07/2026
-[2.3.45.1][10/07/2026] ReverseGeocodeTask tratado como falha gracefull (não aborta pipeline):
-   - TimeoutError, HTTPException, ConnectionError, OSError agora retornam result={} (sucesso)
-     em vez de exception que abortava a pipeline via engine
-   - HTTP não-200, redirect sem Location e dados nulos também retornam result={} (gracefull)
-   - Log nivel WARNING para falhas de rede, INFO para redirects, mantendo rastreabilidade
-   - Evita que pipeline de drone ou CoordClickTool seja abortada por indisponibilidade da API
-2.3.46 10/07/2026
-[2.3.46.1][10/07/2026] Nova ferramenta: Salvar Temporárias (SaveTemporaryLayersPlugin):
-  - Reutilizado ToolKey.SAVE_TEMPORARY_LAYER existente em utils/ToolKeys.py
-  - Adicionada cor SAVE_TEMPORARY_LAYER: "#3498DB" em ToolKeys.TOOL_KEY_COLORS
-  - Adicionadas strings STR.SAVE_TEMPORARY_LAYER_TITLE/TOOLTIP e demais em i18n/Strings_pt_BR.py
-  - Ícone SAVE_TEMPORARY_LAYER já existente em resources/IconManager.py (save_temporary_layer.ico)
-  - Criado plugins/SaveTemporaryLayersPlugin.py com:
-    - InputFieldsWidget para prefixo e sufixo nos nomes dos arquivos
-    - DropdownSelectorWidget para extensões vetor (shp, gpkg, geojson, kml, dxf, gml, csv)
-    - DropdownSelectorWidget para extensões raster (tif, jp2, png, jpg)
-    - GridComplexSelector modo output sem parent, com 📁, 🛠️, ➡️
-    - Import relativo corrigido: from ..resources.widgets.grid.GridComplexSelector
-    - _get_temporary_layers(): percorre QgsProject.layerTreeRoot() e filtra camadas com source "memory:"
-    - execute_tool(): salva vetores com QgsVectorFileWriter e rasters com QgsRasterFileWriter
-    - Fallback para pasta do projeto se nenhuma saída for selecionada
-    - Subpastas vectors/ e rasters/ criadas automaticamente na pasta de saída
-    - Feedback ao usuário via QgisMessageUtil.bar_info/bar_warning
-  - Registrado em core/config/ToolRegistry.py na categoria VECTOR com order=70,
-    usando _make_plugin_executor("...plugins.SaveTemporaryLayersPlugin")
-  - Removido ToolKey.FILE_CONVERTER (não utilizado)
-2.3.47 10/07/2026
-[2.3.47.1][10/07/2026] Atributos do vetor reordenados alfabeticamente após vetorização:
-   - Adicionado import de VectorLayerAttributes em JsonVectorizationStep.run_inline()
-   - Inserida chamada a VectorLayerAttributes.reorder_fields_alphabetically(layer) logo após
-     criação da layer e antes de adicioná-la ao QgsProject
-   - Logs: debug quando reordenação bem-sucedida, warning quando falha (ordem original mantida)
-   - Utiliza método estático existente que cria nova layer em memória com campos ordenados
-     case-insensitive (A-Z), preservando dados e geometria
-2.3.48 11/07/2026
-[2.3.48.1][11/07/2026] Novo utilitário ImageUtils:
-   - Criado utils/ImageUtils.py com classe ImageUtils herdando de BaseUtil
-   - Método photo_to_base64(): converte foto do disco para string base64 com data URI
-     (ex: data:image/jpeg;base64,...). Suporta .jpg, .jpeg, .png, .tif, .tiff, .bmp, .gif, .webp, .ico.
-     Inclui validações de arquivo, extensão, leitura segura com tratamento de exceções,
-     e log via LogUtils com tool_key.
-   - Método base64_to_bytes(): decodifica string base64 (com ou sem data URI) de volta para bytes.
-   - Método auxiliar _guess_mime_type(): mapeia extensão para MIME type.
-   - Registrado em utils/__init__.py com export ImageUtils.
-    - SKILL_UTILS.md atualizado para v2.1.0: adicionada entrada #28 na tabela de classes,
-      item no Resumo Executivo, caso de uso, dependência e histórico.
-2.3.49 11/07/2026
-[2.3.49.1][11/07/2026] Adicionado campo license_key nas configurações do SettingsPlugin:
-  - InputFieldsWidget: adicionado suporte a `show_label` no field config (default True)
-  - SettingsPlugin._build_ui(): inserido InputFieldsWidget sem label/tooltip para license_key
-  - SettingsPlugin._load_prefs(): carrega license_key de system_preferences
-  - SettingsPlugin._save_prefs(): persiste license_key em system_preferences
-[2.3.49.2][11/07/2026] Criado LicenseManager em utils/LicenseManager.py:
-  - Herda de BaseUtil com LogUtils e tool_key
-  - Constante VALID_LICENSE_KEY = "1234" (chave válida atual)
-  - Constante RENEWAL_WINDOW_DAYS = 7 (janela de renovação)
-  - is_license_valid() → bool com lógica de cache e renovação:
-    * Sem license_key nas prefs → False
-    * Cache ativo com > 7 dias restantes → True (sem verificar)
-    * 0-7 dias restantes → tenta renovar, retorna True sempre (graça)
-    * Expirada → valida obrigatoriamente, retorna False se inválida
-    * Sem cache → valida do zero
-  - Salva license_status ("active"/"inactive") e license_expiry (YYYY-MM-DD) nas system_preferences
-  - Registrado em utils/__init__.py com export LicenseManager
-[2.3.49.3][11/07/2026] DronePipelineService verifica licença antes de gerar relatório:
-  - Adicionado import de LicenseManager em DronePipelineService
-  - Se license_key estiver configurada nas system_preferences, valida via LicenseManager.is_license_valid()
-  - Se license_key NÃO estiver configurada, permite geração do relatório sem validação
-  - Se license_key configurada mas inválida, suprime ReportGenerationStep com log warning
-[2.3.49.4][11/07/2026] DroneCoordinates UI condicionada à licença em _build_ui():
-  - LicenseManager.is_license_valid() consultado uma vez no início de _build_ui()
-  - Se inválida: logo, título do projeto e generate_report NÃO são criados na UI
-  - Se inválida: checkbox_options copia CHECKBOX_OPTIONS e remove "generate_report"
-  - _load_prefs() e _save_prefs() usam hasattr para acesso seguro a atributos opcionais
-  - Nenhum conhecimento de license_key fora do LicenseManager
-2.3.50 11/07/2026
-[2.3.50.1][11/07/2026] LicenseManager expandido com API pública de gerenciamento:
-  - Adicionado get_license_info() → dict com has_key, key_preview, status, expiry, tier, level, is_active, days_remaining
-  - Adicionado save_license_key(license_key) → dict com success/message; salva APENAS se chave válida
-  - Adicionado delete_license() → remove todos os dados de licença das preferências
-  - Adicionado _validate_and_get_tier() → retorna (is_valid, tier) para suporte a níveis de licença
-  - Adicionado _tier_to_label() → converte tier code para label amigável (Básico, Profissional, Enterprise)
-  - Constantes LICENSE_TIER_BASIC, LICENSE_TIER_PRO, LICENSE_TIER_ENTERPRISE
-[2.3.50.2][11/07/2026] Criado LicenseDialogWidget em resources/widgets/LicenseDialogWidget.py:
-  - Diálogo modal (QDialog) com QLineEdit para chave, botão 🔑 para validar
-  - Grid de labels: Nível da Licença, Data de Expiração, Status (cores: verde=ativa, vermelho=inativa, cinza=sem chave)
-  - Botão 🗑️ Apagar Licença (delega para LicenseManager.delete_license())
-  - Botão 💾 Salvar (valida via LicenseManager.save_license_key(); se inválida exibe modal warning)
-  - Mensagens modais via QgisMessageUtil (modal_info/modal_warning)
-  - Logging via LogUtils com ToolKey.SETTINGS
-[2.3.50.3][11/07/2026] Adicionado WidgetFactory.create_license_dialog() em core/ui/WidgetFactory.py:
-  - Factory method que cria LicenseDialogWidget com iface e parent
-[2.3.50.4][11/07/2026] SettingsPlugin refatorado para usar botão + LicenseDialogWidget:
-  - Substituído InputFieldsWidget (license_key) por botão "🔑 Gerenciar Licença" via SimpleButtonWidget
-  - Botão abre LicenseDialogWidget via WidgetFactory.create_license_dialog()
-  - Licença não é mais salva em _save_prefs() — LicenseDialog salva diretamente via LicenseManager
-  - Adicionado método _open_license_dialog()
-[2.3.50.5][11/07/2026] Criada skill SKILL_LICENSE.md em docs/skills/:
-  - Documenta LicenseManager API, LicenseDialogWidget, integração SettingsPlugin, WidgetFactory
-  - Preferências utilizadas, fluxos de validação, proibições
-[2.3.50.6][11/07/2026] Adicionadas strings de licença em i18n/Strings_pt_BR.py:
-  - REG_TITLE, LICENSE_KEY, LICENSE_LEVEL, LICENSE_EXPIRY, LICENSE_STATUS
-  - LICENSE_ACTIVE, LICENSE_INACTIVE, LICENSE_SAVE, LICENSE_DELETE, LICENSE_VALIDATE
-  - REGISTRY_SAVED_SUCCESS, REGISTRY_DELETED_SUCCESS, REGISTRY_INVALID, REGISTRY_EMPTY
-  - LICENSE_DAYS_REMAINING, NO_KEY, LICENSE_OPEN_DIALOG
-2.3.51 11/07/2026
-[2.3.51.1][11/07/2026] Adicionado atributo license_level em Tool e filtro por licença no ToolRegistry:
-  - Adicionado parâmetro `license_level` (default None) em core/model/Tool.__init__()
-  - Configurado `license_level=1` para divide_points_by_strips em ToolRegistry._create_tool_list()
-  - Adicionado método `_filter_tools_by_license()` em ToolRegistry que remove ferramentas
-    cujo license_level é maior que o nível atual da licença (lido via LicenseManager.get_license_info())
-  - Filtro executado ao final de ToolRegistry.__init__(), após validação de main_actions
-  - SKILL_LICENSE.md atualizado para v4.0.0 com documentação do filtro
-2.3.52 11/07/2026
-[2.3.52.1][11/07/2026] SaveTemporaryLayersPlugin refatorado — substituído código manual UI (QPushButton, QLabel, QLineEdit, QHBoxLayout) por GridComplexSelector via WidgetFactory.create_grid_complex_selector():
-   - Removido _build_output_folder_selector() e handlers _on_browse_folder/_on_suggest_path/_on_open_explorer
-   - Removidos imports de QHBoxLayout, QLineEdit, QPushButton, QLabel, ExplorerUtils (morto)
-   - Plugin agora usa GridComplexSelector que encapsula 📁, 🛠️, ➡️ com lógica built-in via ComplexSelector
-   - Compatibilidade mantida via self.output_grid["output"].edit
-[2.3.52.2][11/07/2026] WidgetFactory: create_complex_selector() removido — ComplexSelector é privado do GridComplexSelector.
-    - Factory agora expõe APENAS create_grid_complex_selector() como único ponto de acesso
-    - import de ComplexSelector removido da WidgetFactory
-2.3.53 11/07/2026
-[2.3.53.1][11/07/2026] Corrigido ImportError 'Signal' em ComplexSelector.py:
-    - Substituído `from qgis.PyQt.QtCore import Signal` por `from qgis.PyQt.QtCore import pyqtSignal`
-    - Substituído `pathChanged = Signal(list)` por `pathChanged = pyqtSignal(list)`
-    - Causava falha no SaveTemporaryLayersPlugin ao executar ("cannot import name 'Signal' from 'qgis.PyQt.QtCore'")
-    - Nenhum outro arquivo no projeto usava `Signal` incorretamente
-2.3.54 15/07/2026
-[2.3.54.1][15/07/2026] Corrigido erro Qt6 em DefaultProjectsFolderDialog._build_ui():
-    - Substituído `QDialogButtonBox.Ok` e `QDialogButtonBox.Cancel` por
-      `QDialogButtonBox.StandardButton.Ok` e `QDialogButtonBox.StandardButton.Cancel`
-    - Qt5 suporta ambos, Qt6 exige StandardButton. O uso de StandardButton garante
-      compatibilidade Qt5/Qt6
-    - Corrigido E501 (linhas longas) nos comentários e na criação do QDialogButtonBox
-    - Flake8 passou sem erros após correção
-[2.3.54.2][15/07/2026] Corrigido salvamento do tamanho da janela no SettingsPlugin ao fechar pelo botão X:
-    - Adicionado Preferences.update_tool_prefs() em utils/Preferences.py que faz merge
-      seletivo de chaves (update) sem substituir o dicionário inteiro da ferramenta
-    - BasePluginMTL.closeEvent() agora usa Preferences.update_tool_prefs() para persistir
-      APENAS window_width e window_height em disco, mesmo quando AUTO_SAVE_PREFS_ON_CLOSE=False
-    - SettingsPlugin.AUTO_SAVE_PREFS_ON_CLOSE=False impedia que o tamanho da janela
-      fosse persistido no disco quando o usuário fechava sem clicar em "Save"
-    - Causa raiz: _persist_window_size() atualizava dict em memória, mas nada era salvo
-      no disco pois o bloco `if AUTO_SAVE_PREFS_ON_CLOSE` não executava _save_prefs()
-     - A correção anterior (save_tool_prefs) sobrescreveria todas as prefs; corrigido para
-       update_tool_prefs que preserva as demais configurações da ferramenta
-2.3.56 20/07/2026
-[2.3.56.1][20/07/2026] Corrigido TypeError 'type' object is not subscriptable em MathUtils.py:
-   - Substituído `list[float]` (PEP 585, requer Python 3.9+) por `List[float]` do módulo `typing`
-     em todos os parâmetros de tipo dos métodos circular_variance, circular_mean,
-     weighted_circular_mean, axial_mean, weighted_axial_mean e axial_variance
-   - Adicionado `List` à importação do módulo `typing`
-   - Causa: QGIS 3.16 usa Python 3.7 que não suporta type hint subscriptable nativo
-   - Correção garante compatibilidade com Python 3.7+ (QGIS 3.16 até 4.99)
-[2.3.56.2][20/07/2026] Corrigido AttributeError 'QMouseEvent' object has no attribute 'globalPosition' em AppBarWidget.py:
-    - Adicionado método _global_pos() com detecção automática: usa globalPosition().toPoint() (Qt6)
-      ou globalPos() (Qt5) conforme disponível
-    - mousePressEvent e mouseMoveEvent agora usam _global_pos() em vez de globalPosition() direto
-    - Causa: QGIS 3.34 (Qt5) não expõe globalPosition(), apenas globalPos()
-    - Mantida compatibilidade Qt5/Qt6
-    - OBS: O erro continuou ocorrendo pois hasattr() não funciona com objetos SIP (PyQt5)
-      — substituído para try/except na versão 2.3.57
-2.3.57 20/07/2026
-[2.3.57.1][20/07/2026] Corrigido definitivamente AttributeError 'QMouseEvent' object has no attribute 'globalPosition':
-    - AppBarWidget._global_pos(): substituído `hasattr(event, 'globalPosition')` por `try/except AttributeError`
-      O hasattr() em objetos C++ do PyQt5 (SIP bindings) pode retornar False mesmo quando o
-      método existe, ou lançar exceção ao verificar. try/except garante detecção robusta.
-    - MainLayout._global_pos(): mesma correção (hasattr → try/except) — mesmo padrão vulnerável.
-    - Causa raiz: hasattr() não é confiável com objetos SIP do PyQt5.
-    - Compatibilidade Qt5/Qt6 mantida.
-2.3.58 20/07/2026
-[2.3.58.1][20/07/2026] DefaultProjectsFolderDialog e ProjectNameDialog refatorados:
-   - Ambos agora herdam de BaseDialog (em vez de QDialog direto ou classe avulsa)
-   - Ambos convertidos para não-modais (setModal(False), show() em vez de exec())
-   - Adicionados signals: folder_selected(str) e project_accepted(str)
-   - CreateProjectPlugin refatorado para fluxo orientado a eventos (non-modal):
-     - _resolve_base_folder() e _resolve_project_name() agora abrem diálogos e conectam signals
-     - Callbacks _on_folder_selected() e _on_project_name_accepted() continuam o fluxo
-     - Removido método _continue_after_base_folder() — fluxo linear via callbacks
-   - Import não utilizado Preferences removido de ProjectNameDialog
-   - Compatibilidade Qt5/Qt6 mantida via BaseDialog
-2.3.59 20/07/2026
-[2.3.59.1][20/07/2026] Correção de contrato PLUGIN_CONTRACT em DefaultProjectsFolderDialog, ProjectNameDialog e CreateProjectPlugin:
-   - DefaultProjectsFolderDialog: removido DEFAULT_FOLDER = "C:/QgisProjects" hardcoded
-     (a pasta AGORA vem das Preferences via construtor `current_folder`)
-   - DefaultProjectsFolderDialog: `get_folder_path()` NÃO retorna mais fallback hardcoded
-     (retorna string vazia se nada selecionado — usuário que cancela NÃO salva projeto)
-   - DefaultProjectsFolderDialog: substituído QLabel por WidgetFactory.create_label()
-   - DefaultProjectsFolderDialog: import LogUtils movido para topo (não mais dentro de __init__)
-   - DefaultProjectsFolderDialog: import ToolKey adicionado
-   - ProjectNameDialog: substituídos QLabel, QPushButton por WidgetFactory.create_label(),
-     WidgetFactory.create_simple_button()
-   - ProjectNameDialog: imports de SettingsPlugin, InstructionsManager, InfoDialog movidos para topo
-   - ProjectNameDialog: removido _apply_styles() (estilo via WidgetFactory)
-   - ProjectNameDialog: removido setStyleSheet direto (via WidgetFactory)
-   - CreateProjectPlugin: removido DEFAULT_PROJECTS_FOLDER = "C:/QgisProjects" (nunca mais usado)
-   - SKILL_PLUGIN_CONTRACT.md não necessitou alteração
+  - AllExecution.py: executa pipeline com steps parametrizados, context só com atributos canônicos
+2.3.36 11/07/2026
+[2.3.36.1][11/07/2026] Removido PhotoEnrichmentStep obsoleto (substituído por MrkParseStep + PhotoEnrichmentStep refatorado).
+[2.3.36.2][11/07/2026] Adaptado BaseProcessingAlgorithm.run() para chamar BasePluginMTL.execute_tool() de forma segura:
+  - Salva/restaura cursor (setWaitCursor/restoreCursorOverride) durante execução
+  - Trata exceções com logger.exception e feedback visual QgisMessageUtil
+  - Abre pasta de saída com ExplorerUtils.open_tool_output_folder() se preferência OPEN_OUTPUT_FOLDER True
+  - Exibe help com InstructionsManager.display_help() se preferência DISPLAY_HELP True
+  - Remove ícone de ajuda fixo da toolbar de processing (respecta DISPLAY_HELP)
+  - Mantém compatibilidade com processing antigo (getToolKey())
+[2.3.36.3][11/07/2026] Renomeado BaseProcessingAlgorithm.run() → _run_tool() para evitar conflito com QgsProcessingAlgorithm.run().
+[2.3.36.4][11/07/2026] Adicionado suporte a `context_help_key` no BaseProcessingAlgorithm + InstructionsManager com fallback via ToolKey.
+[2.3.36.5][11/07/2026] Centralizada lógica de exibição de resultado (modal + open_folder) em BaseProcessingAlgorithm._run_tool().
+2.3.37 12/07/2026
+[2.3.37.1][12/07/2026] Refatorado BasePluginMTL._load_prefs() e _save_prefs() para preservar valores padrão:
+  - _load_prefs() agora retorna dict com todos os valores (incluindo defaults)
+  - _save_prefs() agora é chamado automaticamente no fechamento do diálogo via closeEvent
+  - Novo método _should_save_prefs() que plugins podem sobrescrever para controlar salvamento
+  - Novo método _on_prefs_loaded() chamado após _load_prefs() para permitir configuração pós-carregamento
+  - Documentação expandida sobre o ciclo de vida das preferências no template do plugin
+2.3.37 12/07/2026
+[2.3.37.2][12/07/2026] Adicionado parâmetro 'default' aos métodos de checkbox/get para permitir valor padrão opcional.
+2.3.38 12/07/2026
+[2.3.38.1][12/07/2026] CoorResultDialog refatorado para usar novo sistema de widgets (GridReadOnly + GridLabel + GridExecutionButtons + SimpleLabel)
+  - Removida dependência de WidgetFactory.create_readonly_field() e create_label()
+  - Adicionado show_copy_buttons=True em todos os campos GridReadOnly
+  - Substituído create_bottom_action_buttons por GridExecutionButtons com callback copy_all_info
+  - Mantida compatibilidade total com CoorResultPlugin
+  - LogUtils com ToolKey.COORD_CLICK_TOOL
+2.3.39 12/07/2026
+[2.3.39.1][12/07/2026] Corrigido import de SimpleLabel em CoorResultDialog.
+2.3.40 12/07/2026
+[2.3.40.1][12/07/2026] Adicionado LAYOUT_VERTICAL_SPACING = 6 como token do BaseTheme.
+2.3.41 12/07/2026
+[2.3.41.1][12/07/2026] Atualizada seção 8.1 do plano de eliminação (CoorResultDialog migrado).
+2.3.42 12/07/2026
+[2.3.42.1][12/07/2026] Atualizada seção 8.3 do plano de eliminação com código final do CoorResultDialog migrado.
+2.3.43 14/07/2026
+[2.3.43.1][14/07/2026] SKILL_AGENT.md atualizado com novas skills (SKILL_PREFERENCES, SKILL_I18N, SKILL_INSTRUCTIONS_SYSTEM, SKILL_FACTORY) e mapeamento revisado com 14 skills.
+2.3.44 14/07/2026
+[2.3.44.1][14/07/2026] SKILL_FACTORY.md criado com protocolo completo de documentação (ler código, rastrear dependências, template obrigatório, critérios de qualidade).
+2.3.45 14/07/2026
+[2.3.45.1][14/07/2026] Adicionados recursos de segurança em SKILL_AGENT.md (bandit, input sanitization, thread safety, QgsProject blocks, DEBUG_MODE, SQL injection, path traversal).
+2.3.46 14/07/2026
+[2.3.46.1][14/07/2026] Atualizado SKILL_AGENT.md: escopos de comandos (CLI, Python script, Python code block) e caminho dinâmico para metadados.
+2.3.47 15/07/2026
+[2.3.47.1][15/07/2026] Corrigida importação de mkdocs em DependenciesManager: fallback de mkdocs para mkdocs (mesmo nome) e adicionado suporte a import mkdocs.
+2.3.48 16/07/2026
+[2.3.48.1][16/07/2026] Adicionado suporte a traduções do QGIS nativo para exibição de ícones em contextos de processing.
+2.3.49 18/07/2026
+[2.3.49.1][18/07/2026] Adicionado suporte a ícone de ajuda (HELP_ICON) em Strings_pt_BR para exibição em contextos de processing.
+2.3.50 18/07/2026
+[2.3.50.1][18/07/2026] Nova ferramenta: ImageProcessingPlugin (grupo FERRAMENTAS_RASTER)
+  - Menu: FERRAMENTAS_RASTER → IMAGE_PROCESSING associado a ImageProcessingPlugin
+  - Toolbar: botão com ícone image_processing_icon.ico
+  - Funcionalidades implementadas:
+    a. Conversão TIFF → JPG/PNG (cores RGB + alpha opcional)
+    b. Recorte por extensão (camada vetorial)
+    c. Redimensionamento por percentual
+    d. Mesclagem de imagens (TIFF/GeoTIFF) com Blend modes SUPPORTED (sobreposição, diferença, multiply, screen, darken only, lighten only)
+  - Interface completa com seletores de arquivo/camada e botão Mesclar para blend
+  - Dependências: Pillow, numpy
+  - Limpa arquivos temporários no __del__
+[2.3.50.2][18/07/2026] Ajustada importação de ImageProcessingPlugin em cadmus_plugin.py e removido import não utilizado de os.
+[2.3.50.3][18/07/2026] Corrigido FileNotFoundError ao selecionar múltiplos arquivos (lista vazia após diálogo).
+  - Substituído os.path.exists por existência verificada; se primeiro arquivo não existir, usa dirname do diretório inicial.
+[2.3.50.4][18/07/2026] Corrigido seleção de arquivos de blend (abre diálogo de seleção múltipla; default Recentes) e atualizado placeholders.
+2.3.51 19/07/2026
+[2.3.51.1][19/07/2026] ImagesProcessing agora suporta blend de imagens: botão "Mesclar" na UI.
+[2.3.51.2][19/07/2026] Ajustadas descrições e label do projeto.
+2.3.52 19/07/2026
+[2.3.52.1][19/07/2026] Arrumado import de QImage no blend.
+2.3.53 20/07/2026
+[2.3.53.1][20/07/2026] GridCheckbox agora aceita items_per_row (int) com design responsivo (grid columns). Se não fornecido, mantém layout vertical (1 coluna).
+[2.3.53.2][20/07/2026] GridDoubleSpinBox (GridDoubleSpin) adicionado: SimpleDoubleSpinBox + GridDoubleSpin com suporte a dict config, parâmetros min/max/step/decimals/type("int"|"float").
+[2.3.53.3][20/07/2026] Novo widget raiz CollapsibleParametersWidget adicionado:
+  - QFrame collapsível com header clicável (▲/▼ animado via QPropertyAnimation)
+  - Aceita widgets filhos via addWidget()/addLayout()
+  - Estilos via AppStyles (AppStyles.collapsible_header())
+  - Tokens: COLLAPSIBLE_HEADER_* e COLLAPSIBLE_CONTENT_PADDING no BaseTheme
+  - Usado para agrupar parâmetros opcionais em plugins
+  - Separadores para header (top/bottom) e conteúdo
+[2.3.53.4][20/07/2026] Subcomponente CollapsibleHeader criado como QWidget independente:
+  - QHBoxLayout com QLabel (título) + SimpleModernButton (▼/▲ toggle)
+  - Sinais: toggled(expanded: bool)
+  - Botão com ícone de seta, estilo round_icon, fixed_size=18
+  - Altura fixa via token COLLAPSIBLE_HEADER_HEIGHT
+[2.3.53.5][20/07/2026] Adicionados tokens COLLAPSIBLE_HEADER_HEIGHT e COLLAPSIBLE_CONTENT_PADDING ao BaseTheme.
+2.3.54 20/07/2026
+[2.3.54.1][20/07/2026] Adicionado método `add_items()` ao MainLayout que aceita uma lista mista de widgets e layouts.
 2.3.55 20/07/2026
-[2.3.55.1][20/07/2026] Corrigido JsonToVectorTranslator._resolve_geometry não resolvendo coordenadas MRK:
-  - Adicionada Tentativa 3 (fallback MRK): quando GpsLatitude/GpsLongitude (EXIF/XMP) não estão disponíveis,
-    tenta Lat/Lon do MRK como fallback — soluciona erro "Nenhum registro com geometria válida encontrado"
-    em pipelines com source "mrk+photo" cujas fotos não possuem GPS embutido.
-  - Causa raiz: _resolve_geometry ignorava o parâmetro source e só tentava campos EXIF/XMP,
-    mesmo quando os dados vinham exclusivamente do arquivo MRK.
-  - A correção beneficia pipelines com fotos sem EXIF GPS (ex: DJI sem GPS de câmera,
-    mas com arquivo .mrk contendo coordenadas).
-2.3.61 21/07/2026
-[2.3.61.1][21/07/2026] Novo sistema de temas desacoplado (BaseTheme → ThemeManager → BaseStyles):
-   - Criado resources/styles/BaseTheme.py — classe base com todos os tokens visuais
-     (cores, fontes, dimensões, espaçamentos). Temas concretos (CoffeTheme) herdam e sobrescrevem.
-   - Criado resources/styles/ThemeManager.py — gerenciador singleton do tema ativo,
-     com importação direta das classes de tema (sem __import__ dinâmico) para compatibilidade
-     com sistema de módulos do QGIS.
-   - CoffeTheme atualizado para herdar de BaseTheme.
-   - BaseStyles refatorado: não importa mais CoffeTheme diretamente — usa
-     `current_theme = theme_manager.theme` e copia os tokens como atributos de classe.
-     Métodos estáticos (.button(), .input(), etc.) usam current_theme diretamente.
-     Sem descriptors, sem lambdas, sem complexidade.
-   - resources/__init__.py exporta BaseTheme, ThemeManager, theme_manager.
-   - Nenhuma quebra de contrato: Styles, WidgetFactory e todos os widgets continuam
-     usando Styles.* sem alteração.
-2.3.60 21/07/2026
-[2.3.60.1][21/07/2026] Corrigido fluxo do CreateProjectPlugin (9 bugs):
-  - Removido on_finish_plugin() do inicio de execute_tool(), movido para apos criacao bem-sucedida
-  - Removido Preferences.save_tool_prefs prematuro de execute_tool()
-  - _resolve_base_folder agora redireciona para _prompt_and_persist_base_folder() quando pasta configurada esta inacessivel (fallback)
-  - _prompt_and_persist_base_folder alterado de nao-modal (show) para modal (exec), garantindo sincronismo
-  - Adicionado modal_warning quando usuario cancela definicao da pasta padrao
-   - _resolve_project_name protegido contra base_folder vazio com guard clause + modal_error
-2.3.62 21/07/2026
-[2.3.62.1][21/07/2026] FASE 0 — Fundação do novo sistema de widgets autoconfiguráveis:
-   - Adicionados tokens descritivos em BaseTheme.py
-   - Criado resources/styles/AppStyles.py
-   - Criado utils/qt_compat.py
-   - Adicionado BaseTheme como tema registrado no ThemeManager (chave "base")
-   - Criado docs/skills/SKILL_WIDGETS2.md e docs/plano_acao_aboutdialog.md
-[2.3.62.2][21/07/2026] Primeiro plugin migrado para new_widgets — AboutDialog:
-   - Criados SimpleLabel e SimpleButton em resources/new_widgets/simple/
-   - Criados GridLabel e GridButton em resources/new_widgets/grid/
-   - Criado SeparatorWidget em resources/new_widgets/
-   - Migrado plugins/AboutDialog.py: substituído WidgetFactory.create_label() por GridLabel,
-     create_simple_button() por GridButton + SeparatorWidget
-   - Removido import de WidgetFactory de AboutDialog
-[2.3.62.3][21/07/2026] Corrigido AttributeError Qt.WindowModal em ProgressDialog (Qt6/QGIS 4.0.0):
-   - Adicionado resolve_qt_window_modality() em utils/qt_compat.py que resolve
-     Qt.WindowModality.WindowModal (Qt6) ↔ Qt.WindowModal (Qt5) via try/except
-   - Substituído Qt.WindowModal por resolve_qt_window_modality("WindowModal") em
-     core/ui/ProgressDialog.py linha 61
-   - SKILL_UTILS.md atualizado: adicionada entrada qt_compat na tabela de classes
-     e no histórico
-
-2.3.63 22/07/2026
-[2.3.63.1][22/07/2026] Corrigido ImportError "No module named 'sip'" em CoordClickTool.py (Qt6/QGIS 4.x):
-   - Substituído `import sip` por `from qgis.PyQt import sip`
-   - `import sip` falha no Qt6 (QGIS 4.x) porque o módulo sip não está mais disponível
-     diretamente no PYTHONPATH do sistema
-   - `from qgis.PyQt import sip` é garantido funcionar em Qt5 e Qt6, pois o QGIS sempre
-     expõe o sip via seu próprio pacote PyQt
-   - Método _cancel_task() agora importa sip corretamente, permitindo verificar
-     objetos deletados antes de chamar task.cancel()
+[2.3.55.1][20/07/2026] Adicionados métodos `setEnabled(key)` e `get(key)` ao GridCheckbox.
+[2.3.55.2][20/07/2026] Adicionado suporte a `onchange` callback no config do GridCheckbox.
+[2.3.55.3][20/07/2026] GridDoubleSpin adicionado: suporte a 'onchange' e 'enabled' no config dict.
+[2.3.55.4][20/07/2026] Adicionados `setEnabled(key, bool)`, `set_value(key, value)`, `get_all_values()` ao GridDoubleSpin.
+[2.3.55.5][20/07/2026] ExportAllLayouts agora usa GridComplexSelector em vez de WidgetFactory.create_path_selector.
+2.3.56 21/07/2026
+[2.3.56.1][21/07/2026] Adicionada função rgba() ao BaseTheme para geração de string rgba(r, g, b, alpha).
+[2.3.56.2][21/07/2026] Adicionado BaseTheme como tema registrado no ThemeManager (chave "base").
+[2.3.56.3][21/07/2026] Criado resources/styles/AppStyles.py com métodos de estilo globais (lê de ThemeManager).
+  - button(), label(), input(), checkbox(), scroll_area(), text_browser(), separator(), collapsible_header()
+  - modern_button_primary(), modern_button_secondary(), modern_button_round_icon()
+  - modern_input_primary(), modern_input_secondary()
+[2.3.56.4][21/07/2026] Criado utils/qt_compat.py com helpers de compatibilidade Qt5/Qt6.
+[2.3.56.5][21/07/2026] Criado docs/skills/SKILL_WIDGETS2.md e docs/plano_acao_aboutdialog.md.
+2.3.57 21/07/2026
+[2.3.57.1][21/07/2026] Criados widgets do novo sistema (FASE 1):
+  - Simple: SimpleLabel, SimpleButton, SimpleIconButton
+  - Grid: GridLabel, GridReadOnly, GridButton
+  - Raiz: SeparatorWidget, MainLayout, AppBarWidget, ScrollWidget
+[2.3.57.2][21/07/2026] Criados widgets adicionais: SimpleModernButton (gradiente + glow), SimpleQLineEdit (gradiente + glow), SimpleReadOnly, GridExecutionButtons, GridIconButton.
+[2.3.57.3][21/07/2026] BaseTheme expandido com tokens de botão moderno/gradiente (BUTTON_SHADOW_*, BUTTON_GLOW_*).
+[2.3.57.4][21/07/2026] AppStyles expandido com métodos modern_button_* e modern_input_*.
+[2.3.57.5][21/07/2026] Adicionado método modern_input_secondary() ao AppStyles.
+[2.3.57.6][21/07/2026] SimpleQLineEdit agora com sombra dinâmica (expande no focusInEvent, recolhe no focusOutEvent).
+2.3.58 21/07/2026
+[2.3.58.1][21/07/2026] AboutDialog migrado para novo sistema de widgets (GridLabel + GridIconButton + GridExecutionButtons). Substituídas todas as chamadas WidgetFactory.create_label/create_image_widget por widgets new_widgets/.
+2.3.59 21/07/2026
+[2.3.59.1][21/07/2026] Atualizado docs/plano_eliminacao_widgetfactory.md (FASE 2: AboutDialog migrado, FASE 1: SimpleModernButton + GridExecutionButtons + GridIconButton, contrato regras 13-17).
+2.3.60 22/07/2026
+[2.3.60.1][22/07/2026] Corrigido SEGFAULT no MainLayout: base_widget sem parent e sem layout.
+  - BaseDialog agora usa self (QDialog) como widget central
+  - removeWidget() + addWidget() em vez de criar base_widget separado
+  - MainLayout recebe self como widget pai, em vez de criar QWidget intermediário
+2.3.61 23/07/2026
+[2.3.61.1][23/07/2026] Corrigido SEGFAULT no AppBarWidget: botão Fechar emitia rejected com window() None.
+  - Adicionado guard: if self.window() is None: return
+  - Adicionado logger.warning caso window() seja None
+2.3.62 24/07/2026
+[2.3.62.1][24/07/2026] CoorResultDialog corrigido após SEGFAULT do MainLayout:
+  - Substituído self.layout.addWidget() por self.layout.addWidget() (compatível)
+  - GridReadOnly com show_copy_buttons=True
+  - SimpleLabel para info UTM
+  - GridExecutionButtons com callback copy_all_info
+  - ToolKey.COORD_CLICK_TOOL nos logs
+[2.3.62.2][24/07/2026] AboutDialog migrado para novo sistema (GridLabel + GridIconButton + GridExecutionButtons).
+2.3.63 24/07/2026
+[2.3.63.1][24/07/2026] Adicionado set_appbar_title() ao MainLayout para atualizar título da AppBar.
+[2.3.63.2][24/07/2026] BasePluginMTL._build_ui() atualizado para aceitar kwargs e chamar MainLayout.
+[2.3.63.3][24/07/2026] CoorResultDialog migrado: substituídas todas as chamadas WidgetFactory.create_readonly_field/create_bottom_action_buttons por GridReadOnly + GridExecutionButtons. Removido import WidgetFactory. Adicionados SeparatorWidget entre blocos.
 2.3.64 24/07/2026
 [2.3.64.1][24/07/2026] Migrado core/ui/info_dialog.py para novo sistema de widgets:
    - FASE 0: Criado resources/styles/AppStyles.text_browser() (estilo global QTextBrowser)
@@ -471,3 +200,33 @@
      - Removido _markdown_to_html() (movido para TextBrowser._markdown_to_html())
      - Ajustado layout para addWidget() + add_execution_buttons()
    - SKILL_WIDGETS2.md atualizado para v2.1.0: adicionado TextBrowser ao catálogo de widgets raiz
+2.3.65 24/07/2026
+[2.3.65.1][24/07/2026] GridComplexSelector refatorado: eliminada classe _SelectorWrapper, agora usa ComplexSelector direto:
+   - resources/new_widgets/simple/ComplexSelector.py reescrito:
+     - SimpleModernButton substitui SimpleButtonWidget (botões com glow/gradiente)
+     - AppStyles.modern_input_primary() substitui Styles.input() (input com glow)
+     - Botões com tamanho dinâmico baseado na altura do input (_get_button_size)
+     - tool_key recebido diretamente (sem logger_tool)
+     - fixed_extension substitui extension (extensão fixa para 📥 e 🛠️)
+     - 📄 (project) sempre visível em modo input (alterna line edit <-> combo)
+     - 📥 (origin) só aparece se mode_type="output" AND parent_selector não for None
+     - 🛠️ (suggest) sempre visível em modo output
+     - Se layer_filters específico, começa com QgsMapLayerComboBox ativo
+     - Explorer mostra QgisMessageUtil se não houver path válido
+   - resources/new_widgets/grid/GridComplexSelector.py reescrito:
+     - _SelectorWrapper eliminado — GridComplexSelector usa ComplexSelector diretamente
+     - Construtor via config dict com tool_key, separator_top/bottom
+     - Novos métodos get_preferences() / set_preferences() para persistência
+     - Preservada toda lógica de linking (parent, _generate_output, etc.)
+     - Preservada toda API pública (get_paths(), get_path(), set_path(), etc.)
+     - Preservado registro cross-grid (_grid_registry)
+     - Preservados callbacks (set_on_input_changed, set_on_changed, suspend/resume_callbacks)
+   - ExportAllLayouts atualizado com GridComplexSelector de teste contendo 8 cenários:
+     - CENÁRIO 1: Input simples, allow_file=True, file_filter LAS/LAZ
+     - CENÁRIO 2: Input com layer_filters=PointCloud (começa com combo)
+     - CENÁRIO 3: Input apenas pasta (allow_file=False, allow_folder=True)
+     - CENÁRIO 4: Output com parent + suffix + fixed_extension
+     - CENÁRIO 5: Output sem parent (apenas 🛠️)
+     - CENÁRIO 6: Output com parent, sem suffix, usa extensão do parent
+     - CENÁRIO 7: Input com multiple=True (múltiplos arquivos)
+     - CENÁRIO 8: Output com parent + fixed_extension sem suffix

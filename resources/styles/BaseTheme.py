@@ -44,19 +44,19 @@ class BaseTheme:
     # ════════════════════════════════════════════════════════════
 
     # ── Primary ────────────────────────────────────────────────
-    COLOR_PRIMARY: str = "#8b5cf6"
-    COLOR_PRIMARY_LIGHT: str = "#a78bfa"
-    COLOR_PRIMARY_DARK: str = "#6d28d9"
+    COLOR_PRIMARY: str = "#ffffff"
+    COLOR_PRIMARY_LIGHT: str = "#f4f4f5"
+    COLOR_PRIMARY_DARK: str = "#a1a1aa"
 
     # ── Secondary ──────────────────────────────────────────────
-    COLOR_SECONDARY: str = "#f59e0b"
-    COLOR_SECONDARY_LIGHT: str = "#fbbf24"
-    COLOR_SECONDARY_DARK: str = "#d97706"
+    COLOR_SECONDARY: str = "#71717a"
+    COLOR_SECONDARY_LIGHT: str = "#a1a1aa"
+    COLOR_SECONDARY_DARK: str = "#3f3f46"
 
     # ── Neutral ────────────────────────────────────────────────
-    COLOR_NEUTRAL: str = "#6b7280"
-    COLOR_NEUTRAL_LIGHT: str = "#9ca3af"
-    COLOR_NEUTRAL_DARK: str = "#4b5563"
+    COLOR_NEUTRAL: str = "#52525b"
+    COLOR_NEUTRAL_LIGHT: str = "#71717a"
+    COLOR_NEUTRAL_DARK: str = "#27272a"
 
     # ════════════════════════════════════════════════════════════
     # CORES FIXAS (não variam entre temas)
@@ -64,45 +64,47 @@ class BaseTheme:
 
     COLOR_WHITE: str = "#ffffff"
     COLOR_BLACK: str = "#000000"
-    COLOR_RED: str = "#ef4444"
+    COLOR_RED: str = "#3f3f46"  # Mantido cinza para seguir a regra monocromática
 
     # ════════════════════════════════════════════════════════════
     # GLOW COLORS (para QGraphicsDropShadowEffect)
     # HEX + alpha separado para construir QColor via rgba()
     # ════════════════════════════════════════════════════════════
 
-    COLOR_GLOW_PRIMARY: str = "#1446A0"
-    COLOR_GLOW_PRIMARY_ALPHA: int = 110
+    COLOR_GLOW_PRIMARY: str = "#ffffff"
+    COLOR_GLOW_PRIMARY_ALPHA: int = 60
 
-    COLOR_GLOW_SECONDARY: str = "#d97706"
-    COLOR_GLOW_SECONDARY_ALPHA: int = 110
+    COLOR_GLOW_SECONDARY: str = "#71717a"
+    COLOR_GLOW_SECONDARY_ALPHA: int = 80
 
-    COLOR_GLOW_NEUTRAL: str = "#1f2937"
-    COLOR_GLOW_NEUTRAL_ALPHA: int = 130
+    COLOR_GLOW_NEUTRAL: str = "#27272a"
+    COLOR_GLOW_NEUTRAL_ALPHA: int = 100
 
     # ════════════════════════════════════════════════════════════
     # CORES DE FUNDO / PAINEL
     # ════════════════════════════════════════════════════════════
 
-    COLOR_BACKGROUND_MAIN: str = "#0f0f17"
-    COLOR_BACKGROUND_PANEL: str = "#1b1b2b"
-    COLOR_BACKGROUND_SOFT: str = "rgba(27, 27, 43, 220)"
+    COLOR_BACKGROUND_MAIN: str = "#09090b"
+    COLOR_BACKGROUND_PANEL: str = "#18181b"
+    COLOR_BACKGROUND_SOFT: str = "rgba(24, 24, 27, 0.8)"
     COLOR_BACKGROUND_TRANSPARENT: str = "transparent"
 
     # ════════════════════════════════════════════════════════════
     # CORES DE TEXTO
     # ════════════════════════════════════════════════════════════
 
-    COLOR_TEXT_PRIMARY: str = "#f5f3ff"
-    COLOR_TEXT_SECONDARY: str = "#c4b5fd"
-    COLOR_BUTTON_TEXT: str = "#ffffff"
+    COLOR_TEXT_PRIMARY: str = "#fafafa"
+    COLOR_TEXT_SECONDARY: str = "#a1a1aa"
+    COLOR_BUTTON_TEXT: str = "#09090b"  # Texto escuro em botão branco/claro
 
     # ════════════════════════════════════════════════════════════
     # CORES DE BORDA / CHECKBOX
     # ════════════════════════════════════════════════════════════
 
-    COLOR_BORDER_DEFAULT: str = "#6d28d9"
-    COLOR_CHECKBOX_BACKGROUND: str = "#312e81"
+    COLOR_BORDER_DEFAULT: str = "#27272a"
+    COLOR_CHECKBOX_BACKGROUND: str = "#3f3f46"
+
+
 
     # ════════════════════════════════════════════════════════════
     # CORES DE LISTA / SELEÇÃO
@@ -143,7 +145,7 @@ class BaseTheme:
     # DIMENSÕES — TODAS COM UNIDADE
     # ════════════════════════════════════════════════════════════
 
-    INPUT_FIELD_MIN_HEIGHT: str = "22px"
+    INPUT_FIELD_MIN_HEIGHT: str = "50px"
     INPUT_FIELD_MAX_HEIGHT: str = "22px"
     INPUT_FIELD_PADDING: str = "4px 10px"
     INPUT_FIELD_FONT_SIZE: str = "11px"

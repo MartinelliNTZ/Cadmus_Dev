@@ -611,6 +611,8 @@ class AppStyles:
             "    border: none;"
             f"    border-radius: {theme.BORDER_RADIUS_BUTTON_DEFAULT};"
             "    padding: 0px;"
+            "    min-height: 0px;"
+            "    max-height: 100px;"
             "}"
             f"{sel}:hover {{"
             "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"

@@ -191,7 +191,7 @@ class ComplexSelector(QWidget):
         # 🔍 (file)
         if self._allow_file:
             self._btn_file = SquareIconButton(
-                icon=IconManager.icon(IconManager.CONFIG3),
+                icon=IconManager.icon(IconManager.FILE2),
                 tooltip="Selecionar arquivos" if self._multiple else "Selecionar arquivo",
                 parent=self,
             )
@@ -221,7 +221,7 @@ class ComplexSelector(QWidget):
         # 📥 (origin — só output)
         if self._mode_type == "output" and self._parent_selector is not None:
             self._btn_origin = SquareIconButton(
-                icon=IconManager.icon(IconManager.SUGESTION),
+                icon=IconManager.icon(IconManager.ORIGIN),
                 tooltip="Usar mesmo diretório da origem",
                 parent=self,
             )
@@ -231,7 +231,7 @@ class ComplexSelector(QWidget):
         # 🛠️ (suggest — só output)
         if self._mode_type == "output":
             self._btn_suggest = SquareIconButton(
-                icon=IconManager.icon(IconManager.CONFIG2),
+                icon=IconManager.icon(IconManager.SUGESTION),
                 tooltip="Usar pasta do projeto",
                 parent=self,
             )

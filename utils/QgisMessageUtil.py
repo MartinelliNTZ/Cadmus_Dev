@@ -66,19 +66,22 @@ class QgisMessageUtil(BaseUtil):
 
         Parameters
         ----------
-        iface : QgisInterface
+        iface : QgisInterface or None
         title : str
         message : str
         level : Qgis.MessageLevel (Qgis.Info/Qgis.Warning/Qgis.Critical)
         duration : int (segundos)
         """
-        # iface.messageBar pode não existir em alguns contextos; tente capturar
-        try:
-            iface.messageBar().pushMessage(title, message, level, duration)
-        except Exception as e:
-            logger.debug(f"_push_message_bar: failed with error: {e}")
-            # fallback para QMessageBox modal se messageBar não estiver disponível
-            QMessageBox.information(iface.mainWindow(), title, message)
+        if iface is not None:
+            try:
+                iface.messageBar().pushMessage(title, message, level, duration)
+                return
+            except Exception as e:
+                logger.debug(f"_push_message_bar: messageBar failed: {e}")
+
+        # fallback: QMessageBox (se iface for None, parent=None é seguro)
+        parent = iface.mainWindow() if iface is not None else None
+        QMessageBox.information(parent, title, message)
 
     @staticmethod
     def _exec_dialog(dialog):
@@ -189,26 +192,29 @@ class QgisMessageUtil(BaseUtil):
     # Modals (bloqueantes)
     # ------------------------------
     @staticmethod
+    def _parent(iface):
+        """Retorna widget parent seguro: mainWindow do iface ou None."""
+        return iface.mainWindow() if iface is not None else None
+
+    @staticmethod
     def modal_info(iface, message, title="Informação"):
-        QMessageBox.information(iface.mainWindow(), title, message)
+        QMessageBox.information(QgisMessageUtil._parent(iface), title, message)
 
     @staticmethod
     def modal_success(iface, message, title="Sucesso"):
-        # idem info, mas semântica de sucesso
-        QMessageBox.information(iface.mainWindow(), title, message)
+        QMessageBox.information(QgisMessageUtil._parent(iface), title, message)
 
     @staticmethod
     def modal_warning(iface, message, title="Aviso"):
-        QMessageBox.warning(iface.mainWindow(), title, message)
+        QMessageBox.warning(QgisMessageUtil._parent(iface), title, message)
 
     @staticmethod
     def modal_error(iface, message, title="Erro"):
-        QMessageBox.critical(iface.mainWindow(), title, message)
+        QMessageBox.critical(QgisMessageUtil._parent(iface), title, message)
 
     @staticmethod
     def modal_debug(iface, message, title="Debug"):
-        # exibe e também grava no log
-        QMessageBox.information(iface.mainWindow(), title, str(message))
+        QMessageBox.information(QgisMessageUtil._parent(iface), title, str(message))
         QgisMessageUtil.log(str(message), level=Qgis.Info)
 
     # ------------------------------
@@ -217,7 +223,7 @@ class QgisMessageUtil(BaseUtil):
     @staticmethod
     def confirm(iface, message, title="Confirmação"):
         resp = QMessageBox.question(
-            iface.mainWindow(),
+            QgisMessageUtil._parent(iface),
             title,
             message,
             QgisMessageUtil.YES_BUTTON | QgisMessageUtil.NO_BUTTON,
@@ -238,10 +244,8 @@ class QgisMessageUtil(BaseUtil):
         """
         tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
         tb_text = "".join(tb)
-        # registrar no log do QGIS
         QgisMessageUtil.log(tb_text, level=Qgis.Critical)
-        # mostrar resumo ao usuário
-        QMessageBox.critical(iface.mainWindow(), user_message, str(exc))
+        QMessageBox.critical(QgisMessageUtil._parent(iface), user_message, str(exc))
 
     @staticmethod
     def log(message, level=Qgis.Info, tag=None):
@@ -252,7 +256,7 @@ class QgisMessageUtil(BaseUtil):
 
     @staticmethod
     def ask_field_conflict(iface, field_name):
-        msg = QMessageBox(iface.mainWindow())
+        msg = QMessageBox(QgisMessageUtil._parent(iface))
         msg.setIcon(QgisMessageUtil.QUESTION_ICON)
         msg.setWindowTitle("Campo existente")
         msg.setText(f"O campo '{field_name}' já existe.\nO que deseja fazer?")
@@ -271,7 +275,7 @@ class QgisMessageUtil(BaseUtil):
 
     @staticmethod
     def ask_overwrite(iface, path: str = "") -> str:
-        msg = QMessageBox(iface.mainWindow())
+        msg = QMessageBox(QgisMessageUtil._parent(iface))
         msg.setIcon(QgisMessageUtil.WARNING_ICON)
         msg.setWindowTitle("Arquivo já existe")
         msg.setText(f"O arquivo já existe:\n{path}")

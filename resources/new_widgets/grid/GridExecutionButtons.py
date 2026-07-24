@@ -229,7 +229,7 @@ class GridExecutionButtons(QWidget):
 
     def _show_info(self, instructions_path: str):
         """Abre diálogo de informações (lazy import para evitar circular)."""
-        from ....core.ui.info_dialog import InfoDialog
+        from ....core.ui.InfoDialog import InfoDialog
         dlg = InfoDialog(instructions_path, self.window())
         dlg.exec()
 

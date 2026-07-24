@@ -16,7 +16,7 @@ from ....utils.ToolKeys import ToolKey
 from ....core.ui.WidgetFactory import WidgetFactory
 from ....plugins.SettingsPlugin import SettingsPlugin
 from ....resources.InstructionsManager import InstructionsManager
-from ....core.ui.info_dialog import InfoDialog
+from ..InfoDialog import InfoDialog
 
 
 class ProjectNameDialog(BaseDialog):

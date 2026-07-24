@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from ...core.config.LogUtils import LogUtils
+from ..config.LogUtils import LogUtils
 from ...plugins.BaseDialog import BaseDialog
 from ...i18n.TranslationManager import STR
 from ...utils.ToolKeys import ToolKey

@@ -6,7 +6,7 @@ from typing import Optional
 import time
 from ..utils.FormatUtils import FormatUtils
 from ..core.config.LogUtils import LogUtils
-from ..core.ui.info_dialog import InfoDialog
+from ..core.ui.InfoDialog import InfoDialog
 from ..utils.Preferences import Preferences
 from ..utils.ToolKeys import ToolKey
 from ..utils.QgisMessageUtil import QgisMessageUtil

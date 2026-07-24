@@ -246,6 +246,7 @@ class BaseTheme:
 
     ALLOW_COMPONENT_SHADOW: bool = True
     ALLOW_COMPONENT_GLOW: bool = False
+    ENABLE_GRID_CHECKBOX_BACKGROUND: bool = False
 
     # ════════════════════════════════════════════════════════════
     # PROPRIEDADES COMPUTADAS

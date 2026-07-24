@@ -6,9 +6,12 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import QgsLayoutExporter, QgsProject
 
 from ..core.ui.ProgressDialog import ProgressDialog
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..plugins.BasePlugin import BasePluginMTL
+from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
+from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ..utils.DependenciesManager import DependenciesManager
 from ..utils.PDFUtils import PDFUtils
 from ..utils.Preferences import Preferences
@@ -24,18 +27,10 @@ class ExportAllLayoutsDialog(BasePluginMTL):
     - Interface padronizada com MainLayout + AppBar
     - Persistência automática de preferências via _save_prefs()
     - Carregamento automático via _load_prefs()
-    - Widgets padronizados via WidgetFactory
+    - Widgets autoconfiguráveis (new_widgets)
     """
 
     TOOL_KEY = ToolKey.EXPORT_ALL_LAYOUTS
-
-    CHECKBOX_OPTIONS = {
-        "export_pdf": STR.EXPORT_PDF,
-        "export_png": STR.EXPORT_PNG,
-        "merge_pdf": STR.MERGE_PDFS_FINAL,
-        "merge_png": STR.MERGE_PNGS_FINAL,
-        "replace_existing": STR.REPLACE_EXISTING_FILES,
-    }
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
@@ -60,70 +55,106 @@ class ExportAllLayoutsDialog(BasePluginMTL):
 
         self.logger.info("Construindo componentes de interface")
 
-        checkboxes_layout, self.checkbox_map = WidgetFactory.create_checkbox_grid(
-            options_dict=self.CHECKBOX_OPTIONS,
+        # ── Checkboxes de Exportação ──────────────────────────────
+        self.checkbox_widget = GridCheckbox(
+            config={
+                "export_pdf": {
+                    "label": STR.EXPORT_PDF,
+                    "description": "Exporta layouts em formato PDF",
+                    "default": True,
+                },
+                "export_png": {
+                    "label": STR.EXPORT_PNG,
+                    "description": "Exporta layouts em formato PNG",
+                    "default": False,
+                },
+                "merge_pdf": {
+                    "label": STR.MERGE_PDFS_FINAL,
+                    "description": "Combina todos os PDFs em um único arquivo",
+                    "default": False,
+                    "onchange": self.on_merge_pdf_changed,
+                },
+                "merge_png": {
+                    "label": STR.MERGE_PNGS_FINAL,
+                    "description": "Combina todos os PNGs em um único PDF",
+                    "default": False,
+                    "onchange": self.on_merge_png_changed,
+                },
+                "replace_existing": {
+                    "label": STR.REPLACE_EXISTING_FILES,
+                    "description": "Substitui arquivos existentes sem criar cópias numeradas",
+                    "default": False,
+                },
+            },
             items_per_row=2,
-            checked_by_default=False,
             title=STR.EXPORT_OPTIONS,
             separator_top=False,
             separator_bottom=True,
+            parent=self,
         )
+        self.layout.addWidget(self.checkbox_widget)
+
         self.logger.debug("Grid de checkboxes de exportação criado")
 
-        self.chk_merge_pdf = self.checkbox_map.get("merge_pdf")
-        if self.chk_merge_pdf:
-            self.chk_merge_pdf.toggled.connect(self.on_merge_pdf_changed)
-
-        self.chk_merge_png = self.checkbox_map.get("merge_png")
-        if self.chk_merge_png:
-            self.chk_merge_png.toggled.connect(self.on_merge_png_changed)
-
-        max_width_layout, self.max_width_input = (
-            WidgetFactory.create_input_fields_widget(
-                fields_dict={
-                    "max_width": {
-                        "title": STR.MAX_WIDTH_PNG,
-                        "type": "int",
-                        "default": 3500,
-                    }
+        # ── Max Width ─────────────────────────────────────────────
+        self.max_width_input = GridDoubleSpin(
+            config={
+                "max_width": {
+                    "label": STR.MAX_WIDTH_PNG,
+                    "description": "Largura máxima em pixels para exportação PNG",
+                    "value": 3500,
+                    "min": 100,
+                    "max": 10000,
+                    "step": 100,
+                    "decimals": 0,
+                    "type": "int",
                 },
-                parent=self,
-                separator_top=False,
-                separator_bottom=True,
-            )
+            },
+            separator_top=False,
+            separator_bottom=True,
+            parent=self,
         )
+        self.layout.addWidget(self.max_width_input)
         self.logger.debug("Widget de Max Width criado")
 
-        folder_layout, self.folder_selector = WidgetFactory.create_path_selector(
-            parent=self,
-            title=STR.OUTPUT_FOLDER,
-            mode="folder",
-            path_button="exports",
+        # ── Output Folder ─────────────────────────────────────────
+        default_path = os.path.join(QgsProject.instance().homePath(), "exports")
+        self.folder_selector = GridComplexSelector(
+            config={
+                "output_folder": {
+                    "label": STR.OUTPUT_FOLDER,
+                    "description": "Pasta onde os arquivos exportados serão salvos",
+                    "path": default_path,
+                    "mode": "folder",
+                    "subfolder": "exports",
+                },
+            },
+            tool_key=self.TOOL_KEY,
             separator_top=False,
             separator_bottom=False,
+            parent=self,
         )
+        self.layout.addWidget(self.folder_selector)
         self.logger.debug("Path Selector de pasta de saída criado")
 
-        buttons_layout, self.action_buttons = (
-            WidgetFactory.create_bottom_action_buttons(
-                parent=self,
-                run_callback=self.execute_tool,
-                close_callback=self.close,
-                info_callback=self.show_info_dialog,
-                tool_key=self.TOOL_KEY,
-                run_text=STR.EXPORT,
-            )
+        # ── Execution Buttons ─────────────────────────────────────
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "exportar": {
+                    "label": STR.EXPORT,
+                    "description": "Inicia a exportação dos layouts",
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_config_button=True,
+            enable_info=True,
+            tool_key=self.TOOL_KEY,
+            parent=self,
         )
+        self.layout.add_execution_buttons(self.action_buttons)
         self.logger.debug("Botões de ação criados")
-
-        self.layout.add_items(
-            [
-                checkboxes_layout,
-                max_width_layout,
-                folder_layout,
-                buttons_layout,
-            ]
-        )
 
         self.logger.info("Interface de exportação construída com sucesso")
 
@@ -146,7 +177,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
             self.logger.info(
                 f"Usuário recusou instalação de {dependency_name}; desmarcando {checkbox_key}"
             )
-            self.checkbox_map.get(checkbox_key).setChecked(False)
+            self.checkbox_widget.set_checked(checkbox_key, False)
             return False
 
         started = DependenciesManager.install_dependency_gui(
@@ -161,7 +192,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
                 self.iface,
                 f"Não foi possível iniciar a instalação da biblioteca {dependency_name}.",
             )
-            self.checkbox_map.get(checkbox_key).setChecked(False)
+            self.checkbox_widget.set_checked(checkbox_key, False)
             return False
 
         self.logger.info(
@@ -192,25 +223,22 @@ class ExportAllLayoutsDialog(BasePluginMTL):
         )
 
     def _load_prefs(self):
-        # self.logger.debug("Carregando preferências de exportação")
-        # self.preferences = load_tool_prefs(self.TOOL_KEY)
-
         self._suppress_merge_dependency_check = True
         try:
-            self.checkbox_map["export_pdf"].setChecked(
-                self.preferences.get("export_pdf", True)
+            self.checkbox_widget.set_checked(
+                "export_pdf", self.preferences.get("export_pdf", True)
             )
-            self.checkbox_map["export_png"].setChecked(
-                self.preferences.get("export_png", True)
+            self.checkbox_widget.set_checked(
+                "export_png", self.preferences.get("export_png", True)
             )
-            self.checkbox_map["merge_pdf"].setChecked(
-                self.preferences.get("merge_pdf", False)
+            self.checkbox_widget.set_checked(
+                "merge_pdf", self.preferences.get("merge_pdf", False)
             )
-            self.checkbox_map["merge_png"].setChecked(
-                self.preferences.get("merge_png", False)
+            self.checkbox_widget.set_checked(
+                "merge_png", self.preferences.get("merge_png", False)
             )
-            self.checkbox_map["replace_existing"].setChecked(
-                self.preferences.get("replace_existing", False)
+            self.checkbox_widget.set_checked(
+                "replace_existing", self.preferences.get("replace_existing", False)
             )
         finally:
             self._suppress_merge_dependency_check = False
@@ -227,16 +255,15 @@ class ExportAllLayoutsDialog(BasePluginMTL):
     def _save_prefs(self):
         self.logger.debug("Salvando preferências de exportação")
 
-        self.preferences["export_pdf"] = self.checkbox_map["export_pdf"].isChecked()
-        self.preferences["export_png"] = self.checkbox_map["export_png"].isChecked()
-        self.preferences["merge_pdf"] = self.checkbox_map["merge_pdf"].isChecked()
-        self.preferences["merge_png"] = self.checkbox_map["merge_png"].isChecked()
-        self.preferences["replace_existing"] = self.checkbox_map[
-            "replace_existing"
-        ].isChecked()
+        all_states = self.checkbox_widget.get_all_states()
+        self.preferences["export_pdf"] = all_states.get("export_pdf", True)
+        self.preferences["export_png"] = all_states.get("export_png", False)
+        self.preferences["merge_pdf"] = all_states.get("merge_pdf", False)
+        self.preferences["merge_png"] = all_states.get("merge_png", False)
+        self.preferences["replace_existing"] = all_states.get("replace_existing", False)
 
-        max_width_values = self.max_width_input.get_values()
-        self.preferences["max_width"] = int(max_width_values.get("max_width", 3500))
+        all_values = self.max_width_input.get_all_values()
+        self.preferences["max_width"] = int(all_values.get("max_width", 3500))
 
         paths = self.folder_selector.get_paths()
         pasta = (
@@ -254,14 +281,15 @@ class ExportAllLayoutsDialog(BasePluginMTL):
     def execute_tool(self):
         self.logger.info("Iniciando exportação de layouts")
 
-        export_pdf = self.checkbox_map["export_pdf"].isChecked()
-        export_png = self.checkbox_map["export_png"].isChecked()
-        merge_pdf = self.checkbox_map["merge_pdf"].isChecked()
-        merge_png = self.checkbox_map["merge_png"].isChecked()
-        replace_existing = self.checkbox_map["replace_existing"].isChecked()
+        all_states = self.checkbox_widget.get_all_states()
+        export_pdf = all_states.get("export_pdf", True)
+        export_png = all_states.get("export_png", False)
+        merge_pdf = all_states.get("merge_pdf", False)
+        merge_png = all_states.get("merge_png", False)
+        replace_existing = all_states.get("replace_existing", False)
 
-        max_width_values = self.max_width_input.get_values()
-        max_width = int(max_width_values.get("max_width", 3500))
+        all_values = self.max_width_input.get_all_values()
+        max_width = int(all_values.get("max_width", 3500))
 
         paths = self.folder_selector.get_paths()
         output_folder = (
@@ -286,7 +314,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
                 "Merge de PDF solicitado sem PyPDF2 disponível; merge será ignorado"
             )
             merge_pdf = False
-            self.checkbox_map.get("merge_pdf").setChecked(False)
+            self.checkbox_widget.set_checked("merge_pdf", False)
 
         if merge_png and not DependenciesManager.check_dependency(
             "Pillow", self.TOOL_KEY
@@ -295,7 +323,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
                 "Merge de PNG solicitado sem Pillow disponível; merge será ignorado"
             )
             merge_png = False
-            self.checkbox_map.get("merge_png").setChecked(False)
+            self.checkbox_widget.set_checked("merge_png", False)
 
         project = QgsProject.instance()
         layouts = project.layoutManager().layouts()

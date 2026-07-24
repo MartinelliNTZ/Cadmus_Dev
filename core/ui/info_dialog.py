@@ -43,7 +43,7 @@ class InfoDialog(BaseDialog):
                 f"{STR.FILE_NOT_FOUND}:\n{instructions_path}"
             )
 
-        self.layout.addWidget(browser)
+        self.layout.addWidget(browser, stretch=1)
 
         # ── Botao Fechar ───────────────────────────────────────
         # GridExecutionButtons gerencia o botao fechar internamente

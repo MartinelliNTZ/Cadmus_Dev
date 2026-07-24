@@ -459,5 +459,15 @@
      expõe o sip via seu próprio pacote PyQt
    - Método _cancel_task() agora importa sip corretamente, permitindo verificar
      objetos deletados antes de chamar task.cancel()
-
-
+2.3.64 24/07/2026
+[2.3.64.1][24/07/2026] Migrado core/ui/info_dialog.py para novo sistema de widgets:
+   - FASE 0: Criado resources/styles/AppStyles.text_browser() (estilo global QTextBrowser)
+   - FASE 0: Criado resources/new_widgets/TextBrowser.py (raiz, sem versão grid)
+     - set_markdown() com fallback Qt5/Qt6 (setMarkdown nativo ou _markdown_to_html())
+   - FASE 1: InfoDialog migrado:
+     - Substituído WidgetFactory.create_text_browser() por TextBrowser()
+     - Substituído WidgetFactory.create_simple_button() por GridExecutionButtons(enable_close_button=True)
+     - Removido import WidgetFactory
+     - Removido _markdown_to_html() (movido para TextBrowser._markdown_to_html())
+     - Ajustado layout para addWidget() + add_execution_buttons()
+   - SKILL_WIDGETS2.md atualizado para v2.1.0: adicionado TextBrowser ao catálogo de widgets raiz

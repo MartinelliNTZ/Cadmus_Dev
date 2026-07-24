@@ -50,7 +50,6 @@ class AppStyles:
             f"    border: {theme.PXBORDER_ONE} {theme.COLOR_PRIMARY_DARK};"
             f"    border-radius: {theme.BORDER_RADIUS_BUTTON_DEFAULT};"
             f"    padding: {theme.PADDING_BUTTON_DEFAULT};"
-            f"    min-height: {theme.BUTTON_DEFAULT_MIN_HEIGHT};"
             "}"
             "QPushButton:hover {"
             f"    background: {theme.COLOR_PRIMARY_LIGHT};"

@@ -24,9 +24,9 @@ import os
 from typing import Callable, Optional
 
 from qgis.PyQt.QtWidgets import (
-    QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget, QSizePolicy,
+    QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget, QSizePolicy
 )
-from qgis.PyQt.QtCore import pyqtSignal, Qt
+from qgis.PyQt.QtCore import pyqtSignal, Qt, QSize
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsProject
 
@@ -221,13 +221,13 @@ class ComplexSelector(QWidget):
             layout.addWidget(self._btn_folder, 0, Qt.AlignmentFlag.AlignVCenter)
 
         # 📄 (project — só input, alterna line edit <-> combo)
-        # Só aparece se allow_file=True (não faz sentido sem arquivos)
         if self._mode_type == "input" and self._allow_file:
             self._btn_project = SimpleModernButton(
                 parent=self,
                 primary=False,
                 round_icon=True,
-                fixed_size=btn_size,
+                icon_size=QSize(16, 16),
+                fixed_size=32,
                 tooltip="Alternar para seleção de camada",
             )
             self._btn_project.setIcon(IconManager.icon(IconManager.PROJECT))

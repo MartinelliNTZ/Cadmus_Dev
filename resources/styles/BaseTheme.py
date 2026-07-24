@@ -145,8 +145,8 @@ class BaseTheme:
     # DIMENSÕES — TODAS COM UNIDADE
     # ════════════════════════════════════════════════════════════
 
-    INPUT_FIELD_MIN_HEIGHT: str = "50px"
-    INPUT_FIELD_MAX_HEIGHT: str = "22px"
+    INPUT_FIELD_MIN_HEIGHT: str = "30px"
+    INPUT_FIELD_MAX_HEIGHT: str = "30px"
     INPUT_FIELD_PADDING: str = "4px 10px"
     INPUT_FIELD_FONT_SIZE: str = "11px"
     INPUT_FIELD_FONT_WEIGHT: str = "50"

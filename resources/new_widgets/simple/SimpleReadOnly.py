@@ -10,6 +10,7 @@ from qgis.PyQt.QtCore import QSize
 from ...IconManager import IconManager
 from .SimpleModernButton import SimpleModernButton
 from .SimpleQLineEdit import SimpleQLineEdit
+from ....utils.ProjectUtils import ProjectUtils
 
 
 class SimpleReadOnly(QWidget):
@@ -61,11 +62,10 @@ class SimpleReadOnly(QWidget):
             layout.addWidget(self._copy_btn)
 
     def _copy_to_clipboard(self):
-        """Copia o texto do campo para a área de transferência."""
-        from qgis.PyQt.QtWidgets import QApplication
+        """Copia o texto do campo para a área de transferência via ProjectUtils."""
         text = self._line_edit.text()
         if text:
-            QApplication.clipboard().setText(text)
+            ProjectUtils.set_clipboard_text(text)
 
     def setText(self, text: str):
         """Define o texto do campo (aceita None)."""

@@ -229,4 +229,16 @@
      - CENÁRIO 5: Output sem parent (apenas 🛠️)
      - CENÁRIO 6: Output com parent, sem suffix, usa extensão do parent
      - CENÁRIO 7: Input com multiple=True (múltiplos arquivos)
-     - CENÁRIO 8: Output com parent + fixed_extension sem suffix
+      - CENÁRIO 8: Output com parent + fixed_extension sem suffix
+2.3.66 24/07/2026
+[2.3.66.1][24/07/2026] Atualizada documentação do novo sistema de widgets:
+   - SKILL_WIDGETS2.md atualizada para v2.2.0:
+     - Adicionados Simple widgets faltantes: SimpleCheckbox, SimpleDoubleSpinBox, ComplexSelector, SquareIconButton
+     - Adicionados Grid widgets: GridCheckbox, GridDoubleSpin, GridComplexSelector
+     - ExportAllLayouts confirmado como 100% migrado (GridCheckbox + GridDoubleSpin + GridComplexSelector + GridExecutionButtons)
+   - docs/plano_eliminacao_widgetfactory.md atualizado para v5.2.0:
+     - ExportAllLayouts marcado como migrado (FASE 2 item #6)
+     - FASE 1 atualizada: Simple e Grid marcados como COMPLETOS
+     - TODO interno atualizado com estado real dos widgets
+     - Catálogo 4.1 atualizado com todos os widgets existentes
+     - Fluxo de migração atualizado (4 plugins migrados)

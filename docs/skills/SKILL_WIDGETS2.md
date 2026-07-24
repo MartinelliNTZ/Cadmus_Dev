@@ -133,6 +133,97 @@ btn = SimpleModernButton(
 - `modern_button_secondary(object_name)` — gradiente NEUTRAL
 - `modern_button_round_icon(object_name)` — gradiente NEUTRAL, sem padding
 
+### SimpleCheckbox 🆕
+`QCheckBox` com estilo global `AppStyles.checkbox()`.
+
+```python
+from .SimpleCheckbox import SimpleCheckbox
+
+cb = SimpleCheckbox(text="Exportar PDF", parent=self)
+```
+
+**API pública:**
+- `isChecked()` → bool
+- `setChecked(bool)`
+- `toggled` signal
+
+### SimpleDoubleSpinBox 🆕
+`QDoubleSpinBox` com estilo global `AppStyles.input()`. Suporta `type_spec="int"` para exibir inteiros.
+
+```python
+from .SimpleDoubleSpinBox import SimpleDoubleSpinBox
+
+spin = SimpleDoubleSpinBox(
+    value=3500,
+    min_val=100,
+    max_val=10000,
+    step=100,
+    decimals=0,
+    type_spec="int",
+    parent=self,
+)
+```
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `value` | float | `0` | Valor inicial |
+| `min_val` | float | `0` | Valor mínimo |
+| `max_val` | float | `999999` | Valor máximo |
+| `step` | float | `1` | Incremento |
+| `decimals` | int | `0` | Casas decimais |
+| `type_spec` | str | `"double"` | `"int"` ou `"double"` |
+| `parent` | QWidget | `None` | Widget pai |
+
+### ComplexSelector 🆕
+Seletor de arquivo/pasta/camada completo com:
+- `QLineEdit` com glow (`SimpleQLineEdit` / `AppStyles.modern_input_primary()`)
+- Botões: 📄 (project/layer), 📥 (origin), 🛠️ (suggest), 📂 (explorer), 📋 (copy)
+- Suporte a `QgsMapLayerComboBox` via `layer_filters`
+- Suporte a `mode_type="input"` / `"output"` com parent linking
+
+```python
+from .ComplexSelector import ComplexSelector
+
+selector = ComplexSelector(
+    label_text="Arquivo de entrada",
+    default_path="",
+    tooltip="Selecione o arquivo",
+    file_filter="LAS/LAZ (*.las *.laz)",
+    allow_file=True,
+    allow_folder=False,
+    multiple=False,
+    selection_mode="file",
+    mode_type="input",
+    parent_selector=None,
+    layer_filters=QgsMapLayerProxyModel.PointCloud,
+    tool_key=self.TOOL_KEY,
+    parent=self,
+)
+```
+
+**API pública:**
+- `path()` → str (primeiro path)
+- `get_paths()` → list[str]
+- `set_path(path)` / `set_paths(paths)`
+- `on_path_change` — callback(paths)
+
+### SquareIconButton 🆕
+`QPushButton` quadrado com ícone, sem borda, fundo transparente. Usa `AppStyles.button()` + estilo específico para tamanho fixo.
+
+```python
+from .SquareIconButton import SquareIconButton
+
+btn = SquareIconButton(
+    icon=IconManager.icon(IconManager.COPY2),
+    icon_size=QSize(16, 16),
+    button_size=QSize(28, 28),
+    tooltip="Copiar",
+    parent=self,
+)
+```
+
 ### SimpleQLineEdit 🆕
 `QLineEdit` **sem borda**, com **gradiente 3 stops** + **glow shadow**, condizente com `SimpleModernButton`.
 
@@ -287,6 +378,163 @@ social = GridIconButton(config={
 }, parent=self)
 layout.addWidget(social)
 ```
+
+### GridCheckbox 🆕
+Container de checkboxes configurável via dict. Usa `SimpleCheckbox` internamente. Suporta `items_per_row` para layout em grid.
+
+```python
+checkbox_widget = GridCheckbox(
+    config={
+        "export_pdf": {
+            "label": "Exportar PDF",
+            "description": "Exporta layouts em PDF",
+            "default": True,
+        },
+        "export_png": {
+            "label": "Exportar PNG",
+            "description": "Exporta layouts em PNG",
+            "default": False,
+        },
+        "merge_pdf": {
+            "label": "Concatenar PDFs",
+            "description": "Combina todos os PDFs em um único arquivo",
+            "default": False,
+            "onchange": self.on_merge_pdf_changed,
+        },
+    },
+    title="Opções de Exportação",
+    items_per_row=2,
+    parent=self,
+)
+layout.addWidget(checkbox_widget)
+```
+
+**API pública:**
+- `is_checked(key)` → bool
+- `set_checked(key, value)`
+- `get_all_states()` → dict[str, bool]
+- `widget(key)` → QCheckBox (acesso direto ao signal `toggled`)
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `config` | dict | `{}` | Dict de checkboxes (chave → `label`, `description`, `default`, `onchange`) |
+| `title` | str | `""` | Título do grupo (QGroupBox) |
+| `items_per_row` | int | `2` | Itens por linha no grid |
+| `separator_top` | bool | `False` | Separador antes |
+| `separator_bottom` | bool | `False` | Separador depois |
+| `parent` | QWidget | `None` | Widget pai |
+
+### GridDoubleSpin 🆕
+Container de campos numéricos configurável via dict. Usa `SimpleDoubleSpinBox` internamente. Suporta `type="int"` ou `type="double"`.
+
+```python
+spin = GridDoubleSpin(
+    config={
+        "max_width": {
+            "label": "Largura Máx. PNG",
+            "description": "Largura máxima em pixels",
+            "value": 3500,
+            "min": 100,
+            "max": 10000,
+            "step": 100,
+            "decimals": 0,
+            "type": "int",
+        },
+    },
+    title="Configurações",
+    parent=self,
+)
+layout.addWidget(spin)
+
+# API pública
+spin.get_value("max_width")        # → 3500
+spin.set_value("max_width", 4000)  # define valor
+spin.get_all_values()              # → {"max_width": 4000}
+```
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `config` | dict | `{}` | Dict de campos (chave → `label`, `description`, `value`, `min`, `max`, `step`, `decimals`, `type`, `onchange`) |
+| `title` | str | `""` | Título do grupo (QGroupBox) |
+| `separator_top` | bool | `False` | Separador antes |
+| `separator_bottom` | bool | `False` | Separador depois |
+| `parent` | QWidget | `None` | Widget pai |
+
+### GridComplexSelector 🆕
+Grade de seletores de arquivo/pasta/camada configurados por dicionário. Usa `ComplexSelector` internamente. Suporta linking parent-child entre selectores e dynamic_parent.
+
+```python
+grid = GridComplexSelector(
+    config={
+        "entrada": {
+            "label": "Arquivo de entrada",
+            "description": "Selecione o arquivo de entrada",
+            "file_filter": "LAS/LAZ (*.las *.laz)",
+            "mode_type": "input",
+            "allow_file": True,
+            "allow_folder": False,
+            "multiple": False,
+        },
+        "saida": {
+            "label": "Pasta de saída",
+            "description": "Pasta para salvar os arquivos",
+            "mode_type": "output",
+            "parent": "entrada",
+            "suffix": "_converted",
+            "fixed_extension": "gpkg",
+            "subfolder": "output",
+            "allow_folder": True,
+        },
+    },
+    tool_key=self.TOOL_KEY,
+    parent=self,
+)
+layout.addWidget(grid)
+
+# API pública
+grid.get_paths()                    # → ["/path/to/file.las", "/path/to/output/file_converted.gpkg"]
+grid.get_path("entrada")            # → "/path/to/file.las"
+grid.set_path("entrada", "/novo/path.las")
+grid.get_preferences()              # → dict para salvar em Preferences
+grid.set_preferences(prefs)         # → carrega paths de Preferences
+```
+
+**Parâmetros do config dict (por seletor):**
+
+| Propriedade | Obrigatório | Descrição |
+|-------------|-------------|-----------|
+| `"label"` | Sim | Texto do label |
+| `"description"` | Não | Tooltip |
+| `"path"` | Não | Path inicial |
+| `"mode_type"` | Não | `"input"` ou `"output"` (default `"input"`) |
+| `"parent"` | Não | Chave do seletor pai (para linking) |
+| `"suffix"` | Não | Sufixo no nome do output |
+| `"fixed_extension"` | Não | Extensão fixa do output |
+| `"subfolder"` | Não | Subpasta para output |
+| `"fixed_name"` | Não | Nome fixo do output |
+| `"allow_file"` | Não | Permite selecionar arquivos |
+| `"allow_folder"` | Não | Permite selecionar pastas |
+| `"multiple"` | Não | Seleção múltipla |
+| `"file_filter"` | Não | Filtro de arquivos |
+| `"layer_filters"` | Não | QgsMapLayerProxyModel filter |
+| `"show_explorer_button"` | Não | Botão explorar |
+| `"show_copy_button"` | Não | Botão copiar |
+
+**Parâmetros do construtor:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `config` | dict | `{}` | Dict de seletores |
+| `tool_key` | ToolKey | `None` | ToolKey para logs |
+| `title` | str | `None` | Título do grupo (QGroupBox) |
+| `grid_id` | str | `""` | ID para cross-grid parent linking |
+| `separator_top` | bool | `False` | Separador antes |
+| `separator_bottom` | bool | `False` | Separador depois |
+| `parent` | QWidget | `None` | Widget pai |
 
 ### GridButton (legado — prefira GridExecutionButtons)
 Container simples com botões Fechar/Executar/Info.
@@ -591,3 +839,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-21 | 1.2.0 | Adicionado padrão de configuração via dict `config={}` com chaves identificadoras e suporte a `description` para tooltip |
 | 2026-07-23 | 2.0.0 | Adicionados `SimpleModernButton` (gradiente + glow), `SimpleQLineEdit` (gradiente + glow), `SimpleReadOnly` atualizado com `SimpleModernButton` + `SimpleQLineEdit` + ícone COPY2. Adicionados tokens `INPUT_FIELD_PADDING`, `INPUT_FIELD_FONT_SIZE`, `INPUT_FIELD_FONT_WEIGHT`, `INPUT_SHADOW_*`. Adicionados métodos `modern_input_primary()`, `modern_input_secondary()`. Documentado comportamento de `add_execution_buttons` sem stretch com scroll. |
 | 2026-07-24 | 2.1.0 | Adicionado `TextBrowser` (raiz, sem versão grid) — QTextBrowser com `AppStyles.text_browser()`, set_markdown com fallback Qt5/Qt6. |
+| 2026-07-24 | 2.2.0 | Adicionados Simple widgets faltantes: `SimpleCheckbox`, `SimpleDoubleSpinBox`, `ComplexSelector`, `SquareIconButton`. Adicionados Grid widgets: `GridCheckbox`, `GridDoubleSpin`, `GridComplexSelector`. Atualizado ExportAllLayouts status — plugin 100% migrado para novo sistema (usa GridCheckbox + GridDoubleSpin + GridComplexSelector + GridExecutionButtons, sem WidgetFactory). |

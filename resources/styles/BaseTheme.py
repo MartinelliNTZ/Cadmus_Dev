@@ -15,6 +15,8 @@ Uso:
 from __future__ import annotations
 
 
+
+
 class BaseTheme:
     """
     Classe base para temas visuais.
@@ -38,6 +40,12 @@ class BaseTheme:
         g = int(hex_color[2:4], 16)
         b = int(hex_color[4:6], 16)
         return f"rgba({r},{g},{b},{alpha})"
+    
+    BACKGROUND_SQUARE_CELL_SIZE	= 50
+    BACKGROUND_SQUARE_BASE_COLOR	= "#18181b"
+    BACKGROUND_SQUARE_LINE_ALPHA	= 255
+    BACKGROUND_SQUARE_GRADIENT_ALPHA	= 255
+    BACKGROUND_BORDER_RADIUS	= 8
 
     # ════════════════════════════════════════════════════════════
     # PALETA BASE — 9 CORES (3 grupos × 3 variações)

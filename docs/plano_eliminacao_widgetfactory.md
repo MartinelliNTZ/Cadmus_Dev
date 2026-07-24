@@ -174,8 +174,8 @@ Se um widget é COMPLEXO (simple + funções):
 ```
 1. BaseTheme + ThemeManager OK ✅
 2. AppStyles criado ✅
-3. Widgets criados (simple/grid/raiz) — PARCIAL
-4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅
+3. Widgets criados (simple/grid/raiz) — SIMPLE E GRID COMPLETOS ✅, raiz PARCIAL
+4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅, ExportAllLayouts ✅
 5. NUNCA deletar nada antigo
 ```
 
@@ -193,20 +193,27 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 ├── SeparatorWidget.py                ← QFrame separador visual (gradiente horizontal)
 ├── TextBrowser.py                    ← QTextBrowser com set_markdown() e fallback Qt5/Qt6
 │
-├── simple/                           ← USO INTERNO (NUNCA importado por plugins)
-│   ├── SimpleLabel.py                ← QLabel + AppStyles.label()
-│   ├── SimpleButton.py               ← QPushButton + AppStyles.button()
-│   ├── SimpleIconButton.py           ← QPushButton + ícone + transparente
-│   ├── SimpleModernButton.py         ← QPushButton glow/gradiente (primary/secondary/round_icon)
-│   ├── SimpleQLineEdit.py            ← QLineEdit glow/gradiente (primary/secondary)
-│   └── SimpleReadOnly.py             ← SimpleQLineEdit + botão copiar SimpleModernButton
-│
-└── grid/                             ← PLUGINS USAM ESTES
-    ├── GridLabel.py                  ← Container de labels (dict config)
-    ├── GridReadOnly.py               ← Container de SimpleReadOnly (dict config + botões copiar)
-    ├── GridButton.py                 ← Container simples de botões (Fechar/Executar/Info) — LEGADO
-    ├── GridExecutionButtons.py       ← Container de botões modernos (SimpleModernButton)
-    └── GridIconButton.py             ← Container de botões com ícone (SimpleIconButton)
+      ├── simple/                           ← USO INTERNO (NUNCA importado por plugins)
+  │   ├── SimpleLabel.py                ← QLabel + AppStyles.label()
+  │   ├── SimpleButton.py               ← QPushButton + AppStyles.button()
+  │   ├── SimpleIconButton.py           ← QPushButton + ícone + transparente
+  │   ├── SimpleModernButton.py         ← QPushButton glow/gradiente (primary/secondary/round_icon)
+  │   ├── SimpleQLineEdit.py            ← QLineEdit glow/gradiente (primary/secondary)
+  │   ├── SimpleReadOnly.py             ← SimpleQLineEdit + botão copiar SimpleModernButton
+  │   ├── SimpleCheckbox.py             ← QCheckBox + AppStyles.checkbox()
+  │   ├── SimpleDoubleSpinBox.py        ← QDoubleSpinBox + AppStyles.input()
+  │   ├── ComplexSelector.py            ← Seletor completo (arquivo/pasta/camada) com glow
+  │   └── SquareIconButton.py           ← QPushButton quadrado com ícone
+  │
+  └── grid/                             ← PLUGINS USAM ESTES
+      ├── GridLabel.py                  ← Container de labels (dict config)
+      ├── GridReadOnly.py               ← Container de SimpleReadOnly (dict config + botões copiar)
+      ├── GridButton.py                 ← Container simples de botões (Fechar/Executar/Info) — LEGADO
+      ├── GridExecutionButtons.py       ← Container de botões modernos (SimpleModernButton)
+      ├── GridIconButton.py             ← Container de botões com ícone (SimpleIconButton)
+      ├── GridCheckbox.py               ← Container de checkboxes (dict config + items_per_row)
+      ├── GridDoubleSpin.py             ← Container de campos numéricos (dict config + type int/double)
+      └── GridComplexSelector.py        ← Grade de ComplexSelectors (dict config + parent linking)
 ```
 
 ### 4.2 CATÁLOGO COMPLETO — Definição de Cada Widget
@@ -512,7 +519,7 @@ Criados em `resources/new_widgets/`.
 | 3 | `InfoDialog` | create_text_browser, create_simple_button | TextBrowser + GridExecutionButtons | ✅ Migrado (2.3.64.1) |
 | 4 | `RestartQgis` | create_simple_button | GridButton | ⬜ Pendente |
 | 5 | `VectorMultipartPlugin` | create_layer_input, create_bottom_action_buttons | GridLayerInput + GridButton | ⬜ Pendente |
-| 6 | `ExportAllLayouts` | create_readonly_field, create_bottom_action_buttons | GridReadOnly + GridButton | ⬜ Pendente |
+| 6 | `ExportAllLayouts` | create_readonly_field, create_bottom_action_buttons, create_path_selector | GridCheckbox + GridDoubleSpin + GridComplexSelector + GridExecutionButtons | ✅ Migrado (2.3.65.1) |
 | 7 | `CopyAttributesPlugin` | create_layer_input, create_checkbox_grid, create_bottom_action_buttons | GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
 | 8 | `DividePointsByStripsPlugin` | create_layer_input, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridInput + GridButton | ⬜ Pendente |
 | 9 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
@@ -856,50 +863,45 @@ def resolve_qt_window_modality(name: str):
   [x] 0.5 Criar utils/qt_compat.py
   [x] 0.6 Testar AppStyles + ThemeManager + BaseTheme
 
-[ ] FASE 1: Criação dos Widgets — PARCIAL
-  [ ] 1.1 Simple (USO INTERNO)
+[ ] FASE 1: Criação dos Widgets — SIMPLE E GRID COMPLETOS ✅, raiz PARCIAL
+  [x] 1.1 Simple (USO INTERNO) — COMPLETO ✅
     [x] SimpleLabel.py
     [x] SimpleButton.py
     [x] SimpleIconButton.py
-    [x] SimpleModernButton.py ← NOVO (gradiente 3 stops + glow shadow)
-    [x] SimpleQLineEdit.py ← NOVO (gradiente 3 stops + glow shadow)
+    [x] SimpleModernButton.py (gradiente 3 stops + glow shadow)
+    [x] SimpleQLineEdit.py (gradiente 3 stops + glow shadow)
     [x] SimpleReadOnly.py
-    [ ] SimpleComboBox.py
-    [ ] SimpleSpinBox.py
-    [ ] SimpleCheckbox.py
-    [ ] SimpleRadioButton.py
-    [ ] SimpleLayerInput.py
-    [ ] SimpleDropdown.py
-  [ ] 1.2 Grid (PLUGINS USAM)
+    [x] SimpleCheckbox.py
+    [x] SimpleDoubleSpinBox.py
+    [x] ComplexSelector.py (seletor completo com glow + botões)
+    [x] SquareIconButton.py
+  [x] 1.2 Grid (PLUGINS USAM) — COMPLETO ✅
     [x] GridLabel.py
     [x] GridReadOnly.py
-    [x] GridButton.py
-    [x] GridExecutionButtons.py ← NOVO (SimpleModernButton + dict config)
-    [x] GridIconButton.py ← NOVO (SimpleIconButton + dict config + callback por item)
-    [ ] GridInput.py
-    [ ] GridCheckbox.py
-    [ ] GridRadioButton.py
-    [ ] GridLayerInput.py
-    [ ] GridDropdown.py
-  [ ] 1.3 Raiz (SEM versão grid)
-    [x] MainLayout.py ← NOVO (substitui BaseLayout)
+    [x] GridButton.py (LEGADO)
+    [x] GridExecutionButtons.py (SimpleModernButton + dict config)
+    [x] GridIconButton.py (SimpleIconButton + dict config + callback por item)
+    [x] GridCheckbox.py (SimpleCheckbox + dict config + items_per_row)
+    [x] GridDoubleSpin.py (SimpleDoubleSpinBox + dict config + type int/double)
+    [x] GridComplexSelector.py (ComplexSelector + dict config + parent linking)
+  [ ] 1.3 Raiz (SEM versão grid) — PARCIAL
+    [x] MainLayout.py (substitui BaseLayout)
     [x] AppBarWidget.py
     [x] ScrollWidget.py
     [x] SeparatorWidget.py
-    [x] TextBrowser.py ← NOVO (QTextBrowser com set_markdown + fallback Qt5/Qt6)
+    [x] TextBrowser.py (QTextBrowser com set_markdown + fallback Qt5/Qt6)
     [ ] CollapsibleParametersWidget.py
     [ ] ComplexPathSelector.py
     [ ] ComplexColorPicker.py
     [ ] ComplexCrsSelector.py
-    [ ] GridComplexSelector.py
 
-[ ] FASE 2: Migração Plugin por Plugin — PARCIAL
+[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (4/18 migrados)
   [x] 2.1 AboutDialog ✅ (2.3.62.2)
   [x] 2.2 CoorResultDialog ✅ (2.3.63.3)
   [x] 2.3 InfoDialog ✅ (2.3.64.1)
-  [ ] 2.4 RestartQgis
-  [ ] 2.5 VectorMultipartPlugin
-  [ ] 2.6 ExportAllLayouts
+  [x] 2.4 ExportAllLayouts ✅ (2.3.65.1)
+  [ ] 2.5 RestartQgis
+  [ ] 2.6 VectorMultipartPlugin
   [ ] 2.7 CopyAttributesPlugin
   [ ] 2.8 DividePointsByStripsPlugin
   [ ] 2.9 DroneCoordinates

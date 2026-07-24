@@ -26,14 +26,20 @@ class AppStyles:
     def _get_theme(cls):
         """Retorna tema atual (com cache). Invalida com reload_theme()."""
         if cls._theme is None:
-            from .ThemeManager import theme_manager  # pylint: disable=import-outside-toplevel
+            from .ThemeManager import (
+                theme_manager,
+            )  # pylint: disable=import-outside-toplevel
+
             cls._theme = theme_manager.theme
         return cls._theme
 
     @classmethod
     def reload_theme(cls):
         """Invalida cache e recarrega tema."""
-        from .ThemeManager import theme_manager  # pylint: disable=import-outside-toplevel
+        from .ThemeManager import (
+            theme_manager,
+        )  # pylint: disable=import-outside-toplevel
+
         theme_manager.reload_theme()
         cls._theme = theme_manager.theme
 
@@ -540,6 +546,23 @@ class AppStyles:
             f"    color: {theme.COLOR_NEUTRAL};"
             "}"
         )
+
+    @staticmethod
+    def main_application_square():
+        """
+        #        Igual a main_application(), porém SEM background: usado quando
+        #        MainLayout está em BackgroundTexture.SQUARE, cujo fundo é pintado
+        #        manualmente via QPainter em EdgeFrame._paint_square_texture().
+        #        Border/border-radius devem ser mantidos para o frame continuar
+        #        com a mesma moldura visual do modo SOLID.
+        #"""
+        theme = AppStyles._get_theme()
+        return f"""
+                #main_container {{
+                    background: transparent;
+                    border-radius: {theme.BACKGROUND_BORDER_RADIUS}px;
+                }}
+            """
 
     @classmethod
     def modern_button_secondary(cls, object_name: str = None) -> str:

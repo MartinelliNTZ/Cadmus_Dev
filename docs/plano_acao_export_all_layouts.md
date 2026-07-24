@@ -1,9 +1,9 @@
 # 🎯 PLANO DE AÇÃO: Refatoração ExportAllLayouts — Novo Sistema de Widgets
 
-**Objetivo:** Migrar `ExportAllLayouts` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`), eliminando dependências do sistema antigo e criando os widgets faltantes.
+**Objetivo:** Migrar `ExportAllLayouts` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`), eliminando dependências do sistema antigo.
 
 **Data:** 2026-07-24
-**Versão:** 1.0.0
+**Versão:** 2.0.0
 **Autor:** Cadmus Engineering
 **Status:** ⏳ Planejamento (aguardando validação)
 
@@ -16,29 +16,28 @@
 3. [Novos Widgets a Criar](#3-novos-widgets-a-criar)
 4. [Arquivos Afetados](#4-arquivos-afetados)
 5. [Estratégia de Implementação](#5-estratégia-de-implementação)
-6. [Riscos e Mitigações](#6-riscos-e-mitigações)
-7. [Checklist de Implementação](#7-checklist-de-implementação)
+6. [Contrato description/tooltip e callbacks](#6-contrato-descriptiontooltip-e-callbacks)
+7. [Riscos e Mitigações](#7-riscos-e-mitigações)
+8. [Checklist de Implementação](#8-checklist-de-implementação)
 
 ---
 
 ## 1. Widgets Necessários
 
-Com base na análise do código atual de `ExportAllLayouts.py` e no modelo solicitado pelo usuário:
-
 | Widget Atual (WidgetFactory) | Novo Widget (new_widgets/) | Status |
 |---|---|---|
 | `create_checkbox_grid()` — Export Options (PDF, PNG, Merge, Replace) | **`GridCheckbox`** 🆕 | ⬜ Criar |
 | `create_input_fields_widget()` — Max Width (int, default 3500) | **`GridDoubleSpin`** 🆕 | ⬜ Criar |
-| `create_path_selector()` — Output Folder (folder mode, subfolder "exports") | **`GridComplexSelector`** 🆕 | ⬜ Criar |
+| `create_path_selector()` — Output Folder (folder mode) | **`GridComplexSelector`** 🆕 | ⬜ **Usar lógica do antigo `resources/widgets/grid/GridComplexSelector.py` como referência** |
 | `create_bottom_action_buttons()` — Run/Close/Info | **`GridExecutionButtons`** ✅ (já existe) | ✅ Usar existente |
 
-### 🧩 GridComplexSelector — Comportamento Especial
+### 🧩 GridComplexSelector — Comportamento
 
-O usuário especificou que este widget deve:
-- Ser um **seletor de pasta** com comportamento especial
+Baseado no `GridComplexSelector` existente em `resources/widgets/grid/`, adaptado para new_widgets:
 - **subfolder = "exports"** (subpasta padrão)
-- **SEM parent** — ou seja, não usa `parent` como filtro de diretório
-- Funcionar como seletor de pasta com caminho base + "/exports"
+- **SEM parent** — seletor independente, sem linking
+- **mode = "folder"** — seleciona pasta, não arquivo
+- **LogUtils** com ToolKey recebido
 
 ---
 
@@ -52,6 +51,7 @@ Layout do diálogo (top → bottom):
 ├─────────────────────────────────────┤
 │                                     │
 │  ┌─ GridCheckbox ─────────────────┐ │
+│  │  Opções de Exportação           │ │
 │  │  ☐ Exportar PDF                │ │
 │  │  ☐ Exportar PNG                │ │
 │  │  ☐ Mesclar PDFs                │ │
@@ -69,371 +69,13 @@ Layout do diálogo (top → bottom):
 │  └────────────────────────────────┘ │
 │                                     │
 │  ┌─ GridExecutionButtons ─────────┐ │
-│  │        [⚙️] [?] [Fechar] [Exportar]  │ │
+│  │  [⚙️] [ℹ️] [Fechar] [Exportar] │ │
 │  └────────────────────────────────┘ │
 │                                     │
 └─────────────────────────────────────┘
 ```
 
-### Ordem dos botões no GridExecutionButtons
-
-Conforme solicitado:
-1. **⚙️ Settings** → `enable_config_button=True` (abre SettingsPlugin)
-2. **ℹ️ Info** → `enable_info=True` (instruções via tool_key)
-3. **Fechar** → `enable_close_button=True`
-4. **Exportar** → botão `is_run_button=True` com callback `self.execute_tool`
-
----
-
-## 3. Novos Widgets a Criar
-
-### 3.1 GridCheckbox
-
-```python
-# resources/new_widgets/grid/GridCheckbox.py
-```
-
-Container de checkboxes configurável via dict. Substitui `WidgetFactory.create_checkbox_grid()`.
-
-**Interface proposta:**
-
-```python
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-
-self.checkbox_widget = GridCheckbox(
-    config={
-        "export_pdf": {
-            "label": "Exportar PDF",
-            "default": True,
-            "callback": self.on_checkbox_changed,  # opcional, por item
-            "description": "Exporta layouts em formato PDF",
-        },
-        "export_png": {
-            "label": "Exportar PNG",
-            "default": False,
-        },
-        # ... mais opções
-    },
-    items_per_row=2,             # opcional, default 2
-    title="Opções de Exportação", # opcional, título do grupo
-    separator_top=False,
-    separator_bottom=True,
-    parent=self,
-)
-self.layout.addWidget(self.checkbox_widget)
-
-# API pública
-self.checkbox_widget.is_checked("export_pdf")     # → bool
-self.checkbox_widget.set_checked("export_pdf", True)
-self.checkbox_widget.get_all_checked()            # → dict {key: bool}
-self.checkbox_widget.widget("export_pdf")         # → QCheckBox
-```
-
-**Parâmetros do construtor:**
-
-| Parâmetro | Tipo | Padrão | Descrição |
-|-----------|------|--------|-----------|
-| `config` | dict | `{}` | Dict de checkboxes. Chave = identificador, valor = `{"label", "default", "callback", "description"}` |
-| `items_per_row` | int | `2` | Itens por linha no grid |
-| `title` | str | `""` | Título opcional do grupo |
-| `separator_top` | bool | `False` | Separador acima |
-| `separator_bottom` | bool | `False` | Separador abaixo |
-| `parent` | QWidget | `None` | Widget pai |
-
-**Composição interna:**
-- Usa `SimpleCheckbox` 🆕 (Simple) para cada checkbox individual
-- Layout em grid/matrix com `items_per_row` colunas
-- `SeparatorWidget` se `separator_top/bottom`
-
-### SimpleCheckbox
-
-```python
-# resources/new_widgets/simple/SimpleCheckbox.py (NOVO)
-```
-
-Checkbox individual com `AppStyles.checkbox()`. (Também usado por outros widgets internamente.)
-
-### 3.2 GridDoubleSpin
-
-```python
-# resources/new_widgets/grid/GridDoubleSpin.py
-```
-
-Container de campos numéricos (double/int) com título. Substitui `WidgetFactory.create_input_fields_widget()`.
-
-**Interface proposta:**
-
-```python
-from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
-
-self.max_width_input = GridDoubleSpin(
-    config={
-        "max_width": {
-            "label": "Largura Máx. PNG",
-            "value": 3500,
-            "min": 100,
-            "max": 10000,
-            "step": 100,
-            "decimals": 0,
-            "type": "int",           # "int" ou "double"
-        },
-    },
-    separator_top=False,
-    separator_bottom=True,
-    parent=self,
-)
-self.layout.addWidget(self.max_width_input)
-
-# API pública
-self.max_width_input.get_value("max_width")   # → int/float
-self.max_width_input.set_value("max_width", 3500)
-```
-
-**Parâmetros do construtor:**
-
-| Parâmetro | Tipo | Padrão | Descrição |
-|-----------|------|--------|-----------|
-| `config` | dict | `{}` | Dict de campos. Chave = identificador, valor = `{"label", "value", "min", "max", "step", "decimals", "type"}` |
-| `separator_top` | bool | `False` | Separador acima |
-| `separator_bottom` | bool | `False` | Separador abaixo |
-| `parent` | QWidget | `None` | Widget pai |
-
-**Composição interna:**
-- Usa `SimpleDoubleSpinBox` 🆕 (Simple) — `QDoubleSpinBox` com `AppStyles.input()`
-- Cada campo: layout horizontal com `SimpleLabel` + `SimpleDoubleSpinBox`
-- `SeparatorWidget` se `separator_top/bottom`
-
-### SimpleDoubleSpinBox
-
-```python
-# resources/new_widgets/simple/SimpleDoubleSpinBox.py (NOVO)
-```
-tem um label tambem com titulo individual 
-`QDoubleSpinBox` (ou `QSpinBox` se type=int) com estilo `AppStyles.input()`.
-
-### 3.3 GridComplexSelector
-
-## 4. Arquivos Afetados
-
-### Arquivos a criar (3 novos Simple + 3 novos Grid = 6 arquivos)
-
-```
-resources/new_widgets/simple/SimpleCheckbox.py        🆕 NOVO
-resources/new_widgets/simple/SimpleDoubleSpinBox.py   🆕 NOVO
-resources/new_widgets/grid/GridCheckbox.py             🆕 NOVO
-resources/new_widgets/grid/GridDoubleSpin.py           🆕 NOVO
-resources/new_widgets/grid/GridComplexSelector.py      🆕 NOVO
-```
-
-### Arquivos a modificar
-
-| Arquivo | Tipo de Mudança | Descrição |
-|---------|----------------|-----------|
-| `plugins/ExportAllLayouts.py` | Modificar | Substituir WidgetFactory por new_widgets. Remover imports: WidgetFactory, ProgressDialog (checar). Adicionar imports: GridCheckbox, GridDoubleSpin, GridComplexSelector, GridExecutionButtons. |
-| `docs/plano_eliminacao_widgetfactory.md` | Atualizar | Marcar ExportAllLayouts como migrado (FASE 2 - item 6). Atualizar TODO interno. |
-| `docs/ia/changelog.txt` | Atualizar | Registrar nova versão com a migração. |
-
-### Dependências entre arquivos
-
-```
-ExportAllLayouts.py
-  ├── GridCheckbox.py        → SimpleCheckbox.py
-  ├── GridDoubleSpin.py      → SimpleDoubleSpinBox.py
-  ├── GridComplexSelector.py → SimpleQLineEdit.py (já existe)
-  │                          → SimpleModernButton.py (já existe)
-  └── GridExecutionButtons.py (já existe)
-      → SimpleModernButton.py (já existe)
-```
-
----
-
-## 5. Estratégia de Implementação
-
-### FASE 1 — Criar Simple Widgets (2 arquivos)
-
-1. `SimpleCheckbox.py` — `QCheckBox` + `AppStyles.checkbox()`
-2. `SimpleDoubleSpinBox.py` — `QDoubleSpinBox` com `AppStyles.input()`, suporte a int/double, min/max/step/decimals
-
-### FASE 2 — Criar Grid Widgets (3 arquivos)
-
-3. `GridCheckbox.py` — Layout de checkboxes em grid com `items_per_row`
-4. `GridDoubleSpin.py` — Container de campos numéricos
-5. `GridComplexSelector.py` — Seletor de pasta/arquivo com subfolder
-
-### FASE 3 — Refatorar ExportAllLayouts
-
-6. Substituir imports da `WidgetFactory` pelos novos widgets
-7. Adaptar `_build_ui()` para usar `self.layout.addWidget()` (não `self.layout.add_items()`)
-8. Adaptar `_load_prefs()` e `_save_prefs()` para a nova API
-9. Adaptar `execute_tool()` para usar a nova API dos widgets
-10. Verificar se `ProgressDialog` precisa continuar sendo importado
-11. Remover imports não utilizados
-12. Testar funcionalidade completa
-
-### Observações Importantes
-
-- `enable_scroll=False` no ExportAllLayouts atual → permanece `False`
-- `add_execution_buttons()` do MainLayout coloca botões fixos na parte inferior
-- Todos os widgets devem ser adicionados via `self.layout.addWidget(widget)` (não add_items)
-- `SeparatorWidget` entre widgets conforme necessário (widgets podem ter `separator_top/bottom`)
-
----
-
-## 6. Riscos e Mitigações
-
-| Risco | Probabilidade | Impacto | Mitigação |
-|-------|--------------|---------|-----------|
-| Quebrar comportamento de subfolder "exports" | Alta | Alto | Testar path selecionado + subfolder manualmente |
-| Checkboxes não restaurarem estado do prefs | Média | Alto | API `set_checked()` deve funcionar em lote |
-| DoubleSpin não carregar valor salvo | Média | Médio | API `set_value()` testada |
-| ComplexSelector não funcionar com `set_paths()` | Média | Médio | Usar `get_paths()` para consistência com antigo |
-| Callback de merge_pdf/merge_png perdido | Alta | Médio | Manter lógica de toggle connect no ExportAllLayouts |
-| Esquecer de remover imports não usados | Média | Baixo | Flake8 F401 detecta |
-| Quebrar save_prefs no closeEvent | Média | Alto | Testar fechamento e reabertura |
-
----
-
-## 7. Checklist de Implementação
-
-```
-[ ] FASE 1: Simple Widgets
-  [ ] 1.1 Criar SimpleCheckbox.py (QCheckBox + AppStyles.checkbox())
-  [ ] 1.2 Criar SimpleDoubleSpinBox.py (QDoubleSpinBox + AppStyles.input())
-
-[ ] FASE 2: Grid Widgets
-  [ ] 2.1 Criar GridCheckbox.py (Grid de checkboxes, items_per_row, title, config dict)
-  [ ] 2.2 Criar GridDoubleSpin.py (Container de spin boxes, config dict)
-  [ ] 2.3 Criar GridComplexSelector.py (Seletor pasta/arquivo, subfolder="exports", sem parent)
-  [ ] 2.4 Verificar compatibilidade Qt5/Qt6 nos widgets novos
-
-[ ] FASE 3: Refatorar ExportAllLayouts
-  [ ] 3.1 Remover imports: WidgetFactory, ProgressDialog (se não usado mais)
-  [ ] 3.2 Adicionar imports: GridCheckbox, GridDoubleSpin, GridComplexSelector
-  [ ] 3.3 Reescrever _build_ui() com new_widgets
-       [ ] GridCheckbox com opções de exportação (PDF, PNG, Merge, Replace)
-       [ ] GridDoubleSpin com max_width
-       [ ] GridComplexSelector com subfolder="exports"
-       [ ] GridExecutionButtons: settings, info, fechar, exportar
-  [ ] 3.4 Adaptar _load_prefs() para nova API
-  [ ] 3.5 Adaptar _save_prefs() para nova API
-  [ ] 3.6 Adaptar execute_tool() para novos getters
-  [ ] 3.7 Manter callbacks: on_merge_pdf_changed, on_merge_png_changed
-  [ ] 3.8 Verificar se SeparatorWidget é necessário entre seções
-  [ ] 3.9 Executar flake8 no ExportAllLayouts.py modificado
-
-[ ] Pós-implementação
-  [ ] 4.1 Atualizar docs/plano_eliminacao_widgetfactory.md (marcar ExportAllLayouts como migrado)
-  [ ] 4.2 Atualizar docs/ia/changelog.txt
-  [ ] 4.3 Testar fluxo completo: abrir → carregar prefs → alterar → fechar → reabrir
-  [ ] 4.4 Testar exportação real com PDF e PNG
-  [ ] 4.5 Testar merge PDF (PyPDF2) e merge PNG (Pillow)
-  [ ] 4.6 Verificar nenhum import não utilizado (F401)
-```
-
----
-
-## Histórico de Mudanças
-
-| Data | Versão | Descrição |
-|------|--------|-----------|
-| 2026-07-24 | 1.0.0 | Criação inicial — Plano de ação para refatoração do ExportAllLayouts |
-</content>
-</write_question>
-
-Wait — I need to switch to the proper tool. Let me use write_to_file.
-
-<write_to_file>
-<path>docs/plano_acao_export_all_layouts.md</path>
-<content>
-# 🎯 PLANO DE AÇÃO: Refatoração ExportAllLayouts — Novo Sistema de Widgets
-
-**Objetivo:** Migrar `ExportAllLayouts` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`), eliminando dependências do sistema antigo e criando os widgets faltantes.
-
-**Data:** 2026-07-24
-**Versão:** 1.0.0
-**Autor:** Cadmus Engineering
-**Status:** ⏳ Planejamento (aguardando validação)
-
----
-
-## Sumário
-
-1. [Widgets Necessários](#1-widgets-necessários)
-2. [Modelo Proposto para ExportAllLayouts](#2-modelo-proposto-para-exportalllayouts)
-3. [Novos Widgets a Criar](#3-novos-widgets-a-criar)
-4. [Arquivos Afetados](#4-arquivos-afetados)
-5. [Estratégia de Implementação](#5-estratégia-de-implementação)
-6. [Riscos e Mitigações](#6-riscos-e-mitigações)
-7. [Checklist de Implementação](#7-checklist-de-implementação)
-
----
-
-## 1. Widgets Necessários
-
-Com base na análise do código atual de `ExportAllLayouts.py` e no modelo solicitado pelo usuário:
-
-| Widget Atual (WidgetFactory) | Novo Widget (new_widgets/) | Status |
-|---|---|---|
-| `create_checkbox_grid()` — Export Options (PDF, PNG, Merge, Replace) | **`GridCheckbox`** 🆕 | ⬜ Criar |
-| `create_input_fields_widget()` — Max Width (int, default 3500) | **`GridDoubleSpin`** 🆕 | ⬜ Criar |
-| `create_path_selector()` — Output Folder (folder mode, subfolder "exports") | **`GridComplexSelector`** 🆕 | ⬜ Criar |
-| `create_bottom_action_buttons()` — Run/Close/Info | **`GridExecutionButtons`** ✅ (já existe) | ✅ Usar existente |
-
-### 🧩 GridComplexSelector — Comportamento Especial
-
-O usuário especificou que este widget deve:
-- Ser um **seletor de pasta** com comportamento especial
-- **subfolder = "exports"** (subpasta padrão)
-- **SEM parent** — ou seja, não usa `parent` como filtro de diretório
-- Funcionar como seletor de pasta com caminho base + "/exports"
-
----
-
-## 2. Modelo Proposto para ExportAllLayouts
-
-Layout do diálogo (top → bottom):
-
-```
-┌─────────────────────────────────────┐
-│  AppBar: "Exportar Todos os Layouts" │
-├─────────────────────────────────────┤
-│                                     │
-│  ┌─ GridCheckbox ─────────────────┐ │
-│  │  ☐ Exportar PDF                │ │
-│  │  ☐ Exportar PNG                │ │
-│  │  ☐ Mesclar PDFs                │ │
-│  │  ☐ Mesclar PNGs                │ │
-│  │  ☐ Substituir existentes       │ │
-│  └────────────────────────────────┘ │
-│                                     │
-│  ┌─ GridDoubleSpin ───────────────┐ │
-│  │  Largura Máx. PNG: [3500]      │ │
-│  └────────────────────────────────┘ │
-│                                     │
-│  ┌─ GridComplexSelector ──────────┐ │
-│  │  Pasta de saída: [C://...] 📁  │ │
-│  │  (subfolder = exports)          │ │
-│  └────────────────────────────────┘ │
-│                                     │
-│  ┌─ GridExecutionButtons ─────────┐ │
-│  │        [⚙️] [?] [Fechar] [Exportar]  │ │
-│  └────────────────────────────────┘ │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-### Ordem dos botões no GridExecutionButtons
-
-Conforme solicitado:
-1. **⚙️ Settings** → `enable_config_button=True` (abre SettingsPlugin)
-2. **ℹ️ Info** → `enable_info=True` (instruções via tool_key)
-3. **Fechar** → `enable_close_button=True`
-4. **Exportar** → botão `is_run_button=True` com callback `self._on_export`
-
-A ordem na barra (direita para esquerda) será:
-`Exportar → Fechar → ⚙️ → ℹ️`
-
-> Nota: O `GridExecutionButtons` existente coloca os botões na ordem: `item3 → item2 → item1 → close → config → info`. Para ter a ordem desejada (Exportar, Fechar, Config, Info), os botões do config devem ser: `exportar` como único item do dict com `is_run_button=True`, e os built-ins `close`, `config`, `info` completam.
+> **Nota sobre GridExecutionButtons:** A ordem dos botões é definida internamente pelo widget. O plugin apenas passa parâmetros: `enable_config_button`, `enable_info`, `enable_close_button` e o botão de ação no `config`.
 
 ---
 
@@ -454,17 +96,33 @@ self.checkbox_widget = GridCheckbox(
     config={
         "export_pdf": {
             "label": "Exportar PDF",
+            "description": "Exporta layouts em formato PDF",  # tooltip
             "default": True,
-            "description": "Exporta layouts em formato PDF",
+            "onchange": self.on_export_pdf_changed,  # opcional
         },
         "export_png": {
             "label": "Exportar PNG",
+            "description": "Exporta layouts em formato PNG",  # tooltip
             "default": False,
         },
-        # ... mais opções
+        "merge_pdf": {
+            "label": "Mesclar PDFs",
+            "description": "Combina todos os PDFs em um único arquivo",
+            "default": False,
+        },
+        "merge_png": {
+            "label": "Mesclar PNGs",
+            "description": "Combina todos os PNGs em um único PDF",
+            "default": False,
+        },
+        "replace_existing": {
+            "label": "Substituir existentes",
+            "description": "Substitui arquivos existentes sem criar cópias numeradas",
+            "default": False,
+        },
     },
-    items_per_row=2,
-    title="Opções de Exportação",
+    title="Opções de Exportação",      # título do grupo (opcional)
+    items_per_row=2,                    # padrão 2
     separator_top=False,
     separator_bottom=True,
     parent=self,
@@ -485,16 +143,18 @@ self.layout.addWidget(self.checkbox_widget)
 
 | Parâmetro | Tipo | Padrão | Descrição |
 |-----------|------|--------|-----------|
-| `config` | dict | `{}` | Dict de checkboxes. Chave = identificador, valor = `{"label", "default", "callback", "description"}` |
+| `config` | dict | `{}` | Dict: chave = identificador, valor = `{"label" obrigatório, "description" opcional, "default" opcional, "onchange" opcional}` |
+| `title` | str | `""` | Título opcional do grupo (QGroupBox) |
 | `items_per_row` | int | `2` | Itens por linha no grid |
-| `title` | str | `""` | Título opcional do grupo |
 | `separator_top` | bool | `False` | Separador acima |
 | `separator_bottom` | bool | `False` | Separador abaixo |
 | `parent` | QWidget | `None` | Widget pai |
 
 **Composição interna:**
-- Usa `SimpleCheckbox` 🆕 para cada checkbox individual
-- Layout em grid/matrix com `items_per_row` colunas
+- `QGroupBox` se `title` for definido
+- Layout em grid com `items_per_row` colunas
+- Cada item: `SimpleCheckbox` com tooltip = `description`
+- `onchange` conectado ao `toggled` do checkbox
 - `SeparatorWidget` se `separator_top/bottom`
 
 ### SimpleCheckbox
@@ -503,10 +163,9 @@ self.layout.addWidget(self.checkbox_widget)
 # resources/new_widgets/simple/SimpleCheckbox.py (NOVO)
 ```
 
-Checkbox individual com `AppStyles.checkbox()`.
-
 ```python
 class SimpleCheckbox(QCheckBox):
+    """QCheckBox com AppStyles.checkbox()."""
     def __init__(self, text="", parent=None):
         super().__init__(text, parent)
         self._apply_styles()
@@ -521,7 +180,7 @@ class SimpleCheckbox(QCheckBox):
 # resources/new_widgets/grid/GridDoubleSpin.py
 ```
 
-Container de campos numéricos (double/int) com título.
+Container de campos numéricos (double/int) com título. Substitui `WidgetFactory.create_input_fields_widget()`.
 
 **Interface proposta:**
 
@@ -530,13 +189,17 @@ self.max_width_input = GridDoubleSpin(
     config={
         "max_width": {
             "label": "Largura Máx. PNG",
+            "description": "Largura máxima em pixels para exportação PNG",  # tooltip
             "value": 3500,
             "min": 100,
             "max": 10000,
             "step": 100,
             "decimals": 0,
+            "type": "int",               # "int" ou "double"
+            "onchange": self.on_max_width_changed,  # opcional: callback(value)
         },
     },
+    title="Configurações de imagem",   # título do grupo (opcional)
     separator_top=False,
     separator_bottom=True,
     parent=self,
@@ -556,14 +219,17 @@ self.layout.addWidget(self.max_width_input)
 
 | Parâmetro | Tipo | Padrão | Descrição |
 |-----------|------|--------|-----------|
-| `config` | dict | `{}` | Dict de campos. Chave = identificador, valor = `{"label", "value", "min", "max", "step", "decimals"}` |
+| `config` | dict | `{}` | Dict: chave = identificador, valor = `{"label" obrigatório, "description" opcional, "value" opcional, "min" opcional, "max" opcional, "step" opcional, "decimals" opcional, "type" opcional, "onchange" opcional}` |
+| `title` | str | `""` | Título opcional do grupo (QGroupBox) |
 | `separator_top` | bool | `False` | Separador acima |
 | `separator_bottom` | bool | `False` | Separador abaixo |
 | `parent` | QWidget | `None` | Widget pai |
 
 **Composição interna:**
-- Usa `SimpleDoubleSpinBox` 🆕 — `QDoubleSpinBox` com `AppStyles.input()`
-- Cada campo: `SimpleLabel` + `SimpleDoubleSpinBox` em layout horizontal
+- `QGroupBox` se `title` for definido
+- Cada campo: `SimpleLabel` (label) + `SimpleDoubleSpinBox`
+- `SimpleLabel` com tooltip = `description`
+- `onchange` conectado ao `valueChanged` do spin box
 - `SeparatorWidget` se `separator_top/bottom`
 
 ### SimpleDoubleSpinBox
@@ -572,10 +238,9 @@ self.layout.addWidget(self.max_width_input)
 # resources/new_widgets/simple/SimpleDoubleSpinBox.py (NOVO)
 ```
 
-`QDoubleSpinBox` com estilo `AppStyles.input()`.
-
 ```python
 class SimpleDoubleSpinBox(QDoubleSpinBox):
+    """QDoubleSpinBox com AppStyles.input(). type="int" vira QSpinBox."""
     def __init__(
         self,
         value=0,
@@ -583,6 +248,7 @@ class SimpleDoubleSpinBox(QDoubleSpinBox):
         max_val=999999,
         step=1,
         decimals=0,
+        type_spec="double",   # "int" → QSpinBox, "double" → QDoubleSpinBox
         parent=None,
     ):
         super().__init__(parent)
@@ -596,17 +262,15 @@ class SimpleDoubleSpinBox(QDoubleSpinBox):
         self.setStyleSheet(AppStyles.input())
 ```
 
-### 3.3 GridComplexSelector
+> Se `type="int"`, usa `QSpinBox` em vez de `QDoubleSpinBox` (decimals=0, sem casas decimais).
+
+### 3.3 GridComplexSelector (new_widgets)
 
 ```python
-# resources/new_widgets/grid/GridComplexSelector.py
+# resources/new_widgets/grid/GridComplexSelector.py (NOVO — baseado no antigo resources/widgets/grid/GridComplexSelector.py)
 ```
 
-Seletor de pasta/arquivo complexo com:
-- Campo readonly (`SimpleQLineEdit`)
-- Botão "Selecionar" (`SimpleModernButton`)
-- **Comportamento "subfolder":** caminho armazenado = `{path_selecionado}/{subfolder}`
-- **Sem parent:** caminho base livre
+Seletor de pasta/arquivo com subfolder, simplificado para o novo sistema.
 
 **Interface proposta:**
 
@@ -615,11 +279,13 @@ self.folder_selector = GridComplexSelector(
     config={
         "output_folder": {
             "label": "Pasta de saída",
+            "description": "Pasta onde os arquivos exportados serão salvos",
             "path": default_path,
             "mode": "folder",
-            "subfolder": "exports",  # sempre adiciona /exports
+            "subfolder": "exports",
         },
     },
+    tool_key=self.TOOL_KEY,        # para LogUtils
     separator_top=False,
     separator_bottom=False,
     parent=self,
@@ -634,22 +300,24 @@ self.layout.addWidget(self.folder_selector)
 | `get_paths()` → `list[str]` | Retorna paths (com subfolder) |
 | `get_path(key)` → `str` | Retorna path específico (com subfolder) |
 | `set_paths(paths)` | Define paths |
+| `set_path(key, path)` | Define path de um seletor específico |
 
 **Parâmetros do construtor:**
 
 | Parâmetro | Tipo | Padrão | Descrição |
 |-----------|------|--------|-----------|
-| `config` | dict | `{}` | Dict de seletores. Chave = identificador, valor = `{"label", "path", "mode", "subfolder"}` |
+| `config` | dict | `{}` | Dict: chave = identificador, valor = `{"label" obrigatório, "description" opcional, "path" opcional, "mode" opcional ("folder"/"file"), "subfolder" opcional}` |
+| `tool_key` | ToolKey/str | `None` | Para LogUtils |
 | `separator_top` | bool | `False` | Separador acima |
 | `separator_bottom` | bool | `False` | Separador abaixo |
 | `parent` | QWidget | `None` | Widget pai |
 
-**Composição interna:**
-- `SimpleLabel` com o título (ex: "Pasta de saída")
+**Composição interna** (baseada no antigo `GridComplexSelector`):
+- `SimpleLabel` com o título (label) + tooltip = description
 - `SimpleQLineEdit` readonly exibindo o caminho
-- `SimpleModernButton` para abrir o seletor
-- Se `subfolder="exports"`, o path real armazenado é `{selected}/exports`
-- O `QLineEdit` mostra `{selected}/exports` para o usuário
+- `SimpleModernButton` para abrir o seletor (QFileDialog)
+- Se `subfolder="exports"`, o path armazenado = `{selected}/{subfolder}`
+- `LogUtils` com `tool_key` recebido
 
 ---
 
@@ -662,25 +330,27 @@ resources/new_widgets/simple/SimpleCheckbox.py         🆕 NOVO
 resources/new_widgets/simple/SimpleDoubleSpinBox.py    🆕 NOVO
 resources/new_widgets/grid/GridCheckbox.py              🆕 NOVO
 resources/new_widgets/grid/GridDoubleSpin.py            🆕 NOVO
-resources/new_widgets/grid/GridComplexSelector.py       🆕 NOVO
+resources/new_widgets/grid/GridComplexSelector.py       🆕 NOVO (baseado no antigo)
 ```
 
 ### Arquivos a modificar
 
 | Arquivo | Tipo de Mudança | Descrição |
 |---------|----------------|-----------|
-| `plugins/ExportAllLayouts.py` | Modificar | Substituir WidgetFactory por new_widgets. Remover imports: WidgetFactory, ProgressDialog (se não usado mais). Adicionar imports: GridCheckbox, GridDoubleSpin, GridComplexSelector, GridExecutionButtons. |
-| `docs/plano_eliminacao_widgetfactory.md` | Atualizar | Marcar ExportAllLayouts como migrado (FASE 2 - item 6). Atualizar TODO interno. |
-| `docs/ia/changelog.txt` | Atualizar | Registrar nova versão com a migração. |
+| `plugins/ExportAllLayouts.py` | Modificar | Substituir WidgetFactory por new_widgets |
+| `docs/skills/SKILL_WIDGETS2.md` | Atualizar | Adicionar catálogo: GridCheckbox, GridDoubleSpin, GridComplexSelector |
+| `docs/plano_eliminacao_widgetfactory.md` | Atualizar | Marcar ExportAllLayouts como migrado |
+| `docs/ia/changelog.txt` | Atualizar | Registrar nova versão |
 
 ### Dependências entre arquivos
 
 ```
 ExportAllLayouts.py
   ├── GridCheckbox.py        → SimpleCheckbox.py
-  ├── GridDoubleSpin.py      → SimpleDoubleSpinBox.py
+  ├── GridDoubleSpin.py      → SimpleDoubleSpinBox.py + SimpleLabel.py
   ├── GridComplexSelector.py → SimpleQLineEdit.py (já existe)
   │                          → SimpleModernButton.py (já existe)
+  │                          → SimpleLabel.py (já existe)
   └── GridExecutionButtons.py (já existe)
       → SimpleModernButton.py (já existe)
 ```
@@ -689,210 +359,206 @@ ExportAllLayouts.py
 
 ## 5. Estratégia de Implementação
 
-### FASE 1 — Criar Simple Widgets (2 arquivos)
+### FASE 1 — Simple Widgets (2 arquivos)
 
-1. **SimpleCheckbox.py** — `QCheckBox` com `AppStyles.checkbox()` 
-   - `__init__(text, parent)`
-   - `_apply_styles()` com `AppStyles.checkbox()`
+1. **SimpleCheckbox.py** — `QCheckBox` com `AppStyles.checkbox()`
+2. **SimpleDoubleSpinBox.py** — `QDoubleSpinBox` (ou `QSpinBox` se type=int) com `AppStyles.input()`
 
-2. **SimpleDoubleSpinBox.py** — `QDoubleSpinBox` com `AppStyles.input()`
-   - `__init__(value, min_val, max_val, step, decimals, parent)`
-   - `_apply_styles()` com `AppStyles.input()`
+### FASE 2 — Grid Widgets (3 arquivos)
 
-### FASE 2 — Criar Grid Widgets (3 arquivos)
-
-3. **GridCheckbox.py** — Layout de checkboxes em grid
-   - `config` dict com chaves identificadoras
+3. **GridCheckbox.py** — Grid de checkboxes
+   - `config` dict com `label`, `description` (tooltip), `default`, `onchange`
+   - `title` opcional (QGroupBox)
    - `items_per_row` para número de colunas
-   - `title` opcional como label do grupo
    - API: `is_checked()`, `set_checked()`, `get_all_states()`, `widget()`
-   - Usa `SimpleCheckbox` internamente
 
 4. **GridDoubleSpin.py** — Container de campos numéricos
-   - `config` dict com chaves identificadoras
+   - `config` dict com `label`, `description` (tooltip), `value`, `min`, `max`, `step`, `decimals`, `type` ("int"/"double"), `onchange`
+   - `title` opcional (QGroupBox)
    - API: `get_value()`, `set_value()`, `get_all_values()`
-   - Usa `SimpleDoubleSpinBox` + `SimpleLabel` internamente
 
 5. **GridComplexSelector.py** — Seletor de pasta/arquivo
-   - `config` dict com `mode`, `subfolder`
-   - `subfolder` sempre adiciona subpasta ao path
-   - API: `get_paths()`, `get_path()`, `set_paths()`
-   - Usa `SimpleQLineEdit` + `SimpleModernButton` internamente
+   - Baseado no antigo `resources/widgets/grid/GridComplexSelector.py`
+   - `config` dict com `label`, `description` (tooltip), `path`, `mode`, `subfolder`
+   - `tool_key` para LogUtils
+   - API: `get_paths()`, `get_path()`, `set_paths()`, `set_path()`
+   - Sem parent/linking — seletor independente
 
 ### FASE 3 — Refatorar ExportAllLayouts
 
 6. **Substituir `_build_ui()`:**
-   - Remover chamadas `WidgetFactory.create_checkbox_grid()`
-   - Remover chamadas `WidgetFactory.create_input_fields_widget()`
-   - Remover chamadas `WidgetFactory.create_path_selector()`
-   - Remover chamadas `WidgetFactory.create_bottom_action_buttons()`
-   - Adicionar `GridCheckbox` com opções (PDF, PNG, Merge PDF, Merge PNG, Replace)
-   - Adicionar `GridDoubleSpin` com max_width
-   - Adicionar `GridComplexSelector` com subfolder="exports"
-   - Adicionar `GridExecutionButtons` com:
-     - `enable_config_button=True` (⚙️ Settings)
-     - `enable_info=True` (ℹ️ Info)
-     - `enable_close_button=True` (Fechar)
-     - Botão "Exportar" como `is_run_button=True` com `callback=self._on_export`
+   - Remover chamadas `WidgetFactory.create_checkbox_grid()` → `GridCheckbox`
+   - Remover chamadas `WidgetFactory.create_input_fields_widget()` → `GridDoubleSpin`
+   - Remover chamadas `WidgetFactory.create_path_selector()` → `GridComplexSelector`
+   - Remover chamadas `WidgetFactory.create_bottom_action_buttons()` → `GridExecutionButtons`
 
 7. **Adaptar `_load_prefs()`:**
-   - `self.checkbox_map["export_pdf"].setChecked(...)` → `self.checkbox_widget.set_checked("export_pdf", ...)`
-   - `self.max_width_input.set_value("max_width", ...)` → mesmo padrão API
-   - `self.folder_selector.set_paths([...])` → mesmo padrão API
+   ```python
+   # ANTES (WidgetFactory):
+   self.checkbox_map["export_pdf"].setChecked(...)
+   self.max_width_input.set_value("max_width", ...)
+   self.folder_selector.set_paths([...])
+
+   # DEPOIS (new_widgets):
+   self.checkbox_widget.set_checked("export_pdf", ...)
+   self.max_width_input.set_value("max_width", ...)
+   self.folder_selector.set_paths([...])
+   ```
 
 8. **Adaptar `_save_prefs()`:**
-   - `self.checkbox_map["export_pdf"].isChecked()` → `self.checkbox_widget.is_checked("export_pdf")`
-   - `self.max_width_input.get_values()` → `self.max_width_input.get_all_values()`
-   - `self.folder_selector.get_paths()` → mesmo padrão API
+   ```python
+   # ANTES:
+   self.checkbox_map["export_pdf"].isChecked()
+   self.max_width_input.get_values()
+   self.folder_selector.get_paths()
+
+   # DEPOIS:
+   self.checkbox_widget.is_checked("export_pdf")
+   self.max_width_input.get_all_values()
+   self.folder_selector.get_paths()
+   ```
 
 9. **Adaptar `execute_tool()`:**
-   - `self.checkbox_map["export_pdf"].isChecked()` → `self.checkbox_widget.is_checked("export_pdf")`
-   - `self.max_width_input.get_values()` → `self.max_width_input.get_all_values()`
-   - `self.folder_selector.get_paths()` → mesmo padrão API
+   ```python
+   # ANTES:
+   export_pdf = self.checkbox_map["export_pdf"].isChecked()
+   max_width_values = self.max_width_input.get_values()
+   paths = self.folder_selector.get_paths()
+
+   # DEPOIS:
+   export_pdf = self.checkbox_widget.is_checked("export_pdf")
+   values = self.max_width_input.get_all_values()
+   max_width = int(values.get("max_width", 3500))
+   paths = self.folder_selector.get_paths()
+   ```
 
 10. **Manter callbacks existentes:**
-    - `on_merge_pdf_changed()` — conectado ao checkbox "merge_pdf"
-    - `on_merge_png_changed()` — conectado ao checkbox "merge_png"
-    - Conexão via `self.checkbox_widget.widget("merge_pdf").toggled.connect(self.on_merge_pdf_changed)`
-
-### Layout Final (código resumido)
-
-```python
-def _build_ui(self, **kwargs):
-    super()._build_ui(
-        title=STR.EXPORT_ALL_LAYOUTS_TITLE,
-        icon_path="export_icon.ico",
-        enable_scroll=False,
-    )
-
-    # ── Checkboxes de Exportação ──────────────────────────────
-    self.checkbox_widget = GridCheckbox(
-        config={
-            "export_pdf": {"label": STR.EXPORT_PDF, "default": True},
-            "export_png": {"label": STR.EXPORT_PNG, "default": False},
-            "merge_pdf": {"label": STR.MERGE_PDFS_FINAL, "default": False},
-            "merge_png": {"label": STR.MERGE_PNGS_FINAL, "default": False},
-            "replace_existing": {"label": STR.REPLACE_EXISTING_FILES, "default": False},
-        },
-        items_per_row=2,
-        title=STR.EXPORT_OPTIONS,
-        separator_top=False,
-        separator_bottom=True,
-        parent=self,
-    )
-    self.layout.addWidget(self.checkbox_widget)
-
-    # ── Connect merge dependency checks ───────────────────────
+    ```python
+    # Toggle merge_pdf/merge_png — conectado via widget(key).toggled
     self.checkbox_widget.widget("merge_pdf").toggled.connect(self.on_merge_pdf_changed)
     self.checkbox_widget.widget("merge_png").toggled.connect(self.on_merge_png_changed)
-
-    # ── Max Width ─────────────────────────────────────────────
-    self.max_width_input = GridDoubleSpin(
-        config={
-            "max_width": {
-                "label": STR.MAX_WIDTH_PNG,
-                "value": 3500,
-                "min": 100,
-                "max": 10000,
-                "step": 100,
-                "decimals": 0,
-            },
-        },
-        separator_top=False,
-        separator_bottom=True,
-        parent=self,
-    )
-    self.layout.addWidget(self.max_width_input)
-
-    # ── Output Folder ─────────────────────────────────────────
-    default_path = os.path.join(QgsProject.instance().homePath(), "exports")
-    self.folder_selector = GridComplexSelector(
-        config={
-            "output_folder": {
-                "label": STR.OUTPUT_FOLDER,
-                "path": default_path,
-                "mode": "folder",
-                "subfolder": "exports",
-            },
-        },
-        separator_top=False,
-        separator_bottom=False,
-        parent=self,
-    )
-    self.layout.addWidget(self.folder_selector)
-
-    # ── Execution Buttons ─────────────────────────────────────
-    self.action_buttons = GridExecutionButtons(
-        config={
-            "exportar": {
-                "label": "Exportar",
-                "description": "Inicia a exportação dos layouts",
-                "callback": self._on_export,
-                "is_run_button": True,
-            },
-        },
-        enable_close_button=True,
-        enable_config_button=True,
-        enable_info=True,
-        tool_key=self.TOOL_KEY,
-        parent=self,
-    )
-    self.layout.add_execution_buttons(self.action_buttons)
-```
-
-> **Nota:** `_on_export()` renomeado de `execute_tool()` para evitar conflito com o callback do `GridExecutionButtons`. Ou mantém `execute_tool` se preferir — ambos funcionam.
+    ```
 
 ---
 
-## 6. Riscos e Mitigações
+## 6. Contrato description/tooltip e callbacks
+
+### ✅ REGRA: Todo widget Grid aceita `description` no config dict
+
+Cada item do `config` dict DEVE aceitar `description` (opcional) que vira tooltip no widget.
+
+```python
+config={
+    "export_pdf": {
+        "label": "Exportar PDF",
+        "description": "Exporta layouts em formato PDF",  # → tooltip
+        "default": True,
+    },
+}
+```
+
+### ✅ REGRA: Todo widget Grid aceita `onchange` callback
+
+Cada item do `config` dict PODE ter `onchange` callback para mudança de estado/valor.
+
+```python
+config={
+    "merge_pdf": {
+        "label": "Mesclar PDFs",
+        "description": "Combina todos os PDFs em um único arquivo",
+        "default": False,
+        "onchange": self.on_merge_pdf_changed,  # callback(checked_state)
+    },
+}
+```
+
+### ✅ REGRA: Grid pode ter `title` (QGroupBox)
+
+Se `title` for definido, o widget inteiro é encapsulado em `QGroupBox(title)`.
+
+```python
+GridCheckbox(
+    config={...},
+    title="Opções de Exportação",  # → QGroupBox
+)
+```
+
+---
+
+## 7. Riscos e Mitigações
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|--------------|---------|-----------|
-| Quebrar comportamento de subfolder "exports" | Alta | Alto | Testar path selecionado + subfolder manualmente |
-| Checkboxes não restaurarem estado do prefs | Média | Alto | API `set_checked()` deve funcionar em lote |
-| DoubleSpin não carregar valor salvo | Média | Médio | API `set_value()` testada |
-| ComplexSelector não funcionar com `set_paths()` | Média | Médio | Usar `get_paths()` para consistência com antigo |
-| Callback de merge_pdf/merge_png perdido | Alta | Médio | Manter lógica de toggle connect no ExportAllLayouts |
-| Esquecer de remover imports não usados | Média | Baixo | Flake8 F401 detecta |
+| ComplexSelector antigo tem muita lógica desnecessária | Alta | Médio | Extrair só o necessário: subfolder, mode, sem parent/linking |
+| Quebrar comportamento de subfolder "exports" | Alta | Alto | Manter mesma lógica: path = selected + "/exports" |
+| Checkboxes não restaurarem estado do prefs | Média | Alto | API `set_checked()` em lote |
+| Callback de merge_pdf/merge_png perdido | Alta | Médio | Manter `.widget().toggled.connect()` |
+| Flake8 F401 em imports não usados | Média | Baixo | Rodar flake8 após mudanças |
 | Quebrar save_prefs no closeEvent | Média | Alto | Testar fechamento e reabertura |
 
 ---
 
-## 7. Checklist de Implementação
+## 8. Checklist de Implementação
 
 ```
 [ ] FASE 1: Simple Widgets
   [ ] 1.1 Criar SimpleCheckbox.py (QCheckBox + AppStyles.checkbox())
-  [ ] 1.2 Criar SimpleDoubleSpinBox.py (QDoubleSpinBox + AppStyles.input())
+  [ ] 1.2 Criar SimpleDoubleSpinBox.py (QDoubleSpinBox/QSpinBox + AppStyles.input())
 
 [ ] FASE 2: Grid Widgets
-  [ ] 2.1 Criar GridCheckbox.py (Grid de checkboxes, items_per_row, title, config dict)
-  [ ] 2.2 Criar GridDoubleSpin.py (Container de spin boxes, config dict)
-  [ ] 2.3 Criar GridComplexSelector.py (Seletor pasta/arquivo, subfolder, sem parent)
+  [ ] 2.1 Criar GridCheckbox.py
+       [ ] config dict: label, description, default, onchange
+       [ ] title opcional (QGroupBox)
+       [ ] items_per_row
+       [ ] API: is_checked, set_checked, get_all_states, widget(key)
+       [ ] description → tooltip no checkbox
+       [ ] onchange → conectado ao toggled
+  [ ] 2.2 Criar GridDoubleSpin.py
+       [ ] config dict: label, description, value, min, max, step, decimals, type, onchange
+       [ ] title opcional (QGroupBox)
+       [ ] API: get_value, set_value, get_all_values
+       [ ] description → tooltip no label
+       [ ] onchange → conectado ao valueChanged
+  [ ] 2.3 Criar GridComplexSelector.py (new_widgets)
+       [ ] Baseado no antigo resources/widgets/grid/GridComplexSelector.py
+       [ ] config dict: label, description, path, mode, subfolder
+       [ ] subfolder = "exports"
+       [ ] tool_key para LogUtils
+       [ ] API: get_paths, get_path, set_paths, set_path
+       [ ] description → tooltip
+       [ ] Sem parent/linking
   [ ] 2.4 Verificar compatibilidade Qt5/Qt6 nos widgets novos
 
 [ ] FASE 3: Refatorar ExportAllLayouts
   [ ] 3.1 Remover imports: WidgetFactory
-  [ ] 3.2 Adicionar imports: GridCheckbox, GridDoubleSpin, GridComplexSelector
+  [ ] 3.2 Adicionar imports: GridCheckbox, GridDoubleSpin, GridComplexSelector, GridExecutionButtons
   [ ] 3.3 Reescrever _build_ui() com new_widgets
-       [ ] GridCheckbox com opções de exportação
+       [ ] GridCheckbox com 5 opções (PDF, PNG, Merge PDF, Merge PNG, Replace)
        [ ] GridDoubleSpin com max_width
        [ ] GridComplexSelector com subfolder="exports"
-       [ ] GridExecutionButtons: settings, info, fechar, exportar
+       [ ] GridExecutionButtons: config, info, close
   [ ] 3.4 Adaptar _load_prefs() para nova API
   [ ] 3.5 Adaptar _save_prefs() para nova API
   [ ] 3.6 Adaptar execute_tool() para novos getters
   [ ] 3.7 Manter callbacks: on_merge_pdf_changed, on_merge_png_changed
-  [ ] 3.8 Verificar se SeparatorWidget é necessário entre seções
-  [ ] 3.9 Executar flake8 no ExportAllLayouts.py modificado
+       [ ] self.checkbox_widget.widget("merge_pdf").toggled.connect(...)
+       [ ] self.checkbox_widget.widget("merge_png").toggled.connect(...)
+  [ ] 3.8 Executar flake8 em todos os arquivos modificados (sem F401, W292)
 
 [ ] Pós-implementação
-  [ ] 4.1 Atualizar docs/plano_eliminacao_widgetfactory.md
-  [ ] 4.2 Atualizar docs/ia/changelog.txt
-  [ ] 4.3 Testar fluxo completo: abrir → carregar prefs → alterar → fechar → reabrir
-  [ ] 4.4 Testar exportação real com PDF e PNG
-  [ ] 4.5 Testar merge PDF (PyPDF2) e merge PNG (Pillow)
-  [ ] 4.6 Verificar nenhum import não utilizado (F401)
+  [ ] 4.1 Atualizar docs/skills/SKILL_WIDGETS2.md
+       [ ] Adicionar SimpleCheckbox ao catálogo Simple
+       [ ] Adicionar SimpleDoubleSpinBox ao catálogo Simple
+       [ ] Adicionar GridCheckbox ao catálogo Grid
+       [ ] Adicionar GridDoubleSpin ao catálogo Grid
+       [ ] Adicionar GridComplexSelector ao catálogo Grid
+       [ ] Documentar contrato description/tooltip e onchange
+  [ ] 4.2 Atualizar docs/plano_eliminacao_widgetfactory.md (marcar ExportAllLayouts)
+  [ ] 4.3 Atualizar docs/ia/changelog.txt
+  [ ] 4.4 Testar fluxo completo: abrir → carregar prefs → alterar → fechar → reabrir
+  [ ] 4.5 Testar exportação real com PDF e PNG
+  [ ] 4.6 Testar merge PDF (PyPDF2) e merge PNG (Pillow)
+  [ ] 4.7 Verificar nenhum import não utilizado (F401)
 ```
 
 ---
@@ -901,4 +567,5 @@ def _build_ui(self, **kwargs):
 
 | Data | Versão | Descrição |
 |------|--------|-----------|
-| 2026-07-24 | 1.0.0 | Criação inicial — Plano de ação para refatoração do ExportAllLayouts |
+| 2026-07-24 | 1.0.0 | Criação inicial |
+| 2026-07-24 | 2.0.0 | **Revisão completa:** GridComplexSelector baseado no antigo `resources/widgets/grid/GridComplexSelector.py`; GridCheckbox e GridDoubleSpin agora com `description`=tooltip e `onchange` callback por item; `title` opcional via QGroupBox; GridExecutionButtons sem ordem fixa; adicionado contrato description/onchange e atualização da SKILL_WIDGETS2.md |

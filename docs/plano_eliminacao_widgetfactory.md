@@ -3,7 +3,7 @@
 **Objetivo:** Eliminar completamente o uso da `WidgetFactory`, migrando para um modelo onde widgets se autoconfiguram com `AppStyles` + `ThemeManager` + `BaseTheme`, e plugins declaram widgets via parâmetros/dict sem saber de estilos.
 
 **Data:** 2026-07-24
-**Versão:** 5.0.0
+**Versão:** 5.1.0
 **Autor:** Cadmus Engineering
 
 ---
@@ -137,6 +137,7 @@ resources/
       ├── AppBarWidget.py         ← Barra superior com título, botões, drag
       ├── ScrollWidget.py         ← QScrollArea com estilo
       ├── SeparatorWidget.py      ← QFrame HLine com gradiente
+      ├── TextBrowser.py          ← QTextBrowser com set_markdown() e fallback Qt5/Qt6
       ├── simple/
       │   ├── SimpleLabel.py
       │   ├── SimpleButton.py
@@ -174,7 +175,7 @@ Se um widget é COMPLEXO (simple + funções):
 1. BaseTheme + ThemeManager OK ✅
 2. AppStyles criado ✅
 3. Widgets criados (simple/grid/raiz) — PARCIAL
-4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅
+4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅
 5. NUNCA deletar nada antigo
 ```
 
@@ -190,6 +191,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 ├── AppBarWidget.py                   ← Barra superior
 ├── ScrollWidget.py                   ← QScrollArea
 ├── SeparatorWidget.py                ← QFrame separador visual (gradiente horizontal)
+├── TextBrowser.py                    ← QTextBrowser com set_markdown() e fallback Qt5/Qt6
 │
 ├── simple/                           ← USO INTERNO (NUNCA importado por plugins)
 │   ├── SimpleLabel.py                ← QLabel + AppStyles.label()
@@ -238,6 +240,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 | `AppBarWidget.py` | `AppBarWidget` | Barra superior com título, botões (run/info/close/close) e drag |
 | `ScrollWidget.py` | `ScrollWidget` | QScrollArea com estilo `AppStyles.scroll_area()` |
 | `SeparatorWidget.py` | `SeparatorWidget` | QFrame HLine com gradiente horizontal. É um widget Qt separado, NÃO margem/padding |
+| `TextBrowser.py` | `TextBrowser` | QTextBrowser com `AppStyles.text_browser()`, sem borda, fundo transparente. Renderização Markdown nativa com fallback Qt5/Qt6. API: `set_markdown()`, `setHtml()`, `setPlainText()`, `document()` |
 
 ### 4.3 Quando Usar Cada Um
 
@@ -493,6 +496,7 @@ Criados em `resources/new_widgets/`.
 | `AppBarWidget.py` | `AppBarWidget` | ✅ | Barra superior com título, botões (run/info/close) e drag |
 | `ScrollWidget.py` | `ScrollWidget` | ✅ | QScrollArea com estilo `AppStyles.scroll_area()` |
 | `SeparatorWidget.py` | `SeparatorWidget` | ✅ | QFrame HLine com gradiente horizontal. `height` opcional |
+| `TextBrowser.py` | `TextBrowser` | ✅ | QTextBrowser com `AppStyles.text_browser()`, sem borda, fundo transparente. Renderização Markdown nativa com fallback Qt5/Qt6. API: `set_markdown()`, `setHtml()`, `setPlainText()`, `document()` |
 
 
 ---
@@ -505,21 +509,22 @@ Criados em `resources/new_widgets/`.
 |---|--------|-----------------|-------------------|--------|
 | 1 | `AboutDialog` | create_label, create_text_browser, create_image_widget | GridLabel + GridExecutionButtons + GridIconButton | ✅ Migrado (2.3.62.2) |
 | 2 | `CoorResultDialog` | create_label, create_readonly_field, create_bottom_action_buttons | GridReadOnly + GridLabel + GridExecutionButtons + SimpleLabel | ✅ Migrado (2.3.63.3) |
-| 3 | `RestartQgis` | create_simple_button | GridButton | ⬜ Pendente |
-| 4 | `VectorMultipartPlugin` | create_layer_input, create_bottom_action_buttons | GridLayerInput + GridButton | ⬜ Pendente |
-| 5 | `ExportAllLayouts` | create_readonly_field, create_bottom_action_buttons | GridReadOnly + GridButton | ⬜ Pendente |
-| 6 | `CopyAttributesPlugin` | create_layer_input, create_checkbox_grid, create_bottom_action_buttons | GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
-| 7 | `DividePointsByStripsPlugin` | create_layer_input, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridInput + GridButton | ⬜ Pendente |
-| 8 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
-| 9 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridCheckbox + GridButton | ⬜ Pendente |
-| 10 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton | ⬜ Pendente |
-| 11 | `ReplaceInLayouts` | create_layer_input, create_dropdown_selector, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridButton | ⬜ Pendente |
-| 12 | `SaveTemporaryLayersPlugin` | create_path_selector, create_layer_input, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridButton | ⬜ Pendente |
-| 13 | `GenerateTrailPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_color_button, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + ComplexColorPicker + GridButton | ⬜ Pendente |
-| 14 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
-| 15 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton | ⬜ Pendente |
-| 16 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
-| 17 | `SettingsPlugin` | Múltiplos | Análise individual | ⬜ Pendente |
+| 3 | `InfoDialog` | create_text_browser, create_simple_button | TextBrowser + GridExecutionButtons | ✅ Migrado (2.3.64.1) |
+| 4 | `RestartQgis` | create_simple_button | GridButton | ⬜ Pendente |
+| 5 | `VectorMultipartPlugin` | create_layer_input, create_bottom_action_buttons | GridLayerInput + GridButton | ⬜ Pendente |
+| 6 | `ExportAllLayouts` | create_readonly_field, create_bottom_action_buttons | GridReadOnly + GridButton | ⬜ Pendente |
+| 7 | `CopyAttributesPlugin` | create_layer_input, create_checkbox_grid, create_bottom_action_buttons | GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
+| 8 | `DividePointsByStripsPlugin` | create_layer_input, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridInput + GridButton | ⬜ Pendente |
+| 9 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
+| 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridCheckbox + GridButton | ⬜ Pendente |
+| 11 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton | ⬜ Pendente |
+| 12 | `ReplaceInLayouts` | create_layer_input, create_dropdown_selector, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridButton | ⬜ Pendente |
+| 13 | `SaveTemporaryLayersPlugin` | create_path_selector, create_layer_input, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridButton | ⬜ Pendente |
+| 14 | `GenerateTrailPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_color_button, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + ComplexColorPicker + GridButton | ⬜ Pendente |
+| 15 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
+| 16 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton | ⬜ Pendente |
+| 17 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
+| 18 | `SettingsPlugin` | Múltiplos | Análise individual | ⬜ Pendente |
 
 ### 8.2 Checklist por Plugin
 
@@ -881,6 +886,7 @@ def resolve_qt_window_modality(name: str):
     [x] AppBarWidget.py
     [x] ScrollWidget.py
     [x] SeparatorWidget.py
+    [x] TextBrowser.py ← NOVO (QTextBrowser com set_markdown + fallback Qt5/Qt6)
     [ ] CollapsibleParametersWidget.py
     [ ] ComplexPathSelector.py
     [ ] ComplexColorPicker.py
@@ -888,23 +894,24 @@ def resolve_qt_window_modality(name: str):
     [ ] GridComplexSelector.py
 
 [ ] FASE 2: Migração Plugin por Plugin — PARCIAL
-  [x] 2.1 AboutDialog ✅
-  [x] 2.3 CoorResultDialog ✅
-  [ ] 2.2 RestartQgis
-  [ ] 2.4 VectorMultipartPlugin
-  [ ] 2.5 ExportAllLayouts
-  [ ] 2.6 CopyAttributesPlugin
-  [ ] 2.7 DividePointsByStripsPlugin
-  [ ] 2.8 DroneCoordinates
-  [ ] 2.9 LoadFolderLayers
-  [ ] 2.10 PathExtensionPlugin
-  [ ] 2.11 ReplaceInLayouts
-  [ ] 2.12 SaveTemporaryLayersPlugin
-  [ ] 2.13 GenerateTrailPlugin
-  [ ] 2.14 ReportMetadataPlugin
-  [ ] 2.15 VectorFieldsCalculationPlugin
-  [ ] 2.16 VectorToSvgPlugin
-  [ ] 2.17 SettingsPlugin
+  [x] 2.1 AboutDialog ✅ (2.3.62.2)
+  [x] 2.2 CoorResultDialog ✅ (2.3.63.3)
+  [x] 2.3 InfoDialog ✅ (2.3.64.1)
+  [ ] 2.4 RestartQgis
+  [ ] 2.5 VectorMultipartPlugin
+  [ ] 2.6 ExportAllLayouts
+  [ ] 2.7 CopyAttributesPlugin
+  [ ] 2.8 DividePointsByStripsPlugin
+  [ ] 2.9 DroneCoordinates
+  [ ] 2.10 LoadFolderLayers
+  [ ] 2.11 PathExtensionPlugin
+  [ ] 2.12 ReplaceInLayouts
+  [ ] 2.13 SaveTemporaryLayersPlugin
+  [ ] 2.14 GenerateTrailPlugin
+  [ ] 2.15 ReportMetadataPlugin
+  [ ] 2.16 VectorFieldsCalculationPlugin
+  [ ] 2.17 VectorToSvgPlugin
+  [ ] 2.18 SettingsPlugin
 
 [ ] FASE 3: Eliminação da WidgetFactory
   [ ] 3.1 Marcar WidgetFactory como deprecated
@@ -925,3 +932,4 @@ def resolve_qt_window_modality(name: str):
 | 2026-07-21 | 3.0.0 | BaseTheme limpo, AppTheme, theme (não t), nomes descritivos |
 | 2026-07-21 | 4.0.0 | Correções: Separador é QFrame visual, SeparatorWidget separado, ThemeManager só BaseTheme |
 | 2026-07-24 | 5.0.0 | **Atualização:** FASE 0 marcada como completa; FASE 1 atualizada com SimpleModernButton, SimpleQLineEdit, GridExecutionButtons, GridIconButton, MainLayout, ScrollWidget, AppBarWidget; FASE 2 atualizada com AboutDialog e CoorResultDialog como migrados; adicionadas regras 13-17 do contrato (config dict, callbacks, modern widgets, add_execution_buttons sem stretch) |
+| 2026-07-24 | 5.1.0 | **Atualização:** Adicionado TextBrowser.py aos widgets raiz (FASE 1.3). Adicionado InfoDialog como migrado (FASE 2 - 2.3.64.1). Atualizadas seções 3, 4.1, 4.2, 7.3, 8.1 e TODO com TextBrowser e InfoDialog. |

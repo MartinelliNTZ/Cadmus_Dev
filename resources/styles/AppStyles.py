@@ -632,21 +632,16 @@ class AppStyles:
 
     @classmethod
     def text_browser(cls) -> str:
-        """Estilo global para QTextBrowser."""
+        """Estilo global para QTextBrowser — sem borda, fundo transparente."""
         theme = cls._get_theme()
         return (
             "QTextBrowser {"
-            f"    background: {theme.COLOR_BACKGROUND_PANEL};"
+            f"    background: transparent;"
             f"    color: {theme.COLOR_TEXT_PRIMARY};"
-            f"    border: {theme.PXBORDER_ONE} {theme.COLOR_BORDER_DEFAULT};"
-            f"    border-radius: {theme.BORDER_RADIUS_INPUT_FIELD};"
-            f"    padding: {theme.PADDING_INPUT_FIELD};"
+            "    border: none;"
             f"    font-size: {theme.INPUT_FIELD_FONT_SIZE};"
             f"    selection-background-color: {theme.COLOR_PRIMARY};"
             f"    selection-color: {theme.COLOR_WHITE};"
-            "}"
-            "QTextBrowser:hover {"
-            f"    border: {theme.PXBORDER_ONE} {theme.COLOR_PRIMARY_LIGHT};"
             "}"
         )
 

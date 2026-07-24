@@ -3,7 +3,7 @@
 **Objetivo:** Migrar o `core/ui/info_dialog.py` para o novo sistema de widgets autoconfiguráveis, eliminando dependência da `WidgetFactory`.
 
 **Data:** 2026-07-24
-**Versão:** 1.0.0
+**Versão:** 1.1.0
 **Autor:** Cadmus Engineering
 
 ---
@@ -14,7 +14,7 @@
 2. [Widgets Necessários](#2-widgets-necessários)
 3. [Dependências Entre Widgets](#3-dependências-entre-widgets)
 4. [Estratégia de Migração](#4-estratégia-de-migração)
-5. [FASE 0 — Criar SimpleTextBrowser](#5-fase-0--criar-simpletextbrowser)
+5. [FASE 0 — Criar TextBrowser](#5-fase-0--criar-textbrowser)
 6. [FASE 1 — Migrar InfoDialog](#6-fase-1--migrar-infodialog)
 7. [FASE 2 — Atualizar Usuários do InfoDialog](#7-fase-2--atualizar-usuários-do-infodialog)
 8. [Riscos e Mitigações](#8-riscos-e-mitigações)
@@ -64,16 +64,39 @@ Preciso rastrear quem instancia `InfoDialog` para garantir que a migração não
 
 ## 2. Widgets Necessários
 
-### 2.1 TextBrowser (NOVO —/)
+### 2.1 TextBrowser (NOVO — raiz de `new_widgets/`)
 
+Widget na raiz de `resources/new_widgets/` — **não tem versão grid** porque não precisa. Apenas widgets que precisam de múltiplas instâncias organizadas em grid têm versão `simple/` + `grid/`.
 
-### 2.3 Widgets Existentes que Serão Usados
+```python
+# resources/new_widgets/TextBrowser.py
+"""
+TextBrowser — QTextBrowser com AppStyles.text_browser().
+Widget raiz (sem versão grid) — usado diretamente pelo InfoDialog.
+
+Uso:
+    browser = TextBrowser(parent=self)
+    browser.set_markdown(text)  # setMarkdown com fallback Qt5/Qt6
+    browser.set_html(html)
+"""
+```
+
+**API necessária:**
+- `set_markdown(text: str)` — setMarkdown com fallback Qt5/Qt6
+- `set_html(html: str)` — setHtml
+- `set_plain_text(text: str)` — setPlainText
+- `document()` — acesso ao QTextDocument
+
+**Estilo:** `AppStyles.text_browser()` (NOVO método em AppStyles)
+
+### 2.2 Widgets Existentes que Serão Usados
 
 | Widget | Local | Já existe? |
 |--------|-------|-----------|
 | `GridExecutionButtons` | `resources/new_widgets/grid/` | ✅ |
-| `SeparatorWidget` | `resources/new_widgets/` | ✅ |
 | `MainLayout` | `resources/new_widgets/` | ✅ |
+
+> **Nota:** O `GridExecutionButtons` gerencia internamente seus botões (fechar, info, config). O InfoDialog só precisa de um botão fechar, que é habilitado via `enable_close_button=True`. Não é necessário instanciar `SimpleModernButton` separadamente.
 
 ---
 
@@ -81,18 +104,17 @@ Preciso rastrear quem instancia `InfoDialog` para garantir que a migração não
 
 ```
 InfoDialog (MIGRADO)
-├── TextBrowser (NOVO) ← QTextBrowser + AppStyles.text_browser()
+├── TextBrowser (NOVO — raiz) ← QTextBrowser + AppStyles.text_browser()
 │   └── AppStyles.text_browser() (NOVO método)
 │
 ├── GridExecutionButtons (já existe ✅)
-│   └── SimpleModernButton (já existe ✅)
 │
 └── MainLayout (já existe ✅)
     └── BaseDialog._build_ui() (já existe ✅)
 ```
 
 **Dependência mínima:** Apenas 1 widget novo + 1 método novo em AppStyles:
-1. `TextBrowser.py` ← widget base
+1. `resources/new_widgets/TextBrowser.py` ← widget base (raiz, sem grid)
 2. `AppStyles.text_browser()` ← método de estilo
 
 ---
@@ -101,7 +123,7 @@ InfoDialog (MIGRADO)
 
 ### 4.1 Princípios
 
-1. **Criar SimpleTextBrowser** primeiro — depende de AppStyles.text_browser()
+1. **Criar TextBrowser** primeiro — depende de AppStyles.text_browser()
 2. **Adicionar AppStyles.text_browser()** — estilo para QTextBrowser
 3. **Migrar InfoDialog** — substituir Factory → new_widgets
 4. **Nunca modificar arquivos antigos** — manter `WidgetFactory.py`, `resources/widgets/`, etc.
@@ -131,7 +153,7 @@ browser.set_markdown(md_text)
 browser.document()  # ainda disponível (herda de QTextBrowser)
 ```
 
-### 4.4 Botão Fechar isso mesmo
+### 4.4 Botão Fechar
 
 ```python
 # ANTIGO — Factory retorna (layout, widget)
@@ -140,12 +162,14 @@ btn_layout, btn_widget = WidgetFactory.create_simple_button(
 btn_widget.clicked.connect(self.close)
 self.layout.addLayout(btn_layout)
 
-# NOVO — GridExecutionButtons com callback
+# NOVO — GridExecutionButtons com enable_close_button=True
+# O GridExecutionButtons gerencia o botão fechar internamente.
+# Não precisa conectar sinal — o callback de fechar é automático.
 self.action_buttons = GridExecutionButtons(
     config={},
     enable_close_button=True,
     enable_info=False,
-    tool_key=self.TOOL_KEY,
+    tool_key=tool_key,
     parent=self,
 )
 self.layout.add_execution_buttons(self.action_buttons)
@@ -188,8 +212,7 @@ def text_browser(cls) -> str:
 # -*- coding: utf-8 -*-
 """
 TextBrowser — QTextBrowser com AppStyles.text_browser().
-USO INTERNO — usado por InfoDialog e futuros GridTextBrowser.
-Plugins NUNCA importam TextBrowser diretamente.
+Widget raiz (sem versão grid) — usado diretamente pelo InfoDialog.
 
 Características:
 - Renderização Markdown nativa (setMarkdown) com fallback Qt5/Qt6
@@ -198,7 +221,7 @@ Características:
 """
 
 from qgis.PyQt.QtWidgets import QTextBrowser
-from ...styles.AppStyles import AppStyles
+from ..styles.AppStyles import AppStyles
 
 
 class TextBrowser(QTextBrowser):
@@ -337,6 +360,7 @@ class InfoDialog(BaseDialog):
         self.layout.addWidget(browser)
 
         # ── Botão Fechar ───────────────────────────────────────
+        # GridExecutionButtons gerencia o botão fechar internamente
         self.action_buttons = GridExecutionButtons(
             config={},
             enable_close_button=True,
@@ -356,8 +380,8 @@ class InfoDialog(BaseDialog):
 | Aspecto | Antigo | Novo |
 |---------|--------|------|
 | Import WidgetFactory | `from ...core.ui.WidgetFactory import WidgetFactory` | ❌ Removido |
-| Import TextBrowser | ❌ Não existia | `from ...resources.new_widgets.TextBrowser import TextBrowser` |
-| Import GridExecutionButtons | ❌ Não existia | `from ...resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons` |
+| Import TextBrowser | ❌ Não existia | `from ..resources.new_widgets.TextBrowser import TextBrowser` |
+| Import GridExecutionButtons | ❌ Não existia | `from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons` |
 | Criar browser | `WidgetFactory.create_text_browser(parent=self)` | `TextBrowser(parent=self)` |
 | Renderizar markdown | `doc.setMarkdown(md_text)` ou `_markdown_to_html()` | `browser.set_markdown(md_text)` (encapsulado) |
 | Criar botão fechar | `WidgetFactory.create_simple_button(text=STR.CLOSE, ...)` | `GridExecutionButtons(config={}, enable_close_button=True, ...)` |
@@ -397,7 +421,7 @@ Preciso verificar no código quem importa `InfoDialog` para garantir que a migra
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|--------------|---------|-----------|
-| `_markdown_to_html()` removido e alguém usava | Baixa | Alto | Manter como método estático em SimpleTextBrowser |
+| `_markdown_to_html()` removido e alguém usava | Baixa | Alto | Manter como método estático em TextBrowser |
 | `setMarkdown` não disponível no Qt da instalação | Média | Alto | Fallback `_markdown_to_html()` dentro de `set_markdown()` |
 | GridExecutionButtons sem `enable_info=False` exibir botão info | Média | Baixo | Passar `enable_info=False` explicitamente |
 | Layout mudar (addLayout vs add_execution_buttons) | Baixa | Médio | Testar visualmente |
@@ -408,16 +432,15 @@ Preciso verificar no código quem importa `InfoDialog` para garantir que a migra
 ## 9. TODO Consolidado
 
 ```
-[ ] FASE 0: Criar SimpleTextBrowser
+[ ] FASE 0: Criar TextBrowser
   [ ] 0.1 Adicionar AppStyles.text_browser() em resources/styles/AppStyles.py
-  [ ] 0.2 Criar resources/new_widgets/simple/SimpleTextBrowser.py
-  [ ] 0.3 Verificar se SimpleTextBrowser aparece em resources/new_widgets/simple/__init__.py
+  [ ] 0.2 Criar resources/new_widgets/TextBrowser.py (raiz, sem versão grid)
 
 [ ] FASE 1: Migrar InfoDialog
-  [ ] 1.1 Substituir imports da WidgetFactory por SimpleTextBrowser + GridExecutionButtons
-  [ ] 1.2 Substituir create_text_browser() por SimpleTextBrowser()
+  [ ] 1.1 Substituir imports da WidgetFactory por TextBrowser + GridExecutionButtons
+  [ ] 1.2 Substituir create_text_browser() por TextBrowser()
   [ ] 1.3 Substituir create_simple_button() por GridExecutionButtons(enable_close_button=True)
-  [ ] 1.4 Remover _markdown_to_html() (movido para SimpleTextBrowser)
+  [ ] 1.4 Remover _markdown_to_html() (movido para TextBrowser)
   [ ] 1.5 Ajustar layout (addWidget + add_execution_buttons)
   [ ] 1.6 Remover import WidgetFactory
 
@@ -427,7 +450,7 @@ Preciso verificar no código quem importa `InfoDialog` para garantir que a migra
   [ ] 2.3 Testar visualmente
 
 [ ] Pós-migração
-  [ ] 3.1 Atualizar docs/skills/SKILL_WIDGETS2.md (adicionar SimpleTextBrowser ao catálogo)
+  [ ] 3.1 Atualizar docs/skills/SKILL_WIDGETS2.md (adicionar TextBrowser ao catálogo)
   [ ] 3.2 Atualizar docs/plano_eliminacao_widgetfactory.md (marcar InfoDialog como migrado)
   [ ] 3.3 Atualizar docs/ia/changelog.txt
 ```
@@ -439,3 +462,4 @@ Preciso verificar no código quem importa `InfoDialog` para garantir que a migra
 | Data | Versão | Descrição |
 |------|--------|-----------|
 | 2026-07-24 | 1.0.0 | Criação inicial — Plano de migração do InfoDialog |
+| 2026-07-24 | 1.1.0 | Corrigido: TextBrowser movido para raiz (sem versão grid). Removida referência a SimpleModernButton (GridExecutionButtons gerencia internamente). |

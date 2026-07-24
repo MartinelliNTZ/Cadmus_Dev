@@ -326,6 +326,39 @@ QScrollArea com estilo `AppStyles.scroll_area()`. Instanciado pelo `MainLayout`.
 ### SeparatorWidget
 QFrame HLine com gradiente horizontal.
 
+### TextBrowser 🆕
+QTextBrowser com `AppStyles.text_browser()`, **sem versão grid**. Usado para exibir conteúdo Markdown/HTML com fallback Qt5/Qt6.
+
+```python
+from ..resources.new_widgets.TextBrowser import TextBrowser
+
+browser = TextBrowser(parent=self)
+browser.set_markdown(md_text)   # setMarkdown com fallback Qt < 5.14
+# ou
+browser.setHtml(html_text)
+# ou
+browser.setPlainText(text)
+```
+
+**Renderização Markdown:**
+- Qt ≥ 5.14: usa `QTextDocument.setMarkdown()` nativo
+- Qt < 5.14 (fallback): converte Markdown → HTML via `_markdown_to_html()` interno
+
+**API pública:**
+| Método | Descrição |
+|--------|-----------|
+| `set_markdown(text)` | Define Markdown com fallback automático |
+| `set_html(html)` | Define HTML direto |
+| `setPlainText(text)` | Define texto plano |
+| `document()` | Acesso ao QTextDocument |
+
+**Parâmetros do construtor:**
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `open_external_links` | bool | `True` | Abrir links no navegador |
+| `read_only` | bool | `True` | Read-only |
+| `parent` | QWidget | `None` | Widget pai |
+
 ---
 
 ## 📌 CONTRATO RÍGIDO
@@ -557,3 +590,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-21 | 1.1.0 | Adicionada regra de callbacks (widget não expõe sinais Qt, plugin passa funções callback como parâmetros) |
 | 2026-07-21 | 1.2.0 | Adicionado padrão de configuração via dict `config={}` com chaves identificadoras e suporte a `description` para tooltip |
 | 2026-07-23 | 2.0.0 | Adicionados `SimpleModernButton` (gradiente + glow), `SimpleQLineEdit` (gradiente + glow), `SimpleReadOnly` atualizado com `SimpleModernButton` + `SimpleQLineEdit` + ícone COPY2. Adicionados tokens `INPUT_FIELD_PADDING`, `INPUT_FIELD_FONT_SIZE`, `INPUT_FIELD_FONT_WEIGHT`, `INPUT_SHADOW_*`. Adicionados métodos `modern_input_primary()`, `modern_input_secondary()`. Documentado comportamento de `add_execution_buttons` sem stretch com scroll. |
+| 2026-07-24 | 2.1.0 | Adicionado `TextBrowser` (raiz, sem versão grid) — QTextBrowser com `AppStyles.text_browser()`, set_markdown com fallback Qt5/Qt6. |

@@ -81,6 +81,8 @@ class ComplexSelector(QWidget):
         parent_selector=None,
         # ── Filtro de camada (📄) ──
         layer_filters=None,
+        # ── Botão copiar ──
+        show_copy_button: bool = True,
         # ── Tool key para logger ──
         tool_key=None,
         parent=None,
@@ -103,6 +105,7 @@ class ComplexSelector(QWidget):
         self._multiple = multiple
         self._selection_mode = selection_mode
         self._show_explorer_button = show_explorer_button
+        self._show_copy_button = show_copy_button
         self._mode_type = mode_type
         self._fixed_name = fixed_name
         self._subfolder = subfolder
@@ -247,6 +250,16 @@ class ComplexSelector(QWidget):
             )
             self._btn_explorer.clicked.connect(self._open_explorer)
             layout.addWidget(self._btn_explorer, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        # 📋 (copiar)
+        if self._show_copy_button:
+            self._btn_copy = SquareIconButton(
+                icon=IconManager.icon(IconManager.COPY2),
+                tooltip="Copiar caminho",
+                parent=self,
+            )
+            self._btn_copy.clicked.connect(self._copy_to_clipboard)
+            layout.addWidget(self._btn_copy, 0, Qt.AlignmentFlag.AlignVCenter)
 
     # ══════════════════════════════════════════════════════════════════
     # Display
@@ -567,6 +580,17 @@ class ComplexSelector(QWidget):
             subfolder=self._subfolder,
             fixed_name=self._fixed_name,
         )
+
+    # ══════════════════════════════════════════════════════════════════
+    # 📋 (copiar)
+    # ══════════════════════════════════════════════════════════════════
+
+    def _copy_to_clipboard(self):
+        """Copia o texto atual do campo para a área de transferência."""
+        text = self._edit.text()
+        if text:
+            ProjectUtils.set_clipboard_text(text)
+            self.logger.info("Caminho copiado para área de transferência", code="COMPLEX_COPY_CLIPBOARD")
 
     # ══════════════════════════════════════════════════════════════════
     # Callback

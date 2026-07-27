@@ -1233,6 +1233,78 @@ class CustomPhotosFieldsUtil:
         }
 
     @staticmethod
+    def _calculate_directory(data: Dict) -> str:
+        """
+        Calcula o campo Directory: caminho da imagem convertido para URI file:///
+        com barras normais (replace de '\\' por '/').
+
+        Fórmula: 'file:///' || replace(Path, '\\', '/')
+        """
+        path = CustomPhotosFieldsUtil._get(
+            data, MetadataFieldKey.PATH, default=""
+        )
+        if not path:
+            return ""
+        path_str = str(path).replace("\\", "/")
+        return f"file:///{path_str}"
+
+    @staticmethod
+    def _calculate_yaw_relative_error(data: Dict) -> float:
+        """
+        Calcula o campo YawRelativeError (YALREW):
+        diferença de yaw relativa normalizada entre o gimbal e o drone.
+
+        Fórmula:
+          diff = GimbalYaw - DroneYaw
+          yalrew = diff - 360 * floor(diff / 360)
+
+        Resultado no intervalo [0, 360).
+        """
+        gim_yaw = CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.GIMBAL_YAW_DEGREE, default=0
+        )
+        drone_yaw = CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.FLIGHT_YAW_DEGREE, default=0
+        )
+        diff = gim_yaw - drone_yaw
+        # Normaliza para [0, 360): diff - 360 * floor(diff / 360)
+        yalrew = diff - 360.0 * math.floor(diff / 360.0)
+        return round(yalrew, DECIMAL_PLACES)
+
+    @staticmethod
+    def _calculate_nadir(data: Dict) -> str:
+        """
+        Calcula o campo Nadir: classificação da orientação da câmera.
+
+        Lógica:
+        - Se abs(abs(GimbalPitch) - 90) <= 3 → 'Nadir'
+        - Senão, classifica oblíqua baseada no yaw relativo (YALREW):
+          YALREW >= 315 ou YALREW < 45 → 'Obliqua - Frente'
+          YALREW >= 45 e < 135 → 'Obliqua - Direita'
+          YALREW >= 135 e < 225 → 'Obliqua - Tras'
+          else → 'Obliqua - Esquerda'
+        """
+        gim_pitch = CustomPhotosFieldsUtil._get_safe(
+            data, MetadataFieldKey.GIMBAL_PITCH_DEGREE, default=0
+        )
+        
+        # Verifica se é Nadir (pitch a 90° ±3°)
+        if abs(abs(gim_pitch) - 90) <= 3:
+            return "Nadir"
+        
+        # Calcula YALREW para classificação oblíqua
+        yalrew = CustomPhotosFieldsUtil._calculate_yaw_relative_error(data)
+        
+        if yalrew >= 315 or yalrew < 45:
+            return "Obliqua - Frente"
+        elif 45 <= yalrew < 135:
+            return "Obliqua - Direita"
+        elif 135 <= yalrew < 225:
+            return "Obliqua - Tras"
+        else:
+            return "Obliqua - Esquerda"
+
+    @staticmethod
     def _calculate_mrk_differences(data: Dict) -> Dict:
         """
         Calcula as diferenças entre os dados do MRK e os metadados das imagens.
@@ -1520,6 +1592,9 @@ class CustomPhotosFieldsUtil:
                 MetadataFieldKey.RTK_TYPE.value: cls._get_rtk_type_label(
                     data.get(MetadataFieldKey.RTK_FLAG.value)
                 ),
+                MetadataFieldKey.DIR.value: cls._calculate_directory(data),
+                MetadataFieldKey.YALREW.value: cls._calculate_yaw_relative_error(data),
+                MetadataFieldKey.NADIR.value: cls._calculate_nadir(data),
             }
 
             # Nota: next_seq e validation NÃO são incluídos em custom pois não têm

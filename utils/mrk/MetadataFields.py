@@ -1390,6 +1390,33 @@ class MetadataFields:
             level=5,
             key=MetadataFieldKey.FOCAL_LENGTH_35EFL,
         ),
+        MetadataFieldKey.DIR: Field(
+            normalized="Custom:Directory",
+            core="custom",
+            label="Directory",
+            attribute="Directory",
+            description="Caminho do diretório da imagem convertido para URI file:///. Fórmula: 'file:///' || replace(Path, '\\', '/'). [Directory]",
+            level=5,
+            key=MetadataFieldKey.DIR,
+        ),
+        MetadataFieldKey.YALREW: Field(
+            normalized="Custom:YawRelativeError",
+            core="custom",
+            label="Yaw Relative Error",
+            attribute="YawRelErr",
+            description="Diferença de yaw relativa normalizada entre o yaw do gimbal e o yaw do drone (0-360°). Fórmula: (GimbalYaw - DroneYaw) % 360. [YawRelErr]",
+            level=5,
+            key=MetadataFieldKey.YALREW,
+        ),
+        MetadataFieldKey.NADIR: Field(
+            normalized="Custom:Nadir",
+            core="custom",
+            label="Nadir",
+            attribute="Nadir",
+            description="Classificação da orientação da câmera baseada no ângulo do gimbal e na diferença de yaw relativa. Valores: 'Nadir' quando pitch está a 90° ±3°, ou classificação oblíqua (Frente/Direita/Tras/Esquerda) baseada no yaw relativo. [Nadir]",
+            level=5,
+            key=MetadataFieldKey.NADIR,
+        ),
     }
 
     MRK_FIELDS = {

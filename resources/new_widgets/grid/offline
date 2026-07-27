@@ -12,7 +12,7 @@ from ..simple.SimpleButton import SimpleButton
 from ...styles.AppStyles import AppStyles
 
 
-class GridButton(QWidget):
+class GridButon(QWidget):
     """
     Container com botões de ação (fechar, executar, info).
 

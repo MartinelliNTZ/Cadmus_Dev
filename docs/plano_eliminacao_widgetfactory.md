@@ -138,6 +138,7 @@ resources/
       ├── ScrollWidget.py         ← QScrollArea com estilo
       ├── SeparatorWidget.py      ← QFrame HLine com gradiente
       ├── TextBrowser.py          ← QTextBrowser com set_markdown() e fallback Qt5/Qt6
+      ├── CollapsibleParametersWidget.py  ← Seção colapsável com paintEvent gradiente
       ├── simple/
       │   ├── SimpleLabel.py
       │   ├── SimpleButton.py
@@ -545,7 +546,7 @@ Criados em `resources/new_widgets/`.
 | 7 | `CopyAttributesPlugin` | create_layer_input, create_checkbox_grid, create_bottom_action_buttons | GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
 | 8 | `DividePointsByStripsPlugin` | create_layer_input, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridInput + GridButton | ⬜ Pendente |
 | 9 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
-| 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridCheckbox + GridButton | ⬜ Pendente |
+| 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_collapsible_parameters, create_bottom_action_buttons | GridComplexSelector + GridCheckbox + CollapsibleParametersWidget + GridExecutionButtons | ✅ Migrado (2.3.68.1) |
 | 11 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton | ⬜ Pendente |
 | 12 | `ReplaceInLayouts` | create_input_fields_widget, create_simple_button, create_checkbox_grid, create_label, create_bottom_action_buttons | GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons | ✅ Migrado (2.3.67.1) |
 | 13 | `SaveTemporaryLayersPlugin` | create_path_selector, create_layer_input, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridButton | ⬜ Pendente |
@@ -912,8 +913,12 @@ def resolve_qt_window_modality(name: str):
     [x] ScrollWidget.py
     [x] SeparatorWidget.py
     [x] TextBrowser.py (QTextBrowser com set_markdown + fallback Qt5/Qt6)
-    [ ] CollapsibleParametersWidget.py
+    [x] CollapsibleParametersWidget.py (paintEvent gradiente + AppStyles + tokens do tema)
+    [x] GridCheckboxButtons.py (widget genérico de botões, sem built-ins)
+    [x] GridCheckbox.py atualizado (dependents + control_buttons_config + select_all/deselect_all/invert_selection)
     [ ] ComplexPathSelector.py
+  [ ] 1.3 Raiz (SEM versão grid) — PARCIAL
+  [x] 1.3 Raiz (SEM versão grid) — QUASE COMPLETO
     [ ] ComplexColorPicker.py
     [ ] ComplexCrsSelector.py
 

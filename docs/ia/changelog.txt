@@ -251,3 +251,12 @@
    - Atualizado docs/skills/SKILL_WIDGETS2.md v2.3.0 com GridInputFields
    - Atualizado docs/plano_eliminacao_widgetfactory.md v5.3.0 — ReplaceInLayouts marcado como migrado
    - docs/plano_acao_replaceinlayouts.md criado com plano completo
+2.3.68 27/07/2026
+[2.3.68.1][27/07/2026] Migrado LoadFolderLayers para novo sistema de widgets (new_widgets/):
+   - Criado resources/new_widgets/grid/GridCheckboxButtons.py — widget genérico de botões configurável via dict, sem botões built-in (Fechar/Info/Config), usa SimpleModernButton internamente
+   - Criado resources/new_widgets/CollapsibleParametersWidget.py — seção colapsável com header gradiente via paintEvent (QPainter + QLinearGradient), tokens do tema (COLOR_COLLAPSIBLE_HEADER_START/END_GRADIENT), ícone ▶/▼, API add_content_widget/add_content_layout/set_expanded/is_expanded
+   - GridCheckbox melhorado: sistema `dependents` nativo (plugin declara "dependents": ["filho"], widget gerencia desabilitar/habilitar + salvar/restaurar estado); parâmetro `control_buttons_config` para criar GridCheckboxButtons internamente; métodos select_all/deselect_all/invert_selection
+   - LoadFolderLayers migrado: WidgetFactory substituido por GridComplexSelector (seletor pasta) + CollapsibleParametersWidget + GridCheckbox (tipos com control_buttons + opções com dependents preserve→lastfolder) + GridExecutionButtons
+   - Removidos imports de WidgetFactory, Styles, etc.
+   - docs/plano_acao_load_folder_layers.md v2.0.0 criado
+   - Atualizado docs/skills/SKILL_WIDGETS2.md e docs/plano_eliminacao_widgetfactory.md v5.4.0

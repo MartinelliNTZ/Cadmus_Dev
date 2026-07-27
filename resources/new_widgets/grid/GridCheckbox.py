@@ -10,6 +10,16 @@ Cada item do config dict:
         "description" (opcional): tooltip do checkbox
         "default" (opcional): bool, estado inicial
         "onchange" (opcional): callback(checked_state)
+        "dependents" (opcional): list[str] — chaves que dependem deste checkbox
+            Ex: "preserve": {"dependents": ["lastfolder"]}
+            Quando preserve for desmarcado, lastfolder é desmarcado e desabilitado.
+            Quando preserve for marcado, lastfolder é reabilitado com estado anterior.
+
+Parâmetro opcional:
+    control_buttons_config (dict, opcional):
+        Dict de botões de controle (Selecionar/Desmarcar/Inverter).
+        Cria GridModernButtons internamente.
+        Ex: {"select_all": {"label": "Selecionar Todos", "callback": ...}, ...}
 
 Uso em plugins:
     checkbox_widget = GridCheckbox(
@@ -41,6 +51,7 @@ from qgis.PyQt.QtCore import Qt
 
 from ..simple.SimpleCheckbox import SimpleCheckbox
 from ..SeparatorWidget import SeparatorWidget
+from .GridModernButtons import GridModernButtons
 from ...styles.AppStyles import AppStyles
 
 
@@ -57,10 +68,14 @@ class GridCheckbox(QWidget):
             - "description" (opcional): tooltip
             - "default" (opcional): bool, estado inicial
             - "onchange" (opcional): callback(checked_state)
+            - "dependents" (opcional): list[str] — chaves dependentes
     title : str, optional
         Título do grupo (QGroupBox).
     items_per_row : int, optional
         Itens por linha no grid (default 2).
+    control_buttons_config : dict, optional
+        Se fornecido, cria botões de controle (GridModernButtons).
+        Dict no formato {key: {"label": ..., "callback": ...}}.
     separator_top : bool, optional
         Separador acima.
     separator_bottom : bool, optional
@@ -74,6 +89,7 @@ class GridCheckbox(QWidget):
         config: dict = None,
         title: str = "",
         items_per_row: int = 2,
+        control_buttons_config: dict = None,
         separator_top: bool = False,
         separator_bottom: bool = False,
         parent=None,
@@ -83,11 +99,20 @@ class GridCheckbox(QWidget):
         self._config = config or {}
         self._title = title
         self._items_per_row = max(1, items_per_row)
+        self._control_buttons_config = control_buttons_config or {}
         self._separator_top = separator_top
         self._separator_bottom = separator_bottom
 
         # Mapa interno: key -> SimpleCheckbox
         self._checkboxes: dict[str, SimpleCheckbox] = {}
+
+        # Sistema de dependentes: pai -> [filhos]
+        self._dependents_map: dict[str, list[str]] = {}
+        # Estados salvos dos dependentes (antes de desabilitar)
+        self._dep_states: dict[str, bool] = {}
+
+        # Botões de controle (GridModernButtons)
+        self._control_buttons: GridModernButtons = None
 
         self._build_ui()
 
@@ -111,6 +136,47 @@ class GridCheckbox(QWidget):
     def widget(self, key: str):
         """Acesso direto ao QCheckBox (para signals como toggled)."""
         return self._checkboxes.get(key)
+
+    def select_all(self):
+        """Marca todos os checkboxes."""
+        for cb in self._checkboxes.values():
+            if cb.isEnabled():
+                cb.setChecked(True)
+
+    def deselect_all(self):
+        """Desmarca todos os checkboxes."""
+        for cb in self._checkboxes.values():
+            if cb.isEnabled():
+                cb.setChecked(False)
+
+    def invert_selection(self):
+        """Inverte estado de todos os checkboxes habilitados."""
+        for cb in self._checkboxes.values():
+            if cb.isEnabled():
+                cb.setChecked(not cb.isChecked())
+
+    def get_control_buttons(self):
+        """Acesso ao GridModernButtons (se existir)."""
+        return self._control_buttons
+
+    # -- Sistema de dependentes --------------------------------------
+
+    def _on_toggled(self, key: str, checked: bool):
+        """Gerencia dependentes quando um checkbox muda."""
+        dependents = self._dependents_map.get(key, [])
+        for dep_key in dependents:
+            dep_cb = self._checkboxes.get(dep_key)
+            if not dep_cb:
+                continue
+            if not checked:
+                # Pai desmarcado → desabilita e desmarca dependente
+                self._dep_states[dep_key] = dep_cb.isChecked()
+                dep_cb.setChecked(False)
+                dep_cb.setEnabled(False)
+            else:
+                # Pai marcado → reabilita dependente com estado anterior
+                dep_cb.setEnabled(True)
+                dep_cb.setChecked(self._dep_states.get(dep_key, False))
 
     # -- Build -------------------------------------------------------
 
@@ -145,7 +211,7 @@ class GridCheckbox(QWidget):
                     f"QGroupBox::title {{"
                     f"    subcontrol-origin: margin;"
                     f"    subcontrol-position: top center;"
-                    f"    padding: 0 8px;"
+                    f"    padding: 0 4px;"
                     f"}}"
                 )
 
@@ -164,11 +230,24 @@ class GridCheckbox(QWidget):
         grid_layout.setContentsMargins(0, 0, 0, 0)
 
         items = list(self._config.items())
+
+        # Primeira passada: identificar dependentes
+        for key, item_config in items:
+            dependents = item_config.get("dependents", [])
+            if dependents:
+                self._dependents_map[key] = dependents
+                for dep_key in dependents:
+                    # Salva estado inicial do dependente
+                    dep_config = self._config.get(dep_key, {})
+                    self._dep_states[dep_key] = dep_config.get("default", False)
+
+        # Segunda passada: criar checkboxes
         for index, (key, item_config) in enumerate(items):
             label = item_config.get("label", key)
             description = item_config.get("description", "")
             default = item_config.get("default", False)
             onchange = item_config.get("onchange")
+            dependents = item_config.get("dependents", [])
 
             cb = SimpleCheckbox(text=label, parent=self)
             cb.setChecked(bool(default))
@@ -179,11 +258,26 @@ class GridCheckbox(QWidget):
             if onchange:
                 cb.toggled.connect(onchange)
 
+            # Conecta ao sistema de dependentes (wrapper para preservar outros callbacks)
+            if dependents:
+                cb.toggled.connect(lambda checked, k=key: self._on_toggled(k, checked))
+
             self._checkboxes[key] = cb
 
             row = index // self._items_per_row
             col = index % self._items_per_row
             grid_layout.addWidget(cb, row, col)
+
+        # Aplica estado inicial dos dependentes
+        for parent_key, dep_keys in self._dependents_map.items():
+            parent_cb = self._checkboxes.get(parent_key)
+            if parent_cb and not parent_cb.isChecked():
+                # Pai desmarcado inicialmente → dependentes começam desabilitados
+                for dep_key in dep_keys:
+                    dep_cb = self._checkboxes.get(dep_key)
+                    if dep_cb:
+                        dep_cb.setChecked(False)
+                        dep_cb.setEnabled(False)
 
         # Adiciona stretch na ultima linha para alinhar ao topo
         if items:
@@ -192,6 +286,17 @@ class GridCheckbox(QWidget):
             grid_layout.setRowStretch(last_row + 1, 1)
 
         container_layout.addLayout(grid_layout)
+
+        # Botões de controle (opcionais) — separador ABAIXO dos botões
+        if self._control_buttons_config:
+            self._control_buttons = GridModernButtons(
+                config=self._control_buttons_config,
+                separator_top=False,
+                separator_bottom=True,
+                parent=self,
+            )
+            container_layout.addWidget(self._control_buttons)
+
         outer_layout.addWidget(container)
 
         if self._separator_bottom:

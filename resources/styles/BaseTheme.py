@@ -128,13 +128,7 @@ class BaseTheme:
     COLOR_APP_BAR_INFO_BUTTON_BACKGROUND: str = "rgba(255, 255, 255, 20)"
     COLOR_APP_BAR_INFO_BUTTON_HOVER_BACKGROUND: str = "rgba(255, 255, 255, 40)"
 
-    # ════════════════════════════════════════════════════════════
-    # CORES COLLAPSIBLE HEADER
-    # ════════════════════════════════════════════════════════════
 
-    COLOR_COLLAPSIBLE_HEADER_START_GRADIENT: str = "rgba(106, 74, 47, 100)"
-    COLOR_COLLAPSIBLE_HEADER_END_GRADIENT: str = "rgba(166, 120, 79, 100)"
-    COLOR_COLLAPSIBLE_HEADER_HOVER_START_GRADIENT: str = "rgba(106, 74, 47, 140)"
     COLOR_COLLAPSIBLE_HEADER_HOVER_END_GRADIENT: str = "rgba(166, 120, 79, 140)"
 
     # ════════════════════════════════════════════════════════════
@@ -153,8 +147,8 @@ class BaseTheme:
     # DIMENSÕES — TODAS COM UNIDADE
     # ════════════════════════════════════════════════════════════
 
-    INPUT_FIELD_MIN_HEIGHT: str = "30px"
-    INPUT_FIELD_MAX_HEIGHT: str = "30px"
+    INPUT_FIELD_MIN_HEIGHT: str = "22px"
+    INPUT_FIELD_MAX_HEIGHT: str = "22px"
     INPUT_FIELD_PADDING: str = "4px 10px"
     INPUT_FIELD_FONT_SIZE: str = "11px"
     INPUT_FIELD_FONT_WEIGHT: str = "50"
@@ -229,7 +223,7 @@ class BaseTheme:
 
     PADDING_INPUT_FIELD: str = "2px 8px"
     PADDING_INPUT_FIELD_RIGHT_EXTRA: str = "18px"
-    PADDING_BUTTON_DEFAULT: str = "4px 12px"
+    PADDING_BUTTON_DEFAULT: str = "4px 4px"
     PADDING_BUTTON_SMALL: str = "4px 14px"
     PADDING_PANEL_CONTENT: str = "8px"
     PADDING_LIST_ITEM: str = "4px"

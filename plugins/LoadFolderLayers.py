@@ -2,7 +2,6 @@
 import os
 from qgis.core import QgsProject
 from ..plugins.BasePlugin import BasePluginMTL
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.ExplorerUtils import ExplorerUtils
@@ -11,6 +10,12 @@ from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..core.engine_tasks.LoadFilesStep import LoadFilesStep
 from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..i18n.TranslationManager import STR
+
+# ── Novos Widgets ────────────────────────────────────────────────
+from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
 
 
 # ============================================================
@@ -52,178 +57,185 @@ class LoadFolderLayersDialog(BasePluginMTL):
         )
 
     def _build_ui(self, **kwargs):
-        # Constrói a UI padronizada usando WidgetFactory e BasePluginMTL
+        # Constrói a UI padronizada usando novos widgets
         super()._build_ui(
             title=STR.LOAD_FOLDER_LAYERS_TITLE,
             icon_path="load_folder.ico",
             enable_scroll=False,
         )
 
-        # --- Tipos de arquivo dentro de seção colapsável ---
-        coll_layout, self.coll_widget = WidgetFactory.create_collapsible_parameters(
+        # ── 1. Seletor de pasta (GridComplexSelector) ─────────────
+        self.folder_selector = GridComplexSelector(
+            config={
+                "folder": {
+                    "label": STR.ROOT_FOLDER,
+                    "description": "Selecione a pasta raiz para buscar arquivos",
+                    "allow_folder": True,
+                    "allow_file": False,
+                    "mode_type": "input",
+                    "show_copy_button": True,
+                    "show_explorer_button": True,
+                },
+            },
+            tool_key=self.TOOL_KEY,
+            separator_bottom=True,
             parent=self,
+        )
+        self.layout.addWidget(self.folder_selector)
+
+        # ── 2. Opções (GridCheckbox com dependência preserve→lastfolder) ──
+        self.chk_options = GridCheckbox(
+            config={
+                "missing_only": {
+                    "label": STR.LOAD_ONLY_MISSING_FILES,
+                    "default": False,
+                },
+                "preserve": {
+                    "label": STR.PRESERVE_FOLDER_STRUCTURE,
+                    "default": True,
+                    "dependents": ["lastfolder"],  # ← O widget gerencia sozinho
+                },
+                "lastfolder": {
+                    "label": STR.DO_NOT_GROUP_LAST_FOLDER,
+                    "default": False,
+                },
+                "backup": {
+                    "label": STR.CREATE_PROJECT_BACKUP_IF_SAVED,
+                    "default": True,
+                },
+            },
+            items_per_row=1,
+            title=None,
+            separator_bottom=True,
+            parent=self,
+        )
+        self.layout.addWidget(self.chk_options)
+
+        # ── 3. Tipos de arquivo (Collapsible + GridCheckbox com botões) ──
+        self.coll_widget = CollapsibleParametersWidget(
             title=STR.FILE_TYPES,
             expanded_by_default=False,
-            separator_top=False,
-            separator_bottom=True,
-        )
-
-        file_options = {label: label for label in self.FILE_TYPES.keys()}
-        types_layout, self.chk_types = WidgetFactory.create_checkbox_grid(
-            file_options,
-            items_per_row=2,
-            checked_by_default=False,
-            title=None,
-            separator_top=False,
-            separator_bottom=False,
-            show_control_buttons=True,
-        )
-
-        self.coll_widget.add_content_layout(types_layout)
-
-        # --- Seletor de pasta ---
-        folder_layout, self.folder_selector = WidgetFactory.create_path_selector(
             parent=self,
-            title=STR.ROOT_FOLDER,
-            mode="folder",
-            separator_top=False,
-            separator_bottom=True,
         )
 
-        # --- Opções adicionais (1 coluna) ---
-        opts = {
-            "missing_only": STR.LOAD_ONLY_MISSING_FILES,
-            "preserve": STR.PRESERVE_FOLDER_STRUCTURE,
-            "lastfolder": STR.DO_NOT_GROUP_LAST_FOLDER,
-            "backup": STR.CREATE_PROJECT_BACKUP_IF_SAVED,
-        }
-        # cmo funciona F:\TTG\FEV_2026\FAZ_UNIAO\OLD\file.shp)
-        # crie os grupo TTG  - FEV_2026 - FAZ_UNIAO - MAS NAO CARREGUE O OLD, POIS É A ULTIMA PASTA
-        # MODO PRESERVE COM LASTFOLDER DESABILITADO: F:\TTG\FEV_2026\FAZ_UNIAO\OLD\file.shp -> GRUPOS: TTG  - FEV_2026 - FAZ_UNIAO - OLD
-        # VEJA QUE O MODO LASTFOLDER SO FAZ SENTIDO SE O MODO PRESERVE ESTIVER HABILITADO. SE O MODO PRESERVE ESTIVER DESABILITADO,
-        # O LASTFOLDER NAO TEM EFEITO, POIS NAO SERA CRIADA NENHUMA ESTRUTURA DE GRUPOS, INDEPENDENTE DO VALOR DE LASTFOLDER
-        # POR ISSO ANALISE O GRID DE CHECKBOX E TENTE IMPLEMENTAR UM SISTEMA ONDE DETERMINADO CHECK PODE INATIVAR OUTRO CHECK,
-        # COMO É O CASO DO LASTFOLDER QUE SÓ FAZ SENTIDO SE O PRESERVE ESTIVER HABILITADO. LAST FOLDER SO FICA POSSIVEL CHECKAR SE LAST FOLDER ESTIVER HABILITADO
+        file_config = {}
+        for label in self.FILE_TYPES.keys():
+            file_config[label] = {"label": label, "default": False}
 
-        opts_layout, opts_map = WidgetFactory.create_checkbox_grid(
-            opts,
-            items_per_row=1,
-            checked_by_default=False,
+        self.chk_types = GridCheckbox(
+            config=file_config,
+            items_per_row=2,
             title=None,
-            separator_top=False,
-            separator_bottom=True,
+            control_buttons_config={
+                "select_all": {
+                    "label": "Selecionar Todos",
+                    "callback": lambda: self.chk_types.select_all(),
+                },
+                "deselect_all": {
+                    "label": "Desmarcar Todos",
+                    "callback": lambda: self.chk_types.deselect_all(),
+                },
+                "invert": {
+                    "label": "Inverter",
+                    "callback": lambda: self.chk_types.invert_selection(),
+                },
+            },
+            parent=self,
         )
+        self.coll_widget.add_content_widget(self.chk_types)
+        self.layout.addWidget(self.coll_widget)
 
-        self.chk_load_missing_only = opts_map["missing_only"]
-        self.chk_preserve_structure = opts_map["preserve"]
-        self.chk_last_folder = opts_map["lastfolder"]
-        self.chk_backup = opts_map["backup"]
+        # Desabilitar backup se projeto não salvo
+        if not QgsProject.instance().fileName():
+            self.chk_options.set_checked("backup", False)
+            self.chk_options.widget("backup").setEnabled(False)
 
-        # last_folder faz sentido apenas se preserve estiver ativado
-        # usa mecanismo de dependência via CheckboxGridWidget/DependentCheckBox
-        try:
-            self.chk_preserve_structure.set_dependents([self.chk_last_folder])
-        except Exception as e:
-            self.logger.error(f"Erro {e}")
-
-        # --- Botões padrão ---
-        buttons_layout, self.action_buttons = (
-            WidgetFactory.create_bottom_action_buttons(
-                parent=self,
-                run_callback=self.execute_tool,
-                close_callback=self.close,
-                info_callback=self.show_info_dialog,
-                tool_key=self.TOOL_KEY,
-                run_text=STR.LOAD_FILES,
-            )
+        # ── 4. Botões de ação (GridExecutionButtons) ─────────────
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "run": {
+                    "label": STR.LOAD_FILES,
+                    "description": "Carrega todos os arquivos da pasta selecionada",
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_info=True,
+            tool_key=self.TOOL_KEY,
+            parent=self,
         )
-
-        # Adicionar tudo ao layout principal
-        self.layout.add_items(
-            [
-                folder_layout,
-                coll_layout,
-                opts_layout,
-                buttons_layout,
-            ]
-        )
+        self.layout.add_execution_buttons(self.action_buttons)
 
         # Carregar preferências
         self.logger.debug("Construindo interface de usuário", code="UI_BUILD")
         self._load_prefs()
 
     # ------------------------------------------------------------------
-    # Nota: `show_info` deste plugin foi removido. Use `show_info_dialog()` da classe-base.
-
-    # ------------------------------------------------------------------
-    # seleção de pasta é feita via WidgetFactory.create_path_selector
-
-    # ------------------------------------------------------------------
     def _load_prefs(self):
-        # Carregar preferências e repopular widgets (assume widgets criados em _build_ui)
+        """Carrega preferências e repopula widgets."""
         try:
             # Pasta
             folder = self.preferences.get("folder", "")
             if folder:
-                self.folder_selector.set_paths([folder])
+                self.folder_selector.set_path("folder", folder)
 
-            # Tipos
+            # Tipos de arquivo
             saved_types = self.preferences.get("types", [])
-            for label, chk in self.chk_types.items():
-                chk.setChecked(label in saved_types)
+            for label in self.FILE_TYPES.keys():
+                self.chk_types.set_checked(label, label in saved_types)
             self.coll_widget.set_expanded(self.preferences.get("types_expanded", False))
-            # Opções
-            self.chk_load_missing_only.setChecked(
-                self.preferences.get("missing_only", False)
+
+            # Opções (dependência preserve→lastfolder é gerenciada pelo widget)
+            self.chk_options.set_checked(
+                "missing_only", self.preferences.get("missing_only", False)
             )
-            self.chk_preserve_structure.setChecked(
-                self.preferences.get("preserve", True)
+            self.chk_options.set_checked(
+                "preserve", self.preferences.get("preserve", True)
             )
-            self.chk_last_folder.setChecked(self.preferences.get("lastfolder", False))
-            self.chk_backup.setChecked(self.preferences.get("backup", True))
+            self.chk_options.set_checked(
+                "lastfolder", self.preferences.get("lastfolder", False)
+            )
+            self.chk_options.set_checked(
+                "backup", self.preferences.get("backup", True)
+            )
 
             # backup só se projeto salvo
             if not QgsProject.instance().fileName():
-                self.chk_backup.setChecked(False)
-                self.chk_backup.setEnabled(False)
+                self.chk_options.set_checked("backup", False)
+                self.chk_options.widget("backup").setEnabled(False)
 
         except Exception as e:
-            # Mantém comportamento tolerante: não falhar ao carregar prefs
-            self.logger.error(f"Erro {e}")
+            self.logger.error(f"Erro ao carregar preferências: {e}")
 
     # ------------------------------------------------------------------
     def _save_prefs(self):
-        # Salva preferências de forma simples (assume widgets existem)
+        """Salva preferências."""
         try:
+            states = self.chk_types.get_all_states()
             selected_types = [
-                label for label, chk in self.chk_types.items() if chk.isChecked()
+                label for label, checked in states.items() if checked
             ]
-            paths = self.folder_selector.get_paths()
-            folder = paths[0] if paths else ""
+            folder = self.folder_selector.get_path("folder") or ""
 
             self.preferences["folder"] = folder
             self.preferences["types"] = selected_types
-            self.preferences["missing_only"] = self.chk_load_missing_only.isChecked()
-            self.preferences["preserve"] = self.chk_preserve_structure.isChecked()
-            self.preferences["lastfolder"] = self.chk_last_folder.isChecked()
-            self.preferences["backup"] = self.chk_backup.isChecked()
+            self.preferences["missing_only"] = self.chk_options.is_checked("missing_only")
+            self.preferences["preserve"] = self.chk_options.is_checked("preserve")
+            self.preferences["lastfolder"] = self.chk_options.is_checked("lastfolder")
+            self.preferences["backup"] = self.chk_options.is_checked("backup")
             self.preferences["window_width"] = self.width()
             self.preferences["window_height"] = self.height()
             self.preferences["types_expanded"] = self.coll_widget.is_expanded()
 
             Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         except Exception as e:
-            # não falhar ao salvar preferências
-            self.logger.error(f"Erro {e}")
+            self.logger.error(f"Erro ao salvar preferências: {e}")
 
-    # -----------------------------------------------------------------
     # ------------------------------------------------------------------
     def execute_tool(self):
-
-        # Pasta (usa API do path selector)
-
-        paths = self.folder_selector.get_paths()
-        folder = paths[0].strip() if paths else ""
+        """Executa a ferramenta de carregamento."""
+        folder = self.folder_selector.get_path("folder") or ""
         self.start_stats(folder)
 
         self.logger.info(f"Iniciando execução: pasta={folder}", code="EXEC_START")
@@ -233,19 +245,18 @@ class LoadFolderLayersDialog(BasePluginMTL):
             return
 
         backup_file = None
-        if self.chk_backup.isChecked():
+        if self.chk_options.is_checked("backup"):
             try:
                 backup_file = ProjectUtils.create_project_backup(QgsProject.instance())
             except Exception as e:
-                backup_file = None
                 self.logger.error(
                     f"Erro criando backup do projeto: {e}", code="BACKUP_ERROR"
                 )
 
         # coletar extensões selecionadas
         extensions = []
-        for label, chk in self.chk_types.items():
-            if chk.isChecked():
+        for label in self.FILE_TYPES.keys():
+            if self.chk_types.is_checked(label):
                 extensions.extend(self.FILE_TYPES.get(label, []))
 
         if not extensions:
@@ -262,7 +273,8 @@ class LoadFolderLayersDialog(BasePluginMTL):
         total_files = len(records)
         if total_files > self.ASYNC_THRESHOLD:
             self.logger.info(
-                f"Arquivos ({total_files}) acima do limiar ({self.ASYNC_THRESHOLD}), usando execução assíncrona",
+                f"Arquivos ({total_files}) acima do limiar ({self.ASYNC_THRESHOLD}), "
+                f"usando execução assíncrona",
                 code="EXEC_STRATEGY",
             )
             return self._run_async_pipeline(
@@ -270,7 +282,8 @@ class LoadFolderLayersDialog(BasePluginMTL):
             )
         else:
             self.logger.info(
-                f"Arquivos ({total_files}) dentro do limiar ({self.ASYNC_THRESHOLD}), usando execução síncrona",
+                f"Arquivos ({total_files}) dentro do limiar ({self.ASYNC_THRESHOLD}), "
+                f"usando execução síncrona",
                 code="EXEC_STRATEGY",
             )
             return self._run_sync_pipeline(
@@ -278,10 +291,10 @@ class LoadFolderLayersDialog(BasePluginMTL):
             )
 
     def _run_sync_pipeline(self, folder: str, records: list, backup_file: str = None):
-        """Executa o carregamento de forma síncrona (comportamento atual)."""
+        """Executa o carregamento de forma síncrona."""
         project = QgsProject.instance()
         already_loaded = set()
-        if self.chk_load_missing_only.isChecked():
+        if self.chk_options.is_checked("missing_only"):
             for layer in project.mapLayers().values():
                 src = ProjectUtils.normalize_layer_source(layer.source())
                 already_loaded.add(src)
@@ -291,18 +304,18 @@ class LoadFolderLayersDialog(BasePluginMTL):
         for rec in records:
             path = rec.get("path")
             norm = ProjectUtils.normalize_layer_source(path)
-            if self.chk_load_missing_only.isChecked() and norm in already_loaded:
+            if self.chk_options.is_checked("missing_only") and norm in already_loaded:
                 continue
 
             layer = ExplorerUtils.create_layer(rec, self.TOOL_KEY)
             if not layer or not layer.isValid():
                 continue
 
-            if self.chk_preserve_structure.isChecked():
+            if self.chk_options.is_checked("preserve"):
                 rel = os.path.relpath(os.path.dirname(path), folder)
 
                 # Se lastfolder estiver ativo, nem sempre queremos o último nível
-                if self.chk_last_folder.isChecked() and rel not in (".", ""):
+                if self.chk_options.is_checked("lastfolder") and rel not in (".", ""):
                     parts = rel.split(os.sep)
                     if len(parts) > 1:
                         rel = os.path.join(*parts[:-1])
@@ -328,12 +341,7 @@ class LoadFolderLayersDialog(BasePluginMTL):
         )
 
     def _run_async_pipeline(self, folder: str, records: list, backup_file: str = None):
-        """Inicia pipeline assíncrona para carregar arquivos em background.
-
-        A Task apenas valida/filtra registros. O Step adiciona as camadas
-        no thread principal em lote (bloqueando signals do layer tree)
-        para reduzir impacto na UI.
-        """
+        """Inicia pipeline assíncrona para carregar arquivos em background."""
         self.logger.info(
             "_run_async_pipeline: iniciando pipeline assíncrona", code="ASYNC_START"
         )
@@ -343,11 +351,10 @@ class LoadFolderLayersDialog(BasePluginMTL):
                 "folder": folder,
                 "records": records,
                 "tool_key": self.TOOL_KEY,
-                "preserve": self.chk_preserve_structure.isChecked(),
-                "last_folder": self.chk_last_folder.isChecked(),
-                "missing_only": self.chk_load_missing_only.isChecked(),
+                "preserve": self.chk_options.is_checked("preserve"),
+                "last_folder": self.chk_options.is_checked("lastfolder"),
+                "missing_only": self.chk_options.is_checked("missing_only"),
                 "backup_file": backup_file,
-                # parent widget used by Steps to show modal progress
                 "parent": self,
             }
         )
@@ -361,10 +368,7 @@ class LoadFolderLayersDialog(BasePluginMTL):
 
         try:
             engine.start()
-            QgisMessageUtil.bar_info(
-                self.iface,
-                STR.ASYNC_STARTED,
-            )
+            QgisMessageUtil.bar_info(self.iface, STR.ASYNC_STARTED)
         except Exception as e:
             self.logger.error(
                 f"Falha iniciando pipeline assíncrona: {e}", code="ASYNC_ERROR"

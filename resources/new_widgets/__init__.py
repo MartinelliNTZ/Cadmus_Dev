@@ -13,23 +13,3 @@ Uso em plugins:
     from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
     from ..resources.new_widgets.MainLayout import MainLayout
 """
-
-from .SeparatorWidget import SeparatorWidget
-from .ScrollWidget import ScrollWidget
-from .MainLayout import MainLayout
-from .AppBarWidget import AppBarWidget
-from .grid.GridLabel import GridLabel
-from .grid.GridButton import GridButton
-from .grid.GridIconButton import GridIconButton
-from .grid.GridExecutionButtons import GridExecutionButtons
-
-__all__ = [
-    "SeparatorWidget",
-    "ScrollWidget",
-    "MainLayout",
-    "AppBarWidget",
-    "GridLabel",
-    "GridButton",
-    "GridIconButton",
-    "GridExecutionButtons",
-]

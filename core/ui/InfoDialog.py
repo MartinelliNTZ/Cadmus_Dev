@@ -59,6 +59,7 @@ class InfoDialog(BaseDialog):
             enable_close_button=True,
             enable_info=False,
             tool_key=tool_key,
+            enable_config_button=False,
             parent=self,
         )
         self.layout.add_execution_buttons(self.action_buttons)

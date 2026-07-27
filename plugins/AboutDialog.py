@@ -89,16 +89,8 @@ class AboutDialog(BaseDialog):
             # Botões de ação via GridExecutionButtons
             # 3 botões extras (teste) + info + close, alinhados à direita
             self.action_buttons = GridExecutionButtons(
-                config={
-                    "run": {
-                        "label": "Executar",
-                        "description": "Botão executar principal",
-                        "callback": lambda: None,
-                        "is_run_button": True,
-                    },
-                },
                 enable_close_button=True,
-                enable_info=True,
+                enable_info=False,
                 enable_config_button=True,
                 tool_key=ToolKey.ABOUT_DIALOG,
                 parent=self,

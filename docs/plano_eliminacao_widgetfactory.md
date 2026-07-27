@@ -144,13 +144,20 @@ resources/
       │   ├── SimpleIconButton.py
       │   ├── SimpleModernButton.py   ← gradiente 3 stops + glow shadow
       │   ├── SimpleQLineEdit.py      ← gradiente 3 stops + glow shadow
-      │   └── SimpleReadOnly.py       ← SimpleQLineEdit + botão copiar
+      │   ├── SimpleReadOnly.py       ← SimpleQLineEdit + botão copiar
+      │   ├── SimpleCheckbox.py       ← QCheckBox + AppStyles.checkbox()
+      │   ├── SimpleDoubleSpinBox.py  ← QDoubleSpinBox + AppStyles.input()
+      │   ├── ComplexSelector.py      ← Seletor completo (arquivo/pasta/camada) com glow
+      │   └── SquareIconButton.py     ← QPushButton quadrado com ícone
       └── grid/
           ├── GridLabel.py
           ├── GridReadOnly.py
           ├── GridButton.py
           ├── GridExecutionButtons.py
-          └── GridIconButton.py
+          ├── GridIconButton.py
+          ├── GridCheckbox.py         ← Container de checkboxes (dict config + items_per_row)
+          ├── GridDoubleSpin.py       ← Container de campos numéricos (dict config + type int/double)
+          └── GridComplexSelector.py  ← Grade de ComplexSelectors (dict config + parent linking)
 ```
 
 ### Regra de Ouro: Simple vs Grid vs Raiz
@@ -228,6 +235,10 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 | `SimpleModernButton.py` | `SimpleModernButton` | QPushButton | `AppStyles.modern_button_primary/secondary/round_icon()` | Botão **sem borda**, gradiente 3 stops + glow shadow (`QGraphicsDropShadowEffect`). Primary/secondary/round_icon. Tokens: `BUTTON_MIN_HEIGHT`, `BUTTON_ROUND_ICON_SIZE`, `BUTTON_PADDING`, `BUTTON_FONT_SIZE`, `BUTTON_FONT_WEIGHT`, `BUTTON_SHADOW_BLUR_*`, `BUTTON_SHADOW_OFFSET_*`, `COLOR_GLOW_*` |
 | `SimpleQLineEdit.py` | `SimpleQLineEdit` | QLineEdit | `AppStyles.modern_input_primary/secondary()` | Input **sem borda**, gradiente 3 stops + glow shadow. Sombra expande no foco (focusInEvent) e recolhe (focusOutEvent). Tokens: `INPUT_FIELD_*`, `INPUT_SHADOW_*` |
 | `SimpleReadOnly.py` | `SimpleReadOnly` | QWidget | Composto: `SimpleQLineEdit` + `SimpleModernButton` (ícone COPY2) | Campo readonly com botão copiar opcional. API: `setText()`, `text()`, `setPlaceholderText()` |
+| `SimpleCheckbox.py` | `SimpleCheckbox` | QCheckBox | `AppStyles.checkbox()` | Checkbox com texto, API: `isChecked()`, `setChecked()`, signal `toggled` |
+| `SimpleDoubleSpinBox.py` | `SimpleDoubleSpinBox` | QDoubleSpinBox | `AppStyles.input()` | Campo numérico. Suporta `type_spec="int"` para exibir inteiros. Parâmetros: `value`, `min_val`, `max_val`, `step`, `decimals`, `type_spec` |
+| `ComplexSelector.py` | `ComplexSelector` | QWidget | Composto: `SimpleQLineEdit` (glow) + múltiplos botões | Seletor completo de arquivo/pasta/camada com botões: 📄 (layer), 📥 (origin), 🛠️ (suggest), 📂 (explorer), 📋 (copy). API: `path()`, `get_paths()`, `set_path()`, `on_path_change` |
+| `SquareIconButton.py` | `SquareIconButton` | QPushButton | `AppStyles.button()` + estilo específico quadrado | Botão quadrado com ícone, sem borda, fundo transparente. Parâmetros: `icon`, `icon_size`, `button_size`, `tooltip` |
 
 #### Widgets Grid (PLUGINS USAM ESTES)
 
@@ -238,6 +249,9 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 | `GridButton.py` | `GridButton` | **LEGADO** — container simples com botões Fechar/Executar/Info. Use `GridExecutionButtons` preferencialmente. | `run_callback`, `close_callback`, `info_callback` |
 | `GridExecutionButtons.py` | `GridExecutionButtons` | Container de botões modernos (`SimpleModernButton`). Configuração via dict. | `config={"key": {"label": ..., "callback": ..., "is_run_button": True}}`, `enable_close_button`, `enable_info`, `enable_config_button`, `tool_key` |
 | `GridIconButton.py` | `GridIconButton` | Container de botões com ícone (`SimpleIconButton`). Configuração via dict. | `config={"key": {"label": ..., "icon": ..., "callback": ..., "description": ...}}` |
+| `GridCheckbox.py` | `GridCheckbox` | Container de checkboxes (`SimpleCheckbox`). Configuração via dict + `items_per_row`. | `config={"key": {"label": ..., "description": ..., "default": ..., "onchange": ...}}`, `title`, `items_per_row` |
+| `GridDoubleSpin.py` | `GridDoubleSpin` | Container de campos numéricos (`SimpleDoubleSpinBox`). Suporta `type="int"` ou `type="double"`. | `config={"key": {"label": ..., "value": ..., "min": ..., "max": ..., "step": ..., "decimals": ..., "type": ...}}`, `title` |
+| `GridComplexSelector.py` | `GridComplexSelector` | Grade de seletores de arquivo/pasta/camada (`ComplexSelector`). Suporta linking parent-child, mode_type="input"/"output", subfolder, dynamic_parent. | `config={"key": {"label": ..., "mode_type": ..., "parent": ..., "suffix": ..., "fixed_extension": ..., "subfolder": ..., "layer_filters": ...}}`, `tool_key`, `grid_id` |
 
 #### Widgets Raiz (SEM versão grid)
 
@@ -467,7 +481,7 @@ def _specific_style(self) -> str:
 
 ## 7. FASE 1 — Criação dos Widgets
 
-### 7.1 Widgets Simple (USO INTERNO APENAS) — PARCIAL
+### 7.1 Widgets Simple (USO INTERNO APENAS) — COMPLETO ✅
 
 Criados em `resources/new_widgets/simple/`. Estes widgets TEM versão grid.  
 **NUNCA** importados por plugins. Usados APENAS internamente por Grid e widgets da raiz.
@@ -477,11 +491,15 @@ Criados em `resources/new_widgets/simple/`. Estes widgets TEM versão grid.
 | `SimpleLabel.py` | `SimpleLabel` | ✅ | QLabel + AppStyles.label() |
 | `SimpleButton.py` | `SimpleButton` | ✅ | QPushButton + AppStyles.button() |
 | `SimpleIconButton.py` | `SimpleIconButton` | ✅ | QPushButton + ícone + `_specific_style()` transparente |
-| `SimpleModernButton.py` | `SimpleModernButton` | ✅ | **NOVO** — QPushButton gradiente 3 stops + glow shadow. Usado por `GridExecutionButtons`. Tokens: `BUTTON_*`, `COLOR_GLOW_*` |
-| `SimpleQLineEdit.py` | `SimpleQLineEdit` | ✅ | **NOVO** — QLineEdit gradiente 3 stops + glow shadow. Usado por `SimpleReadOnly`. Tokens: `INPUT_*` |
-| `SimpleReadOnly.py` | `SimpleReadOnly` | ✅ | Composto: `SimpleQLineEdit` + `SimpleModernButton` (ícone COPY2). API: `setText()`, `text()`, `setPlaceholderText()` 
+| `SimpleModernButton.py` | `SimpleModernButton` | ✅ | QPushButton gradiente 3 stops + glow shadow. Usado por `GridExecutionButtons`. Tokens: `BUTTON_*`, `COLOR_GLOW_*` |
+| `SimpleQLineEdit.py` | `SimpleQLineEdit` | ✅ | QLineEdit gradiente 3 stops + glow shadow. Usado por `SimpleReadOnly`. Tokens: `INPUT_*` |
+| `SimpleReadOnly.py` | `SimpleReadOnly` | ✅ | Composto: `SimpleQLineEdit` + `SimpleModernButton` (ícone COPY2). API: `setText()`, `text()`, `setPlaceholderText()` |
+| `SimpleCheckbox.py` | `SimpleCheckbox` | ✅ | QCheckBox + AppStyles.checkbox(). API: `isChecked()`, `setChecked()`, signal `toggled` |
+| `SimpleDoubleSpinBox.py` | `SimpleDoubleSpinBox` | ✅ | QDoubleSpinBox + AppStyles.input(). Suporta type_spec="int". Parâmetros: value, min_val, max_val, step, decimals|
+| `ComplexSelector.py` | `ComplexSelector` | ✅ | Seletor completo (arquivo/pasta/camada) com glow + botões layer/origin/suggest/explorer/copy. API: path(), get_paths(), set_path(), on_path_change|
+| `SquareIconButton.py` | `SquareIconButton` | ✅ | QPushButton quadrado com ícone, sem borda, fundo transparente |
 
-### 7.2 Widgets Grid (PLUGINS USAM ESTES) — PARCIAL
+### 7.2 Widgets Grid (PLUGINS USAM ESTES) — COMPLETO ✅
 
 Criados em `resources/new_widgets/grid/`. Compostos de Simple + layout.
 
@@ -490,8 +508,11 @@ Criados em `resources/new_widgets/grid/`. Compostos de Simple + layout.
 | `GridLabel.py` | `GridLabel` | ✅ | Container de labels (dict config). Métodos: `set_text()`, `get_text()`, `set_config()` |
 | `GridReadOnly.py` | `GridReadOnly` | ✅ | Container com título + campos `SimpleReadOnly`. Botão copiar individual. API: `set_value()`, `get_value()`. Parâmetros: `title`, `fields`, `show_copy_buttons`, `separator_top/bottom` |
 | `GridButton.py` | `GridButton` | ✅ | **LEGADO** — container de botões Fechar/Executar/Info. Use `GridExecutionButtons` para novos plugins |
-| `GridExecutionButtons.py` | `GridExecutionButtons` | ✅ | **NOVO** — Container de botões modernos (`SimpleModernButton`). Configuração via dict. Parâmetros: `config`, `enable_close_button`, `enable_info`, `enable_config_button`, `tool_key` |
-| `GridIconButton.py` | `GridIconButton` | ✅ | **NOVO** — Container de botões com ícone (`SimpleIconButton`). Configuração via dict com callback por item 
+| `GridExecutionButtons.py` | `GridExecutionButtons` | ✅ | Container de botões modernos (`SimpleModernButton`). Configuração via dict. Parâmetros: `config`, `enable_close_button`, `enable_info`, `enable_config_button`, `tool_key` |
+| `GridIconButton.py` | `GridIconButton` | ✅ | Container de botões com ícone (`SimpleIconButton`). Configuração via dict com callback por item |
+| `GridCheckbox.py` | `GridCheckbox` | ✅ | Container de checkboxes (`SimpleCheckbox`). Configuração via dict. Parâmetros: `config`, `title`, `items_per_row`, `separator_top/bottom`. API: `is_checked()`, `set_checked()`, `get_all_states()`, `widget()` |
+| `GridDoubleSpin.py` | `GridDoubleSpin` | ✅ | Container de campos numéricos (`SimpleDoubleSpinBox`). Configuração via dict. Parâmetros: `config`, `title`, `separator_top/bottom`. API: `get_value()`, `set_value()`, `get_all_values()` |
+| `GridComplexSelector.py` | `GridComplexSelector` | ✅ | Grade de seletores (`ComplexSelector`) com linking parent-child. Parâmetros: `config`, `tool_key`, `title`, `grid_id`, `separator_top/bottom`. API: `get_paths()`, `get_path()`, `set_path()`, `get_preferences()`, `set_preferences()`, `refresh_links()` |
 
 ### 7.3 Widgets na Raiz (SEM versão grid) — PARCIAL
 

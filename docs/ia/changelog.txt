@@ -268,3 +268,4 @@
    - CreateProjectPlugin._resolve_project_name(): alterado de exec() modal para show() não-modal com signal project_accepted
    - docs/plano_acao_create_project.md v2.0.0 criado
    - SKILL_WIDGETS2.md atualizado: adicionada REGRA ABSOLUTA sobre MainLayout — plugins NUNCA importam QtWidgets, GridExecutionButtons SEMPRE via add_execution_buttons(), NUNCA criam layouts intermediários
+   - GridExecutionButtons._open_settings() corrigido: adicionado fallback via qgis.utils.iface (2a tentativa) antes do QgsApplication.activeInstance(). Isto resolve abertura do Config em diálogos BaseDialog que não têm self.iface (DefaultProjectsFolderDialog, ProjectNameDialog, InfoDialog, etc) — sem precisar de config_callback manual em cada um.

@@ -220,14 +220,27 @@ class GridExecutionButtons(QWidget):
 
         window = self.window()
         iface = None
+
+        # 1a tentativa: atributo iface/_iface no window (BasePluginMTL)
         for attr in ("iface", "_iface"):
             if hasattr(window, attr):
                 iface = getattr(window, attr)
                 break
+
+        # 2a tentativa: singleton global qgis.utils.iface (funciona SEMPRE)
+        if iface is None:
+            try:
+                from qgis.utils import iface as qgis_iface
+                iface = qgis_iface
+            except Exception:
+                pass
+
+        # 3a tentativa: fallback QgsApplication (caso raro)
         if iface is None:
             app = QgsApplication.instance()
             if app and hasattr(app, "activeInstance"):
                 iface = app.activeInstance().mainWindow()
+
         if iface:
             dlg = run_settings(iface)
             dlg.show()

@@ -109,7 +109,7 @@ class GridExecutionButtons(QWidget):
         self,
         config: dict = None,
         enable_close_button: bool = True,
-        enable_config_button: bool = False,
+        enable_config_button: bool = True,
         config_callback: callable = None,
         enable_info: bool = False,
         tool_key: str = None,

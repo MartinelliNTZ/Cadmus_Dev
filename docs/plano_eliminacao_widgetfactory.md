@@ -547,14 +547,15 @@ Criados em `resources/new_widgets/`.
 | 8 | `DividePointsByStripsPlugin` | create_layer_input, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridInput + GridButton | ⬜ Pendente |
 | 9 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
 | 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_collapsible_parameters, create_bottom_action_buttons | GridComplexSelector + GridCheckbox + CollapsibleParametersWidget + GridExecutionButtons | ✅ Migrado (2.3.68.1) |
-| 11 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton | ⬜ Pendente |
-| 12 | `ReplaceInLayouts` | create_input_fields_widget, create_simple_button, create_checkbox_grid, create_label, create_bottom_action_buttons | GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons | ✅ Migrado (2.3.67.1) |
-| 13 | `SaveTemporaryLayersPlugin` | create_input_fields_widget, create_dropdown_selector (x2), create_grid_complex_selector, create_bottom_action_buttons | GridInputFields + GridComboBox + GridComplexSelector + GridExecutionButtons | ✅ Migrado (2.3.70.1) |
-| 14 | `GenerateTrailPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_color_button, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + ComplexColorPicker + GridButton | ⬜ Pendente |
-| 15 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
-| 16 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton | ⬜ Pendente |
-| 17 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
-| 18 | `SettingsPlugin` | Múltiplos | Análise individual | ⬜ Pendente |
+| 11 | `CreateProjectPlugin` | create_path_selector, create_input_fields, create_bottom_action_buttons | GridLabel + GridComplexSelector + GridInputFields + GridExecutionButtons | ✅ Migrado (2.3.69.1) |
+| 12 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton | ⬜ Pendente |
+| 13 | `ReplaceInLayouts` | create_input_fields_widget, create_simple_button, create_checkbox_grid, create_label, create_bottom_action_buttons | GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons | ✅ Migrado (2.3.67.1) |
+| 14 | `SaveTemporaryLayersPlugin` | create_input_fields_widget, create_dropdown_selector (x2), create_grid_complex_selector, create_bottom_action_buttons | GridInputFields + GridComboBox + GridComplexSelector + GridExecutionButtons | ✅ Migrado (2.3.70.1) |
+| 15 | `GenerateTrailPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_color_button, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + ComplexColorPicker + GridButton | ⬜ Pendente |
+| 16 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
+| 17 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton | ⬜ Pendente |
+| 18 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
+| 19 | `SettingsPlugin` | Múltiplos | Análise individual | ⬜ Pendente |
 
 ### 8.2 Checklist por Plugin
 
@@ -922,7 +923,7 @@ def resolve_qt_window_modality(name: str):
     [ ] ComplexColorPicker.py
     [ ] ComplexCrsSelector.py
 
-[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (7/18 migrados)
+[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (9/19 migrados)
   [x] 2.1 AboutDialog ✅ (2.3.62.2)
   [x] 2.2 CoorResultDialog ✅ (2.3.63.3)
   [x] 2.3 InfoDialog ✅ (2.3.64.1)
@@ -932,15 +933,16 @@ def resolve_qt_window_modality(name: str):
   [ ] 2.7 CopyAttributesPlugin
   [ ] 2.8 DividePointsByStripsPlugin
   [ ] 2.9 DroneCoordinates
-  [ ] 2.10 LoadFolderLayers
-  [ ] 2.11 PathExtensionPlugin
-  [x] 2.12 ReplaceInLayouts ✅ (2.3.67.1)
-  [x] 2.13 SaveTemporaryLayersPlugin ✅ (2.3.70.1)
-  [ ] 2.14 GenerateTrailPlugin
-  [ ] 2.15 ReportMetadataPlugin
-  [ ] 2.16 VectorFieldsCalculationPlugin
-  [ ] 2.17 VectorToSvgPlugin
-  [ ] 2.18 SettingsPlugin
+  [x] 2.10 LoadFolderLayers ✅ (2.3.68.1)
+  [x] 2.11 CreateProjectPlugin ✅ (2.3.69.1)
+  [ ] 2.12 PathExtensionPlugin
+  [x] 2.13 ReplaceInLayouts ✅ (2.3.67.1)
+  [x] 2.14 SaveTemporaryLayersPlugin ✅ (2.3.70.1)
+  [ ] 2.15 GenerateTrailPlugin
+  [ ] 2.16 ReportMetadataPlugin
+  [ ] 2.17 VectorFieldsCalculationPlugin
+  [ ] 2.18 VectorToSvgPlugin
+  [ ] 2.19 SettingsPlugin
 
 [ ] FASE 3: Eliminação da WidgetFactory
   [ ] 3.1 Marcar WidgetFactory como deprecated

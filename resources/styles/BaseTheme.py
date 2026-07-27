@@ -149,7 +149,7 @@ class BaseTheme:
 
     INPUT_FIELD_MIN_HEIGHT: str = "22px"
     INPUT_FIELD_MAX_HEIGHT: str = "22px"
-    INPUT_FIELD_PADDING: str = "4px 10px"
+    INPUT_FIELD_PADDING: str = "4px 4px"
     INPUT_FIELD_FONT_SIZE: str = "11px"
     INPUT_FIELD_FONT_WEIGHT: str = "50"
     BUTTON_DEFAULT_MIN_HEIGHT: str = "12px"
@@ -181,7 +181,7 @@ class BaseTheme:
 
     BUTTON_MIN_HEIGHT: str = "30px"
     BUTTON_ROUND_ICON_SIZE: str = "30px"
-    BUTTON_PADDING: str = "7px 22px"
+    BUTTON_PADDING: str = "4px 4px"
     BUTTON_FONT_SIZE: str = "12px"
     BUTTON_FONT_WEIGHT: str = "600"
 
@@ -221,11 +221,11 @@ class BaseTheme:
     # PADDINGS — TODOS COM UNIDADE
     # ════════════════════════════════════════════════════════════
 
-    PADDING_INPUT_FIELD: str = "2px 8px"
-    PADDING_INPUT_FIELD_RIGHT_EXTRA: str = "18px"
+    PADDING_INPUT_FIELD: str = "2px 4px"
+    PADDING_INPUT_FIELD_RIGHT_EXTRA: str = "4px"
     PADDING_BUTTON_DEFAULT: str = "4px 4px"
-    PADDING_BUTTON_SMALL: str = "4px 14px"
-    PADDING_PANEL_CONTENT: str = "8px"
+    PADDING_BUTTON_SMALL: str = "4px 4px"
+    PADDING_PANEL_CONTENT: str = "4px"
     PADDING_LIST_ITEM: str = "4px"
 
     # ════════════════════════════════════════════════════════════

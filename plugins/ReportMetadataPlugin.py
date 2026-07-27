@@ -4,10 +4,7 @@ import os
 from datetime import datetime
 
 from qgis.core import QgsProject, QgsVectorLayer
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QComboBox, QSizePolicy
 
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..resources.IconManager import IconManager as im
 from ..plugins.BasePlugin import BasePluginMTL
@@ -19,13 +16,11 @@ from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.mrk.MetadataFields import MetadataFields
 
-
-def _qt_adjust_to_minimum_contents_length_with_icon():
-    """Compatibilidade Qt5/Qt6: retorna AdjustToMinimumContentsLengthWithIcon."""
-    try:
-        return QComboBox.AdjustToMinimumContentsLengthWithIcon
-    except AttributeError:
-        return QComboBox.AdjustToMinimumContentsLengthWithIcon
+# ── Novos Widgets ──────────────────────────────────────────────
+from ..resources.new_widgets.grid.GridLabel import GridLabel
+from ..resources.new_widgets.grid.GridComboBox import GridComboBox
+from ..resources.new_widgets.grid.GridModernButtons import GridModernButtons
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 
 
 class ReportMetadataPlugin(BasePluginMTL):
@@ -50,97 +45,94 @@ class ReportMetadataPlugin(BasePluginMTL):
             enable_scroll=True,
         )
 
-        self._reload_json_options(initial=True)
+        # Carrega lista de JSONs ANTES de criar widgets
+        files = self._list_json_files()
+        self.json_options = {path: self._format_json_label(path) for path in files}
 
-        dropdown_layout, self.json_selector = WidgetFactory.create_dropdown_selector(
-            title="JSON:",
-            options_dict=self.json_options,
-            selected_key=self.preferences.get(self.PREF_SELECTED_JSON),
-            allow_empty=True,
-            empty_text=STR.SELECT,
-            separator_top=False,
-            separator_bottom=False,
+        # ── Explicação do Plugin (GridLabel) ────────────────────
+        self.explanation_label = GridLabel(
+            config={
+                "explanation": {
+                    "text": STR.REPORT_METADATA_TOOLTIP,
+                    "description": (
+                        "Ferramenta para regerar relatorios HTML "
+                        "a partir de JSONs temporarios"
+                    ),
+                },
+            },
+            separator_bottom=True,
             parent=self,
         )
+        self.layout.addWidget(self.explanation_label)
 
-        refresh_layout, self.refresh_button = WidgetFactory.create_simple_button(
-            text=STR.REFRESH_JSON_LIST,
+        # ── JSON Selector (GridComboBox) ────────────────────────
+        self.json_selector = GridComboBox(
+            config={
+                "json_selector": {
+                    "description": "Selecione o arquivo JSON temporario",
+                    "options": self.json_options,
+                    "selected_key": self.preferences.get(
+                        self.PREF_SELECTED_JSON
+                    ),
+                    "onchange": self._on_json_changed,
+                },
+            },
             parent=self,
-            spacing=8,
         )
-        self.refresh_button.clicked.connect(self._on_refresh)
+        self.layout.addWidget(self.json_selector)
 
-        open_json_layout, self.open_json_button = WidgetFactory.create_simple_button(
-            text=STR.OPEN_JSONS_FOLDER,
+        # ── Action Buttons (GridModernButtons) ──────────────────
+        self.action_buttons = GridModernButtons(
+            config={
+                "refresh": {
+                    "label": STR.REFRESH_JSON_LIST,
+                    "callback": self._on_refresh,
+                    "description": "Atualizar lista de JSONs temporarios",
+                    "primary": False,
+                },
+                "open_json": {
+                    "label": STR.OPEN_JSONS_FOLDER,
+                    "callback": self._open_json_folder,
+                    "description": "Abrir pasta de JSONs temporarios",
+                    "primary": False,
+                },
+                "open_reports": {
+                    "label": STR.OPEN_REPORTS_FOLDER,
+                    "callback": self._open_reports_folder,
+                    "description": "Abrir pasta de relatorios HTML",
+                    "primary": False,
+                },
+            },
+            separator_top=True,
+            separator_bottom=True,
             parent=self,
-            spacing=8,
         )
-        self.open_json_button.clicked.connect(self._open_json_folder)
+        self.layout.addWidget(self.action_buttons)
 
-        open_reports_layout, self.open_reports_button = (
-            WidgetFactory.create_simple_button(
-                text=STR.OPEN_REPORTS_FOLDER,
-                parent=self,
-                spacing=8,
-            )
-        )
-        self.open_reports_button.clicked.connect(self._open_reports_folder)
-
-        # === NOVO BOTAO: VETORIZAR VOO A PARTIR DO JSON ===
-        vetorize_layout, self.vetorize_button = WidgetFactory.create_simple_button(
-            text=STR.VETORIZE_FLIGHT,
-            parent=self,
-            spacing=8,
-        )
-        self.vetorize_button.clicked.connect(self._vectorize_from_json)
-
-        buttons_layout, _ = WidgetFactory.create_bottom_action_buttons(
-            parent=self,
-            run_callback=self.execute_tool,
-            close_callback=self.close,
-            info_callback=self.show_info_dialog,
+        # ── Execution Buttons (GridExecutionButtons) ────────────
+        self.exec_buttons = GridExecutionButtons(
+            config={
+                "vetorize": {
+                    "label": STR.VETORIZE_FLIGHT,
+                    "callback": self._vectorize_from_json,
+                    "description": "Vetorizar voo a partir do JSON selecionado",
+                    "is_run_button": False,
+                },
+                "run": {
+                    "label": STR.GENERATE_REPORT,
+                    "description": (
+                        "Gerar relatorio HTML a partir do JSON selecionado"
+                    ),
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_info=True,
             tool_key=self.TOOL_KEY,
-            run_text=STR.GENERATE_REPORT,
+            parent=self,
         )
-
-        self.layout.add_items(
-            [
-                dropdown_layout,
-                refresh_layout,
-                open_json_layout,
-                open_reports_layout,
-                vetorize_layout,
-                buttons_layout,
-            ]
-        )
-        self._apply_compact_horizontal_ui()
-
-    def _apply_compact_horizontal_ui(self):
-        """Evita largura horizontal excessiva no plugin de relatorios."""
-        try:
-            combo = self.json_selector.combo()
-            if isinstance(combo, QComboBox):
-                # Evita que o maior texto do JSON force largura minima gigante.
-                combo.setSizeAdjustPolicy(
-                    _qt_adjust_to_minimum_contents_length_with_icon()
-                )
-                combo.setMinimumContentsLength(24)
-                combo.setSizePolicy(
-                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-                )
-                combo.setMaximumWidth(520)
-
-            for btn in (
-                self.refresh_button,
-                self.open_json_button,
-                self.open_reports_button,
-                self.vetorize_button,
-            ):
-                btn.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-                btn.setMaximumWidth(360)
-                btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        except Exception as e:
-            self.logger.warning(f"Falha ao ajustar UI compacta: {e}")
+        self.layout.add_execution_buttons(self.exec_buttons)
 
     def _format_json_label(self, file_path: str) -> str:
         file_name = os.path.basename(file_path)
@@ -169,18 +161,22 @@ class ReportMetadataPlugin(BasePluginMTL):
         files.sort(key=lambda p: os.path.getmtime(p), reverse=True)
         return files
 
-    def _reload_json_options(self, initial=False):
+    def _reload_json_options(self):
+        """Recarrega a lista de JSONs temporarios e atualiza o combo."""
         files = self._list_json_files()
         self.json_options = {path: self._format_json_label(path) for path in files}
-        if not initial:
-            self.json_selector.set_options(self.json_options)
+        self.json_selector.set_options("json_selector", self.json_options)
         self.logger.info(
             "Lista de JSONs temporarios atualizada",
             data={"total_json": len(self.json_options)},
         )
 
+    def _on_json_changed(self, key, text):
+        """Callback quando o usuario seleciona um JSON diferente."""
+        self._save_prefs()
+
     def _on_refresh(self):
-        self._reload_json_options(initial=False)
+        self._reload_json_options()
         if not self.json_options:
             QgisMessageUtil.bar_warning(
                 self.iface,
@@ -208,12 +204,16 @@ class ReportMetadataPlugin(BasePluginMTL):
             QgisMessageUtil.modal_warning(self.iface, STR.INVALID_FOLDER)
 
     def _save_prefs(self):
-        selected = self.json_selector.get_selected_key() if self.json_selector else ""
+        selected = (
+            self.json_selector.get_selected_key("json_selector")
+            if self.json_selector
+            else ""
+        )
         self.preferences[self.PREF_SELECTED_JSON] = selected or ""
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
 
     def _load_prefs(self):
-        self.logger.debug("Carregando preferências do ReportMetadataPlugin")
+        self.logger.debug("Carregando preferencias do ReportMetadataPlugin")
 
     # ─────────────────────────────────────────────────────────
     # VETORIZAR VOO A PARTIR DO JSON
@@ -221,7 +221,9 @@ class ReportMetadataPlugin(BasePluginMTL):
     def _vectorize_from_json(self):
         """Gera camada vetorial de pontos e rastro a partir do JSON selecionado."""
         selected_json = (
-            self.json_selector.get_selected_key() if self.json_selector else ""
+            self.json_selector.get_selected_key("json_selector")
+            if self.json_selector
+            else ""
         )
         if not selected_json:
             QgisMessageUtil.modal_warning(self.iface, STR.SELECT_FILE)
@@ -241,7 +243,9 @@ class ReportMetadataPlugin(BasePluginMTL):
 
         try:
             # Usa o JsonToVectorTranslator para criar a camada de pontos
-            from ..core.translator.JsonToVectorTranslator import JsonToVectorTranslator
+            from ..core.translator.JsonToVectorTranslator import (
+                JsonToVectorTranslator,
+            )
 
             # Determinar layer name baseado no titulo do JSON ou nome do arquivo
             layer_name = self._resolve_layer_name(selected_json)
@@ -373,7 +377,9 @@ class ReportMetadataPlugin(BasePluginMTL):
     # ─────────────────────────────────────────────────────────
     def execute_tool(self):
         selected_json = (
-            self.json_selector.get_selected_key() if self.json_selector else ""
+            self.json_selector.get_selected_key("json_selector")
+            if self.json_selector
+            else ""
         )
         if not selected_json:
             QgisMessageUtil.modal_warning(self.iface, STR.SELECT_FILE)
@@ -387,19 +393,22 @@ class ReportMetadataPlugin(BasePluginMTL):
             return
 
         try:
-            # Verifica se a licença tem nível mínimo 3 para gerar relatórios
+            # Verifica se a licenca tem nivel minimo 3 para gerar relatorios
             from ..core.config.RegistryManager import RegistryManager
 
             lic_mgr = RegistryManager(tool_key=self.TOOL_KEY)
             if not lic_mgr.has_minimum_level(self.REGISTRY_LEVEL):
                 QgisMessageUtil.modal_warning(
-                    self.iface, "Relatório requer licença nível 3 ou superior."
+                    self.iface,
+                    "Relatorio requer licenca nivel 3 ou superior.",
                 )
                 return
 
-            # Import lazy: ReportGenerationService só é importado quando necessário
-            # Permite que o plugin funcione em modo free sem o módulo
-            from ..core.services.ReportGenerationService import ReportGenerationService
+            # Import lazy: ReportGenerationService so e importado quando necessario
+            # Permite que o plugin funcione em modo free sem o modulo
+            from ..core.services.ReportGenerationService import (
+                ReportGenerationService,
+            )
 
             payload = ReportGenerationService(
                 tool_key=self.TOOL_KEY
@@ -409,7 +418,8 @@ class ReportMetadataPlugin(BasePluginMTL):
                 if not ExplorerUtils.open_file(html_path, self.TOOL_KEY):
                     QgisMessageUtil.bar_warning(
                         self.iface,
-                        f"{STR.WARNING}: nao foi possivel abrir o HTML automaticamente.",
+                        f"{STR.WARNING}: "
+                        "nao foi possivel abrir o HTML automaticamente.",
                     )
             self._save_prefs()
             QgisMessageUtil.bar_success(

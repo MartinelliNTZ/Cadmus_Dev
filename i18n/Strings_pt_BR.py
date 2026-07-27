@@ -393,9 +393,9 @@ class Strings_pt_BR:
         "Lista JSONs temporarios de metadata e permite regerar o relatorio HTML.\n"
         "Tambem oferece atalho para abrir a pasta de relatorios gerados."
     )
-    REFRESH_JSON_LIST = "Atualizar lista de JSON"
-    OPEN_REPORTS_FOLDER = "Abrir pasta de relatorios"
-    OPEN_JSONS_FOLDER = "Abrir pasta de JSON"
+    REFRESH_JSON_LIST = "Atualizar JSON"
+    OPEN_REPORTS_FOLDER = "Abrir relatorios"
+    OPEN_JSONS_FOLDER = "Abrir JSONs"
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Gerar Vetor Sem MRK"
     VETORIZE_FLIGHT = "Vetorizar voo"
     VETORIZE_FLIGHT_TOOLTIP = (

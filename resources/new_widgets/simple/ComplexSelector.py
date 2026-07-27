@@ -16,6 +16,14 @@ Comportamento:
   - 📥 (origin): gera path via parent + suffix + fixed_extension (só output)
   - 🛠️ (suggest): gera path via ProjectUtils + subfolder + fixed_name (só output)
   - ➡️ (explorer): abre Windows Explorer no diretório do path/layer
+
+Checkboxes:
+  - allow_lock_check: checkbox na mesma linha dos botões, SEM texto.
+    Quando desmarcado, BLOQUEIA todo o widget (stack + botões).
+    Default: True (marcado = desbloqueado).
+  - allow_features_check: checkbox ABAIXO da linha principal, com texto.
+    Default: False (desmarcado).
+    Texto padrão: STR.ONLY_SELECTED_FEATURES
 """
 
 from __future__ import annotations
@@ -24,7 +32,8 @@ import os
 from typing import Callable, Optional
 
 from qgis.PyQt.QtWidgets import (
-    QWidget, QHBoxLayout, QLabel, QLineEdit, QStackedWidget, QSizePolicy
+    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
+    QStackedWidget, QSizePolicy, QCheckBox
 )
 from qgis.PyQt.QtCore import pyqtSignal, Qt
 from qgis.gui import QgsMapLayerComboBox
@@ -52,6 +61,10 @@ class ComplexSelector(QWidget):
       - 📥 (origin): gera path via parent + suffix + fixed_extension (só output)
       - 🛠️ (suggest): gera path via ProjectUtils (só output)
       - ➡️ (explorer): abre Explorer no diretório
+
+    Checkboxes:
+      - Lock check: na mesma linha, SEM texto, bloqueia widget quando desmarcado
+      - Features check: abaixo da linha principal, com texto
     """
 
     pathChanged = pyqtSignal(list)
@@ -83,6 +96,13 @@ class ComplexSelector(QWidget):
         layer_filters=None,
         # ── Botão copiar ──
         show_copy_button: bool = True,
+        # ── Lock checkbox (mesma linha, SEM texto, bloqueia widget) ──
+        allow_lock_check: bool = False,
+        lock_check_default: bool = True,
+        # ── Features checkbox (abaixo da linha, com texto) ──
+        allow_features_check: bool = False,
+        features_check_text: str = "",
+        features_check_default: bool = False,
         # ── Tool key para logger ──
         tool_key=None,
         parent=None,
@@ -115,6 +135,13 @@ class ComplexSelector(QWidget):
         self._layer_filters = layer_filters or QgsMapLayerProxyModel.All
         self._tool_key = tool_key
 
+        # ── Checkbox params ──
+        self._allow_lock_check = allow_lock_check
+        self._lock_check_default = lock_check_default
+        self._allow_features_check = allow_features_check
+        self._features_check_text = features_check_text or ""
+        self._features_check_default = features_check_default
+
         # Estado interno
         self._root_path: str = ""
         self._selected_list: list[str] = []
@@ -142,10 +169,16 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def _build_ui(self, label_text, placeholder, tooltip, label_width):
-        layout = QHBoxLayout(self)
+        # Layout vertical: linha principal + sub-layout para features check
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(2)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+
+        # Linha principal horizontal
+        layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
         # Label
         self._label = QLabel(label_text)
@@ -178,6 +211,15 @@ class ComplexSelector(QWidget):
         self._combo.currentIndexChanged.connect(self._on_combo_layer_changed)
         self._stack.addWidget(self._combo)
 
+        # ── Lock checkbox (mesma linha, SEM texto) ──
+        self._lock_checkbox = None
+        if self._allow_lock_check:
+            self._lock_checkbox = QCheckBox()
+            self._lock_checkbox.setText("")  # SEM texto
+            self._lock_checkbox.setChecked(self._lock_check_default)
+            self._lock_checkbox.toggled.connect(self._on_lock_toggled)
+            layout.addWidget(self._lock_checkbox, 0, Qt.AlignmentFlag.AlignVCenter)
+
         # Botões
         self._add_buttons(layout)
 
@@ -187,7 +229,32 @@ class ComplexSelector(QWidget):
             self._using_layer_combo = True
             self._combo.setVisible(True)
 
+        # Adiciona linha principal ao layout vertical
+        main_layout.addLayout(layout)
+
+        # ── Features checkbox (abaixo da linha principal, com texto) ──
+        self._features_checkbox = None
+        if self._allow_features_check:
+            features_layout = QHBoxLayout()
+            features_layout.setContentsMargins(0, 0, 0, 0)
+            features_layout.setSpacing(4)
+
+            # Espaçamento para alinhar com o label acima
+            spacer_label = QLabel()
+            spacer_label.setFixedWidth(label_width)
+            features_layout.addWidget(spacer_label, 0, Qt.AlignmentFlag.AlignVCenter)
+
+            self._features_checkbox = QCheckBox()
+            check_text = self._features_check_text or ""
+            self._features_checkbox.setText(check_text)
+            self._features_checkbox.setChecked(self._features_check_default)
+            features_layout.addWidget(self._features_checkbox, 0, Qt.AlignmentFlag.AlignVCenter)
+
+            features_layout.addStretch(1)
+            main_layout.addLayout(features_layout)
+
         self._update_display()
+        self._update_blocked_state()
 
     def _add_buttons(self, layout):
         """Adiciona botões conforme configuração. Todos com mesmo tamanho do input."""
@@ -582,6 +649,35 @@ class ComplexSelector(QWidget):
         )
 
     # ══════════════════════════════════════════════════════════════════
+    # Lock checkbox (bloqueia widget quando desmarcado)
+    # ══════════════════════════════════════════════════════════════════
+
+    def _on_lock_toggled(self, checked: bool):
+        """Quando lock checkbox muda, atualiza bloqueio do selector."""
+        self._update_blocked_state()
+
+    def _update_blocked_state(self):
+        """Gerencia bloqueio do widget baseado no estado do lock checkbox."""
+        if not self._allow_lock_check:
+            return
+
+        blocked = not self._lock_checkbox.isChecked()
+
+        # Bloqueia/desbloqueia widgets internos (exceto a própria checkbox)
+        self._stack.setEnabled(not blocked)
+        self._edit.setEnabled(not blocked)
+        self._combo.setEnabled(not blocked)
+
+        # Botões
+        for btn_name in [
+            '_btn_file', '_btn_folder', '_btn_project',
+            '_btn_origin', '_btn_suggest', '_btn_explorer', '_btn_copy'
+        ]:
+            btn = getattr(self, btn_name, None)
+            if btn:
+                btn.setEnabled(not blocked)
+
+    # ══════════════════════════════════════════════════════════════════
     # 📋 (copiar)
     # ══════════════════════════════════════════════════════════════════
 
@@ -602,7 +698,43 @@ class ComplexSelector(QWidget):
         self.pathChanged.emit(self._selected_list)
 
     # ══════════════════════════════════════════════════════════════════
-    # API Pública
+    # API Pública — Lock Checkbox
+    # ══════════════════════════════════════════════════════════════════
+
+    def get_lock_state(self) -> bool:
+        """
+        Retorna estado atual do lock checkbox.
+        Se allow_lock_check=False, retorna lock_check_default.
+        """
+        if not self._allow_lock_check:
+            return self._lock_check_default
+        return self._lock_checkbox.isChecked()
+
+    def set_lock_state(self, checked: bool):
+        """Define estado do lock checkbox programaticamente."""
+        if self._lock_checkbox is not None:
+            self._lock_checkbox.setChecked(checked)
+
+    # ══════════════════════════════════════════════════════════════════
+    # API Pública — Features Checkbox
+    # ══════════════════════════════════════════════════════════════════
+
+    def get_checked_state(self) -> bool:
+        """
+        Retorna estado atual do features checkbox.
+        Se allow_features_check=False, retorna features_check_default.
+        """
+        if not self._allow_features_check:
+            return self._features_check_default
+        return self._features_checkbox.isChecked()
+
+    def set_checked_state(self, checked: bool):
+        """Define estado do features checkbox programaticamente."""
+        if self._features_checkbox is not None:
+            self._features_checkbox.setChecked(checked)
+
+    # ══════════════════════════════════════════════════════════════════
+    # API Pública — Paths
     # ══════════════════════════════════════════════════════════════════
 
     def get_root_path(self) -> str:

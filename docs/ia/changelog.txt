@@ -278,3 +278,27 @@
    - Mantida lógica de negócio inalterada (_get_temporary_layers, _replace_memory_layer, _replace_raster_layer)
    - docs/plano_acao_save_temporary_layers.md v1.1.0 criado
    - Atualizado docs/skills/SKILL_WIDGETS2.md e docs/plano_eliminacao_widgetfactory.md
+2.3.71 27/07/2026
+[2.3.71.1][27/07/2026] Migrado GenerateTrailPlugin para novo sistema de widgets (new_widgets/):
+   - ComplexSelector modificado: adicionados parâmetros `allow_checked`, `checked_text`, `checked_default` para checkbox de proteção (bloqueio) via config dict
+   - ComplexSelector modificado: checkbox sem texto entre lineedit e botões, sub-label abaixo, bloqueio interno via _update_blocked_state()
+   - ComplexSelector modificado: API get_checked_state()/set_checked_state() para consulta programática
+   - GridComplexSelector modificado: propagação dos novos parâmetros (allow_checked, checked_text, checked_default) do field_config para ComplexSelector
+   - GridComplexSelector modificado: API get_checked_state(label)/set_checked_state(label, checked)
+   - GenerateTrailPlugin: WidgetFactory substituido por GridComplexSelector (input_layer com allow_checked + output_trail com parent) + GridDoubleSpin (implement_size) + CollapsibleParametersWidget + GridComplexSelector separado (qml_style) + GridExecutionButtons
+   - Removido import de WidgetFactory
+   - Removidos imports não usados: os, StringManager
+   - Mantida lógica de negócio inalterada (pipeline sync/async, _resolve_input_layer, _process_selection)
+   - docs/plano_acao_generate_trail.md v2.0.0 criado
+   - Atualizado docs/plano_eliminacao_widgetfactory.md (GenerateTrailPlugin marcado como migrado)
+[2.3.71.2][27/07/2026] Refatorado ComplexSelector: split do checkbox único (allow_checked) em dois checkboxes independentes:
+   - allow_lock_check: checkbox na mesma linha dos botões, SEM texto, bloqueia widget quando desmarcado, default=True
+   - allow_features_check: checkbox ABAIXO da linha principal, com texto (features_check_text), default=False
+   - ComplexSelector: novos parâmetros allow_lock_check, lock_check_default, allow_features_check, features_check_text, features_check_default
+   - ComplexSelector: API get_lock_state()/set_lock_state() para lock checkbox
+   - ComplexSelector: get_checked_state()/set_checked_state() agora controlam features checkbox
+   - GridComplexSelector: propagação dos novos parâmetros (allow_lock_check, lock_check_default, allow_features_check, features_check_text, features_check_default)
+   - GridComplexSelector: API get_lock_state(label)/set_lock_state(label, checked) para lock checkbox
+   - GridComplexSelector: get_checked_state()/set_checked_state() agora controlam features checkbox
+   - GenerateTrailPlugin: input_layer usa allow_lock_check=True + allow_features_check=True (features_check_text=STR.ONLY_SELECTED_FEATURES)
+   - GenerateTrailPlugin: output_trail usa allow_lock_check=True (sem features check)

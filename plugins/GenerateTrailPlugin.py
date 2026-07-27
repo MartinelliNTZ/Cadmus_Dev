@@ -1,22 +1,23 @@
 # -*- coding: utf-8 -*-
-import os
 from qgis.core import QgsProject, QgsVectorLayer, QgsWkbTypes, QgsMapLayerProxyModel
 from typing import Optional, Tuple
 from ..plugins.BasePlugin import BasePluginMTL
 from ..utils.QgisMessageUtil import QgisMessageUtil
-from ..utils.StringManager import StringManager
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerProjection import VectorLayerProjection
 from ..utils.vector.VectorLayerSource import VectorLayerSource
 from ..utils.Preferences import Preferences
 from ..utils.ToolKeys import ToolKey
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
 from ..core.engine_tasks.BufferStep import BufferStep
 from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..core.engine_tasks.ExplodeStep import ExplodeStep
 from ..core.engine_tasks.SaveVectorStep import SaveVectorStep
 from ..i18n.TranslationManager import STR
+from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
 
 
 class GenerateTrailPlugin(BasePluginMTL):
@@ -44,138 +45,174 @@ class GenerateTrailPlugin(BasePluginMTL):
         )
         self.logger.info("Construindo interface da ferramenta")
 
-        layer_layout, self.layer_input = WidgetFactory.create_layer_input(
-            label_text=STR.INPUT_LINE_LAYER,
-            filters=[QgsMapLayerProxyModel.Filter.LineLayer],
-            parent=self,
-            allow_empty=False,
-        )
-        self.logger.debug("Componente de camada de entrada adicionado")
-
-        tam_layout, self.spin_tam = WidgetFactory.create_double_spin_input(
-            STR.IMPLEMENT_SIZE,
+        # GridComplexSelector: Input + Output
+        self.grid = GridComplexSelector(
+            config={
+                "input_layer": {
+                    "label": f"{STR.INPUT_LINE_LAYER}:",
+                    "mode_type": "input",
+                    "allow_file": False,
+                    "allow_folder": False,
+                    "layer_filters": QgsMapLayerProxyModel.LineLayer,
+                    # Lock check (bloqueia widget quando desmarcado)
+                    "allow_lock_check": True,
+                    "lock_check_default": True,
+                    # Features check (somente feições selecionadas)
+                    "allow_features_check": True,
+                    "features_check_text": STR.ONLY_SELECTED_FEATURES,
+                },
+                "output_trail": {
+                    "label": f"{STR.SAVE_TRAIL_IN}:",
+                    "mode_type": "output",
+                    "parent": "input_layer",
+                    "suffix": "_trail",
+                    "fixed_extension": "gpkg",
+                    "subfolder": "",
+                    "fixed_name": "implement_trail",
+                    "allow_file": True,
+                    "allow_folder": True,
+                    "file_filter": "GeoPackage (*.gpkg)",
+                    # Lock check (bloqueia widget quando desmarcado)
+                    "allow_lock_check": True,
+                    "lock_check_default": True,
+                },
+            },
+            tool_key=self.TOOL_KEY,
             separator_bottom=True,
-        )
-        self.logger.debug("Componente de tamanho de implemento adicionado")
-
-        save_layout, self.save_selector = WidgetFactory.create_save_file_selector(
             parent=self,
-            file_filter=StringManager.FILTER_VECTOR,
-            path_button=os.path.join("vetores", "Rastro_implemento.gpkg"),
-            separator_top=False,
         )
-        self.logger.debug("Componente de salvamento de arquivo adicionado")
+        self.logger.debug("GridComplexSelector input+output adicionado")
+        self.layout.addWidget(self.grid)
 
-        adv_layout, self.adv_params = WidgetFactory.create_collapsible_parameters(
+        # GridDoubleSpin: Implement Size
+        self.implement_spin = GridDoubleSpin(
+            config={
+                "implement_size": {
+                    "label": f"{STR.IMPLEMENT_SIZE}:",
+                    "value": 3500,
+                    "min": 10,
+                    "max": 50000,
+                    "step": 100,
+                    "decimals": 0,
+                    "type": "int",
+                },
+            },
+            separator_bottom=True,
             parent=self,
+        )
+        self.logger.debug("GridDoubleSpin tamanho implemento adicionado")
+        self.layout.addWidget(self.implement_spin)
+
+        # CollapsibleParameters: Advanced
+        self.advanced_params = CollapsibleParametersWidget(
             title=STR.ADVANCED_PARAMETERS,
             expanded_by_default=False,
-            separator_top=False,
-            separator_bottom=True,
-        )
-        self.logger.debug("Widget de parâmetros avançados criado")
-
-        qml_layout, self.qml_selector = WidgetFactory.create_qml_selector(
-            parent=self, separator_top=False, separator_bottom=False
-        )
-        self.adv_params.add_content_layout(qml_layout)
-        self.logger.debug(
-            "Componente de estilo QML adicionado dentro de parâmetros avançados"
+            parent=self,
         )
 
-        buttons_layout, self.action_buttons = (
-            WidgetFactory.create_bottom_action_buttons(
-                parent=self,
-                run_callback=self.execute_tool,
-                close_callback=self.close,
-                info_callback=self.show_info_dialog,
-                tool_key=self.TOOL_KEY,
-            )
+        # GridComplexSelector QML (dentro do collapsible)
+        self.qml_grid = GridComplexSelector(
+            config={
+                "qml_style": {
+                    "label": f"{STR.QML_STYLE}:",
+                    "mode_type": "input",
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "file_filter": "QML (*.qml)",
+                },
+            },
+            tool_key=self.TOOL_KEY,
+            parent=self,
         )
+        self.logger.debug("GridComplexSelector QML adicionado")
+        self.advanced_params.add_content_widget(self.qml_grid)
+        self.layout.addWidget(self.advanced_params)
 
-        self.layout.add_items(
-            [layer_layout, tam_layout, save_layout, adv_layout, buttons_layout]
+        # GridExecutionButtons
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "run": {
+                    "label": STR.EXECUTE,
+                    "description": "Gera o rastro do implemento",
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_info=True,
+            tool_key=self.TOOL_KEY,
+            parent=self,
         )
         self.logger.info("Interface da ferramenta construída com sucesso")
+        self.layout.add_execution_buttons(self.action_buttons)
 
     def _load_prefs(self):
         self.logger.debug(f"Carregando preferências salvas da ferramenta. Self={self}")
-        last_tam = self.preferences.get("last_implement_length")
-        save_to_folder = self.preferences.get("save_to_folder", False)
-        last_file = self.preferences.get("last_output_file", "")
-        apply_style = self.preferences.get("apply_style", False)
-        last_qml = self.preferences.get("last_qml_path", "")
-        self.qml_selector.set_file_path(last_qml)
-        self.qml_selector.set_enabled(bool(apply_style))
+        last_input = self.preferences.get("last_input_path", "")
+        if last_input:
+            self.grid.set_path("input_layer", last_input)
 
+        last_output = self.preferences.get("last_output_path", "")
+        if last_output:
+            self.grid.set_path("output_trail", last_output)
+
+        last_tam = self.preferences.get("last_implement_length")
         if last_tam is not None:
             try:
-                self.spin_tam.setValue(float(last_tam))
+                self.implement_spin.set_value("implement_size", float(last_tam))
             except Exception as e:
                 self.logger.warning(
                     f"Valor de tamanho do implemento inválido nas preferências: {last_tam}. Erro: {str(e)}"
                 )
 
-        try:
-            self.save_selector.set_enabled(bool(save_to_folder))
-            self.save_selector.set_file_path(last_file)
-            self.logger.debug("Preferências carregadas e aplicadas com sucesso")
-        except Exception as e:
-            self.logger.warning(f"Erro ao restaurar algumas preferências: {str(e)}")
+        last_qml = self.preferences.get("last_qml_path", "")
+        if last_qml:
+            self.qml_grid.set_path("qml_style", last_qml)
+
+        only_selected = self.preferences.get("only_selected", False)
+        self.grid.set_checked_state("input_layer", only_selected)
+
+        self.logger.debug("Preferências carregadas e aplicadas com sucesso")
 
     def _save_prefs(self):
         self.logger.debug("Salvando preferências da ferramenta")
-        self.preferences["last_implement_length"] = float(self.spin_tam.value())
-        self.preferences["save_to_folder"] = bool(self.save_selector.is_enabled())
-        self.preferences["last_output_file"] = self.save_selector.get_file_path()
-        self.preferences["apply_style"] = bool(self.qml_selector.is_enabled())
-        self.preferences["last_qml_path"] = self.qml_selector.get_file_path()
+        self.preferences["last_input_path"] = self.grid.get_path("input_layer")
+        self.preferences["last_output_path"] = self.grid.get_path("output_trail")
+        self.preferences["last_implement_length"] = float(self.implement_spin.get_value("implement_size"))
+        self.preferences["last_qml_path"] = self.qml_grid.get_path("qml_style")
+        self.preferences["only_selected"] = self.grid.get_checked_state("input_layer")
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
 
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.debug(
-            f"Preferências salvas: tamanho={self.preferences['last_implement_length']}m, salvar_arquivo={self.preferences['save_to_folder']}"
+            f"Preferências salvas: tamanho={self.preferences['last_implement_length']}m, "
+            f"only_selected={self.preferences['only_selected']}"
         )
 
     def execute_tool(self):
         self.logger.info("Iniciando processamento: Gerar Rastro Implemento")
 
-        input_layer = self.layer_input.current_layer()
-        self.start_stats(
-            input_layer,
-        )
+        input_layer = self.grid.get("input_layer").current_layer
+        self.start_stats(input_layer)
 
         if not isinstance(input_layer, QgsVectorLayer):
             self.logger.warning("Nenhuma camada de linhas válida selecionada")
-            QgisMessageUtil.bar_warning(
-                self.iface, STR.SELECT_VALID_LINE_LAYER
-            )
+            QgisMessageUtil.bar_warning(self.iface, STR.SELECT_VALID_LINE_LAYER)
             return
 
-        implement_lenght = float(self.spin_tam.value())
-        save_to_folder = self.save_selector.is_enabled()
-        out_file = self.save_selector.get_file_path().strip() if save_to_folder else ""
-
-        if save_to_folder and out_file and not out_file.startswith("memory"):
-            output_path = out_file
-        else:
-            save_to_folder = False
-            output_path = None
-
-        only_selected = self.layer_input.only_selected_enabled()
-        output_name = "Rastro_implemento"
-        self.logger.info(
-            f"Parâmetros: camada='{input_layer.name()}', tamanho={implement_lenght}m, selecionadas={only_selected}, salvar_arquivo={save_to_folder}"
-        )
+        only_selected = self.grid.get_checked_state("input_layer")
+        implement_length = self.implement_spin.get_value("implement_size")
+        output_path = self.grid.get_path("output_trail")
+        save_to_folder = bool(output_path)
+        output_name = STR.IMPLEMENT_TRAIL
 
         self.logger.info(
-            f"execute_tool: implement_lenght={implement_lenght}, only_selected={only_selected}, save_to_folder={save_to_folder}, output_path={output_path}"
+            f"Parâmetros: camada='{input_layer.name()}', tamanho={implement_length}m, "
+            f"selecionadas={only_selected}, salvar_arquivo={save_to_folder}"
         )
 
-        layer, implement_lenght = self._resolve_input_layer(
-            input_layer, implement_lenght
-        )
+        layer, implement_length = self._resolve_input_layer(input_layer, implement_length)
         if layer is None:
             self.logger.warning("_resolve_input_layer returned None, aborting")
             return
@@ -183,26 +220,22 @@ class GenerateTrailPlugin(BasePluginMTL):
         ok, error = VectorLayerSource.validate_layer(
             layer, expected_geometry=QgsWkbTypes.LineGeometry
         )
-
         if not ok:
             self.logger.error(f"Layer validation failed: {error}")
             QgisMessageUtil.modal_error(self.iface, error)
             return
-        else:
-            self.logger.debug("Layer validation passed")
 
         layer = self._process_selection(layer, only_selected)
         if layer is None:
             self.logger.warning("_process_selection returned None, aborting")
             return
-        self.logger.debug("Selection processing complete, layer ready")
 
-        if implement_lenght == 0:
-            self.logger.error("implement_lenght is zero, aborting")
+        if implement_length == 0:
+            self.logger.error("implement_length is zero, aborting")
             QgisMessageUtil.modal_error(self.iface, STR.BUFFER_CANNOT_BE_ZERO)
             return
 
-        buffer_distance = float(implement_lenght) / 2.0
+        buffer_distance = float(implement_length) / 2.0
 
         context = ExecutionContext()
         context.set("layer", layer)
@@ -212,10 +245,6 @@ class GenerateTrailPlugin(BasePluginMTL):
         context.set("tool_key", self.TOOL_KEY)
         context.set("buffer_distance", buffer_distance)
         context.set("buffer_dissolve", False)
-
-        self.logger.debug(
-            f"Context prepared: {{'buffer_distance':{buffer_distance}, 'output_name':{output_name}}}"
-        )
 
         feature_count = layer.featureCount() if layer else 0
         threshold = int(self.system_preferences.get("async_threshold_features", 1000))
@@ -231,7 +260,7 @@ class GenerateTrailPlugin(BasePluginMTL):
             self._run_sync_pipeline(context)
 
     def _resolve_input_layer(
-        self, input_layer, implement_lenght: float
+        self, input_layer, implement_length: float
     ) -> Tuple[Optional[QgsVectorLayer], float]:
         """Etapa 1: Resolver camada de entrada e converter tamanho se necessário"""
         layer = (
@@ -244,12 +273,12 @@ class GenerateTrailPlugin(BasePluginMTL):
         if not isinstance(layer, QgsVectorLayer):
             self.logger.error("Camada de entrada inválida - não é QgsVectorLayer")
             QgisMessageUtil.modal_error(self.iface, STR.INVALID_INPUT_LAYER)
-            return None, implement_lenght
-        implement_lenght = VectorLayerProjection.convert_distance_to_layer_units(
-            layer, implement_lenght
-        )
+            return None, implement_length
 
-        return layer, implement_lenght
+        implement_length = VectorLayerProjection.convert_distance_to_layer_units(
+            layer, implement_length
+        )
+        return layer, implement_length
 
     def _process_selection(
         self, layer: QgsVectorLayer, only_selected: bool
@@ -271,7 +300,6 @@ class GenerateTrailPlugin(BasePluginMTL):
             self.logger.debug(
                 f"Processando todas as feições da camada. Total: {layer.featureCount()}"
             )
-
         return layer
 
     def _run_sync_pipeline(self, context: ExecutionContext) -> Optional[QgsVectorLayer]:
@@ -280,41 +308,35 @@ class GenerateTrailPlugin(BasePluginMTL):
         Explode -> Buffer -> Save
         Retorna camada final.
         """
-
         try:
-            layer: QgsVectorLayer = context.get("layer")
+            layer = context.get("layer")
             if not layer or not layer.isValid():
                 raise RuntimeError(STR.INVALID_INPUT_LAYER)
 
-            save_to_folder: bool = context.get("save_to_folder")
-            output_path: Optional[str] = context.get("output_path")
-            output_name: str = context.get("output_name")
-            buffer_distance: float = context.get("buffer_distance")
-            dissolve: bool = context.get("buffer_dissolve")
+            save_to_folder = context.get("save_to_folder")
+            output_path = context.get("output_path")
+            output_name = context.get("output_name")
+            buffer_distance = context.get("buffer_distance")
+            dissolve = context.get("buffer_dissolve")
 
             self.logger.debug("SYNC: ExplodeStep")
-
             exploded = VectorLayerGeometry.explode_multipart_features(
                 layer=layer, external_tool_key=self.TOOL_KEY
             )
-
             if not exploded or not exploded.isValid():
                 raise RuntimeError("Falha no explode")
 
             self.logger.debug("SYNC: BufferStep")
-
             buffered = VectorLayerGeometry.create_buffer_geometry(
                 layer=exploded,
                 distance=buffer_distance,
                 dissolve=dissolve,
                 external_tool_key=self.TOOL_KEY,
             )
-
             if not buffered or not buffered.isValid():
                 raise RuntimeError("Falha no buffer")
 
             self.logger.debug("SYNC: SaveVectorStep")
-
             final_layer = VectorLayerSource.save_vector_layer(
                 layer=buffered,
                 output_path=output_path,
@@ -322,12 +344,13 @@ class GenerateTrailPlugin(BasePluginMTL):
                 output_name=output_name,
                 external_tool_key=self.TOOL_KEY,
             )
-
             if not final_layer or not final_layer.isValid():
                 raise RuntimeError("Falha ao salvar camada")
 
             context.set("layer", final_layer)
             self._on_pipeline_finished(context)
+            return final_layer
+
         except Exception as e:
             self.logger.error(f"Erro pipeline SYNC: {e}. Contexto: {context}.")
             QgisMessageUtil.modal_error(self.iface, str(e))
@@ -340,47 +363,24 @@ class GenerateTrailPlugin(BasePluginMTL):
             on_finished=self._on_pipeline_finished,
             on_error=self._on_pipeline_error,
         )
-
         self.logger.info("Starting AsyncPipelineEngine")
         engine.start()
-        return None
 
     def _on_pipeline_finished(self, context):
-
         final_layer = context.get("layer")
-
-        self.logger.warning(f"Layer: {final_layer}")
-
-        self.logger.warning(
-            f"Is valid: {final_layer.isValid() if final_layer else None}"
-        )
-
-        self.logger.warning(
-            f"Provider: {final_layer.providerType() if final_layer else None}"
-        )
         if not final_layer:
-            QgisMessageUtil.modal_error(
-                self.iface, STR.FINAL_LAYER_NOT_FOUND
-            )
+            QgisMessageUtil.modal_error(self.iface, STR.FINAL_LAYER_NOT_FOUND)
             return
 
         if not QgsProject.instance().mapLayer(final_layer.id()):
-            self.logger.debug("Final layer not in project, adding")
             QgsProject.instance().addMapLayer(final_layer)
-        else:
-            self.logger.debug("Final layer already in project")
 
-        if self.qml_selector.is_enabled():
-            qml = self.qml_selector.get_file_path()
-            self.logger.debug(f"QML style enabled, path={qml}")
-            if qml:
-                self.apply_qml_style(final_layer, qml)
-                self.logger.info("QML style applied to final layer")
-        else:
-            self.logger.debug("QML style not enabled")
+        if self.qml_grid.get_path("qml_style"):
+            qml = self.qml_grid.get_path("qml_style")
+            self.apply_qml_style(final_layer, qml)
+            self.logger.info("QML style applied to final layer")
 
         QgisMessageUtil.bar_success(self.iface, STR.SUCCESS_MESSAGE)
-
         self.finish_stats()
 
 

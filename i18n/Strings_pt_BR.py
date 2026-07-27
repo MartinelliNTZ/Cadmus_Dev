@@ -494,6 +494,10 @@ class Strings_pt_BR:
         "uma nova camada com o rastro resultante."
     )
 
+    QML_STYLE = "Estilo QML"
+    SAVE_TRAIL_IN = "Salvar rastro em:"
+    
+    
     # plugins/CopyAttributesPlugin.py
     COPY_ATTRIBUTES_TITLE = "Copiar Atributos de Vetor"
     COPY_ATTRIBUTES_TOOLTIP = (
@@ -502,7 +506,7 @@ class Strings_pt_BR:
         "Permite selecionar quais atributos criar e tratar conflitos\n"
         "de nome quando um campo já existe na camada destino."
     )
-
+    
     # plugins/ExportAllLayouts.py
     EXPORT_ALL_LAYOUTS_TITLE = "Exportar Todos os Layouts"
     EXPORT_ALL_LAYOUTS_TOOLTIP = (

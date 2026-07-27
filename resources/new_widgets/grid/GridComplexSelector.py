@@ -257,6 +257,11 @@ class GridComplexSelector(QWidget):
         layer_filters = field_config.get("layer_filters", None)
         show_explorer_button = field_config.get("show_explorer_button", True)
         show_copy_button = field_config.get("show_copy_button", True)
+        allow_lock_check = field_config.get("allow_lock_check", False)
+        lock_check_default = field_config.get("lock_check_default", True)
+        allow_features_check = field_config.get("allow_features_check", False)
+        features_check_text = field_config.get("features_check_text", "")
+        features_check_default = field_config.get("features_check_default", False)
 
         # Resolve o parent_selector
         parent_selector = None
@@ -281,6 +286,11 @@ class GridComplexSelector(QWidget):
             fixed_extension=fixed_extension,
             parent_selector=parent_selector,
             layer_filters=layer_filters,
+            allow_lock_check=allow_lock_check,
+            lock_check_default=lock_check_default,
+            allow_features_check=allow_features_check,
+            features_check_text=features_check_text,
+            features_check_default=features_check_default,
             tool_key=self._tool_key or "GridComplexSelector",
             parent=self,
         )
@@ -496,6 +506,42 @@ class GridComplexSelector(QWidget):
             edit.setStyleSheet(edit._saved_stylesheet)
         else:
             edit.setStyleSheet("")
+
+    # ══════════════════════════════════════════════════════════════════
+    # API Pública — Lock Checkbox
+    # ══════════════════════════════════════════════════════════════════
+
+    def get_lock_state(self, label: str) -> bool:
+        """
+        Retorna estado do lock checkbox para um selector.
+        Se o selector não tem allow_lock_check, retorna lock_check_default.
+        """
+        sel = self._selectors.get(label)
+        return sel.get_lock_state() if sel else True
+
+    def set_lock_state(self, label: str, checked: bool):
+        """Define estado do lock checkbox programaticamente."""
+        sel = self._selectors.get(label)
+        if sel:
+            sel.set_lock_state(checked)
+
+    # ══════════════════════════════════════════════════════════════════
+    # API Pública — Features Checkbox
+    # ══════════════════════════════════════════════════════════════════
+
+    def get_checked_state(self, label: str) -> bool:
+        """
+        Retorna estado do features checkbox para um selector.
+        Se o selector não tem allow_features_check, retorna features_check_default.
+        """
+        sel = self._selectors.get(label)
+        return sel.get_checked_state() if sel else False
+
+    def set_checked_state(self, label: str, checked: bool):
+        """Define estado do features checkbox programaticamente."""
+        sel = self._selectors.get(label)
+        if sel:
+            sel.set_checked_state(checked)
 
     # ══════════════════════════════════════════════════════════════════
     # API Pública

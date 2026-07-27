@@ -209,6 +209,23 @@ selector = ComplexSelector(
 - `set_path(path)` / `set_paths(paths)`
 - `on_path_change` — callback(paths)
 
+### SimpleComboBox 🆕
+`QComboBox` com `AppStyles.input()`. Uso INTERNO por `GridComboBox`. Plugins NUNCA importam.
+
+```python
+from .SimpleComboBox import SimpleComboBox
+
+combo = SimpleComboBox(parent=self)
+combo.set_options({".gpkg": "GeoPackage", ".shp": "Shapefile"})
+combo.get_selected_key()  # → ".gpkg"
+combo.set_selected_key(".shp")
+```
+
+**API interna:**
+- `set_options(options_dict)` — popula o combo com {key: label}
+- `get_selected_key()` → str
+- `set_selected_key(key)`
+
 ### SquareIconButton 🆕
 `QPushButton` quadrado com ícone, sem borda, fundo transparente. Usa `AppStyles.button()` + estilo específico para tamanho fixo.
 
@@ -475,6 +492,60 @@ input_fields.widget("old_text")             # → SimpleQLineEdit (acesso direto
 | `separator_top` | bool | `False` | Separador antes |
 | `separator_bottom` | bool | `False` | Separador depois |
 | `parent` | QWidget | `None` | Widget pai |
+
+### GridComboBox 🆕
+Container de N combos (QComboBox) configurável via dict. Usa `SimpleComboBox` internamente. Cada item tem `onchange` callback (sem pyqtSignal).
+
+**UM GridComboBox contem N items.** NÃO crie 2 GridComboBox separados — use 1 widget com 2+ items.
+
+```python
+combo = GridComboBox(
+    config={
+        "vector_ext": {
+            "label": "Extensão Vetor:",
+            "description": "Formato para camadas vetoriais",
+            "options": {
+                ".gpkg": "GeoPackage (.gpkg)",
+                ".shp": "Shapefile (.shp)",
+            },
+            "selected_key": ".gpkg",
+            "onchange": self.on_ext_changed,  # callback(chave, texto)
+        },
+        "raster_ext": {
+            "label": "Extensão Raster:",
+            "options": {".tif": "TIFF (.tif)", ".png": "PNG (.png)"},
+            "selected_key": ".tif",
+        },
+    },
+    title="Extensões",    # opcional → QGroupBox
+    parent=self,
+)
+layout.addWidget(combo)
+
+combo.get_selected_key("vector_ext")  # → ".gpkg"
+combo.set_selected_key("vector_ext", ".shp")
+combo.widget("vector_ext")            # → SimpleComboBox
+```
+
+**API pública:**
+
+| Método | Descrição |
+|--------|-----------|
+| `get_selected_key(key)` → `str` | Retorna chave selecionada |
+| `set_selected_key(key, value)` | Define chave selecionada |
+| `get_options(key)` → `dict` | Retorna options do combo |
+| `set_options(key, options)` | Substitui options do combo |
+| `widget(key)` → `SimpleComboBox` | Acesso direto ao QComboBox |
+
+**Parâmetros de cada item no config dict:**
+
+| Propriedade | Obrigatório | Descrição |
+|-------------|-------------|-----------|
+| `"label"` | Sim | Texto do label |
+| `"description"` | Não | Tooltip |
+| `"options"` | Sim | Dict `{key: label}` para popular o combo |
+| `"selected_key"` | Não | Chave inicialmente selecionada |
+| `"onchange"` | Não | `callback(chave_selecionada, texto_selecionado)` |
 
 ### GridDoubleSpin 🆕
 Container de campos numéricos configurável via dict. Usa `SimpleDoubleSpinBox` internamente. Suporta `type="int"` ou `type="double"`.
@@ -917,3 +988,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-24 | 2.1.0 | Adicionado `TextBrowser` (raiz, sem versão grid) — QTextBrowser com `AppStyles.text_browser()`, set_markdown com fallback Qt5/Qt6. |
 | 2026-07-24 | 2.2.0 | Adicionados Simple widgets faltantes: `SimpleCheckbox`, `SimpleDoubleSpinBox`, `ComplexSelector`, `SquareIconButton`. Adicionados Grid widgets: `GridCheckbox`, `GridDoubleSpin`, `GridComplexSelector`. Atualizado ExportAllLayouts status — plugin 100% migrado para novo sistema (usa GridCheckbox + GridDoubleSpin + GridComplexSelector + GridExecutionButtons, sem WidgetFactory). |
 | 2026-07-27 | 2.3.0 | Adicionado `GridInputFields` ao catálogo Grid — container de campos de texto com labels + SimpleQLineEdit (glow/gradiente). API: get_value/set_value/get_values/set_values/widget. ReplaceInLayouts migrado usando GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons. |
+| 2026-07-27 | 2.4.0 | Adicionados `SimpleComboBox` (QComboBox + AppStyles.input()) e `GridComboBox` (container de N combos com onchange callback, sem pyqtSignal). API: get_selected_key/set_selected_key/get_options/set_options/widget. SaveTemporaryLayersPlugin migrado usando GridInputFields + GridComboBox + GridComplexSelector + GridExecutionButtons. |

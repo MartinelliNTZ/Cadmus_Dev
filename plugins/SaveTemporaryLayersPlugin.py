@@ -4,10 +4,10 @@ Salvar Temporárias — Salva camadas temporárias (memory) do projeto QGIS
 em arquivos permanentes no disco.
 
 UI:
-  - InputFieldsWidget: prefixo + sufixo
-  - DropdownSelectorWidget: extensões vetor (shp, gpkg, geojson, ...)
-  - DropdownSelectorWidget: extensões raster (tif, jp2, png, ...)
-  - Output folder
+  - GridInputFields: prefixo + sufixo
+  - GridComboBox: extensões vetor + raster (1 widget, 2 items)
+  - GridComplexSelector: pasta de saída
+  - GridExecutionButtons: salvar/fechar/info
 
   Vetores salvos em <output>/vectors/
   Rasters salvos em <output>/rasters/
@@ -21,8 +21,11 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from ..plugins.BasePlugin import BasePluginMTL
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
+from ..resources.new_widgets.grid.GridInputFields import GridInputFields
+from ..resources.new_widgets.grid.GridComboBox import GridComboBox
+from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ..utils.ToolKeys import ToolKey
 from ..utils.Preferences import Preferences
 from ..utils.ProjectUtils import ProjectUtils
@@ -71,95 +74,85 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         )
         self.logger.info("Construindo interface da ferramenta")
 
-        # ── Prefixo e Sufixo (InputFieldsWidget) ──
-        fields_dict = {
-            "prefix": {
-                "title": f"{STR.PREFIX}:",
-                "type": "text",
-                "default": "",
-                "description": "Prefixo adicionado ao nome dos arquivos de saída",
-            },
-            "suffix": {
-                "title": f"{STR.SUFFIX}:",
-                "type": "text",
-                "default": "",
-                "description": "Sufixo adicionado ao nome dos arquivos de saída",
-            },
-        }
-        fields_layout, self.fields_widget = (
-            WidgetFactory.create_input_fields_widget(
-                fields_dict=fields_dict,
-                parent=self,
-                separator_bottom=True,
-            )
-        )
-
-        # ── Extensão Vetor (DropdownSelectorWidget) ──
-        vector_ext_layout, self.vector_ext_selector = (
-            WidgetFactory.create_dropdown_selector(
-                title=f"{STR.VECTOR_EXTENSIONS}:",
-                options_dict=self.VECTOR_EXTENSIONS,
-                selected_key=".gpkg",
-                parent=self,
-                separator_bottom=True,
-            )
-        )
-
-        # ── Extensão Raster (DropdownSelectorWidget) ──
-        raster_ext_layout, self.raster_ext_selector = (
-            WidgetFactory.create_dropdown_selector(
-                title=f"{STR.RASTER_EXTENSIONS}:",
-                options_dict=self.RASTER_EXTENSIONS,
-                selected_key=".tif",
-                parent=self,
-                separator_bottom=True,
-            )
-        )
-
-        # ── Pasta de saída com 📁 🛠️ ➡️ (GridComplexSelector via WidgetFactory) ──
-        output_layout, self.output_grid = (
-            WidgetFactory.create_grid_complex_selector(
-                specs={
-                    "output": {
-                        "label_text": f"{STR.OUTPUT_FOLDER}:",
-                        "placeholder": "Selecione a pasta de saída...",
-                        "allow_file": False,
-                        "allow_folder": True,
-                        "selection_mode": "folder",
-                        "show_suggest_button": True,
-                        "show_explorer_button": True,
-                        "show_suggest_button": True,
-                        "mode_type": "output",
-                    },
+        # ── Prefixo e Sufixo (GridInputFields) ─────────────────────
+        self.input_fields = GridInputFields(
+            config={
+                "prefix": {
+                    "label": f"{STR.PREFIX}:",
+                    "default": "",
+                    "description": "Prefixo adicionado ao nome dos arquivos de saída",
                 },
-                parent=self,
-                separator_bottom=True,
-            )
+                "suffix": {
+                    "label": f"{STR.SUFFIX}:",
+                    "default": "",
+                    "description": "Sufixo adicionado ao nome dos arquivos de saída",
+                },
+            },
+            separator_bottom=True,
+            parent=self,
         )
-        self.output_selector = self.output_grid["output"]
-        self.output_path = self.output_selector.edit  # compatibilidade
+        self.layout.addWidget(self.input_fields)
 
-        # ── Botões de ação ──
-        buttons_layout, self.action_buttons = (
-            WidgetFactory.create_bottom_action_buttons(
-                parent=self,
-                run_callback=self.execute_tool,
-                close_callback=self.close,
-                info_callback=self.show_info_dialog,
-                tool_key=self.TOOL_KEY,
-                run_text=STR.SAVE,
-            )
+        # ── Extensões Vetor + Raster (GridComboBox — 1 widget, 2 items) ──
+        self.ext_combo = GridComboBox(
+            config={
+                "vector_ext": {
+                    "label": f"{STR.VECTOR_EXTENSIONS}:",
+                    "description": "Formato de arquivo para camadas vetoriais",
+                    "options": self.VECTOR_EXTENSIONS,
+                    "selected_key": ".gpkg",
+                },
+                "raster_ext": {
+                    "label": f"{STR.RASTER_EXTENSIONS}:",
+                    "description": "Formato de arquivo para camadas raster",
+                    "options": self.RASTER_EXTENSIONS,
+                    "selected_key": ".tif",
+                },
+            },
+            title=None,
+            separator_top=False,
+            separator_bottom=True,
+            parent=self,
         )
+        self.layout.addWidget(self.ext_combo)
 
-        self.layout.add_items(
-            [
-                fields_layout,
-                vector_ext_layout,
-                raster_ext_layout,
-                output_layout,
-                buttons_layout,
-            ]
+        # ── Pasta de saída (GridComplexSelector) ───────────────────
+        self.folder_selector = GridComplexSelector(
+            config={
+                "output_folder": {
+                    "label": f"{STR.OUTPUT_FOLDER}:",
+                    "description": "Pasta onde os arquivos serão salvos",
+                    "mode_type": "output",
+                    "allow_file": False,
+                    "allow_folder": True,
+                    "show_explorer_button": True,
+                    "show_copy_button": False,
+                },
+            },
+            tool_key=self.TOOL_KEY,
+            separator_top=False,
+            separator_bottom=True,
+            parent=self,
         )
+        self.layout.addWidget(self.folder_selector)
+
+        # ── Botões de ação (GridExecutionButtons) ──────────────────
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "salvar": {
+                    "label": STR.SAVE,
+                    "description": "Salva as camadas temporárias em arquivos",
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_info=True,
+            tool_key=self.TOOL_KEY,
+            parent=self,
+        )
+        self.layout.add_execution_buttons(self.action_buttons)
+
         self.logger.info("Interface da ferramenta construída com sucesso")
 
     def _load_prefs(self):
@@ -167,31 +160,27 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         self.logger.debug("Carregando preferências")
         prefix = self.preferences.get("prefix", "")
         suffix = self.preferences.get("suffix", "")
-        self.fields_widget.set_values({"prefix": prefix, "suffix": suffix})
+        self.input_fields.set_values({"prefix": prefix, "suffix": suffix})
 
         vector_ext = self.preferences.get("vector_extension", ".gpkg")
-        self.vector_ext_selector.set_selected_key(vector_ext)
+        self.ext_combo.set_selected_key("vector_ext", vector_ext)
 
         raster_ext = self.preferences.get("raster_extension", ".tif")
-        self.raster_ext_selector.set_selected_key(raster_ext)
+        self.ext_combo.set_selected_key("raster_ext", raster_ext)
 
         output_path = self.preferences.get("output_path", "")
         if output_path:
-            self.output_path.setText(output_path)
+            self.folder_selector.set_path("output_folder", output_path)
 
     def _save_prefs(self):
         """Salva preferências."""
         self.logger.debug("Salvando preferências")
-        values = self.fields_widget.get_values()
+        values = self.input_fields.get_values()
         self.preferences["prefix"] = values.get("prefix", "")
         self.preferences["suffix"] = values.get("suffix", "")
-        self.preferences["vector_extension"] = (
-            self.vector_ext_selector.get_selected_key()
-        )
-        self.preferences["raster_extension"] = (
-            self.raster_ext_selector.get_selected_key()
-        )
-        self.preferences["output_path"] = self.output_path.text()
+        self.preferences["vector_extension"] = self.ext_combo.get_selected_key("vector_ext")
+        self.preferences["raster_extension"] = self.ext_combo.get_selected_key("raster_ext")
+        self.preferences["output_path"] = self.folder_selector.get_path("output_folder")
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
@@ -276,7 +265,7 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         self.logger.info("Iniciando salvamento de camadas temporárias")
 
         # Resolver pasta de saída
-        output_root = self.output_path.text().strip()
+        output_root = self.folder_selector.get_path("output_folder") or ""
 
         if not output_root:
             # Tentar usar pasta do projeto
@@ -316,11 +305,11 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
         rasters_dir_str = str(rasters_dir)
 
         # Obter valores
-        values = self.fields_widget.get_values()
+        values = self.input_fields.get_values()
         prefix = values.get("prefix", "")
         suffix = values.get("suffix", "")
-        vector_ext = self.vector_ext_selector.get_selected_key() or ".gpkg"
-        raster_ext = self.raster_ext_selector.get_selected_key() or ".tif"
+        vector_ext = self.ext_combo.get_selected_key("vector_ext") or ".gpkg"
+        raster_ext = self.ext_combo.get_selected_key("raster_ext") or ".tif"
 
         if not vector_ext.startswith("."):
             vector_ext = f".{vector_ext}"

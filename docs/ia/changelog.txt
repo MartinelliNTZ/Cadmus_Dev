@@ -269,3 +269,12 @@
    - docs/plano_acao_create_project.md v2.0.0 criado
    - SKILL_WIDGETS2.md atualizado: adicionada REGRA ABSOLUTA sobre MainLayout — plugins NUNCA importam QtWidgets, GridExecutionButtons SEMPRE via add_execution_buttons(), NUNCA criam layouts intermediários
    - GridExecutionButtons._open_settings() corrigido: adicionado fallback via qgis.utils.iface (2a tentativa) antes do QgsApplication.activeInstance(). Isto resolve abertura do Config em diálogos BaseDialog que não têm self.iface (DefaultProjectsFolderDialog, ProjectNameDialog, InfoDialog, etc) — sem precisar de config_callback manual em cada um.
+2.3.70 27/07/2026
+[2.3.70.1][27/07/2026] Migrado SaveTemporaryLayersPlugin para novo sistema de widgets (new_widgets/):
+   - Criado resources/new_widgets/simple/SimpleComboBox.py — QComboBox com AppStyles.input(), API: set_options/get_selected_key/set_selected_key
+   - Criado resources/new_widgets/grid/GridComboBox.py — Container de N combos configurável via dict, com onchange callback (sem pyqtSignal), title opcional (QGroupBox), API: get_selected_key/set_selected_key/get_options/set_options/widget
+   - SaveTemporaryLayersPlugin: WidgetFactory substituido por GridInputFields (prefix+suffix) + GridComboBox (1 widget com 2 items: vector_ext + raster_ext) + GridComplexSelector (output folder) + GridExecutionButtons (salvar/fechar/info)
+   - Removido import de WidgetFactory e DropdownSelectorWidget (antigo com pyqtSignal)
+   - Mantida lógica de negócio inalterada (_get_temporary_layers, _replace_memory_layer, _replace_raster_layer)
+   - docs/plano_acao_save_temporary_layers.md v1.1.0 criado
+   - Atualizado docs/skills/SKILL_WIDGETS2.md e docs/plano_eliminacao_widgetfactory.md

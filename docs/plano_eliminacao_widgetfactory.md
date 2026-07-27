@@ -183,7 +183,7 @@ Se um widget é COMPLEXO (simple + funções):
 1. BaseTheme + ThemeManager OK ✅
 2. AppStyles criado ✅
 3. Widgets criados (simple/grid/raiz) — SIMPLE E GRID COMPLETOS ✅, raiz PARCIAL
-4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅, ExportAllLayouts ✅, ReplaceInLayouts ✅
+4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅, ExportAllLayouts ✅, ReplaceInLayouts ✅, SaveTemporaryLayersPlugin ✅
 5. NUNCA deletar nada antigo
 ```
 
@@ -549,7 +549,7 @@ Criados em `resources/new_widgets/`.
 | 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_collapsible_parameters, create_bottom_action_buttons | GridComplexSelector + GridCheckbox + CollapsibleParametersWidget + GridExecutionButtons | ✅ Migrado (2.3.68.1) |
 | 11 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton | ⬜ Pendente |
 | 12 | `ReplaceInLayouts` | create_input_fields_widget, create_simple_button, create_checkbox_grid, create_label, create_bottom_action_buttons | GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons | ✅ Migrado (2.3.67.1) |
-| 13 | `SaveTemporaryLayersPlugin` | create_path_selector, create_layer_input, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridButton | ⬜ Pendente |
+| 13 | `SaveTemporaryLayersPlugin` | create_input_fields_widget, create_dropdown_selector (x2), create_grid_complex_selector, create_bottom_action_buttons | GridInputFields + GridComboBox + GridComplexSelector + GridExecutionButtons | ✅ Migrado (2.3.70.1) |
 | 14 | `GenerateTrailPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_color_button, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + ComplexColorPicker + GridButton | ⬜ Pendente |
 | 15 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
 | 16 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton | ⬜ Pendente |
@@ -922,7 +922,7 @@ def resolve_qt_window_modality(name: str):
     [ ] ComplexColorPicker.py
     [ ] ComplexCrsSelector.py
 
-[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (5/18 migrados)
+[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (7/18 migrados)
   [x] 2.1 AboutDialog ✅ (2.3.62.2)
   [x] 2.2 CoorResultDialog ✅ (2.3.63.3)
   [x] 2.3 InfoDialog ✅ (2.3.64.1)
@@ -935,7 +935,7 @@ def resolve_qt_window_modality(name: str):
   [ ] 2.10 LoadFolderLayers
   [ ] 2.11 PathExtensionPlugin
   [x] 2.12 ReplaceInLayouts ✅ (2.3.67.1)
-  [ ] 2.13 SaveTemporaryLayersPlugin
+  [x] 2.13 SaveTemporaryLayersPlugin ✅ (2.3.70.1)
   [ ] 2.14 GenerateTrailPlugin
   [ ] 2.15 ReportMetadataPlugin
   [ ] 2.16 VectorFieldsCalculationPlugin

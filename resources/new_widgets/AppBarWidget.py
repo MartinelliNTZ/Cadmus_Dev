@@ -10,13 +10,13 @@ Faz parte do MainLayout — inserida no topo do _inner_layout.
 from qgis.PyQt.QtWidgets import QFrame, QLabel, QPushButton, QHBoxLayout
 from qgis.PyQt.QtCore import Qt, QPoint
 from qgis.PyQt.QtGui import QPixmap
-import os
 from ..styles.AppStyles import AppStyles
+from ..IconManager import IconManager
 
 
 class AppBarWidget(QFrame):
     """
-    Barra superior com título, botões de ação e drag da janela.
+    Barra superior com título, ícone do plugin, botões de ação e drag da janela.
 
     Uso interno — instanciado pelo MainLayout.
 
@@ -24,6 +24,8 @@ class AppBarWidget(QFrame):
     ----------
     title : str
         Texto do título.
+    show_icon : bool
+        Mostra o ícone do plugin na appbar (padrão: True).
     show_run : bool
         Mostra botão Executar.
     show_info : bool
@@ -38,6 +40,7 @@ class AppBarWidget(QFrame):
         self,
         *,
         title: str,
+        show_icon: bool = True,
         show_run: bool = False,
         show_info: bool = False,
         show_close: bool = True,
@@ -56,6 +59,23 @@ class AppBarWidget(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
+
+        # Ícone do plugin via IconManager (padrão: cadmus_icon.ico)
+        if show_icon:
+            icon_label = QLabel()
+            icon_label.setObjectName("app_bar_icon")
+            icon_path = IconManager.icon_path(IconManager.CADMUS_PNG)
+            pixmap = QPixmap(icon_path)
+            if not pixmap.isNull():
+                icon_size = min(h - 4, 20)
+                pixmap = pixmap.scaled(
+                    icon_size,
+                    icon_size,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+                icon_label.setPixmap(pixmap)
+            layout.addWidget(icon_label)
 
         # Título
         self.lbl_title = QLabel(title)

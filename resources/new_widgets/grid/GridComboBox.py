@@ -181,12 +181,14 @@ class GridComboBox(QWidget):
             row_layout.setSpacing(theme.LAYOUT_HORIZONTAL_SPACING)
             row_layout.setContentsMargins(0, 0, 0, 0)
 
-            # Label com tamanho do tema
-            lbl = QLabel(label_text)
-            lbl.setMinimumWidth(theme.LABEL_FIELD_MIN_WIDTH)
-            lbl.setWordWrap(False)
-            if description:
-                lbl.setToolTip(description)
+            # Label opcional: so adiciona se "label" foi explicitamente passado
+            has_label = "label" in item_config
+            if has_label:
+                lbl = QLabel(label_text)
+                lbl.setMinimumWidth(theme.LABEL_FIELD_MIN_WIDTH)
+                lbl.setWordWrap(False)
+                if description:
+                    lbl.setToolTip(description)
 
             # Combo estilizado
             combo = SimpleComboBox(parent=self)
@@ -202,7 +204,8 @@ class GridComboBox(QWidget):
                     lambda _idx, k=key, c=combo: self._fire_onchange(k, c, onchange)
                 )
 
-            row_layout.addWidget(lbl)
+            if has_label:
+                row_layout.addWidget(lbl)
             row_layout.addWidget(combo, 1)
 
             self._combos[key] = combo

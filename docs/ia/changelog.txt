@@ -260,3 +260,11 @@
    - Removidos imports de WidgetFactory, Styles, etc.
    - docs/plano_acao_load_folder_layers.md v2.0.0 criado
    - Atualizado docs/skills/SKILL_WIDGETS2.md e docs/plano_eliminacao_widgetfactory.md v5.4.0
+2.3.69 27/07/2026
+[2.3.69.1][27/07/2026] Migrado CreateProjectPlugin (DefaultProjectsFolderDialog + ProjectNameDialog) para novo sistema de widgets (new_widgets/):
+   - GridInputFields: adicionado suporte a "placeholder" no config dict (chama setPlaceholderText() no SimpleQLineEdit)
+   - DefaultProjectsFolderDialog: WidgetFactory + SelectorWidget + ExecutionButtonsWidget substituidos por GridLabel + GridComplexSelector + GridExecutionButtons (nativo com close/config/info built-in). Removido import de QVBoxLayout — usa self.layout.addWidget() e add_execution_buttons() direto.
+   - ProjectNameDialog: WidgetFactory + QLineEdit + QHBoxLayout substituidos por GridLabel único + GridInputFields com placeholder (suggest ao fundo) + GridExecutionButtons (nativo). Removido botão Config ⚙️ manual e método _open_settings() — GridExecutionButtons já tem enable_config_button nativo. Removido import de SettingsPlugin e QVBoxLayout.
+   - CreateProjectPlugin._resolve_project_name(): alterado de exec() modal para show() não-modal com signal project_accepted
+   - docs/plano_acao_create_project.md v2.0.0 criado
+   - SKILL_WIDGETS2.md atualizado: adicionada REGRA ABSOLUTA sobre MainLayout — plugins NUNCA importam QtWidgets, GridExecutionButtons SEMPRE via add_execution_buttons(), NUNCA criam layouts intermediários

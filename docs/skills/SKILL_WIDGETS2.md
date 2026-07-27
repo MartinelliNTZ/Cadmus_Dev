@@ -597,23 +597,49 @@ Container simples com botões Fechar/Executar/Info.
 Layout principal dos diálogos. Substitui o antigo `BaseLayout`.
 
 ```python
-# No BaseDialog:
-self.layout = MainLayout(
-    self,
-    title="Meu Plugin",
-    enable_scroll=True,
-    show_run=False,
-    show_info=False,
-    show_close=True,
-)
+# No BaseDialog (self.layout já é um MainLayout):
+# NUNCA importar QVBoxLayout do QtWidgets — use os métodos do MainLayout
 ```
 
 **Métodos:**
-- `addWidget(widget)` — adiciona ao scroll (se habilitado) ou content
-- `addLayout(layout)` — adiciona layout
-- `add_execution_buttons(buttons_widget)` — adiciona botões FIXOS fora do scroll
-- `add_items(items)` — adiciona múltiplos widgets/layouts
-- `set_appbar_title(title)` — atualiza título
+- `addWidget(widget)` — adiciona widget ao scroll (se habilitado) ou content
+- `addLayout(layout)` — adiciona layout ao scroll (se habilitado) ou content
+- `add_execution_buttons(buttons_widget)` — adiciona botões FIXOS fora do scroll (sempre abaixo do conteúdo). **ÚNICA maneira correta de adicionar GridExecutionButtons**
+- `add_items(items)` — adiciona múltiplos widgets/layouts de uma vez
+- `set_appbar_title(title)` — atualiza título da AppBar
+
+**⚠️ REGRA ABSOLUTA (Contrato):**
+
+1. **NUNCA importe `QVBoxLayout`, `QHBoxLayout` ou qualquer `QWidget` do QtWidgets nos diálogos.**  
+   O diálogo herda de `BaseDialog` que já fornece `self.layout` como `MainLayout`.  
+   Use `self.layout.addWidget()`, `self.layout.add_execution_buttons()`, etc.
+
+2. **GridExecutionButtons DEVE ser adicionado via `self.layout.add_execution_buttons()`** —  
+   este método coloca os botões FORA da área de scroll (fixos na parte inferior).  
+   NUNCA adicione `GridExecutionButtons` com `addWidget()`.
+
+3. **Plugins/Dialogs NUNCA criam layouts intermediários** (`QVBoxLayout()`, etc).  
+   Adicione widgets diretamente ao `self.layout` do `MainLayout`.
+
+```python
+# ✅ CERTO — diálogo usa MainLayout:
+class MeuDialogo(BaseDialog):
+    def _build_inner_ui(self):
+        self.layout.addWidget(self.grid_label)
+        self.layout.addWidget(self.selector)
+        self.layout.add_execution_buttons(self.buttons)  # GridExecutionButtons SEMPRE aqui
+
+# ❌ ERRADO — importa QtWidgets e cria layout manual:
+from qgis.PyQt.QtWidgets import QVBoxLayout  # QUEBRA CONTRATO
+
+layout = QVBoxLayout()                    # QUEBRA CONTRATO
+layout.addWidget(self.grid_label)
+...
+self.layout.add_items([layout])           # gambiarra desnecessária
+
+# ❌ ERRADO — GridExecutionButtons com addWidget:
+self.layout.addWidget(self.buttons)       # botões ficam no scroll!
+```
 
 ### AppBarWidget
 Barra superior com título, botões e drag. Instanciado pelo `MainLayout`.

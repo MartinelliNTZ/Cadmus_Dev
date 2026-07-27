@@ -181,6 +181,11 @@ class GridInputFields(QWidget):
             if description:
                 input_field.setToolTip(description)
 
+            # Suporte a placeholder explicito (suggest ao fundo)
+            placeholder = field_config.get("placeholder")
+            if placeholder:
+                input_field.setPlaceholderText(placeholder)
+
             row_layout.addWidget(lbl)
             row_layout.addWidget(input_field, 1)  # stretch=1 para ocupar resto
 

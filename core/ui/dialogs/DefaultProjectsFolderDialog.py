@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
-from qgis.PyQt.QtCore import pyqtSignal
-from qgis.PyQt.QtWidgets import QVBoxLayout
-
 from ....i18n.TranslationManager import STR
-from ....resources.widgets.simple.SelectorWidget import SelectorWidget
-from ....resources.widgets.ExecutionButtonsWidget import ExecutionButtonsWidget
-from ....core.ui.WidgetFactory import WidgetFactory
+from ....resources.new_widgets.grid.GridLabel import GridLabel
+from ....resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ....resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ....core.config.LogUtils import LogUtils
 from ....utils.ToolKeys import ToolKey
 from ....plugins.BaseDialog import BaseDialog
@@ -18,8 +15,6 @@ class DefaultProjectsFolderDialog(BaseDialog):
     e ser passada via construtor em ``current_folder``.
     """
 
-    folder_selected = pyqtSignal(str)
-
     def __init__(self, current_folder: str = "", parent=None):
         super().__init__(parent)
         self.PLUGIN_NAME = STR.DEFAULT_PROJECTS_FOLDER_TITLE
@@ -27,60 +22,67 @@ class DefaultProjectsFolderDialog(BaseDialog):
             tool=ToolKey.CREATE_PROJECT, class_name="DefaultProjectsFolderDialog", level="DEBUG"
         )
         self._current_folder = current_folder
+        self._result_path = ""
         self.setWindowTitle(STR.DEFAULT_PROJECTS_FOLDER_TITLE)
-        self.resize(620, 160)
+        self.resize(620, 200)
         # Inicializa o MainLayout do BaseDialog (cria self.layout)
         self._build_ui(
             title=self.PLUGIN_NAME,
             enable_scroll=False,
-            minimum_size=(300, 160),
+            minimum_size=(300, 200),
         )
         self._build_inner_ui()
 
     def _build_inner_ui(self):
         """Constrói o conteúdo interno do diálogo dentro do MainLayout."""
-        layout = QVBoxLayout()
 
-        info = WidgetFactory.create_label(
-            text=STR.DEFAULT_PROJECTS_FOLDER_PROMPT,
-            word_wrap=True,
-        )
-        layout.addWidget(info)
+        # GridLabel com texto informativo
+        info = GridLabel(config={
+            "prompt": {"text": STR.DEFAULT_PROJECTS_FOLDER_PROMPT},
+        }, parent=self)
+        self.layout.addWidget(info)
 
-        self.selector = SelectorWidget(
-            title=STR.PROJECTS_FOLDER,
-            mode=SelectorWidget.MODE_FOLDER,
+        # GridComplexSelector para pasta
+        self.selector = GridComplexSelector(
+            config={
+                "projects_folder": {
+                    "label": STR.PROJECTS_FOLDER,
+                    "description": STR.DEFAULT_PROJECTS_FOLDER_PROMPT,
+                    "allow_folder": True,
+                    "allow_file": False,
+                    "multiple": False,
+                    "mode_type": "input",
+                    "show_explorer_button": True,
+                },
+            },
+            tool_key=ToolKey.CREATE_PROJECT,
+            separator_top=True,
+            separator_bottom=True,
             parent=self,
         )
         if self._current_folder:
-            self.selector.set_path(self._current_folder)
-        layout.addWidget(self.selector)
+            self.selector.set_path("projects_folder", self._current_folder)
+        self.layout.addWidget(self.selector)
 
-        # ExecutionButtonsWidget padronizado: OK + Cancelar (sem info)
-        self._buttons_widget = ExecutionButtonsWidget(
-            run_callback=self._on_accept,
-            close_callback=self._on_reject,
-            info_callback=None,
-            run_text=STR.OK,
-            close_text=STR.CANCEL,
-            height=24,
+        # GridExecutionButtons — NATIVO (close, config, info built-in)
+        self._buttons_widget = GridExecutionButtons(
+            config={
+                "accept": {
+                    "label": STR.OK,
+                    "description": "Confirmar pasta padrão",
+                    "callback": self._on_accept,
+                    "is_run_button": True,
+                },
+            },
+            tool_key=ToolKey.CREATE_PROJECT,
             parent=self,
         )
-        layout.addWidget(self._buttons_widget)
-
-        # Adiciona ao MainLayout do BaseDialog
-        self.layout.add_items([layout])
+        self.layout.add_execution_buttons(self._buttons_widget)
 
     def _on_accept(self):
-        """Callback de aceite — emite signal com o caminho e fecha."""
-        path = self.get_folder_path()
-        self.folder_selected.emit(path)
+        """Callback de aceite — salva o caminho e fecha."""
+        self._result_path = self.get_folder_path()
         self.accept()
-
-    def _on_reject(self):
-        """Callback de rejeição — emite signal vazio e fecha."""
-        self.folder_selected.emit("")
-        self.reject()
 
     def get_folder_path(self) -> str:
         """Retorna o caminho da pasta selecionada.
@@ -91,6 +93,4 @@ class DefaultProjectsFolderDialog(BaseDialog):
         paths = self.selector.get_paths()
         if paths:
             return paths[0].strip()
-
-        fallback_text = self.selector.get_file_path().strip()
-        return fallback_text or ""
+        return self._result_path or ""

@@ -132,7 +132,7 @@ class CreateProjectPlugin(BasePluginMTL):
         return False
 
     def _resolve_project_name(self):
-        """Abre dialogo modal para nome do projeto."""
+        """Abre dialogo nao-modal para nome do projeto."""
         if not self._base_folder:
             self.logger.error("_base_folder vazio — impossivel criar projeto")
             QgisMessageUtil.modal_error(
@@ -146,30 +146,34 @@ class CreateProjectPlugin(BasePluginMTL):
             prefix="NovoProjeto_",
             pattern=self.GENERIC_PROJECT_PATTERN,
         )
-        name_dialog = ProjectNameDialog(
+        self._name_dialog = ProjectNameDialog(
             suggested_name=suggested_name,
             base_folder=self._base_folder,
             project_tool_key=self.TOOL_KEY,
             parent=self.iface.mainWindow(),
         )
-        # Modal: aguarda usuario aceitar ou cancelar
-        if name_dialog.exec():
-            project_name = name_dialog.get_project_name()
-            resolved = project_name.strip() or suggested_name
-            self._project_name = ExplorerUtils.sanitize_path_component(resolved)
-            if not self._project_name:
-                self._project_name = suggested_name
-            self.logger.info(f"Nome do projeto resolvido: {self._project_name}")
-            self._create_project_structure(
-                self._base_folder,
-                self._project_name,
-                self._default_crs_authid,
-            )
-        else:
-            self.logger.info("Usuario cancelou o dialogo de nome do projeto")
-        name_dialog.deleteLater()
+        # Nao-modal: usa signal + show()
+        self._name_dialog.project_accepted.connect(self._on_project_name_accepted)
+        self._name_dialog.show()
 
-    # _on_project_name_accepted removido — logica movida para _resolve_project_name()
+    def _on_project_name_accepted(self, project_name: str):
+        """Callback quando o nome do projeto e confirmado no dialogo nao-modal."""
+        if not project_name:
+            self.logger.info("Usuario cancelou o dialogo de nome do projeto")
+            return
+
+        resolved = project_name.strip() or self._name_dialog._suggested_name
+        self._project_name = ExplorerUtils.sanitize_path_component(resolved)
+        if not self._project_name:
+            self._project_name = self._name_dialog._suggested_name
+        self.logger.info(f"Nome do projeto resolvido: {self._project_name}")
+        self._create_project_structure(
+            self._base_folder,
+            self._project_name,
+            self._default_crs_authid,
+        )
+        self._name_dialog.deleteLater()
+        self._name_dialog = None
 
     def _detect_creation_scenario(self, current_project) -> int:
         if ProjectUtils.is_project_saved(current_project):

@@ -182,7 +182,7 @@ Se um widget é COMPLEXO (simple + funções):
 1. BaseTheme + ThemeManager OK ✅
 2. AppStyles criado ✅
 3. Widgets criados (simple/grid/raiz) — SIMPLE E GRID COMPLETOS ✅, raiz PARCIAL
-4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅, ExportAllLayouts ✅
+4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅, ExportAllLayouts ✅, ReplaceInLayouts ✅
 5. NUNCA deletar nada antigo
 ```
 
@@ -219,6 +219,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
       ├── GridExecutionButtons.py       ← Container de botões modernos (SimpleModernButton)
       ├── GridIconButton.py             ← Container de botões com ícone (SimpleIconButton)
       ├── GridCheckbox.py               ← Container de checkboxes (dict config + items_per_row)
+      ├── GridInputFields.py            ← Container de campos de texto (dict config + SimpleQLineEdit)
       ├── GridDoubleSpin.py             ← Container de campos numéricos (dict config + type int/double)
       └── GridComplexSelector.py        ← Grade de ComplexSelectors (dict config + parent linking)
 ```
@@ -546,7 +547,7 @@ Criados em `resources/new_widgets/`.
 | 9 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
 | 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridCheckbox + GridButton | ⬜ Pendente |
 | 11 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton | ⬜ Pendente |
-| 12 | `ReplaceInLayouts` | create_layer_input, create_dropdown_selector, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridButton | ⬜ Pendente |
+| 12 | `ReplaceInLayouts` | create_input_fields_widget, create_simple_button, create_checkbox_grid, create_label, create_bottom_action_buttons | GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons | ✅ Migrado (2.3.67.1) |
 | 13 | `SaveTemporaryLayersPlugin` | create_path_selector, create_layer_input, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridButton | ⬜ Pendente |
 | 14 | `GenerateTrailPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_color_button, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + ComplexColorPicker + GridButton | ⬜ Pendente |
 | 15 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
@@ -916,7 +917,7 @@ def resolve_qt_window_modality(name: str):
     [ ] ComplexColorPicker.py
     [ ] ComplexCrsSelector.py
 
-[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (4/18 migrados)
+[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (5/18 migrados)
   [x] 2.1 AboutDialog ✅ (2.3.62.2)
   [x] 2.2 CoorResultDialog ✅ (2.3.63.3)
   [x] 2.3 InfoDialog ✅ (2.3.64.1)
@@ -928,7 +929,7 @@ def resolve_qt_window_modality(name: str):
   [ ] 2.9 DroneCoordinates
   [ ] 2.10 LoadFolderLayers
   [ ] 2.11 PathExtensionPlugin
-  [ ] 2.12 ReplaceInLayouts
+  [x] 2.12 ReplaceInLayouts ✅ (2.3.67.1)
   [ ] 2.13 SaveTemporaryLayersPlugin
   [ ] 2.14 GenerateTrailPlugin
   [ ] 2.15 ReportMetadataPlugin
@@ -956,3 +957,4 @@ def resolve_qt_window_modality(name: str):
 | 2026-07-21 | 4.0.0 | Correções: Separador é QFrame visual, SeparatorWidget separado, ThemeManager só BaseTheme |
 | 2026-07-24 | 5.0.0 | **Atualização:** FASE 0 marcada como completa; FASE 1 atualizada com SimpleModernButton, SimpleQLineEdit, GridExecutionButtons, GridIconButton, MainLayout, ScrollWidget, AppBarWidget; FASE 2 atualizada com AboutDialog e CoorResultDialog como migrados; adicionadas regras 13-17 do contrato (config dict, callbacks, modern widgets, add_execution_buttons sem stretch) |
 | 2026-07-24 | 5.1.0 | **Atualização:** Adicionado TextBrowser.py aos widgets raiz (FASE 1.3). Adicionado InfoDialog como migrado (FASE 2 - 2.3.64.1). Atualizadas seções 3, 4.1, 4.2, 7.3, 8.1 e TODO com TextBrowser e InfoDialog. |
+| 2026-07-27 | 5.3.0 | **Atualização:** Criado GridInputFields (container de campos de texto + SimpleQLineEdit). ReplaceInLayouts migrado usando GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons. Botao Inverter como item extra no GridExecutionButtons. FASE 2: 5 plugins migrados. |

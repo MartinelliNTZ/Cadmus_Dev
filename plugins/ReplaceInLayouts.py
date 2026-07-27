@@ -1,18 +1,34 @@
 # -*- coding: utf-8 -*-
+"""
+ReplaceInLayouts — Substitui texto em layouts do projeto.
+Plugin migrado para novo sistema de widgets (new_widgets/).
+"""
+
 from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.LayoutsUtils import LayoutsUtils
 from ..utils.ProjectUtils import ProjectUtils
 from ..utils.ToolKeys import ToolKey
 from .BasePlugin import BasePluginMTL
-from ..core.ui.WidgetFactory import WidgetFactory
+from ..resources.new_widgets.grid.GridInputFields import GridInputFields
+from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.new_widgets.grid.GridLabel import GridLabel
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ..i18n.TranslationManager import STR
 
 
 class ReplaceInLayoutsDialog(BasePluginMTL):
     CHECKBOX_OPTIONS = {
-        "case_sensitive": STR.CASE_SENSITIVE,
-        "full_replace": STR.FULL_LABEL_REPLACE,
+        "case_sensitive": {
+            "label": STR.CASE_SENSITIVE,
+            "description": "Diferenciar maiusculas de minusculas na busca",
+            "default": True,
+        },
+        "full_replace": {
+            "label": STR.FULL_LABEL_REPLACE,
+            "description": "Substituir o label inteiro em vez de apenas o texto",
+            "default": False,
+        },
     }
 
     TOOL_KEY = ToolKey.REPLACE_IN_LAYOUTS
@@ -35,105 +51,107 @@ class ReplaceInLayoutsDialog(BasePluginMTL):
             enable_scroll=False,
         )
 
-        # ====== BUSCAR E SUBSTITUIR ======
-        input_layout, self.input_fields_widget = (
-            WidgetFactory.create_input_fields_widget(
-                fields_dict={
-                    "old_text": {
-                        "title": STR.SEARCH_TEXT,
-                        "type": "text",
-                        "default": "",
-                    },
-                    "new_text": {
-                        "title": STR.REPLACE_WITH_NEW_TEXT,
-                        "type": "text",
-                        "default": "",
-                    },
+        # ====== CAMPOS DE TEXTO (old_text + new_text) ======
+        self.input_fields = GridInputFields(
+            config={
+                "old_text": {
+                    "label": STR.SEARCH_TEXT,
+                    "description": "Texto original a ser substituido nos layouts",
+                    "default": "",
                 },
-                separator_bottom=False,
-            )
-        )
-
-        # ====== BOTÃO DE TROCA ======
-        swap_layout, self.swap_button = WidgetFactory.create_simple_button(
-            text=f"⇄ {STR.REPLACE_IN_LAYOUTS_SWAP}",
+                "new_text": {
+                    "label": STR.REPLACE_WITH_NEW_TEXT,
+                    "description": "Novo texto que substituira o original",
+                    "default": "",
+                },
+            },
+            separator_bottom=True,
             parent=self,
-            separator_top=False,
-            separator_bottom=True,
-            spacing=12,
         )
-        self.swap_button.clicked.connect(self._swap_fields)
+        self.layout.addWidget(self.input_fields)
 
-        # ====== OPÇÕES ======
-        opts_layout, self.checkbox_map = WidgetFactory.create_checkbox_grid(
-            options_dict=self.CHECKBOX_OPTIONS,
+        # ====== OPCOES (checkboxes) ======
+        self.checkbox_widget = GridCheckbox(
+            config=self.CHECKBOX_OPTIONS,
+            title="Opcoes",
             items_per_row=1,
-            checked_by_default=False,
             separator_bottom=True,
+            parent=self,
         )
+        self.layout.addWidget(self.checkbox_widget)
 
-        # ====== INFO ======
-        info_label = WidgetFactory.create_label(
-            text=STR.PROJECT_BACKUP_INFO,
-            word_wrap=True,
-            bold=False,
+        # ====== INFO BACKUP ======
+        self.info_label = GridLabel(
+            config={
+                "backup": {
+                    "text": STR.PROJECT_BACKUP_INFO,
+                    "description": "Backup automatico do projeto antes da substituicao",
+                },
+            },
+            parent=self,
         )
+        self.layout.addWidget(self.info_label)
 
-        # ====== BOTÕES ======
-        buttons_layout, self.action_buttons = (
-            WidgetFactory.create_bottom_action_buttons(
-                parent=self,
-                run_callback=self.execute_tool,
-                close_callback=self.close,
-                info_callback=self.show_info_dialog,
-                tool_key=self.TOOL_KEY,
-                run_text=STR.REPLACE_IN_LAYOUTS_RUN,
-                close_text=STR.CLOSE,
-            )
+        # ====== BOTOES DE ACAO (Run + Inverter + Close + Info) ======
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "run": {
+                    "label": STR.REPLACE_IN_LAYOUTS_RUN,
+                    "description": "Inicia a substituicao nos layouts do projeto",
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+                "swap": {
+                    "label": "\u21c4 Inverter",
+                    "description": "Inverte old_text com new_text",
+                    "callback": self._swap_fields,
+                    "is_run_button": False,
+                },
+            },
+            enable_close_button=True,
+            enable_info=True,
+            tool_key=self.TOOL_KEY,
+            parent=self,
         )
-
-        # ====== ADICIONAR AO LAYOUT ======
-        self.layout.add_items(
-            [input_layout, swap_layout, opts_layout, info_label, buttons_layout]
-        )
+        self.layout.add_execution_buttons(self.action_buttons)
 
     def _load_prefs(self):
-
-        self.input_fields_widget.set_values(
+        """Carrega preferencias salvas."""
+        self.input_fields.set_values(
             {
                 "old_text": self.preferences.get("old_text", ""),
                 "new_text": self.preferences.get("new_text", ""),
             }
         )
-        self.checkbox_map["case_sensitive"].setChecked(
-            self.preferences.get("case_sensitive", True)
+        self.checkbox_widget.set_checked(
+            "case_sensitive", self.preferences.get("case_sensitive", True)
         )
-        self.checkbox_map["full_replace"].setChecked(self.preferences.get("full_replace", False))
+        self.checkbox_widget.set_checked(
+            "full_replace", self.preferences.get("full_replace", False)
+        )
 
     def _save_prefs(self):
-        values = self.input_fields_widget.get_values()
+        """Salva preferencias."""
+        values = self.input_fields.get_values()
         self.preferences["old_text"] = values.get("old_text", "")
         self.preferences["new_text"] = values.get("new_text", "")
-        self.preferences["case_sensitive"] = self.checkbox_map["case_sensitive"].isChecked()
-        self.preferences["full_replace"] = self.checkbox_map["full_replace"].isChecked()
-        # Tamanho da janela (persistido automaticamente por BasePlugin.closeEvent)
+        self.preferences["case_sensitive"] = self.checkbox_widget.is_checked("case_sensitive")
+        self.preferences["full_replace"] = self.checkbox_widget.is_checked("full_replace")
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
 
     def _swap_fields(self):
-        """Inverte o conteúdo dos campos old_text e new_text."""
-        values = self.input_fields_widget.get_values()
-        old = values.get("old_text", "")
-        new = values.get("new_text", "")
-
-        # Troca os valores
-        self.input_fields_widget.set_values({"old_text": new, "new_text": old})
+        """Inverte old_text com new_text."""
+        old_val = self.input_fields.get_value("old_text")
+        new_val = self.input_fields.get_value("new_text")
+        self.input_fields.set_value("old_text", new_val)
+        self.input_fields.set_value("new_text", old_val)
 
     def execute_tool(self):
-        values = self.input_fields_widget.get_values()
+        values = self.input_fields.get_values()
         old_text = values.get("old_text", "").strip()
         new_text = values.get("new_text", "")
-        case_sensitive = self.checkbox_map["case_sensitive"].isChecked()
-        full_replace = self.checkbox_map["full_replace"].isChecked()
+        case_sensitive = self.checkbox_widget.is_checked("case_sensitive")
+        full_replace = self.checkbox_widget.is_checked("full_replace")
 
         if not old_text:
             QgisMessageUtil.bar_warning(self.iface, STR.ENTER_TEXT_TO_SEARCH)
@@ -155,7 +173,7 @@ class ReplaceInLayoutsDialog(BasePluginMTL):
         project = ProjectUtils.get_project_instance()
 
         try:
-            # BACKUP (se possível)
+            # BACKUP (se possivel)
             if ProjectUtils.is_project_saved(project):
                 ProjectUtils.create_project_backup(project)
 

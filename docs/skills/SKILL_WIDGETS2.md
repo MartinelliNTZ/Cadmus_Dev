@@ -426,6 +426,56 @@ layout.addWidget(checkbox_widget)
 | `separator_bottom` | bool | `False` | Separador depois |
 | `parent` | QWidget | `None` | Widget pai |
 
+### GridInputFields 🆕
+Container de campos de entrada de texto com labels, configurável via dict. Usa `SimpleQLineEdit` (glow/gradiente) internamente. **Não possui botão Inverter integrado** — o plugin declara o botão via `GridExecutionButtons` se necessário.
+
+```python
+input_fields = GridInputFields(
+    config={
+        "old_text": {
+            "label": "Texto a buscar",
+            "description": "Texto original a ser substituido",
+            "default": "",
+        },
+        "new_text": {
+            "label": "Substituir por",
+            "description": "Novo texto",
+            "default": "",
+        },
+    },
+    title="Buscar e Substituir",
+    separator_bottom=True,
+    parent=self,
+)
+layout.addWidget(input_fields)
+
+# API publica
+input_fields.get_value("old_text")          # → ""
+input_fields.set_value("old_text", "novo")  # define valor
+input_fields.get_values()                   # → {"old_text": "novo", "new_text": ""}
+input_fields.set_values({"old_text": "a", "new_text": "b"})
+input_fields.widget("old_text")             # → SimpleQLineEdit (acesso direto)
+```
+
+**API pública:**
+| Método | Descrição |
+|--------|-----------|
+| `get_value(key)` | Retorna valor de um campo |
+| `set_value(key, value)` | Define valor de um campo |
+| `get_values()` | Retorna dict `{key: value, ...}` |
+| `set_values(values)` | Define múltiplos campos via dict |
+| `widget(key)` | Acesso direto ao QLineEdit |
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `config` | dict | `{}` | Dict de campos (chave → `label`, `description`, `default`) |
+| `title` | str | `""` | Título do grupo (QGroupBox) |
+| `separator_top` | bool | `False` | Separador antes |
+| `separator_bottom` | bool | `False` | Separador depois |
+| `parent` | QWidget | `None` | Widget pai |
+
 ### GridDoubleSpin 🆕
 Container de campos numéricos configurável via dict. Usa `SimpleDoubleSpinBox` internamente. Suporta `type="int"` ou `type="double"`.
 
@@ -840,3 +890,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-23 | 2.0.0 | Adicionados `SimpleModernButton` (gradiente + glow), `SimpleQLineEdit` (gradiente + glow), `SimpleReadOnly` atualizado com `SimpleModernButton` + `SimpleQLineEdit` + ícone COPY2. Adicionados tokens `INPUT_FIELD_PADDING`, `INPUT_FIELD_FONT_SIZE`, `INPUT_FIELD_FONT_WEIGHT`, `INPUT_SHADOW_*`. Adicionados métodos `modern_input_primary()`, `modern_input_secondary()`. Documentado comportamento de `add_execution_buttons` sem stretch com scroll. |
 | 2026-07-24 | 2.1.0 | Adicionado `TextBrowser` (raiz, sem versão grid) — QTextBrowser com `AppStyles.text_browser()`, set_markdown com fallback Qt5/Qt6. |
 | 2026-07-24 | 2.2.0 | Adicionados Simple widgets faltantes: `SimpleCheckbox`, `SimpleDoubleSpinBox`, `ComplexSelector`, `SquareIconButton`. Adicionados Grid widgets: `GridCheckbox`, `GridDoubleSpin`, `GridComplexSelector`. Atualizado ExportAllLayouts status — plugin 100% migrado para novo sistema (usa GridCheckbox + GridDoubleSpin + GridComplexSelector + GridExecutionButtons, sem WidgetFactory). |
+| 2026-07-27 | 2.3.0 | Adicionado `GridInputFields` ao catálogo Grid — container de campos de texto com labels + SimpleQLineEdit (glow/gradiente). API: get_value/set_value/get_values/set_values/widget. ReplaceInLayouts migrado usando GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons. |

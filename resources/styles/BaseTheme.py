@@ -251,6 +251,21 @@ class BaseTheme:
     SPINBOX_ARROW_BUTTON_WIDTH: str = "16px"
 
     # ════════════════════════════════════════════════════════════
+    # MARGENS DE CONTAINER
+    # ════════════════════════════════════════════════════════════
+
+    CONTAINER_MARGIN_LEFT: int = 8
+    CONTAINER_MARGIN_TOP: int = 2
+    CONTAINER_MARGIN_RIGHT: int = 8
+    CONTAINER_MARGIN_BOTTOM: int = 2
+
+    # ════════════════════════════════════════════════════════════
+    # LABEL FIELD — largura mínima do label no campo
+    # ════════════════════════════════════════════════════════════
+
+    LABEL_FIELD_MIN_WIDTH: int = 100
+
+    # ════════════════════════════════════════════════════════════
     # FLAGS BOOLEANAS PARA EFEITOS VISUAIS
     # ════════════════════════════════════════════════════════════
 

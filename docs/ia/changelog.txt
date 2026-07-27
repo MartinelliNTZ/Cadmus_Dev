@@ -242,3 +242,12 @@
      - TODO interno atualizado com estado real dos widgets
      - Catálogo 4.1 atualizado com todos os widgets existentes
      - Fluxo de migração atualizado (4 plugins migrados)
+2.3.67 27/07/2026
+[2.3.67.1][27/07/2026] Migrado ReplaceInLayouts para novo sistema de widgets (new_widgets/):
+   - Criado GridInputFields em resources/new_widgets/grid/GridInputFields.py — container de campos de texto com labels, SimpleQLineEdit com glow/gradiente, API get_value/set_value/get_values/set_values/widget
+   - ReplaceInLayouts migrado: substituido WidgetFactory por GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons
+   - Botao Inverter (⇄) adicionado como item extra no config do GridExecutionButtons, callback _swap_fields no plugin
+   - Removidos imports de WidgetFactory, Styles, etc.
+   - Atualizado docs/skills/SKILL_WIDGETS2.md v2.3.0 com GridInputFields
+   - Atualizado docs/plano_eliminacao_widgetfactory.md v5.3.0 — ReplaceInLayouts marcado como migrado
+   - docs/plano_acao_replaceinlayouts.md criado com plano completo

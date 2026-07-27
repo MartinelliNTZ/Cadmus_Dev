@@ -67,7 +67,7 @@ class Strings_pt_BR:
     ASYNC_THRESHOLD = "Limiar assíncrono (nº de feições):"
     CALCULATION_METHOD_LABEL = "Método de cálculo vetorial:"
     SEARCH_TEXT = "Texto a buscar:"
-    REPLACE_WITH_NEW_TEXT = "Texto a substituir (novo):"
+    REPLACE_WITH_NEW_TEXT = "Texto a substituir:"
     SOURCE_LAYER_ATTRIBUTES = "Atributos da camada origem"
     ATTRIBUTES = "Atributos"
     USE_ALL_ATTRIBUTES = "Usar todos os atributos"
@@ -435,7 +435,7 @@ class Strings_pt_BR:
         "inteiro do label quando houver correspondência."
     )
     REPLACE_IN_LAYOUTS_SWAP = "Inverter"
-    REPLACE_IN_LAYOUTS_RUN = "Executar substituição"
+    REPLACE_IN_LAYOUTS_RUN = "Executar"
 
     # plugins/LoadFolderLayers.py
     LOAD_FOLDER_LAYERS_TITLE = "Carregar Pasta de Arquivos"

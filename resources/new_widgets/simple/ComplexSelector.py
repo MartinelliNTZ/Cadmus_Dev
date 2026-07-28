@@ -18,9 +18,10 @@ Comportamento:
   - ➡️ (explorer): abre Windows Explorer no diretório do path/layer
 
 Lock Button:
-  - allow_lock_check: botão 🔒/🔓 na mesma linha dos botões, estilo SquareIconButton.
-    🔒 (marcado) = desbloqueado; 🔓 (desmarcado) = bloqueia widget (stack + botões).
-    Default: True (🔒 = desbloqueado).
+  - allow_lock_check: botão LOCK/UNLOCK (ícone `layer.ico` / `raster.ico`) na mesma
+    linha dos botões, estilo SquareIconButton.
+    locked (marcado) = desbloqueado; unlocked (desmarcado) = bloqueia widget.
+    Default: True (locked = desbloqueado).
   - allow_features_check: checkbox ABAIXO da linha principal, com texto.
     Default: False (desmarcado).
     Texto padrão: STR.ONLY_SELECTED_FEATURES
@@ -33,8 +34,7 @@ from typing import Callable, Optional
 
 from qgis.PyQt.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
-    QStackedWidget, QSizePolicy, QCheckBox, QPushButton,
-    QGraphicsDropShadowEffect,
+    QStackedWidget, QSizePolicy, QCheckBox,
 )
 from qgis.PyQt.QtCore import pyqtSignal, Qt
 from qgis.gui import QgsMapLayerComboBox
@@ -212,36 +212,7 @@ class ComplexSelector(QWidget):
         self._combo.currentIndexChanged.connect(self._on_combo_layer_changed)
         self._stack.addWidget(self._combo)
 
-        # ── Lock button (mesma linha, estilo SquareIconButton) ──
-        self._lock_button = None
-        if self._allow_lock_check:
-            self._lock_button = QPushButton()
-            self._lock_button.setObjectName(f"lock_btn_{id(self)}")
-            self._lock_button.setFlat(True)
-            self._lock_button.setCursor(Qt.CursorShape.PointingHandCursor if hasattr(Qt, 'CursorShape') else Qt.PointingHandCursor)  # type: ignore[attr-defined]
-            self._lock_button.setCheckable(True)
-            self._lock_button.setChecked(self._lock_check_default)
-            # Mesmo tamanho dos SquareIconButton
-            theme_sz = int(AppStyles._get_theme().BUTTON_ROUND_ICON_SIZE.replace("px", ""))
-            self._lock_button.setFixedSize(theme_sz, theme_sz)
-            # Sombra (glow)
-            from ...styles.BaseTheme import BaseTheme
-            shadow = QGraphicsDropShadowEffect(self._lock_button)
-            glow_color_str = BaseTheme.rgba(AppStyles._get_theme().COLOR_GLOW_NEUTRAL, AppStyles._get_theme().COLOR_GLOW_NEUTRAL_ALPHA)
-            from qgis.PyQt.QtGui import QColor
-            glow_color = QColor(*[int(p.strip()) for p in glow_color_str.replace("rgba(", "").replace(")", "").split(",")])
-            shadow.setBlurRadius(AppStyles._get_theme().BUTTON_SHADOW_BLUR_NORMAL)
-            shadow.setOffset(0, AppStyles._get_theme().BUTTON_SHADOW_OFFSET_NORMAL)
-            shadow.setColor(glow_color)
-            self._lock_button.setGraphicsEffect(shadow)
-            # Sinal
-            self._lock_button.toggled.connect(self._on_lock_toggled)
-            # Aplica estilo (mesmo do SquareIconButton)
-            self._lock_button.setStyleSheet(AppStyles.square_icon_button(self._lock_button.objectName()))
-            self._update_lock_button_text()
-            layout.addWidget(self._lock_button, 0, Qt.AlignmentFlag.AlignVCenter)
-
-        # Botões
+        # Botões (incluindo lock button, todos agrupados à direita)
         self._add_buttons(layout)
 
         # Decide estado inicial: se tem layer_filters específico, começa com combo
@@ -258,7 +229,7 @@ class ComplexSelector(QWidget):
         if self._allow_features_check:
             features_layout = QHBoxLayout()
             features_layout.setContentsMargins(0, 0, 0, 0)
-            features_layout.setSpacing(4)
+            features_layout.setSpacing(2)
 
             # Espaçamento para alinhar com o label acima
             spacer_label = QLabel()
@@ -279,6 +250,20 @@ class ComplexSelector(QWidget):
 
     def _add_buttons(self, layout):
         """Adiciona botões conforme configuração. Todos com mesmo tamanho do input."""
+        # ── Lock button (SquareIconButton, primeiro da direita) ──
+        self._lock_button = None
+        if self._allow_lock_check:
+            self._lock_button = SquareIconButton(
+                icon=IconManager.icon(IconManager.LOCK),
+                tooltip="🔒 Desbloqueado — clique para bloquear" if self._lock_check_default else "🔓 Bloqueado — clique para desbloquear",
+                parent=self,
+            )
+            self._lock_button.setCheckable(True)
+            self._lock_button.setChecked(self._lock_check_default)
+            self._lock_button.toggled.connect(self._on_lock_toggled)
+            self._update_lock_button_icon()
+            layout.addWidget(self._lock_button, 0, Qt.AlignmentFlag.AlignVCenter)
+
         # 🔍 (file)
         if self._allow_file:
             self._btn_file = SquareIconButton(
@@ -674,14 +659,21 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def _on_lock_toggled(self, checked: bool):
-        """Quando lock button muda, atualiza bloqueio do selector e texto."""
-        self._update_lock_button_text()
+        """Quando lock button muda, atualiza bloqueio do selector e ícone."""
+        self._update_lock_button_icon()
         self._update_blocked_state()
 
-    def _update_lock_button_text(self):
-        """Atualiza texto do lock button conforme estado checked."""
+    def _update_lock_button_icon(self):
+        """Atualiza ícone e tooltip do lock button conforme estado checked."""
         if self._lock_button is not None:
-            self._lock_button.setText("🔒" if self._lock_button.isChecked() else "🔓")
+            locked = self._lock_button.isChecked()
+            self._lock_button.setIcon(
+                IconManager.icon(IconManager.LOCK if locked else IconManager.UNLOCK)
+            )
+            self._lock_button.setToolTip(
+                "🔒 Desbloqueado — clique para bloquear" if locked
+                else "🔓 Bloqueado — clique para desbloquear"
+            )
 
     def _update_blocked_state(self):
         """Gerencia bloqueio do widget baseado no estado do lock button."""
@@ -741,7 +733,7 @@ class ComplexSelector(QWidget):
         """Define estado do lock button programaticamente."""
         if self._lock_button is not None:
             self._lock_button.setChecked(checked)
-            self._update_lock_button_text()
+            self._update_lock_button_icon()
 
     # ══════════════════════════════════════════════════════════════════
     # API Pública — Features Checkbox

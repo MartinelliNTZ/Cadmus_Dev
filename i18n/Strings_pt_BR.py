@@ -57,7 +57,7 @@ class Strings_pt_BR:
     FILE_TYPES = "Tipos de Arquivo"
     ROOT_FOLDER = "Pasta raiz:"
     OUTPUT_FOLDER = "Pasta de saída:"
-    INPUT_LINE_LAYER = "Camada de Linhas (INPUT):"
+    INPUT_LINE_LAYER = "Linhas:"
     SOURCE_LAYER = "Camada de Origem:"
     TARGET_LAYER = "Camada de Destino:"
     RANGE = "Intervalo"

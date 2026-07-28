@@ -17,7 +17,9 @@ from ..i18n.TranslationManager import STR
 from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
 from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
 from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+from ..resources.new_widgets.CollapsibleParametersWidget import (
+    CollapsibleParametersWidget,
+)
 
 
 class GenerateTrailPlugin(BasePluginMTL):
@@ -55,8 +57,6 @@ class GenerateTrailPlugin(BasePluginMTL):
                     "allow_folder": False,
                     "layer_filters": QgsMapLayerProxyModel.LineLayer,
                     # Lock check (bloqueia widget quando desmarcado)
-                    "allow_lock_check": True,
-                    "lock_check_default": True,
                     # Features check (somente feições selecionadas)
                     "allow_features_check": True,
                     "features_check_text": STR.ONLY_SELECTED_FEATURES,
@@ -119,6 +119,8 @@ class GenerateTrailPlugin(BasePluginMTL):
                     "allow_file": True,
                     "allow_folder": False,
                     "file_filter": "QML (*.qml)",
+                    "allow_lock_check": True,
+                    "lock_check_default": True,
                 },
             },
             tool_key=self.TOOL_KEY,
@@ -178,7 +180,9 @@ class GenerateTrailPlugin(BasePluginMTL):
         self.logger.debug("Salvando preferências da ferramenta")
         self.preferences["last_input_path"] = self.grid.get_path("input_layer")
         self.preferences["last_output_path"] = self.grid.get_path("output_trail")
-        self.preferences["last_implement_length"] = float(self.implement_spin.get_value("implement_size"))
+        self.preferences["last_implement_length"] = float(
+            self.implement_spin.get_value("implement_size")
+        )
         self.preferences["last_qml_path"] = self.qml_grid.get_path("qml_style")
         self.preferences["only_selected"] = self.grid.get_checked_state("input_layer")
         self.preferences["window_width"] = self.width()
@@ -212,7 +216,9 @@ class GenerateTrailPlugin(BasePluginMTL):
             f"selecionadas={only_selected}, salvar_arquivo={save_to_folder}"
         )
 
-        layer, implement_length = self._resolve_input_layer(input_layer, implement_length)
+        layer, implement_length = self._resolve_input_layer(
+            input_layer, implement_length
+        )
         if layer is None:
             self.logger.warning("_resolve_input_layer returned None, aborting")
             return

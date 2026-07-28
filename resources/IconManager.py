@@ -31,6 +31,8 @@ class IconManager:
     COPY2 = "copy2.ico"
     ORIGIN = "origin.ico"
     LAYER2 = "layer2.ico"
+    LOCK = "layer.ico"
+    UNLOCK = "raster.ico"
 
     # Menus
     AGRICULTURE = "agriculture.ico"

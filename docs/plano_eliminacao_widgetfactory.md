@@ -938,7 +938,7 @@ def resolve_qt_window_modality(name: str):
   [ ] 2.12 PathExtensionPlugin
   [x] 2.13 ReplaceInLayouts ✅ (2.3.67.1)
   [x] 2.14 SaveTemporaryLayersPlugin ✅ (2.3.70.1)
-  [ ] 2.15 GenerateTrailPlugin
+  [x] 2.15 GenerateTrailPlugin ✅ (2.3.71.1)
   [ ] 2.16 ReportMetadataPlugin
   [ ] 2.17 VectorFieldsCalculationPlugin
   [ ] 2.18 VectorToSvgPlugin

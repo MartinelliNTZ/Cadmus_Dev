@@ -128,26 +128,62 @@ class GridComplexSelector(QWidget):
 
     def get_preferences(self) -> dict:
         """
-        Retorna dict com paths de todos os seletores para salvar em Preferences.
-        Apenas paths (QgsMapLayerComboBox não é salvo).
+        Retorna dict com todos os estados dos seletores para salvar em Preferences.
+
+        Inclui:
+        - paths de cada selector
+        - lock_state de cada selector (se allow_lock_check)
+        - checked_state de cada selector (se allow_features_check)
+
+        QgsMapLayerComboBox não é salvo.
         """
         prefs = {}
         for key, sel in self._selectors.items():
+            item = {}
             p = sel.path()
             if p:
-                prefs[key] = p
+                item["path"] = p
+            # Lock state
+            if self._link_meta.get(key, {}).get("allow_lock_check", False) or \
+               hasattr(sel, '_allow_lock_check') and sel._allow_lock_check:
+                item["lock_state"] = sel.get_lock_state()
+            # Features/checked state
+            if self._link_meta.get(key, {}).get("allow_features_check", False) or \
+               hasattr(sel, '_allow_features_check') and sel._allow_features_check:
+                item["checked_state"] = sel.get_checked_state()
+            if item:
+                prefs[key] = item
         return prefs
 
     def set_preferences(self, prefs: dict):
         """
-        Carrega paths de um dict (vindo de Preferences).
-        Apenas paths (QgsMapLayerComboBox não é carregado).
+        Carrega todos os estados de um dict (vindo de Preferences).
+
+        Inclui:
+        - paths de cada selector
+        - lock_state de cada selector (se existir no prefs)
+        - checked_state de cada selector (se existir no prefs)
         """
         if not prefs:
             return
-        for key, path in prefs.items():
+        for key, data in prefs.items():
             sel = self._selectors.get(key)
-            if sel and path:
+            if not sel:
+                continue
+            # Trata formato antigo (string direta) e novo (dict)
+            if isinstance(data, str):
+                path = data
+            elif isinstance(data, dict):
+                path = data.get("path", "")
+                lock_state = data.get("lock_state")
+                if lock_state is not None:
+                    sel.set_lock_state(bool(lock_state))
+                checked_state = data.get("checked_state")
+                if checked_state is not None:
+                    sel.set_checked_state(bool(checked_state))
+            else:
+                path = ""
+            if path:
                 sel.set_path(path)
 
     # ══════════════════════════════════════════════════════════════════

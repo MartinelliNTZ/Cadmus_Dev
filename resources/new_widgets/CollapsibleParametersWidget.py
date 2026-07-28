@@ -7,6 +7,7 @@ Widget raiz (sem versão grid). Segue o contrato do novo sistema:
 - Header clicável com ícone ▶/▼
 - Conteúdo mostra/esconde
 - AppStyles + tokens do BaseTheme
+- Suporte a persistência de preferências via get_preferences/set_preferences
 
 Uso em plugins:
     coll = CollapsibleParametersWidget(
@@ -16,6 +17,11 @@ Uso em plugins:
     )
     coll.add_content_widget(my_widget)
     self.layout.addWidget(coll)
+
+    # Salvar/carregar estado
+    prefs = coll.get_preferences()
+    Preferences.save_tool_prefs(self.TOOL_KEY, {"collapsible": prefs})
+    coll.set_preferences(Preferences.load_tool_prefs(self.TOOL_KEY).get("collapsible", {}))
 """
 
 from qgis.PyQt.QtWidgets import (
@@ -101,6 +107,7 @@ class CollapsibleParametersWidget(QWidget):
     - Header: clique alterna expandido/recolhido com ícone ▶/▼
     - Conteúdo: mostra/esconde
     - Estilos: AppStyles + tokens do BaseTheme
+    - Preferências: get_preferences/set_preferences para persistir estado expandido
 
     Parâmetros
     ----------
@@ -161,6 +168,34 @@ class CollapsibleParametersWidget(QWidget):
         # Hover tracking
         self._header.enterEvent = lambda e: self._on_hover(True)
         self._header.leaveEvent = lambda e: self._on_hover(False)
+
+    # ── Preferências ────────────────────────────────────────────────
+
+    def get_preferences(self) -> dict:
+        """
+        Retorna dict com o estado atual para salvar em Preferences.
+
+        Returns
+        -------
+        dict
+            {"expanded": bool} — estado expandido/recolhido.
+        """
+        return {"expanded": self._is_expanded}
+
+    def set_preferences(self, prefs: dict):
+        """
+        Carrega estado de um dict (vindo de Preferences).
+
+        Parâmetros
+        ----------
+        prefs : dict
+            Dict com chave "expanded" (bool).
+        """
+        if not prefs:
+            return
+        expanded = prefs.get("expanded")
+        if expanded is not None:
+            self.set_expanded(bool(expanded))
 
     # ── API Pública ────────────────────────────────────────────────
 

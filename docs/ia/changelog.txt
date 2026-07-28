@@ -300,5 +300,13 @@
    - GridComplexSelector: propagação dos novos parâmetros (allow_lock_check, lock_check_default, allow_features_check, features_check_text, features_check_default)
    - GridComplexSelector: API get_lock_state(label)/set_lock_state(label, checked) para lock checkbox
    - GridComplexSelector: get_checked_state()/set_checked_state() agora controlam features checkbox
-   - GenerateTrailPlugin: input_layer usa allow_lock_check=True + allow_features_check=True (features_check_text=STR.ONLY_SELECTED_FEATURES)
-   - GenerateTrailPlugin: output_trail usa allow_lock_check=True (sem features check)
+    - GenerateTrailPlugin: input_layer usa allow_lock_check=True + allow_features_check=True (features_check_text=STR.ONLY_SELECTED_FEATURES)
+    - GenerateTrailPlugin: output_trail usa allow_lock_check=True (sem features check)
+2.3.72 28/07/2026
+[2.3.72.1][28/07/2026] Adicionada persistência de preferências nos widgets do novo sistema:
+   - CollapsibleParametersWidget: adicionados get_preferences()/set_preferences() para persistir estado expandido/recolhido
+   - GridComplexSelector.get_preferences() agora inclui lock_state e checked_state de cada selector (além de paths)
+   - GridComplexSelector.set_preferences() carrega lock_state e checked_state (compatível com formato antigo de string direta)
+   - GenerateTrailPlugin refatorado: _load_prefs() e _save_prefs() usam get_preferences()/set_preferences() unificados dos widgets
+   - GenerateTrailPlugin: salva estado do CollapsibleParametersWidget (advanced_params) e lock_state dos GridComplexSelectors
+   - SKILL_WIDGETS2.md atualizado para v2.5.0 com documentação dos novos métodos

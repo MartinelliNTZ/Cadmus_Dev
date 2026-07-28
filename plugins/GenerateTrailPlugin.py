@@ -151,14 +151,23 @@ class GenerateTrailPlugin(BasePluginMTL):
 
     def _load_prefs(self):
         self.logger.debug(f"Carregando preferências salvas da ferramenta. Self={self}")
-        last_input = self.preferences.get("last_input_path", "")
-        if last_input:
-            self.grid.set_path("input_layer", last_input)
 
-        last_output = self.preferences.get("last_output_path", "")
-        if last_output:
-            self.grid.set_path("output_trail", last_output)
+        # Carrega GridComplexSelector (paths + lock_state + checked_state)
+        grid_prefs = self.preferences.get("grid", {})
+        if grid_prefs:
+            self.grid.set_preferences(grid_prefs)
 
+        # Carrega QML GridComplexSelector
+        qml_prefs = self.preferences.get("qml_grid", {})
+        if qml_prefs:
+            self.qml_grid.set_preferences(qml_prefs)
+
+        # Carrega CollapsibleParametersWidget (estado expandido)
+        collapsible_prefs = self.preferences.get("advanced_params", {})
+        if collapsible_prefs:
+            self.advanced_params.set_preferences(collapsible_prefs)
+
+        # Carrega GridDoubleSpin (tamanho do implemento)
         last_tam = self.preferences.get("last_implement_length")
         if last_tam is not None:
             try:
@@ -168,31 +177,33 @@ class GenerateTrailPlugin(BasePluginMTL):
                     f"Valor de tamanho do implemento inválido nas preferências: {last_tam}. Erro: {str(e)}"
                 )
 
-        last_qml = self.preferences.get("last_qml_path", "")
-        if last_qml:
-            self.qml_grid.set_path("qml_style", last_qml)
-
-        only_selected = self.preferences.get("only_selected", False)
-        self.grid.set_checked_state("input_layer", only_selected)
-
         self.logger.debug("Preferências carregadas e aplicadas com sucesso")
 
     def _save_prefs(self):
         self.logger.debug("Salvando preferências da ferramenta")
-        self.preferences["last_input_path"] = self.grid.get_path("input_layer")
-        self.preferences["last_output_path"] = self.grid.get_path("output_trail")
+
+        # Salva GridComplexSelector (paths + lock_state + checked_state)
+        self.preferences["grid"] = self.grid.get_preferences()
+
+        # Salva QML GridComplexSelector
+        self.preferences["qml_grid"] = self.qml_grid.get_preferences()
+
+        # Salva CollapsibleParametersWidget (estado expandido)
+        self.preferences["advanced_params"] = self.advanced_params.get_preferences()
+
+        # Salva GridDoubleSpin (tamanho do implemento)
         self.preferences["last_implement_length"] = float(
             self.implement_spin.get_value("implement_size")
         )
-        self.preferences["last_qml_path"] = self.qml_grid.get_path("qml_style")
-        self.preferences["only_selected"] = self.grid.get_checked_state("input_layer")
+
+        # Salva dimensões da janela
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
 
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.debug(
             f"Preferências salvas: tamanho={self.preferences['last_implement_length']}m, "
-            f"only_selected={self.preferences['only_selected']}"
+            f"expanded={self.preferences.get('advanced_params', {}).get('expanded', False)}"
         )
 
     def execute_tool(self):

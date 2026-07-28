@@ -620,8 +620,8 @@ layout.addWidget(grid)
 grid.get_paths()                    # → ["/path/to/file.las", "/path/to/output/file_converted.gpkg"]
 grid.get_path("entrada")            # → "/path/to/file.las"
 grid.set_path("entrada", "/novo/path.las")
-grid.get_preferences()              # → dict para salvar em Preferences
-grid.set_preferences(prefs)         # → carrega paths de Preferences
+grid.get_preferences()              # → dict com paths + lock_state + checked_state
+grid.set_preferences(prefs)         # → carrega paths + lock_state + checked_state
 ```
 
 **Parâmetros do config dict (por seletor):**
@@ -753,6 +753,36 @@ browser.setPlainText(text)
 | `open_external_links` | bool | `True` | Abrir links no navegador |
 | `read_only` | bool | `True` | Read-only |
 | `parent` | QWidget | `None` | Widget pai |
+
+### CollapsibleParametersWidget 🆕
+Seção colapsável com header clicável e gradiente via paintEvent. Suporta persistência de estado expandido/recolhido via `get_preferences()`/`set_preferences()`.
+
+```python
+from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+
+coll = CollapsibleParametersWidget(
+    title="Configurações Avançadas",
+    expanded_by_default=False,
+    parent=self,
+)
+coll.add_content_widget(my_widget)
+self.layout.addWidget(coll)
+
+# Salvar/carregar estado expandido
+prefs = coll.get_preferences()
+Preferences.save_tool_prefs(self.TOOL_KEY, {"collapsible": prefs})
+coll.set_preferences(Preferences.load_tool_prefs(self.TOOL_KEY).get("collapsible", {}))
+```
+
+**API pública:**
+| Método | Descrição |
+|--------|-----------|
+| `add_content_widget(widget)` | Adiciona widget ao conteúdo expandível |
+| `add_content_layout(layout)` | Adiciona layout ao conteúdo expandível |
+| `set_expanded(bool)` | Expande ou recolhe a seção |
+| `is_expanded()` → `bool` | Retorna True se expandido |
+| `get_preferences()` → `dict` | Retorna `{"expanded": bool}` para salvar em Preferences |
+| `set_preferences(prefs)` | Carrega estado de um dict vindo de Preferences |
 
 ---
 
@@ -989,3 +1019,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-24 | 2.2.0 | Adicionados Simple widgets faltantes: `SimpleCheckbox`, `SimpleDoubleSpinBox`, `ComplexSelector`, `SquareIconButton`. Adicionados Grid widgets: `GridCheckbox`, `GridDoubleSpin`, `GridComplexSelector`. Atualizado ExportAllLayouts status — plugin 100% migrado para novo sistema (usa GridCheckbox + GridDoubleSpin + GridComplexSelector + GridExecutionButtons, sem WidgetFactory). |
 | 2026-07-27 | 2.3.0 | Adicionado `GridInputFields` ao catálogo Grid — container de campos de texto com labels + SimpleQLineEdit (glow/gradiente). API: get_value/set_value/get_values/set_values/widget. ReplaceInLayouts migrado usando GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons. |
 | 2026-07-27 | 2.4.0 | Adicionados `SimpleComboBox` (QComboBox + AppStyles.input()) e `GridComboBox` (container de N combos com onchange callback, sem pyqtSignal). API: get_selected_key/set_selected_key/get_options/set_options/widget. SaveTemporaryLayersPlugin migrado usando GridInputFields + GridComboBox + GridComplexSelector + GridExecutionButtons. |
+| 2026-07-28 | 2.5.0 | Adicionado `CollapsibleParametersWidget` ao catálogo de widgets raiz com `get_preferences()`/`set_preferences()` para persistir estado expandido. `GridComplexSelector.get_preferences()`/`set_preferences()` agora inclui `lock_state` e `checked_state` de cada selector. GenerateTrailPlugin refatorado para usar `get_preferences()`/`set_preferences()` unificados. |

@@ -226,25 +226,22 @@ class ComplexSelector(QWidget):
         main_layout.addLayout(layout)
 
         # ── Features checkbox (abaixo da linha principal, com texto) ──
+        # Só aparece quando allow_features_check=True E está em modo layer combo
         self._features_checkbox = None
+        self._features_layout = None
         if self._allow_features_check:
-            features_layout = QHBoxLayout()
-            features_layout.setContentsMargins(0, 0, 0, 0)
-            features_layout.setSpacing(2)
-
-            # Espaçamento para alinhar com o label acima
-            spacer_label = QLabel()
-            spacer_label.setFixedWidth(label_width)
-            features_layout.addWidget(spacer_label, 0, Qt.AlignmentFlag.AlignVCenter)
+            self._features_layout = QHBoxLayout()
+            self._features_layout.setContentsMargins(0, 0, 0, 0)
+            self._features_layout.setSpacing(2)
 
             self._features_checkbox = QCheckBox()
             check_text = self._features_check_text or ""
             self._features_checkbox.setText(check_text)
             self._features_checkbox.setChecked(self._features_check_default)
-            features_layout.addWidget(self._features_checkbox, 0, Qt.AlignmentFlag.AlignVCenter)
+            self._features_layout.addWidget(self._features_checkbox, 0, Qt.AlignmentFlag.AlignVCenter)
 
-            features_layout.addStretch(1)
-            main_layout.addLayout(features_layout)
+            self._features_layout.addStretch(1)
+            main_layout.addLayout(self._features_layout)
 
         self._update_display()
         self._update_blocked_state()
@@ -364,6 +361,9 @@ class ComplexSelector(QWidget):
                 self._stack.setCurrentIndex(0)
         finally:
             self._updating_display = False
+
+        # Features checkbox só aparece quando em modo layer combo
+        self._update_features_visibility()
 
     # ══════════════════════════════════════════════════════════════════
     # Handlers
@@ -696,6 +696,16 @@ class ComplexSelector(QWidget):
             btn = getattr(self, btn_name, None)
             if btn:
                 btn.setEnabled(not blocked)
+
+    def _update_features_visibility(self):
+        """
+        Mostra/esconde o features checkbox conforme o modo atual.
+        Só aparece quando usando QgsMapLayerComboBox (layer combo).
+        Quando em modo line edit, o checkbox fica oculto.
+        """
+        if self._features_checkbox is not None:
+            is_visible = self._using_layer_combo
+            self._features_checkbox.setVisible(is_visible)
 
     # ══════════════════════════════════════════════════════════════════
     # 📋 (copiar)

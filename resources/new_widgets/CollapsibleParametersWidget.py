@@ -77,7 +77,7 @@ class _CollapsibleHeader(QFrame):
         end_color = _parse_rgba(end_rgba)
 
         # Gradiente horizontal
-        gradient = QLinearGradient(rect.topLeft(), rect.topRight())
+        gradient = QLinearGradient(rect.topLeft().toPointF(), rect.topRight().toPointF())
         gradient.setColorAt(0.0, start_color)
         gradient.setColorAt(1.0, end_color)
 

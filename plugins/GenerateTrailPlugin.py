@@ -59,6 +59,7 @@ class GenerateTrailPlugin(BasePluginMTL):
                     # Lock check (bloqueia widget quando desmarcado)
                     # Features check (somente feições selecionadas)
                     "allow_features_check": True,
+                    "allow_layer": True,
                     "features_check_text": STR.ONLY_SELECTED_FEATURES,
                 },
                 "output_trail": {

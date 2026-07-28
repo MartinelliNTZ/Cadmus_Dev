@@ -257,6 +257,7 @@ class GridComplexSelector(QWidget):
         layer_filters = field_config.get("layer_filters", None)
         show_explorer_button = field_config.get("show_explorer_button", True)
         show_copy_button = field_config.get("show_copy_button", True)
+        allow_layer = field_config.get("allow_layer", False)
         allow_lock_check = field_config.get("allow_lock_check", False)
         lock_check_default = field_config.get("lock_check_default", True)
         allow_features_check = field_config.get("allow_features_check", False)
@@ -279,6 +280,7 @@ class GridComplexSelector(QWidget):
             selection_mode="file" if allow_file and not allow_folder else "folder",
             show_explorer_button=show_explorer_button,
             show_copy_button=show_copy_button,
+            allow_layer=allow_layer,
             mode_type=mode_type,
             fixed_name=fixed_name,
             subfolder=subfolder,

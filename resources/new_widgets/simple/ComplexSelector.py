@@ -85,6 +85,7 @@ class ComplexSelector(QWidget):
         selection_mode: str = "file",
         # ── Botões ──
         show_explorer_button: bool = True,
+        allow_layer: bool = False,
         # ── Output config ──
         mode_type: str = "input",
         fixed_name: str = "",
@@ -127,6 +128,7 @@ class ComplexSelector(QWidget):
         self._selection_mode = selection_mode
         self._show_explorer_button = show_explorer_button
         self._show_copy_button = show_copy_button
+        self._allow_layer = allow_layer
         self._mode_type = mode_type
         self._fixed_name = fixed_name
         self._subfolder = subfolder
@@ -179,17 +181,16 @@ class ComplexSelector(QWidget):
         # Linha principal horizontal
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
+        layout.setSpacing(2)
 
-        # Label
+        # Label — tamanho automático conforme texto
         self._label = QLabel(label_text)
-        self._label.setFixedWidth(label_width)
         self._label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         if tooltip:
             self._label.setToolTip(tooltip)
         layout.addWidget(self._label, 0, Qt.AlignmentFlag.AlignVCenter)
 
-        # QStackedWidget: página 0 = QLineEdit, página 1 = QgsMapLayerComboBox
+        # QStackedWidget — expande para preencher espaço entre label e botões
         self._stack = QStackedWidget()
         layout.addWidget(self._stack, 1, Qt.AlignmentFlag.AlignVCenter)
 
@@ -285,7 +286,7 @@ class ComplexSelector(QWidget):
             layout.addWidget(self._btn_folder, 0, Qt.AlignmentFlag.AlignVCenter)
 
         # 📄 (project — só input, alterna line edit <-> combo)
-        if self._mode_type == "input" and self._allow_file:
+        if self._mode_type == "input" and self._allow_layer:
             self._btn_project = SquareIconButton(
                 icon=IconManager.icon(IconManager.LAYER2),
                 tooltip="Alternar para seleção de camada",

@@ -51,9 +51,11 @@ class CreateProjectPlugin(BasePluginMTL):
         self.logger.info("Iniciando fluxo de criacao de novo projeto")
         # Carrega system prefs FRESCAS do disco para evitar estado obsoleto
         self._system_prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
+        self.logger.debug(f"[execute_tool] system_prefs carregadas: {self._system_prefs}")
         self._default_crs_authid = (
             self._system_prefs.get(self.DEFAULT_CRS_PREF_KEY) or self.DEFAULT_CRS_AUTHID
         )
+        self.logger.debug(f"[execute_tool] default_crs_authid: {self._default_crs_authid}")
         self._base_folder = ""
         self._project_name = ""
         self._resolve_base_folder()
@@ -63,19 +65,24 @@ class CreateProjectPlugin(BasePluginMTL):
         base_folder = (
             self._system_prefs.get(self.PROJECTS_FOLDER_PREF_KEY) or ""
         ).strip()
+        self.logger.debug(f"[_resolve_base_folder] base_folder da prefs: '{base_folder}'")
         if base_folder:
             if self._prepare_existing_base_folder(base_folder):
                 self._base_folder = base_folder
+                self.logger.debug(f"[_resolve_base_folder] base_folder definida: {self._base_folder}")
                 self._resolve_project_name()
             else:
                 # Pasta configurada mas inacessivel: pede reconfiguracao
+                self.logger.warning(f"[_resolve_base_folder] Pasta configurada inacessivel: {base_folder}")
                 self._prompt_and_persist_base_folder()
             return
 
+        self.logger.debug("[_resolve_base_folder] Nenhuma pasta configurada — abrindo dialogo")
         self._prompt_and_persist_base_folder()
 
     def _prompt_and_persist_base_folder(self):
         """Abre dialogo modal para definir a pasta padrao."""
+        self.logger.debug("[_prompt_and_persist_base_folder] Exibindo confirmacao para definir pasta padrao")
         should_define = QgisMessageUtil.confirm(
             self.iface,
             STR.PROJECTS_DEFAULT_FOLDER_MISSING,
@@ -92,7 +99,10 @@ class CreateProjectPlugin(BasePluginMTL):
         folder_dialog = DefaultProjectsFolderDialog(parent=self.iface.mainWindow())
         if folder_dialog.exec():
             path = folder_dialog.get_folder_path()
+            self.logger.debug(f"[_prompt_and_persist_base_folder] Pasta selecionada: '{path}'")
             self._on_folder_selected(path)
+        else:
+            self.logger.debug("[_prompt_and_persist_base_folder] Dialogo de pasta cancelado")
 
     def _on_folder_selected(self, base_folder: str):
         """Callback quando o dialogo de pasta e confirmado."""
@@ -101,20 +111,25 @@ class CreateProjectPlugin(BasePluginMTL):
             return
 
         base_folder = base_folder.strip()
+        self.logger.debug(f"[_on_folder_selected] Pasta confirmada: '{base_folder}'")
         self._system_prefs[self.PROJECTS_FOLDER_PREF_KEY] = base_folder
         Preferences.save_tool_prefs(ToolKey.SYSTEM, self._system_prefs)
         self.logger.info(f"Pasta padrao salva nas system prefs: {base_folder}")
 
         if not self._prepare_new_base_folder(base_folder):
+            self.logger.error(f"[_on_folder_selected] Falha ao preparar pasta: {base_folder}")
             return
 
         self._base_folder = base_folder
         self._resolve_project_name()
 
     def _prepare_new_base_folder(self, base_folder: str) -> bool:
+        self.logger.debug(f"[_prepare_new_base_folder] Verificando/criando pasta: {base_folder}")
         if ExplorerUtils.ensure_folder_exists(base_folder, self.TOOL_KEY):
+            self.logger.debug(f"[_prepare_new_base_folder] Pasta OK: {base_folder}")
             return True
 
+        self.logger.error(f"[_prepare_new_base_folder] Falha ao criar pasta: {base_folder}")
         QgisMessageUtil.modal_error(
             self.iface,
             f"{STR.PROJECT_DEFAULT_FOLDER_PREPARE_ERROR}\n{base_folder}",
@@ -122,9 +137,12 @@ class CreateProjectPlugin(BasePluginMTL):
         return False
 
     def _prepare_existing_base_folder(self, base_folder: str) -> bool:
+        self.logger.debug(f"[_prepare_existing_base_folder] Verificando pasta existente: {base_folder}")
         if ExplorerUtils.ensure_folder_exists(base_folder, self.TOOL_KEY):
+            self.logger.debug(f"[_prepare_existing_base_folder] Pasta OK: {base_folder}")
             return True
 
+        self.logger.error(f"[_prepare_existing_base_folder] Pasta inacessivel: {base_folder}")
         QgisMessageUtil.modal_error(
             self.iface,
             f"{STR.PROJECT_DEFAULT_FOLDER_ACCESS_ERROR}\n{base_folder}",
@@ -146,6 +164,7 @@ class CreateProjectPlugin(BasePluginMTL):
             prefix="NovoProjeto_",
             pattern=self.GENERIC_PROJECT_PATTERN,
         )
+        self.logger.debug(f"[_resolve_project_name] suggested_name: '{suggested_name}', base_folder: '{self._base_folder}'")
         self._name_dialog = ProjectNameDialog(
             suggested_name=suggested_name,
             base_folder=self._base_folder,
@@ -155,18 +174,35 @@ class CreateProjectPlugin(BasePluginMTL):
         # Nao-modal: usa signal + show()
         self._name_dialog.project_accepted.connect(self._on_project_name_accepted)
         self._name_dialog.show()
+        self.logger.debug("[_resolve_project_name] Dialogo de nome exibido (nao-modal)")
 
     def _on_project_name_accepted(self, project_name: str):
         """Callback quando o nome do projeto e confirmado no dialogo nao-modal."""
-        if not project_name:
-            self.logger.info("Usuario cancelou o dialogo de nome do projeto")
-            return
+        self.logger.debug(f"[_on_project_name_accepted] project_name recebido: '{project_name}'")
 
-        resolved = project_name.strip() or self._name_dialog._suggested_name
+        # BUGFIX: Se project_name vier vazio (usuario clicou sem digitar),
+        # usa o suggested_name do dialogo como fallback
+        resolved = project_name.strip() if project_name else ""
+        if not resolved:
+            resolved = self._name_dialog._suggested_name
+            self.logger.debug(f"[_on_project_name_accepted] Usando suggested_name fallback: '{resolved}'")
+
         self._project_name = ExplorerUtils.sanitize_path_component(resolved)
         if not self._project_name:
             self._project_name = self._name_dialog._suggested_name
-        self.logger.info(f"Nome do projeto resolvido: {self._project_name}")
+            self.logger.debug(f"[_on_project_name_accepted] sanitize retornou vazio, usando fallback: '{self._project_name}'")
+
+        self.logger.info(f"Nome do projeto resolvido: '{self._project_name}'")
+
+        if not self._project_name:
+            self.logger.error("[_on_project_name_accepted] Nome do projeto vazio apos todas as tentativas — abortando")
+            QgisMessageUtil.modal_error(
+                self.iface,
+                "Nome do projeto invalido. A criacao foi cancelada.",
+            )
+            return
+
+        self.logger.debug(f"[_on_project_name_accepted] Chamando _create_project_structure com base='{self._base_folder}', nome='{self._project_name}'")
         self._create_project_structure(
             self._base_folder,
             self._project_name,
@@ -198,6 +234,7 @@ class CreateProjectPlugin(BasePluginMTL):
             )
             return None, ""
 
+        self.logger.debug(f"[_copy_and_load_line_reference_layer] Copiando line.gpkg de '{line_path}' para '{project_vectors_folder}'")
         copied_line_path = ExplorerUtils.copy_file_to_folder(
             source_file=line_path,
             destination_folder=str(project_vectors_folder),
@@ -210,6 +247,7 @@ class CreateProjectPlugin(BasePluginMTL):
             )
             return None, ""
 
+        self.logger.debug(f"[_copy_and_load_line_reference_layer] Copiado para: {copied_line_path}")
         normalized_target = ProjectUtils.normalize_layer_source(copied_line_path)
         for layer in ProjectUtils.project_layers(project).values():
             source_normalized = ProjectUtils.normalize_layer_source(layer.source())
@@ -257,6 +295,12 @@ class CreateProjectPlugin(BasePluginMTL):
         scenario = self._detect_creation_scenario(current_project)
         should_load_line = self._should_load_line_for_scenario(scenario)
 
+        self.logger.debug(f"[_create_project_structure] project_folder: {project_folder}")
+        self.logger.debug(f"[_create_project_structure] project_file: {project_file}")
+        self.logger.debug(f"[_create_project_structure] current_project_path: '{current_project_path}'")
+        self.logger.debug(f"[_create_project_structure] scenario: {scenario}")
+        self.logger.debug(f"[_create_project_structure] should_load_line: {should_load_line}")
+
         if project_folder.exists():
             self.logger.warning(f"Pasta de projeto ja existe: {project_folder}")
             should_continue = QgisMessageUtil.confirm(
@@ -289,6 +333,7 @@ class CreateProjectPlugin(BasePluginMTL):
 
         try:
             if not current_project_path:
+                self.logger.debug("[_create_project_structure] Projeto atual sem arquivo — salvando no lugar")
                 self._apply_project_crs(current_project, default_crs_authid)
                 RasterLayerSource().add_google_basemap(
                     current_project,
@@ -314,6 +359,7 @@ class CreateProjectPlugin(BasePluginMTL):
                 ProjectUtils.set_project_home_path(current_project, str(project_folder))
                 ProjectUtils.set_project_file_name(current_project, str(project_file))
 
+                self.logger.debug(f"[_create_project_structure] Escrevendo projeto atual em: {project_file}")
                 if not ProjectUtils.write_project(current_project, str(project_file)):
                     raise RuntimeError(
                         STR.CURRENT_PROJECT_SAVE_TO_NEW_DESTINATION_ERROR
@@ -321,6 +367,7 @@ class CreateProjectPlugin(BasePluginMTL):
 
                 self.logger.info(f"Projeto atual sem arquivo salvo em: {project_file}")
             else:
+                self.logger.debug("[_create_project_structure] Projeto ja salvo — criando nova instancia e abrindo nova janela")
                 new_project = ProjectUtils.create_project_instance()
                 self._apply_project_crs(new_project, default_crs_authid)
                 RasterLayerSource().add_google_basemap(
@@ -336,6 +383,7 @@ class CreateProjectPlugin(BasePluginMTL):
                 ProjectUtils.set_project_home_path(new_project, str(project_folder))
                 ProjectUtils.set_project_file_name(new_project, str(project_file))
 
+                self.logger.debug(f"[_create_project_structure] Escrevendo novo projeto em: {project_file}")
                 if not ProjectUtils.write_project(new_project, str(project_file)):
                     raise RuntimeError(STR.NEW_PROJECT_FILE_WRITE_ERROR)
 
@@ -350,6 +398,7 @@ class CreateProjectPlugin(BasePluginMTL):
                             layer_extent.yMaximum(),
                         )
 
+                self.logger.debug(f"[_create_project_structure] Abrindo nova janela QGIS com: {project_file}")
                 if not ProjectUtils.open_project_in_new_window(
                     str(project_file), line_extent
                 ):

@@ -92,7 +92,9 @@ class ProjectNameDialog(BaseDialog):
 
     def _on_accept(self):
         """Callback de aceite — emite signal com o nome e fecha."""
-        self._project_name = self.name_input.get_value("project_name").strip()
+        raw_name = self.name_input.get_value("project_name").strip()
+        # Se usuario nao digitou nada, usa o suggested_name (placeholder)
+        self._project_name = raw_name if raw_name else self._suggested_name
         self._result = True
         name = self.get_project_name()
         self.project_accepted.emit(name)
@@ -100,4 +102,7 @@ class ProjectNameDialog(BaseDialog):
 
     def get_project_name(self) -> str:
         """Retorna o nome de projeto informado sem espacos extras."""
-        return self._project_name or self.name_input.get_value("project_name").strip()
+        if self._project_name:
+            return self._project_name
+        raw = self.name_input.get_value("project_name").strip()
+        return raw if raw else self._suggested_name

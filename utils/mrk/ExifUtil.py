@@ -82,15 +82,32 @@ class ExifUtil:
         """
         Tenta converter valor string para int ou float.
         Mantem tipo original se ja for numerico ou se falhar.
+
+        Trata bytes objects convertendo para string limpa.
+        Remove caracteres nulos (\x00) de strings.
         """
         if value is None:
             return None
         if isinstance(value, (int, float)):
             return value
+        # Trata bytes objects: b'\\x02\\x03\\x00\\x00' -> string limpa
+        if isinstance(value, bytes):
+            try:
+                text = value.decode("utf-8", errors="replace")
+            except Exception:
+                text = str(value)
+            # Remove caracteres de controle exceto espacos e tabs
+            text = "".join(c if c.isprintable() or c in " \t" else "" for c in text)
+            text = text.strip()
+            if not text:
+                return None
+            return text
         if not isinstance(value, str):
             return value
 
         raw = value.strip().replace("+", "")
+        # Remove caracteres nulos
+        raw = raw.replace("\x00", "")
         if not raw or raw.lower() in ("none", "null", "nan", "inf"):
             return value
 
@@ -105,7 +122,7 @@ class ExifUtil:
         try:
             return float(raw)
         except (ValueError, TypeError):
-            return value
+            return raw
 
     @staticmethod
     def _dms_to_decimal(dms_tuple, ref):
@@ -146,6 +163,23 @@ class ExifUtil:
             return decimal
         except Exception:
             return None
+
+    @staticmethod
+    def _clean_string_value(value):
+        """Remove caracteres nulos e nao imprimiveis de valores string."""
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            try:
+                text = value.decode("utf-8", errors="replace")
+            except Exception:
+                text = str(value)
+            text = "".join(c if c.isprintable() or c in " \t" else "" for c in text)
+            return text.strip() or None
+        if isinstance(value, str):
+            cleaned = "".join(c if c.isprintable() or c in " \t" else "" for c in value)
+            return cleaned.strip() or None
+        return value
 
     @staticmethod
     def extract_all_metadata(
@@ -206,7 +240,10 @@ class ExifUtil:
                 for key, value in exif.items():
                     canonical_name = MetadataFields.sanitize_field_name(str(key))
                     if canonical_name:
-                        data[canonical_name] = ExifUtil._to_numeric(value)
+                        # Limpa bytes/strings com caracteres nulos antes de converter
+                        cleaned_value = ExifUtil._clean_string_value(value)
+                        if cleaned_value is not None:
+                            data[canonical_name] = ExifUtil._to_numeric(cleaned_value)
                     else:
                         logger.debug(f"Campo EXIF rejeitado (nao autorizado): {key}")
 

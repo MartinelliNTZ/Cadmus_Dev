@@ -125,7 +125,6 @@ class PhotoEnrichmentTask(BaseTask):
             self.setProgress(5)
             records, quality = PhotoMetadata.run_pipeline(
                 base_folder=self.base_folder,
-                points=None,
                 recursive=self.recursive,
                 tool_key=self.tool_key,
                 enable_mrk=False,
@@ -240,8 +239,7 @@ class PhotoEnrichmentTask(BaseTask):
             )
             records, quality = PhotoMetadata.run_pipeline(
                 base_folder=self.base_folder,
-                points=None,
-                mrk_paths=self.paths,  # PhotoMetadata usa parametro interno mrk_paths
+                mrk_paths=self.paths,
                 recursive=self.recursive,
                 tool_key=self.tool_key,
                 enable_mrk=True,
@@ -327,7 +325,7 @@ class PhotoEnrichmentTask(BaseTask):
         # Executa pipeline com MRK habilitado
         records, quality = PhotoMetadata.run_pipeline(
             base_folder=self.base_folder,
-            points=pontos,
+            mrk_points=pontos,
             recursive=self.recursive,
             tool_key=self.tool_key,
             enable_mrk=True,

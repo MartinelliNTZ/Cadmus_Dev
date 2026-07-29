@@ -62,12 +62,28 @@ class IMGMetadata:
 
     @staticmethod
     def _to_float(value: Any) -> Optional[float]:
-        """Converte valor para float com tratamento de nulos e strings vazias."""
+        """Converte valor para float com tratamento de nulos, bytes e strings vazias."""
         if value is None:
             return None
         if isinstance(value, (int, float)):
             return float(value)
+        # Trata bytes objects
+        if isinstance(value, bytes):
+            try:
+                text = value.decode("utf-8", errors="replace")
+            except Exception:
+                text = str(value)
+            text = "".join(c if c.isprintable() or c in " \t" else "" for c in text)
+            text = text.strip()
+            if not text or text.lower() in {"", "none", "null", "nan"}:
+                return None
+            try:
+                return float(text)
+            except (ValueError, TypeError):
+                return None
         text = str(value).strip().replace("+", "")
+        # Remove caracteres nulos
+        text = text.replace("\x00", "")
         if text.lower() in {"", "none", "null", "nan"}:
             return None
         try:
@@ -188,10 +204,22 @@ class IMGMetadata:
             total += level
             count += 1
 
+        # Popula level5_values com TODOS os campos disponiveis em _data,
+        # nao apenas level-5. Isso garante que campos EXIF como ISOSpeedRatings,
+        # GPSMapDatum, etc. fiquem acessiveis para graficos e analises.
         for field_key in level5_field_keys:
             value = self.get_indicator(field_key)
             if value is not None:
                 self.level5_values[field_key] = value
+
+        # Adiciona tambem campos de _data que nao sao level-5 mas existem
+        # (ex: ISOSpeedRatings, GPSMapDatum, GpsStatusExif, etc.)
+        for key, value in self._data.items():
+            if key not in self.level5_values and self._is_present(value):
+                self.level5_values[key] = value
+        for key, value in self._extras.items():
+            if key not in self.level5_values and self._is_present(value):
+                self.level5_values[key] = value
 
         score = (total / count) if count > 0 else 0.0
         self.overall_score = round(score, 1)

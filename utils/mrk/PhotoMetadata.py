@@ -49,153 +49,88 @@ class PhotoMetadata:
 
     DJI_RE = re.compile(r"_(\d{4})(?:_[A-Z])?\.JPG$", re.IGNORECASE)
 
-    # Cache de timestamps de extracao
-    _timestamps: Dict[str, str] = {}
-
-    # Cache da primeira foto com coordenadas (lat, lon raw)
     _first_photo_raw_coord: Optional[Dict[str, float]] = None
-
-    @staticmethod
-    def get_timestamps() -> Dict[str, str]:
-        return dict(PhotoMetadata._timestamps)
-
-    @staticmethod
-    def clear_timestamps():
-        PhotoMetadata._timestamps = {}
-        PhotoMetadata._first_photo_raw_coord = None
+    _timestamps: Dict[str, str] = {}
 
     @staticmethod
     def _get_logger(tool_key: str) -> LogUtils:
         return LogUtils(tool=tool_key, class_name="PhotoMetadata")
 
+    @staticmethod
+    def get_timestamps() -> Dict[str, str]:
+        return dict(PhotoMetadata._timestamps)
+
     # ─────────────────────────────────────────────
-    # API PÚBLICA - Pipeline completo
+    # PIPELINE PRINCIPAL
     # ─────────────────────────────────────────────
 
     @staticmethod
     def run_pipeline(
         base_folder: str,
-        points: Optional[List[Dict[str, Any]]] = None,
-        recursive: bool = True,
-        tool_key: str = "drone_coordinates",
+        tool_key: str,
         *,
-        mrk_paths: Optional[List[str]] = None,
         enable_mrk: bool = False,
         enable_exif: bool = True,
         enable_xmp: bool = True,
         enable_custom_fields: bool = True,
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+        recursive: bool = True,
+        mrk_paths: Optional[List[str]] = None,
+        mrk_points: Optional[List[Dict[str, Any]]] = None,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """
-        Pipeline unificado de enriquecimento de fotos.
+        Executa o pipeline completo de enriquecimento de metadados.
 
-        Args:
-            base_folder: Pasta raiz onde as fotos estão localizadas
-            points: Lista de pontos MRK (opcional, pré-parseados)
-            recursive: Se deve varrer subpastas recursivamente
-            tool_key: Chave da ferramenta para logging
-            mrk_paths: Lista de caminhos de arquivos/pastas MRK para parsear
-            enable_mrk: Habilita enriquecimento MRK
-            enable_exif: Habilita extração EXIF
-            enable_xmp: Habilita extração XMP
-            enable_custom_fields: Habilita campos customizados
-
-        Returns:
-            Tuple de (lista de registros, dict de qualidade)
+        Retorna (all_records, quality_stats).
         """
         logger = PhotoMetadata._get_logger(tool_key)
-        logger.info(
-            "Iniciando pipeline de metadados",
-            data={
-                "base_folder": base_folder,
-                "recursive": recursive,
-                "has_points": len(points) if points else 0,
-                "has_mrk_paths": len(mrk_paths) if mrk_paths else 0,
-                "enable_mrk": enable_mrk,
-                "enable_exif": enable_exif,
-                "enable_xmp": enable_xmp,
-                "enable_custom_fields": enable_custom_fields,
-            },
-        )
 
-        PhotoMetadata.clear_timestamps()
         pipeline_start = datetime.now().isoformat()
 
-        # ── Etapa 1: Esqueleto inicial via InitialParamsUtil (dict em memoria) ──
+        # ── Etapa 0: Parsing MRK (opcional) ──
+        mrk_start = datetime.now().isoformat()
+        if enable_mrk and mrk_paths:
+            mrk_points = PhotoMetadata._parse_mrk_paths(
+                mrk_paths, recursive, tool_key
+            )
+        mrk_end = datetime.now().isoformat()
+
+        # ── Etapa 1: Esqueleto inicial (sempre) ──
         initial_start = datetime.now().isoformat()
         initial_result = InitialParamsUtil.build_initial_json(
             base_folder=base_folder,
             tool_key=tool_key,
             recursive=recursive,
         )
-
-        if not initial_result or initial_result.get("total_files", 0) == 0:
-            logger.warning("Nenhuma foto encontrada no diretorio")
-            return [], {
-                "total_files": 0,
-                "with_xmp": 0,
-                "with_mrk": 0,
-                "with_exif_gps": 0,
-            }
-
-        skeleton = initial_result.get("skeleton", {})
-
-        if not skeleton:
-            logger.warning("Nenhum registro valido no JSON inicial")
-            return [], {
-                "total_files": 0,
-                "with_xmp": 0,
-                "with_mrk": 0,
-                "with_exif_gps": 0,
-            }
+        skeleton = initial_result.get("skeleton", {}) if initial_result else {}
         initial_end = datetime.now().isoformat()
 
         # ── Etapa 2: Enriquecimento MRK (opcional) ──
-        mrk_start = datetime.now().isoformat()
-        mrk_points = points or []
-        if enable_mrk and mrk_paths and not mrk_points:
-            mrk_points = PhotoMetadata._parse_mrk_paths(
-                mrk_paths, recursive, tool_key)
-
         if enable_mrk and mrk_points:
             skeleton = PhotoMetadata._enrich_with_mrk(
                 skeleton, mrk_points, base_folder, tool_key
             )
-        mrk_end = datetime.now().isoformat()
-        exif_start = datetime.now().isoformat()
 
         # ── Etapa 3: EXIF (opcional, padrão: True) ──
+        exif_start = datetime.now().isoformat()
         if enable_exif:
             skeleton = PhotoMetadata._enrich_exif(skeleton, tool_key)
         exif_end = datetime.now().isoformat()
 
-        xmp_start = datetime.now().isoformat()
-
         # ── Etapa 4: XMP (opcional, padrão: True) ──
+        xmp_start = datetime.now().isoformat()
         if enable_xmp:
             skeleton = PhotoMetadata._enrich_xmp(skeleton, tool_key)
         xmp_end = datetime.now().isoformat()
 
-        # Converte dict para lista de records e normaliza coordenadas
-        all_records = []
-        quality = {
-            "total_files": len(skeleton),
-            "with_xmp": 0,
-            "with_mrk": 0,
-            "with_exif_gps": 0,
-        }
+        # ── Mescla e normaliza registros ──
+        all_records: List[Dict[str, Any]] = []
+        quality = {"total_files": len(skeleton), "with_xmp": 0, "with_mrk": 0, "with_exif_gps": 0}
 
-        for filename, payload in skeleton.items():
-            if not payload:
-                continue
+        for filename, merged in skeleton.items():
+            # Normaliza para PascalCase
+            merged = MetadataFields.normalize_record_to_keys(merged)
 
-            merged = MetadataFields.normalize_record_to_keys(payload)
-
-            # MRK já vem em Lat/Lon/Alt (decimais) - mantém como está
-            # EXIF DMS→decimal já foi convertido em _enrich_exif() (GpsLatRef/GpsLongRef)
-            # XMP GpsLatitude/GpsLongitude (float) já sobrescreveu se existir
-
-            # Se GpsLatitude/GpsLongitude ainda são tupla DMS (sem XMP para coordenadas),
-            # converte para float decimal usando GpsLatitudeRef/GpsLongitudeRef
+            # Converte DMS para decimal se necessário
             gps_lat = merged.get(MetadataFieldKey.GPS_LATITUDE.value)
             gps_lon = merged.get(MetadataFieldKey.GPS_LONGITUDE.value)
 
@@ -241,9 +176,6 @@ class PhotoMetadata:
             all_records.append(merged)
 
         # ── Etapa 6: Extrair coordenadas raw da primeira foto (sempre) ──
-        # Percorre os records enriquecidos e salva lat/lon da primeira
-        # foto que possui coordenadas válidas. Usado posteriormente por
-        # ReverseGeocodeStep e AltimetryStep (via context).
         PhotoMetadata._first_photo_raw_coord = None
         for record in all_records:
             lat = PhotoMetadata._to_float(
@@ -885,19 +817,36 @@ class PhotoMetadata:
 
     @staticmethod
     def _to_float(value):
+        """
+        Converte valor para float com tratamento de nulos, bytes e strings vazias.
+        Trata bytes objects e strings com caracteres nulos.
+        """
         if value is None:
             return None
         if isinstance(value, (int, float)):
             return float(value)
+        # Trata bytes objects
+        if isinstance(value, bytes):
+            try:
+                text = value.decode("utf-8", errors="replace")
+            except Exception:
+                text = str(value)
+            text = "".join(c if c.isprintable() or c in " \t" else "" for c in text)
+            text = text.strip()
+            if not text or text.lower() in ("", "none", "null", "nan"):
+                return None
+            try:
+                return float(text)
+            except (ValueError, TypeError):
+                return None
         text = str(value).strip().replace("+", "")
-        if text in ("", "None", "null"):
+        # Remove caracteres nulos
+        text = text.replace("\x00", "")
+        if text in ("", "None", "null", "nan"):
             return None
         try:
             return float(text)
-        except Exception as e:
-            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PhotoMetadata").debug(
-                "_to_float falhou", error=str(e)
-            )
+        except Exception:
             return None
 
     @staticmethod
@@ -909,10 +858,8 @@ class PhotoMetadata:
             return None
         try:
             return datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        except Exception as e:
-            LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PhotoMetadata").debug(
-                "_safe_parse_datetime falhou no formato", error=str(e)
-            )
+        except Exception:
+            pass
         formats = [
             "%Y:%m:%d %H:%M:%S",
             "%Y-%m-%d %H:%M:%S",
@@ -926,8 +873,6 @@ class PhotoMetadata:
         for fmt in formats:
             try:
                 return datetime.strptime(str(raw), fmt)
-            except Exception as e:
-                LogUtils(tool=ToolKey.UNTRACEABLE, class_name="PhotoMetadata").debug(
-                    "_safe_parse_datetime strptime falhou", error=str(e)
-                )
+            except Exception:
+                pass
         return None

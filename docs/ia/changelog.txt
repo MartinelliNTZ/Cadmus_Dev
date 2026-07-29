@@ -318,5 +318,20 @@
    - Gargalo #3c: base64 cache - ImageUtils.photo_to_base64() com cache interno _base64_cache (elimina re-conversão de ícones/logos)
    - Gargalo #4a: CustomFields parallel - PhotoMetadata._calculate_custom_fields() processa grupos em paralelo via ThreadPoolExecutor (redução de ~20min para ~6-8min)
    - Gargalo #5: PipelineTask sleep - PipelineTask.run() com time.sleep(0.01) reduz CPU de 100% para ~5%
-   - Gargalo #6: Progress incremental - PhotoEnrichmentTask._run() com setProgress() nos estágios do pipeline (UI responsiva)
-   - docs/plano_acao_gargalos_pipeline.md criado com análise completa dos gargalos
+    - Gargalo #6: Progress incremental - PhotoEnrichmentTask._run() com setProgress() nos estágios do pipeline (UI responsiva)
+    - docs/plano_acao_gargalos_pipeline.md criado com análise completa dos gargalos
+2.3.74 29/07/2026
+[2.3.74.1][29/07/2026] Correção de dados corrompidos e campos ausentes no JSON/report:
+    - ExifUtil._to_numeric() tratava bytes objects como strings inválidas (GpsVersionId, GpsAltitudeRef viravam strings "b'\\x...'" em vez de serem limpos)
+    - ExifUtil.extract_all_metadata() agora limpa valores bytes/caracteres nulos via _clean_string_value() antes de converter para numérico
+    - GPSMapDatum com null byte \x00 no final causava display corrompido no template - removido via _clean_string_value()
+    - PhotoMetadata._to_float() agora trata bytes objects e strings com caracteres nulos
+    - IMGMetadata.level5_values agora inclui TODOS os campos disponíveis em _data/_extras (não apenas level-5) - ISOSpeedRatings, GPSMapDatum, etc. agora acessíveis para gráficos
+    - IMGMetadata._to_float() agora trata bytes objects e caracteres nulos
+[2.3.74.2][29/07/2026] Corrigida regressão em PhotoEnrichmentTask:
+    - PhotoEnrichmentTask chamava PhotoMetadata.run_pipeline(points=...) mas o parâmetro foi renomeado para mrk_points
+    - Corrigidas 3 chamadas: points=None removido, points=pontos → mrk_points=pontos
+[2.3.74.3][29/07/2026] Corrigida regressão em PhotoMetadata.run_pipeline():
+    - Chamava InitialParamsUtil.build_skeleton() que não existe
+    - O método correto é InitialParamsUtil.build_initial_json() que retorna dict com chave "skeleton"
+    - Extraído skeleton = initial_result.get("skeleton", {})

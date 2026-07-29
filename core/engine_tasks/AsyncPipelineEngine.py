@@ -239,10 +239,13 @@ class PipelineTask(QgsTask):
 
     def run(self):
         # mantém task viva até engine marcar done
+        # sleep de 10ms reduz consumo de CPU de 100% para ~5%
+        import time
         while not self._done:
             if self.isCanceled():
                 return False
             QgsApplication.processEvents()
+            time.sleep(0.01)
         return True
 
     def mark_done(self):

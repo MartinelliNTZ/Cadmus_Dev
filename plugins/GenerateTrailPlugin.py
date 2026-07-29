@@ -221,7 +221,7 @@ class GenerateTrailPlugin(BasePluginMTL):
         implement_length = self.implement_spin.get_value("implement_size")
         output_path = self.grid.get_path("output_trail")
         save_to_folder = bool(output_path)
-        output_name = STR.IMPLEMENT_TRAIL
+        output_name = "implement_trail"
 
         self.logger.info(
             f"Parâmetros: camada='{input_layer.name()}', tamanho={implement_length}m, "

@@ -310,3 +310,13 @@
    - GenerateTrailPlugin refatorado: _load_prefs() e _save_prefs() usam get_preferences()/set_preferences() unificados dos widgets
    - GenerateTrailPlugin: salva estado do CollapsibleParametersWidget (advanced_params) e lock_state dos GridComplexSelectors
    - SKILL_WIDGETS2.md atualizado para v2.5.0 com documentação dos novos métodos
+2.3.73 29/07/2026
+[2.3.73.1][29/07/2026] Otimização de performance da pipeline Drone Coordinates - 7 gargalos eliminados:
+   - Gargalo #1a: XMP seek optimization - _extract_xmp_text_raw() agora lê APENAS os últimos 64KB do JPG em vez do arquivo inteiro (~500GB I/O eliminado, redução de ~35min para ~3-5min)
+   - Gargalo #2: EXIF unify extraction - ExifUtil.extract_all_metadata() extrai EXIF/OS/Image em 1 única abertura de arquivo (redução de ~12min para ~6-7min)
+   - Gargalo #3a: Report single render - ReportGenerationService.generate_from_json() renderiza HTML UMA ÚNICA vez com placeholder (redução de ~31min para ~10-13min)
+   - Gargalo #3c: base64 cache - ImageUtils.photo_to_base64() com cache interno _base64_cache (elimina re-conversão de ícones/logos)
+   - Gargalo #4a: CustomFields parallel - PhotoMetadata._calculate_custom_fields() processa grupos em paralelo via ThreadPoolExecutor (redução de ~20min para ~6-8min)
+   - Gargalo #5: PipelineTask sleep - PipelineTask.run() com time.sleep(0.01) reduz CPU de 100% para ~5%
+   - Gargalo #6: Progress incremental - PhotoEnrichmentTask._run() com setProgress() nos estágios do pipeline (UI responsiva)
+   - docs/plano_acao_gargalos_pipeline.md criado com análise completa dos gargalos

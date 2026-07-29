@@ -148,28 +148,48 @@ class ExifUtil:
             return None
 
     @staticmethod
-    def extract_metadata_exif(
+    def extract_all_metadata(
         image_path: str, tool_key: str = ToolKey.UNTRACEABLE
     ) -> dict:
         """
-        Extrai e sanitiza campos EXIF disponiveis.
+        Extrai metadados EXIF/OS/Image em UMA ÚNICA abertura do arquivo.
+
+        Substitui as chamadas separadas extract_metadata_exif(), extract_metadata_os()
+        e extract_metadata_image() que abriam o mesmo arquivo JPG 3 vezes.
 
         Converte automaticamente coordenadas DMS (GPSLatitude/GPSLongitude) para
         decimal com sinal, armazenando o resultado em GpsLatitudeRef/GpsLongitudeRef.
 
         Campos retornados:
-        - GpsLatitude: tupla DMS original (RAW) - pode ser sobrescrito pelo XMP
-        - GpsLatitudeRef: decimal com sinal (ex: -13.11816) - EXCLUSIVO do EXIF
-        - GpsLongitude: tupla DMS original (RAW) - pode ser sobrescrito pelo XMP
-        - GpsLongitudeRef: decimal com sinal (ex: -54.79313) - EXCLUSIVO do EXIF
+        - File, Path, SizeMb, DateTime (OS)
+        - ExifImageWidth, ExifImageHeight, Format, DPIWidth, DPIHeight (Image)
+        - GpsLatitude, GpsLatitudeRef, GpsLongitude, GpsLongitudeRef, ISO, etc. (EXIF)
 
         Apenas campos autorizados em MetadataFields sao retornados.
-        Campos nao autorizados sao descartados (log em DEBUG).
         """
         logger = ExifUtil._get_logger(tool_key)
         data = {}
         try:
+            # OS metadata (stat, sem abrir arquivo)
+            stat = os.stat(image_path)
+            data["File"] = os.path.basename(image_path)
+            data["Path"] = image_path
+            data["SizeMb"] = round(stat.st_size / (1024 * 1024), 2)
+            data["DateTime"] = datetime.fromtimestamp(stat.st_ctime).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+
+            # Abre a imagem UMA ÚNICA vez para EXIF + Image metadata
             with Image.open(image_path) as img:
+                # Image metadata
+                data["ExifImageWidth"], data["ExifImageHeight"] = img.size
+                data["Format"] = f"{img.format}_{img.mode}"
+                dpi = img.info.get("dpi")
+                if dpi:
+                    data["DPIWidth"] = dpi[0]
+                    data["DPIHeight"] = dpi[1]
+
+                # EXIF metadata
                 exif_raw = img._getexif() or {}
                 exif = {ExifTags.TAGS.get(k, k): v for k, v in exif_raw.items()}
 
@@ -191,12 +211,10 @@ class ExifUtil:
                         logger.debug(f"Campo EXIF rejeitado (nao autorizado): {key}")
 
                 # ── Converte DMS → decimal com sinal ──
-                # GpsLat (tupla DMS) + GpsLatRef ("S"/"N") → GpsLatRef (decimal)
-                # GpsLong (tupla DMS) + GpsLongRef ("E"/"W") → GpsLongRef (decimal)
-                lat_raw = data.get("GpsLat")  # tupla DMS
-                lat_ref = data.get("GpsLatRef", "")  # "S" ou "N"
-                lon_raw = data.get("GPSLong")  # tupla DMS
-                lon_ref = data.get("GpsLongRef", "")  # "W" ou "E"
+                lat_raw = data.get("GpsLat")
+                lat_ref = data.get("GpsLatRef", "")
+                lon_raw = data.get("GPSLong")
+                lon_ref = data.get("GpsLongRef", "")
 
                 if isinstance(lat_raw, (list, tuple)):
                     dec_lat = ExifUtil._dms_to_decimal(lat_raw, lat_ref)
@@ -208,6 +226,9 @@ class ExifUtil:
                         data["GpsLongRef"] = dec_lon
 
         except Exception as exc:
-            logger.warning(f"Erro ao extrair EXIF de {image_path}: {exc}")
+            logger.warning(f"Erro ao extrair metadados de {image_path}: {exc}")
 
         return data
+
+    # Mantém extract_metadata_exif como alias para compatibilidade
+    extract_metadata_exif = extract_all_metadata

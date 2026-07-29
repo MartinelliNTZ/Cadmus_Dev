@@ -533,16 +533,13 @@ class PhotoMetadata:
         """
         Etapa 3 – Extração EXIF.
 
-        Além da extração padrão, converte coordenadas DMS (EXIF bruto) para decimal.
+        Usa ExifUtil.extract_all_metadata() que extrai EXIF/OS/Image em
+        UMA ÚNICA abertura do arquivo, eliminando I/O duplicado.
 
-        Mapeamento final:
-        - GpsLatitude (atributo "GpsLat"): mantém tupla DMS do EXIF (RAW)
-        - GpsLatitudeRef (atributo "GpsLatRef"): S/N → convertido para decimal com sinal
-        - GpsLongitude (atributo "GPSLong"): mantém tupla DMS do EXIF (RAW)
-        - GpsLongitudeRef (atributo "GpsLongRef"): E/W → convertido para decimal com sinal
-
-        A conversão é feita AQUI, ANTES do XMP, para que o XMP possa sobrescrever
-        GpsLatitude/GpsLongitude sem perder a coordenada decimal do EXIF.
+        A conversão DMS→decimal é feita internamente pelo extract_all_metadata().
+        GpsLatRef / GpsLongRef já vêm como decimal com sinal.
+        GpsLat / GpsLong mantêm a tupla DMS original (RAW) para possível
+        sobrescrita pelo XMP posteriormente.
         """
         logger = PhotoMetadata._get_logger(tool_key)
 
@@ -552,28 +549,19 @@ class PhotoMetadata:
                 continue
 
             try:
-                exif_payload = ExifUtil.extract_metadata_exif(
-                    image_path, tool_key=tool_key
-                )
-                os_payload = ExifUtil.extract_metadata_os(
-                    image_path, tool_key=tool_key)
-                image_payload = ExifUtil.extract_metadata_image(
+                # Chamada ÚNICA: extrai EXIF + OS + Image em 1 abertura de arquivo
+                all_metadata = ExifUtil.extract_all_metadata(
                     image_path, tool_key=tool_key
                 )
 
-                for payload in [exif_payload, os_payload, image_payload]:
-                    for k, v in payload.items():
-                        if k not in record or record.get(k) in (
-                            None,
-                            "",
-                            "None",
-                            "null",
-                        ):
-                            record[k] = v
-
-                # A conversão DMS→decimal já é feita pelo ExifUtil.extract_metadata_exif()
-                # GpsLatRef / GpsLongRef já vêm como decimal com sinal
-                # GpsLat / GpsLong mantêm a tupla DMS original (RAW)
+                for k, v in all_metadata.items():
+                    if k not in record or record.get(k) in (
+                        None,
+                        "",
+                        "None",
+                        "null",
+                    ):
+                        record[k] = v
 
                 dt = PhotoMetadata._safe_parse_datetime(
                     record.get(MetadataFieldKey.DATE_TIME_ORIGINAL.value)
@@ -664,6 +652,8 @@ class PhotoMetadata:
         Etapa 5 – Campos customizados.
 
         Agrupa por FolderLevel1 e calcula campos derivados.
+        Grupos independentes são processados em paralelo via ThreadPoolExecutor
+        para reduzir o tempo total de processamento.
         """
         try:
             grouped_records: Dict[str, List[Dict]] = {}
@@ -677,21 +667,43 @@ class PhotoMetadata:
                     grouped_records[group_key] = []
                 grouped_records[group_key].append(r)
 
-            for group_key, group in grouped_records.items():
+            if not grouped_records:
+                return all_records
+
+            # Processa grupos em paralelo (são independentes entre si)
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            def _process_group(group_key: str, group: List[Dict]) -> Dict[str, Dict]:
+                """Processa um grupo de fotos e retorna {filename: enriched_data}."""
                 logger.debug(
                     f"Processando campos custom para grupo '{group_key}' ({len(group)} fotos)"
                 )
                 custom_ready = {
                     r.get(MetadataFieldKey.FILE.value): r for r in group}
                 if custom_ready:
-                    enriched = CustomPhotosFieldsUtil.calculate_all_custom_fields(
+                    return CustomPhotosFieldsUtil.calculate_all_custom_fields(
                         custom_ready, tool_key=tool_key
                     )
-                    for fname, custom_values in enriched.items():
-                        for record in all_records:
-                            if record.get(MetadataFieldKey.FILE.value) == fname:
-                                record.update(custom_values)
-                                break
+                return {}
+
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                futures = {
+                    executor.submit(_process_group, gk, g): gk
+                    for gk, g in grouped_records.items()
+                }
+                for future in as_completed(futures):
+                    group_key = futures[future]
+                    try:
+                        enriched = future.result()
+                        for fname, custom_values in enriched.items():
+                            for record in all_records:
+                                if record.get(MetadataFieldKey.FILE.value) == fname:
+                                    record.update(custom_values)
+                                    break
+                    except Exception as e:
+                        logger.warning(
+                            f"Falha ao processar grupo '{group_key}': {e}"
+                        )
 
         except Exception as exc:
             logger.warning(

@@ -293,16 +293,24 @@ class DronePipelineService:
                 track_layer, "apply_style_track", "qml_path_track",
             )
 
-        # ── Relatório ─────────────────────────────────────────────
+        # ── Relatório (apenas abrir, não gerar novamente) ─────────
+        # O ReportGenerationStep já gerou o relatório durante a pipeline.
+        # Aqui apenas verificamos se o relatório foi gerado e o abrimos,
+        # evitando duplicar a geração no main thread que trava a UI.
         json_path = context.json_path or context.get_result("json_path")
-        report_payload = None
-        if json_path and Preferences.load_tool_prefs(ToolKey.DRONE_COORDINATES).get("generate_report", False):
+        report_payload = context.get_result("report_payload")
+        
+        if not report_payload and json_path and Preferences.load_tool_prefs(ToolKey.DRONE_COORDINATES).get("generate_report", False):
+            # Fallback: se o ReportGenerationStep não estava no pipeline,
+            # gera o relatório agora (raro - apenas pipelines sem o step)
+            logger.info(
+                "ReportGenerationStep não estava na pipeline. "
+                "Gerando relatório no pós-processamento (main thread)..."
+            )
             try:
                 from ..config.RegistryManager import RegistryManager
                 reg_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
                 if reg_mgr.has_minimum_level(DronePipelineService.REGISTRY_LEVEL):
-                    # Import lazy: ReportGenerationService só é importado se houver licença
-                    # Permite que o pipeline funcione em modo free sem o módulo
                     from .ReportGenerationService import ReportGenerationService
                     report_payload = ReportGenerationService(
                         tool_key=ToolKey.DRONE_COORDINATES
@@ -313,6 +321,11 @@ class DronePipelineService:
                     )
             except Exception as e:
                 logger.error(f"Falha ao gerar report: {e}")
+        elif report_payload:
+            logger.info(
+                "Relatório já foi gerado pelo ReportGenerationStep. "
+                "Apenas propagando payload sem re-gerar."
+            )
 
         # ── Notificação ───────────────────────────────────────────
         if points_output_path:

@@ -66,7 +66,20 @@ class XmpUtil:
 
     @staticmethod
     def _extract_xmp_text_raw(image_path: str) -> str:
+        """
+        Lê APENAS os últimos 64KB do arquivo para localizar o bloco XMP.
+
+        O bloco XMP em arquivos DJI está nos últimos ~4KB do JPG
+        (footer após o segmento APP1). Ler o arquivo inteiro é
+        extremamente ineficiente para milhares de fotos.
+        """
         with open(image_path, "rb") as fh:
+            # Vai para o final do arquivo
+            fh.seek(0, 2)
+            file_size = fh.tell()
+            # Lê no máximo 64KB do final (XMP DJI está nos últimos ~4KB)
+            read_size = min(file_size, 65536)
+            fh.seek(file_size - read_size)
             raw = fh.read().decode("latin1", errors="ignore")
 
         start = raw.find("<x:xmpmeta")

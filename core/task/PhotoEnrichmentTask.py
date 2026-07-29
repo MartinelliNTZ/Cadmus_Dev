@@ -80,6 +80,10 @@ class PhotoEnrichmentTask(BaseTask):
 
         logger = LogUtils(tool=self.tool_key, class_name=self.__class__.__name__)
 
+        # Estágios de progresso: 0-20% MRK, 20-50% EXIF, 50-80% XMP, 80-100% Custom+JSON
+        # Reporta estágio atual para dar feedback ao usuário
+        self.setProgress(0)
+
         # Determina se há dados MRK baseado no source
         has_mrk_source = "mrk" in self.source if self.source else False
         has_mrk_data = (
@@ -105,6 +109,7 @@ class PhotoEnrichmentTask(BaseTask):
                     "enable_custom_fields": self.enable_custom_fields,
                 },
             )
+            self.setProgress(5)
             records, quality = self._run_pipeline_with_mrk(logger)
             source = "mrk+photo"
         else:
@@ -117,6 +122,7 @@ class PhotoEnrichmentTask(BaseTask):
                     "enable_custom_fields": self.enable_custom_fields,
                 },
             )
+            self.setProgress(5)
             records, quality = PhotoMetadata.run_pipeline(
                 base_folder=self.base_folder,
                 points=None,

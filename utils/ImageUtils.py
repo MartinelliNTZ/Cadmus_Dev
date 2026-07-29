@@ -33,6 +33,10 @@ class ImageUtils(BaseUtil):
         ".bmp", ".gif", ".webp", ".ico",
     )
 
+    # Cache de base64 para evitar re-conversão de imagens estáticas
+    # (ícones, logos) durante múltiplas renderizações do relatório.
+    _base64_cache: dict = {}
+
     # ── Logger ───────────────────────────────────────────────────────
 
     @staticmethod
@@ -48,6 +52,10 @@ class ImageUtils(BaseUtil):
         tool_key: str = BaseUtil.TOOL_KEY_UNTRACEABLE,
     ) -> Optional[str]:
         """Converte uma foto (arquivo de imagem) para string base64.
+
+        Utiliza cache interno (_base64_cache) para evitar re-conversão
+        de imagens estáticas (ícones, logos) durante múltiplas chamadas.
+        O cache é por caminho absoluto do arquivo.
 
         Lê o arquivo de imagem do disco e retorna seu conteúdo codificado
         em base64 com prefixo de data URI (ex: ``data:image/jpeg;base64,...``).
@@ -84,6 +92,14 @@ class ImageUtils(BaseUtil):
                 f"mas tentando conversão mesmo assim"
             )
 
+    # ── Cache hit ─────────────────────────────────────────────
+        normalized_path = os.path.normpath(file_path)
+        if normalized_path in ImageUtils._base64_cache:
+            logger.debug(
+                f"photo_to_base64: cache hit para '{os.path.basename(file_path)}'"
+            )
+            return ImageUtils._base64_cache[normalized_path]
+
         # ── Leitura e codificação ────────────────────────────────
         try:
             with open(file_path, "rb") as f:
@@ -115,6 +131,9 @@ class ImageUtils(BaseUtil):
         # ── Monta data URI ───────────────────────────────────────
         mime_type = ImageUtils._guess_mime_type(ext)
         data_uri = f"data:{mime_type};base64,{b64_str}"
+
+        # Armazena no cache para chamadas futuras
+        ImageUtils._base64_cache[normalized_path] = data_uri
 
         logger.info(
             f"photo_to_base64: imagem '{os.path.basename(file_path)}' "

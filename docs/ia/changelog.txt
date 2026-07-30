@@ -351,3 +351,10 @@
       arquivo inteiro é lido como segunda tentativa.
     - O fallback mantém a performance para ~99.9% dos casos (XMP está nos
       últimos ~4KB do JPG) e garante robustez para arquivos com posição atípica.
+2.3.76 30/07/2026
+[2.3.76.1][30/07/2026] Adicionados SimpleRadioButton e GridRadioButton ao novo sistema de widgets:
+  - Criado resources/new_widgets/simple/SimpleRadioButton.py (QRadioButton + AppStyles.radio_button())
+  - Criado resources/new_widgets/grid/GridRadioButton.py (container de radio buttons com QButtonGroup + dict config + columns + default_key)
+  - API pública: get_selected_key/set_selected_key/get_selected_index/set_selected_index
+  - Atualizada docs/skills/SKILL_WIDGETS2.md para versão 2.6.0
+  - Atualizado docs/plano_eliminacao_widgetfactory.md para versão 5.4.0

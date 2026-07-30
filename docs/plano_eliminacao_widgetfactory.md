@@ -2,8 +2,8 @@
 
 **Objetivo:** Eliminar completamente o uso da `WidgetFactory`, migrando para um modelo onde widgets se autoconfiguram com `AppStyles` + `ThemeManager` + `BaseTheme`, e plugins declaram widgets via parâmetros/dict sem saber de estilos.
 
-**Data:** 2026-07-24
-**Versão:** 5.1.0
+**Data:** 2026-07-30
+**Versão:** 5.4.0
 **Autor:** Cadmus Engineering
 
 ---
@@ -148,6 +148,7 @@ resources/
       │   ├── SimpleReadOnly.py       ← SimpleQLineEdit + botão copiar
       │   ├── SimpleCheckbox.py       ← QCheckBox + AppStyles.checkbox()
       │   ├── SimpleDoubleSpinBox.py  ← QDoubleSpinBox + AppStyles.input()
+      │   ├── SimpleRadioButton.py    ← QRadioButton + AppStyles.radio_button()
       │   ├── ComplexSelector.py      ← Seletor completo (arquivo/pasta/camada) com glow
       │   └── SquareIconButton.py     ← QPushButton quadrado com ícone
       └── grid/
@@ -158,6 +159,7 @@ resources/
           ├── GridIconButton.py
           ├── GridCheckbox.py         ← Container de checkboxes (dict config + items_per_row)
           ├── GridDoubleSpin.py       ← Container de campos numéricos (dict config + type int/double)
+          ├── GridRadioButton.py      ← Container de radio buttons (dict config + columns + default_key)
           └── GridComplexSelector.py  ← Grade de ComplexSelectors (dict config + parent linking)
 ```
 
@@ -210,6 +212,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
   │   ├── SimpleReadOnly.py             ← SimpleQLineEdit + botão copiar SimpleModernButton
   │   ├── SimpleCheckbox.py             ← QCheckBox + AppStyles.checkbox()
   │   ├── SimpleDoubleSpinBox.py        ← QDoubleSpinBox + AppStyles.input()
+  │   ├── SimpleRadioButton.py          ← QRadioButton + AppStyles.radio_button()
   │   ├── ComplexSelector.py            ← Seletor completo (arquivo/pasta/camada) com glow
   │   └── SquareIconButton.py           ← QPushButton quadrado com ícone
   │
@@ -222,6 +225,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
       ├── GridCheckbox.py               ← Container de checkboxes (dict config + items_per_row)
       ├── GridInputFields.py            ← Container de campos de texto (dict config + SimpleQLineEdit)
       ├── GridDoubleSpin.py             ← Container de campos numéricos (dict config + type int/double)
+      ├── GridRadioButton.py            ← Container de radio buttons (dict config + columns + default_key)
       └── GridComplexSelector.py        ← Grade de ComplexSelectors (dict config + parent linking)
 ```
 
@@ -239,6 +243,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 | `SimpleReadOnly.py` | `SimpleReadOnly` | QWidget | Composto: `SimpleQLineEdit` + `SimpleModernButton` (ícone COPY2) | Campo readonly com botão copiar opcional. API: `setText()`, `text()`, `setPlaceholderText()` |
 | `SimpleCheckbox.py` | `SimpleCheckbox` | QCheckBox | `AppStyles.checkbox()` | Checkbox com texto, API: `isChecked()`, `setChecked()`, signal `toggled` |
 | `SimpleDoubleSpinBox.py` | `SimpleDoubleSpinBox` | QDoubleSpinBox | `AppStyles.input()` | Campo numérico. Suporta `type_spec="int"` para exibir inteiros. Parâmetros: `value`, `min_val`, `max_val`, `step`, `decimals`, `type_spec` |
+| `SimpleRadioButton.py` | `SimpleRadioButton` | QRadioButton | `AppStyles.radio_button()` | Radio button com texto, API: `isChecked()`, `setChecked()`, signal `toggled` |
 | `ComplexSelector.py` | `ComplexSelector` | QWidget | Composto: `SimpleQLineEdit` (glow) + múltiplos botões | Seletor completo de arquivo/pasta/camada com botões: 📄 (layer), 📥 (origin), 🛠️ (suggest), 📂 (explorer), 📋 (copy). API: `path()`, `get_paths()`, `set_path()`, `on_path_change` |
 | `SquareIconButton.py` | `SquareIconButton` | QPushButton | `AppStyles.button()` + estilo específico quadrado | Botão quadrado com ícone, sem borda, fundo transparente. Parâmetros: `icon`, `icon_size`, `button_size`, `tooltip` |
 
@@ -253,6 +258,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 | `GridIconButton.py` | `GridIconButton` | Container de botões com ícone (`SimpleIconButton`). Configuração via dict. | `config={"key": {"label": ..., "icon": ..., "callback": ..., "description": ...}}` |
 | `GridCheckbox.py` | `GridCheckbox` | Container de checkboxes (`SimpleCheckbox`). Configuração via dict + `items_per_row`. | `config={"key": {"label": ..., "description": ..., "default": ..., "onchange": ...}}`, `title`, `items_per_row` |
 | `GridDoubleSpin.py` | `GridDoubleSpin` | Container de campos numéricos (`SimpleDoubleSpinBox`). Suporta `type="int"` ou `type="double"`. | `config={"key": {"label": ..., "value": ..., "min": ..., "max": ..., "step": ..., "decimals": ..., "type": ...}}`, `title` |
+| `GridRadioButton.py` | `GridRadioButton` | Container de radio buttons (`SimpleRadioButton` + QButtonGroup). Suporta `columns` e `default_key`. | `config={"key": {"label": ..., "description": ..., "onchange": ...}}`, `columns`, `default_key`, `separator_top/bottom` |
 | `GridComplexSelector.py` | `GridComplexSelector` | Grade de seletores de arquivo/pasta/camada (`ComplexSelector`). Suporta linking parent-child, mode_type="input"/"output", subfolder, dynamic_parent. | `config={"key": {"label": ..., "mode_type": ..., "parent": ..., "suffix": ..., "fixed_extension": ..., "subfolder": ..., "layer_filters": ...}}`, `tool_key`, `grid_id` |
 
 #### Widgets Raiz (SEM versão grid)
@@ -498,6 +504,7 @@ Criados em `resources/new_widgets/simple/`. Estes widgets TEM versão grid.
 | `SimpleReadOnly.py` | `SimpleReadOnly` | ✅ | Composto: `SimpleQLineEdit` + `SimpleModernButton` (ícone COPY2). API: `setText()`, `text()`, `setPlaceholderText()` |
 | `SimpleCheckbox.py` | `SimpleCheckbox` | ✅ | QCheckBox + AppStyles.checkbox(). API: `isChecked()`, `setChecked()`, signal `toggled` |
 | `SimpleDoubleSpinBox.py` | `SimpleDoubleSpinBox` | ✅ | QDoubleSpinBox + AppStyles.input(). Suporta type_spec="int". Parâmetros: value, min_val, max_val, step, decimals|
+| `SimpleRadioButton.py` | `SimpleRadioButton` | ✅ | QRadioButton + AppStyles.radio_button(). API: isChecked(), setChecked(), signal toggled|
 | `ComplexSelector.py` | `ComplexSelector` | ✅ | Seletor completo (arquivo/pasta/camada) com glow + botões layer/origin/suggest/explorer/copy. API: path(), get_paths(), set_path(), on_path_change|
 | `SquareIconButton.py` | `SquareIconButton` | ✅ | QPushButton quadrado com ícone, sem borda, fundo transparente |
 
@@ -514,6 +521,7 @@ Criados em `resources/new_widgets/grid/`. Compostos de Simple + layout.
 | `GridIconButton.py` | `GridIconButton` | ✅ | Container de botões com ícone (`SimpleIconButton`). Configuração via dict com callback por item |
 | `GridCheckbox.py` | `GridCheckbox` | ✅ | Container de checkboxes (`SimpleCheckbox`). Configuração via dict. Parâmetros: `config`, `title`, `items_per_row`, `separator_top/bottom`. API: `is_checked()`, `set_checked()`, `get_all_states()`, `widget()` |
 | `GridDoubleSpin.py` | `GridDoubleSpin` | ✅ | Container de campos numéricos (`SimpleDoubleSpinBox`). Configuração via dict. Parâmetros: `config`, `title`, `separator_top/bottom`. API: `get_value()`, `set_value()`, `get_all_values()` |
+| `GridRadioButton.py` | `GridRadioButton` | ✅ | Container de radio buttons (`SimpleRadioButton` + QButtonGroup). Configuração via dict. Parâmetros: `config`, `columns`, `default_key`, `separator_top/bottom`. API: `get_selected_key()`, `set_selected_key()`, `get_selected_index()`, `set_selected_index()` |
 | `GridComplexSelector.py` | `GridComplexSelector` | ✅ | Grade de seletores (`ComplexSelector`) com linking parent-child. Parâmetros: `config`, `tool_key`, `title`, `grid_id`, `separator_top/bottom`. API: `get_paths()`, `get_path()`, `set_path()`, `get_preferences()`, `set_preferences()`, `refresh_links()` |
 
 ### 7.3 Widgets na Raiz (SEM versão grid) — PARCIAL
@@ -899,6 +907,7 @@ def resolve_qt_window_modality(name: str):
     [x] SimpleDoubleSpinBox.py
     [x] ComplexSelector.py (seletor completo com glow + botões)
     [x] SquareIconButton.py
+    [x] SimpleRadioButton.py (QRadioButton + AppStyles.radio_button())
   [x] 1.2 Grid (PLUGINS USAM) — COMPLETO ✅
     [x] GridLabel.py
     [x] GridReadOnly.py
@@ -907,6 +916,7 @@ def resolve_qt_window_modality(name: str):
     [x] GridIconButton.py (SimpleIconButton + dict config + callback por item)
     [x] GridCheckbox.py (SimpleCheckbox + dict config + items_per_row)
     [x] GridDoubleSpin.py (SimpleDoubleSpinBox + dict config + type int/double)
+    [x] GridRadioButton.py (SimpleRadioButton + QButtonGroup + dict config + columns + default_key)
     [x] GridComplexSelector.py (ComplexSelector + dict config + parent linking)
   [ ] 1.3 Raiz (SEM versão grid) — PARCIAL
     [x] MainLayout.py (substitui BaseLayout)
@@ -965,3 +975,4 @@ def resolve_qt_window_modality(name: str):
 | 2026-07-24 | 5.0.0 | **Atualização:** FASE 0 marcada como completa; FASE 1 atualizada com SimpleModernButton, SimpleQLineEdit, GridExecutionButtons, GridIconButton, MainLayout, ScrollWidget, AppBarWidget; FASE 2 atualizada com AboutDialog e CoorResultDialog como migrados; adicionadas regras 13-17 do contrato (config dict, callbacks, modern widgets, add_execution_buttons sem stretch) |
 | 2026-07-24 | 5.1.0 | **Atualização:** Adicionado TextBrowser.py aos widgets raiz (FASE 1.3). Adicionado InfoDialog como migrado (FASE 2 - 2.3.64.1). Atualizadas seções 3, 4.1, 4.2, 7.3, 8.1 e TODO com TextBrowser e InfoDialog. |
 | 2026-07-27 | 5.3.0 | **Atualização:** Criado GridInputFields (container de campos de texto + SimpleQLineEdit). ReplaceInLayouts migrado usando GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons. Botao Inverter como item extra no GridExecutionButtons. FASE 2: 5 plugins migrados. |
+| 2026-07-30 | 5.4.0 | **Atualização:** Adicionados SimpleRadioButton (QRadioButton + AppStyles.radio_button()) e GridRadioButton (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. Atualizadas seções 3, 4.1, 4.2, 7.1, 7.2, 8.1, 13 e TODO. |

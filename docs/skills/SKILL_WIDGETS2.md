@@ -241,6 +241,23 @@ btn = SquareIconButton(
 )
 ```
 
+### SimpleRadioButton 🆕
+`QRadioButton` com estilo global `AppStyles.radio_button()`.
+
+```python
+from .SimpleRadioButton import SimpleRadioButton
+
+radio = SimpleRadioButton(text="Opção 1", parent=self)
+```
+
+**API pública:**
+- `isChecked()` → bool
+- `setChecked(bool)`
+- `toggled` signal
+- `text()` → str
+
+---
+
 ### SimpleQLineEdit 🆕
 `QLineEdit` **sem borda**, com **gradiente 3 stops** + **glow shadow**, condizente com `SimpleModernButton`.
 
@@ -546,6 +563,63 @@ combo.widget("vector_ext")            # → SimpleComboBox
 | `"options"` | Sim | Dict `{key: label}` para popular o combo |
 | `"selected_key"` | Não | Chave inicialmente selecionada |
 | `"onchange"` | Não | `callback(chave_selecionada, texto_selecionado)` |
+
+### GridRadioButton 🆕
+Container de radio buttons configurável via dict, com `QButtonGroup` exclusivo. Usa `SimpleRadioButton` internamente. Suporta `columns` para layout em grid e `default_key` para seleção inicial.
+
+```python
+mode_selector = GridRadioButton(
+    config={
+        "remove": {
+            "label": "Remover Extensão",
+            "description": "Remove a extensão dos arquivos",
+        },
+        "restore": {
+            "label": "Restaurar Extensão",
+        },
+        "zip": {
+            "label": "Zipar",
+        },
+        "unzip": {
+            "label": "Deszipar",
+            "onchange": lambda key: print(f"Selecionado: {key}"),
+        },
+    },
+    columns=2,
+    default_key="remove",
+    separator_bottom=True,
+    parent=self,
+)
+layout.addWidget(mode_selector)
+
+# API pública
+mode_selector.get_selected_key()    # → "remove"
+mode_selector.set_selected_key("zip")
+mode_selector.get_selected_index()  # → 2
+mode_selector.set_selected_index(2)
+```
+
+**API pública:**
+
+| Método | Descrição |
+|--------|-----------|
+| `get_selected_key()` → `str` | Retorna chave do radio selecionado |
+| `set_selected_key(key)` | Seleciona radio pela chave |
+| `get_selected_index()` → `int` | Retorna índice (0-based) do selecionado |
+| `set_selected_index(index)` | Seleciona radio pelo índice |
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `config` | dict | `{}` | Dict de radio buttons (chave → `label`, `description`, `onchange`) |
+| `columns` | int | `1` | Número de colunas no grid |
+| `default_key` | str | `None` | Chave do item selecionado por padrão |
+| `separator_top` | bool | `False` | Separador antes |
+| `separator_bottom` | bool | `False` | Separador depois |
+| `parent` | QWidget | `None` | Widget pai |
+
+---
 
 ### GridDoubleSpin 🆕
 Container de campos numéricos configurável via dict. Usa `SimpleDoubleSpinBox` internamente. Suporta `type="int"` ou `type="double"`.
@@ -1020,3 +1094,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-27 | 2.3.0 | Adicionado `GridInputFields` ao catálogo Grid — container de campos de texto com labels + SimpleQLineEdit (glow/gradiente). API: get_value/set_value/get_values/set_values/widget. ReplaceInLayouts migrado usando GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons. |
 | 2026-07-27 | 2.4.0 | Adicionados `SimpleComboBox` (QComboBox + AppStyles.input()) e `GridComboBox` (container de N combos com onchange callback, sem pyqtSignal). API: get_selected_key/set_selected_key/get_options/set_options/widget. SaveTemporaryLayersPlugin migrado usando GridInputFields + GridComboBox + GridComplexSelector + GridExecutionButtons. |
 | 2026-07-28 | 2.5.0 | Adicionado `CollapsibleParametersWidget` ao catálogo de widgets raiz com `get_preferences()`/`set_preferences()` para persistir estado expandido. `GridComplexSelector.get_preferences()`/`set_preferences()` agora inclui `lock_state` e `checked_state` de cada selector. GenerateTrailPlugin refatorado para usar `get_preferences()`/`set_preferences()` unificados. |
+| 2026-07-30 | 2.6.0 | Adicionados `SimpleRadioButton` (QRadioButton + AppStyles.radio_button()) e `GridRadioButton` (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. |

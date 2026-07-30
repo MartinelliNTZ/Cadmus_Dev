@@ -335,3 +335,19 @@
     - Chamava InitialParamsUtil.build_skeleton() que não existe
     - O método correto é InitialParamsUtil.build_initial_json() que retorna dict com chave "skeleton"
     - Extraído skeleton = initial_result.get("skeleton", {})
+2.3.75 30/07/2026
+[2.3.75.1][30/07/2026] Corrigida duplicação de geração de relatório que travava a UI:
+    - DronePipelineService._on_pipeline_finished() gerava o relatório NOVAMENTE no MainThread
+      mesmo após o ReportGenerationStep já ter gerado com sucesso na pipeline.
+    - Adicionada verificação de timestamps report_start/report_end no JSON:
+      se existirem, o relatório já foi gerado — fallback é ignorado.
+    - A verificação evita re-carregar 999+ imagens e re-renderizar o HTML,
+      eliminando o freeze da UI de ~54s que ocorria no pós-processamento.
+[2.3.75.2][30/07/2026] Corrigida falha intermitente na extração XMP (with_xmp=0):
+    - XmpUtil._extract_xmp_text_raw() lia apenas os últimos 64KB do JPG para
+      encontrar o bloco XMP. Se o marcador <x:xmpmeta não estivesse nesses 64KB
+      (arquivos com estrutura atípica), retornava vazio — sem XMP, sem relatório.
+    - Adicionado fallback: se o XMP não for encontrado nos últimos 64KB, o
+      arquivo inteiro é lido como segunda tentativa.
+    - O fallback mantém a performance para ~99.9% dos casos (XMP está nos
+      últimos ~4KB do JPG) e garante robustez para arquivos com posição atípica.

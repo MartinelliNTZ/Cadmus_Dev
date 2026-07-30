@@ -67,32 +67,60 @@ class XmpUtil:
     @staticmethod
     def _extract_xmp_text_raw(image_path: str) -> str:
         """
-        Lê APENAS os últimos 64KB do arquivo para localizar o bloco XMP.
+        Lê o bloco XMP do arquivo, com fallback para leitura completa.
+
+        Estratégia:
+        1. Lê APENAS os últimos 64KB (otimizado — XMP DJI está nos últimos ~4KB)
+        2. Se não encontrar o marcador <x:xmpmeta, faz fallback lendo o arquivo
+           inteiro (para arquivos onde o XMP está em posição inesperada)
 
         O bloco XMP em arquivos DJI está nos últimos ~4KB do JPG
         (footer após o segmento APP1). Ler o arquivo inteiro é
-        extremamente ineficiente para milhares de fotos.
+        extremamente ineficiente para milhares de fotos, por isso o fallback
+        só é usado quando necessário.
         """
-        with open(image_path, "rb") as fh:
-            # Vai para o final do arquivo
-            fh.seek(0, 2)
-            file_size = fh.tell()
-            # Lê no máximo 64KB do final (XMP DJI está nos últimos ~4KB)
-            read_size = min(file_size, 65536)
-            fh.seek(file_size - read_size)
-            raw = fh.read().decode("latin1", errors="ignore")
+        # ── Tentativa 1: ler apenas os últimos 64KB ───────────────
+        raw = ""
+        try:
+            with open(image_path, "rb") as fh:
+                fh.seek(0, 2)
+                file_size = fh.tell()
+                read_size = min(file_size, 65536)
+                if read_size > 0:
+                    fh.seek(file_size - read_size)
+                    raw = fh.read().decode("latin1", errors="ignore")
+        except Exception:
+            pass
 
         start = raw.find("<x:xmpmeta")
-        if start == -1:
-            return ""
+        if start != -1:
+            end_marker = "</x:xmpmeta>"
+            end = raw.find(end_marker, start)
+            if end != -1:
+                end += len(end_marker)
+                return raw[start:end]
 
-        end_marker = "</x:xmpmeta>"
-        end = raw.find(end_marker, start)
-        if end == -1:
-            return ""
+        # ── Tentativa 2: fallback — ler o arquivo inteiro ─────────
+        # Se o XMP não foi encontrado nos últimos 64KB, tenta ler
+        # o arquivo completo. Isso cobre casos onde o marcador está
+        # em posição inesperada (ex.: arquivos corrompidos ou não-DJI).
+        try:
+            with open(image_path, "rb") as fh:
+                raw = fh.read().decode("latin1", errors="ignore")
 
-        end += len(end_marker)
-        return raw[start:end]
+            start = raw.find("<x:xmpmeta")
+            if start == -1:
+                return ""
+
+            end_marker = "</x:xmpmeta>"
+            end = raw.find(end_marker, start)
+            if end == -1:
+                return ""
+
+            end += len(end_marker)
+            return raw[start:end]
+        except Exception:
+            return ""
 
     @staticmethod
     def _normalize_attribute_name(attr_name: str) -> str:

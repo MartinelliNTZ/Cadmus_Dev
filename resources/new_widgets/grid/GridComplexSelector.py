@@ -132,10 +132,11 @@ class GridComplexSelector(QWidget):
 
         Inclui:
         - paths de cada selector
+        - using_layer_combo de cada selector (modo layer combo ou line edit)
         - lock_state de cada selector (se allow_lock_check)
         - checked_state de cada selector (se allow_features_check)
 
-        QgsMapLayerComboBox não é salvo.
+        Salva o path (nunca o layer ID) mesmo em modo layer combo.
         """
         prefs = {}
         for key, sel in self._selectors.items():
@@ -143,6 +144,8 @@ class GridComplexSelector(QWidget):
             p = sel.path()
             if p:
                 item["path"] = p
+            # Save mode state (layer combo vs line edit)
+            item["using_layer_combo"] = sel.using_layer_combo
             # Lock state
             if self._link_meta.get(key, {}).get("allow_lock_check", False) or \
                hasattr(sel, '_allow_lock_check') and sel._allow_lock_check:
@@ -161,8 +164,13 @@ class GridComplexSelector(QWidget):
 
         Inclui:
         - paths de cada selector
+        - using_layer_combo de cada selector (modo layer combo ou line edit)
         - lock_state de cada selector (se existir no prefs)
         - checked_state de cada selector (se existir no prefs)
+
+        Se using_layer_combo=True, tenta encontrar a layer correspondente pelo path.
+        Se não encontrar, o QgsMapLayerComboBox mostra a primeira layer disponível
+        (comportamento padrão do widget).
         """
         if not prefs:
             return
@@ -173,8 +181,10 @@ class GridComplexSelector(QWidget):
             # Trata formato antigo (string direta) e novo (dict)
             if isinstance(data, str):
                 path = data
+                using_layer_combo = False
             elif isinstance(data, dict):
                 path = data.get("path", "")
+                using_layer_combo = data.get("using_layer_combo", False)
                 lock_state = data.get("lock_state")
                 if lock_state is not None:
                     sel.set_lock_state(bool(lock_state))
@@ -183,8 +193,10 @@ class GridComplexSelector(QWidget):
                     sel.set_checked_state(bool(checked_state))
             else:
                 path = ""
-            if path:
-                sel.set_path(path)
+                using_layer_combo = False
+
+            if path or using_layer_combo:
+                sel.set_mode_state(using_layer_combo=using_layer_combo, path=path)
 
     # ══════════════════════════════════════════════════════════════════
     # API Pública para Callbacks

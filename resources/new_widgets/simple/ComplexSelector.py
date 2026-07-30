@@ -238,6 +238,7 @@ class ComplexSelector(QWidget):
             check_text = self._features_check_text or ""
             self._features_checkbox.setText(check_text)
             self._features_checkbox.setChecked(self._features_check_default)
+            self._features_checkbox.toggled.connect(self._on_features_checkbox_toggled)
             self._features_layout.addWidget(self._features_checkbox, 0, Qt.AlignmentFlag.AlignVCenter)
 
             self._features_layout.addStretch(1)
@@ -656,6 +657,22 @@ class ComplexSelector(QWidget):
         )
 
     # ══════════════════════════════════════════════════════════════════
+    # Features checkbox (conectado ao QgsMapLayerComboBox)
+    # ══════════════════════════════════════════════════════════════════
+
+    def _on_features_checkbox_toggled(self, checked: bool):
+        """
+        Quando o features checkbox é alternado, também atualiza o filtro
+        do QgsMapLayerComboBox para mostrar apenas layers com feições selecionadas.
+        """
+        try:
+            if self._combo:
+                self._combo.setShowOnlySelectedFeatures(checked)
+        except AttributeError:
+            # Método não disponível nesta versão do QGIS
+            pass
+
+    # ══════════════════════════════════════════════════════════════════
     # Lock checkbox (bloqueia widget quando desmarcado)
     # ══════════════════════════════════════════════════════════════════
 
@@ -830,6 +847,50 @@ class ComplexSelector(QWidget):
             self._selected_list = []
         self._update_display()
         self._emit_path_change()
+
+    def set_mode_state(self, using_layer_combo: bool, path: str = ""):
+        """
+        Restaura modo (layer combo ou line edit) e path.
+        Usado internamente para carregar preferências.
+        Não emite pathChanged para evitar chamadas de callback durante restauração.
+        """
+        if using_layer_combo and self._mode_type == "input" and self._allow_layer:
+            # Modo layer combo: tenta encontrar layer pelo path
+            self._using_layer_combo = True
+            if path:
+                for layer in QgsProject.instance().mapLayers().values():
+                    src = layer.source()
+                    if src and path in src:
+                        self._combo.setLayer(layer)
+                        break
+            self._combo.setVisible(True)
+            self._stack.setCurrentIndex(1)
+            self._update_features_visibility()
+            # Atualiza estado interno sem emitir sinal
+            self._updating_display = True
+            try:
+                layer = self._combo.currentLayer()
+                if layer:
+                    src = layer.source()
+                    if src:
+                        layer_path = src.split("|")[0] if "|" in src else src
+                        self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
+                        self._selected_list = [layer_path]
+                if not self._selected_list and path:
+                    self._root_path = os.path.dirname(path) if os.path.isfile(path) else path
+                    self._selected_list = [path]
+            finally:
+                self._updating_display = False
+        else:
+            # Modo line edit
+            self._using_layer_combo = False
+            if path:
+                self._root_path = os.path.dirname(path) if os.path.isfile(path) else path
+                self._selected_list = [path]
+            else:
+                self._root_path = ""
+                self._selected_list = []
+            self._update_display()
 
     def clear(self):
         self._using_layer_combo = False

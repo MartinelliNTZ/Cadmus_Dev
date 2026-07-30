@@ -358,3 +358,11 @@
   - API pública: get_selected_key/set_selected_key/get_selected_index/set_selected_index
   - Atualizada docs/skills/SKILL_WIDGETS2.md para versão 2.6.0
   - Atualizado docs/plano_eliminacao_widgetfactory.md para versão 5.4.0
+2.3.77 30/07/2026
+[2.3.77.1][30/07/2026] Corrigido salvamento/restauração do modo layer combo nas preferências do GridComplexSelector:
+  - ComplexSelector: adicionado método set_mode_state() para restaurar modo (layer combo ou line edit) + path sem emitir sinais durante restauração de preferências
+  - ComplexSelector: features checkbox agora conectado ao QgsMapLayerComboBox.setShowOnlySelectedFeatures() para filtrar layers com feições selecionadas
+  - GridComplexSelector.get_preferences(): agora salva using_layer_combo (True se em modo layer combo, False se line edit)
+  - GridComplexSelector.set_preferences(): agora restaura using_layer_combo via set_mode_state(), tentando encontrar a layer correspondente pelo path salvo
+  - Comportamento: se a layer não for encontrada (ex: projeto diferente), o QgsMapLayerComboBox mostra a primeira layer disponível (padrão do widget)
+  - Nunca salva o layer ID — apenas o path. Compatível com formato antigo de string direta nas prefs.

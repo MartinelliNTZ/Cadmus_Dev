@@ -662,9 +662,21 @@ class ComplexSelector(QWidget):
 
     def _on_features_checkbox_toggled(self, checked: bool):
         """
-        Quando o features checkbox é alternado, também atualiza o filtro
-        do QgsMapLayerComboBox para mostrar apenas layers com feições selecionadas.
+        Quando o features checkbox é alternado, verifica se há feições selecionadas
+        na camada atual antes de permitir marcar.
+        Se não houver feições selecionadas, desmarca o checkbox e avisa o usuário.
+        Se houver, aplica o filtro no QgsMapLayerComboBox.
         """
+        if checked:
+            layer = self._combo.currentLayer()
+            if layer and layer.selectedFeatureCount() == 0:
+                # Nenhuma feição selecionada → desmarca e avisa
+                self._features_checkbox.blockSignals(True)
+                self._features_checkbox.setChecked(False)
+                self._features_checkbox.blockSignals(False)
+
+                return
+
         try:
             if self._combo:
                 self._combo.setShowOnlySelectedFeatures(checked)

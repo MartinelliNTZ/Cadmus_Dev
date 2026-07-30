@@ -114,6 +114,16 @@ class PathExtensionPlugin(BasePluginMTL):
     def _load_prefs(self):
         self.logger.debug("Carregando preferências")
         last_mode = self.preferences.get("last_mode", 0)
+
+        # Suporte a valor legado: se for string (nome do modo), converte para índice
+        if isinstance(last_mode, str):
+            reverse_map = {v: k for k, v in self._MODE_MAP.items()}
+            mode_name = last_mode
+            last_mode = reverse_map.get(mode_name, 0)
+            self.logger.debug(
+                f"Valor legado de modo convertido: '{mode_name}' → índice {last_mode}"
+            )
+
         self.radio_mode.set_selected_index(int(last_mode))
 
     def _save_prefs(self):

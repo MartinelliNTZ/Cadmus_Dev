@@ -366,3 +366,13 @@
   - GridComplexSelector.set_preferences(): agora restaura using_layer_combo via set_mode_state(), tentando encontrar a layer correspondente pelo path salvo
   - Comportamento: se a layer não for encontrada (ex: projeto diferente), o QgsMapLayerComboBox mostra a primeira layer disponível (padrão do widget)
   - Nunca salva o layer ID — apenas o path. Compatível com formato antigo de string direta nas prefs.
+[2.3.77.2][30/07/2026] Adicionada validação no features checkbox do ComplexSelector:
+   - Quando o usuário tenta marcar "Apenas feições selecionadas", verifica se a camada atual possui feições selecionadas
+   - Se não houver feições selecionadas, desmarca o checkbox automaticamente e exibe aviso na message bar
+   - Previne estado inconsistente onde o checkbox estaria marcado mas sem feições para processar
+2.3.78 30/07/2026
+[2.3.78.1][30/07/2026] Corrigido erro "invalid literal for int() with base 10: 'remove'" no PathExtensionPlugin:
+   - _load_prefs() agora trata valores legados de preferência onde o modo foi armazenado como string (nome do modo) em vez de índice inteiro
+   - Adicionado reverse mapping de _MODE_MAP (nome do modo → índice) para conversão segura
+   - Fallback para índice 0 quando o nome do modo não é reconhecido
+   - Log de debug registra a conversão do valor legado

@@ -3,7 +3,7 @@
 **Objetivo:** Eliminar completamente o uso da `WidgetFactory`, migrando para um modelo onde widgets se autoconfiguram com `AppStyles` + `ThemeManager` + `BaseTheme`, e plugins declaram widgets via parâmetros/dict sem saber de estilos.
 
 **Data:** 2026-07-30
-**Versão:** 5.4.0
+**Versão:** 5.6.0
 **Autor:** Cadmus Engineering
 
 ---
@@ -139,6 +139,7 @@ resources/
       ├── SeparatorWidget.py      ← QFrame HLine com gradiente
       ├── TextBrowser.py          ← QTextBrowser com set_markdown() e fallback Qt5/Qt6
       ├── CollapsibleParametersWidget.py  ← Seção colapsável com paintEvent gradiente
+      ├── GridAttributeSelector.py ← Widget específico seleção de atributos (checkboxes + scroll + buttons)
       ├── simple/
       │   ├── SimpleLabel.py
       │   ├── SimpleButton.py
@@ -185,7 +186,7 @@ Se um widget é COMPLEXO (simple + funções):
 1. BaseTheme + ThemeManager OK ✅
 2. AppStyles criado ✅
 3. Widgets criados (simple/grid/raiz) — SIMPLE E GRID COMPLETOS ✅, raiz PARCIAL
-4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅, ExportAllLayouts ✅, ReplaceInLayouts ✅, SaveTemporaryLayersPlugin ✅
+4. Plugins migrados 1 por vez — AboutDialog ✅, CoorResultDialog ✅, InfoDialog ✅, ExportAllLayouts ✅, ReplaceInLayouts ✅, SaveTemporaryLayersPlugin ✅, CopyAttributesPlugin ✅
 5. NUNCA deletar nada antigo
 ```
 
@@ -202,6 +203,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 ├── ScrollWidget.py                   ← QScrollArea
 ├── SeparatorWidget.py                ← QFrame separador visual (gradiente horizontal)
 ├── TextBrowser.py                    ← QTextBrowser com set_markdown() e fallback Qt5/Qt6
+├── GridAttributeSelector.py          ← Widget específico seleção de atributos
 │
       ├── simple/                           ← USO INTERNO (NUNCA importado por plugins)
   │   ├── SimpleLabel.py                ← QLabel + AppStyles.label()
@@ -270,6 +272,7 @@ new_widgets/                          ← NOVO SISTEMA (criado)
 | `ScrollWidget.py` | `ScrollWidget` | QScrollArea com estilo `AppStyles.scroll_area()` |
 | `SeparatorWidget.py` | `SeparatorWidget` | QFrame HLine com gradiente horizontal. É um widget Qt separado, NÃO margem/padding |
 | `TextBrowser.py` | `TextBrowser` | QTextBrowser com `AppStyles.text_browser()`, sem borda, fundo transparente. Renderização Markdown nativa com fallback Qt5/Qt6. API: `set_markdown()`, `setHtml()`, `setPlainText()`, `document()` |
+| `GridAttributeSelector.py` | `GridAttributeSelector` | Widget específico para seleção de atributos com checkboxes. Título, checkbox "Usar todos", GridCheckbox (1 coluna) com QScrollArea interna (fundo secondary transparente), GridModernButtons (Selecionar/Remover/Inverter). Logger obrigatório via LogUtils com tool_key. `_specific_style()` com tokens do tema AppStyles. API: `set_fields()`, `get_selected_fields()`, `use_all_fields()`, `set_checked_all()`, `get_all_states()` |
 
 ### 4.3 Quando Usar Cada Um
 
@@ -535,7 +538,7 @@ Criados em `resources/new_widgets/`.
 | `ScrollWidget.py` | `ScrollWidget` | ✅ | QScrollArea com estilo `AppStyles.scroll_area()` |
 | `SeparatorWidget.py` | `SeparatorWidget` | ✅ | QFrame HLine com gradiente horizontal. `height` opcional |
 | `TextBrowser.py` | `TextBrowser` | ✅ | QTextBrowser com `AppStyles.text_browser()`, sem borda, fundo transparente. Renderização Markdown nativa com fallback Qt5/Qt6. API: `set_markdown()`, `setHtml()`, `setPlainText()`, `document()` |
-
+| `GridAttributeSelector.py` | `GridAttributeSelector` | ✅ | Widget específico para seleção de atributos com checkboxes. Título, checkbox "Usar todos", GridCheckbox (1 coluna) com QScrollArea interna (fundo secondary transparente), GridModernButtons (Selecionar/Remover/Inverter). Logger obrigatório via LogUtils com tool_key. `_specific_style()` com tokens do tema AppStyles. API: `set_fields()`, `get_selected_fields()`, `use_all_fields()`, `set_checked_all()`, `get_all_states()` |
 
 ---
 
@@ -551,7 +554,7 @@ Criados em `resources/new_widgets/`.
 | 4 | `RestartQgis` | create_simple_button | GridButton | ⬜ Pendente |
 | 5 | `VectorMultipartPlugin` | create_layer_input, create_bottom_action_buttons | GridLayerInput + GridButton | ⬜ Pendente |
 | 6 | `ExportAllLayouts` | create_readonly_field, create_bottom_action_buttons, create_path_selector | GridCheckbox + GridDoubleSpin + GridComplexSelector + GridExecutionButtons | ✅ Migrado (2.3.65.1) |
-| 7 | `CopyAttributesPlugin` | create_layer_input, create_checkbox_grid, create_bottom_action_buttons | GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
+| 7 | `CopyAttributesPlugin` | create_layer_input, create_checkbox_grid, create_bottom_action_buttons | GridComplexSelector + GridAttributeSelector + GridExecutionButtons | ✅ **Migrado (2.3.79.2)** |
 | 8 | `DividePointsByStripsPlugin` | create_layer_input, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridInput + GridButton | ⬜ Pendente |
 | 9 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
 | 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_collapsible_parameters, create_bottom_action_buttons | GridComplexSelector + GridCheckbox + CollapsibleParametersWidget + GridExecutionButtons | ✅ Migrado (2.3.68.1) |
@@ -927,20 +930,21 @@ def resolve_qt_window_modality(name: str):
     [x] CollapsibleParametersWidget.py (paintEvent gradiente + AppStyles + tokens do tema)
     [x] GridCheckboxButtons.py (widget genérico de botões, sem built-ins)
     [x] GridCheckbox.py atualizado (dependents + control_buttons_config + select_all/deselect_all/invert_selection)
+    [x] GridAttributeSelector.py (widget específico seleção de atributos com QScrollArea + secondary transparente)
     [ ] ComplexPathSelector.py
   [ ] 1.3 Raiz (SEM versão grid) — PARCIAL
   [x] 1.3 Raiz (SEM versão grid) — QUASE COMPLETO
     [ ] ComplexColorPicker.py
     [ ] ComplexCrsSelector.py
 
-[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (9/19 migrados)
+[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (10/19 migrados)
   [x] 2.1 AboutDialog ✅ (2.3.62.2)
   [x] 2.2 CoorResultDialog ✅ (2.3.63.3)
   [x] 2.3 InfoDialog ✅ (2.3.64.1)
   [x] 2.4 ExportAllLayouts ✅ (2.3.65.1)
   [x] 2.5 RestartQgis
   [x] 2.6 VectorMultipartPlugin
-  [ ] 2.7 CopyAttributesPlugin
+  [x] 2.7 CopyAttributesPlugin ✅ (2.3.79.2)
   [ ] 2.8 DividePointsByStripsPlugin
   [ ] 2.9 DroneCoordinates
   [x] 2.10 LoadFolderLayers ✅ (2.3.68.1)
@@ -977,3 +981,4 @@ def resolve_qt_window_modality(name: str):
 | 2026-07-27 | 5.3.0 | **Atualização:** Criado GridInputFields (container de campos de texto + SimpleQLineEdit). ReplaceInLayouts migrado usando GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons. Botao Inverter como item extra no GridExecutionButtons. FASE 2: 5 plugins migrados. |
 | 2026-07-30 | 5.4.0 | **Atualização:** Adicionados SimpleRadioButton (QRadioButton + AppStyles.radio_button()) e GridRadioButton (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. Atualizadas seções 3, 4.1, 4.2, 7.1, 7.2, 8.1, 13 e TODO. |
 | 2026-07-31 | 5.5.0 | **Atualização:** PathExtensionPlugin migrado ✅ (2.3.79.1). Usa GridComplexSelector (allow_layer=True, layer_filters=VectorLayer, allow_features_check=True) + GridComboBox (atributos) + GridRadioButton (modos) + GridExecutionButtons. GridComboBox corrigido: `if widget:` → `if widget is not None:` (bug sip.isdeleted). ComplexSelector: setAllowEmptyLayer condicional (False quando allow_layer=True). SKILL_WIDGETS2.md v2.7.0 com regra crítica #9. |
+| 2026-07-31 | 5.6.0 | **Atualização:** CopyAttributesPlugin migrado ✅ (2.3.79.2). Criado GridAttributeSelector (widget raiz) com QScrollArea interna + fundo secondary transparente (COLOR_BACKGROUND_SOFT). GridComplexSelector com 2 items (target_layer + source_layer, ambos allow_layer=True, VectorLayer, sem pasta/arquivo/feicoes). VectorFieldsCalculationPlugin: ao recusar editar camada, apenas loga e retorna (sem bar_critical). |

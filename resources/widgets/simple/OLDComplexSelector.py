@@ -45,8 +45,8 @@ from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsProject
 
 from ....core.config.LogUtils import LogUtils
-from ....resources.widgets.SimpleButtonWidget import SimpleButtonWidget
-from ....resources.styles.Styles import Styles
+from ..SimpleButtonWidget import SimpleButtonWidget
+from ...styles.Styles import Styles
 from ....utils.ExplorerUtils import ExplorerUtils
 from ....utils.ProjectUtils import ProjectUtils
 

@@ -25,7 +25,7 @@ from ...resources.widgets.ReadOnlyFieldWidget import ReadOnlyFieldWidget
 from ...resources.widgets.DropdownSelectorWidget import DropdownSelectorWidget
 from ...resources.widgets.ColorButtonWidget import ColorButtonWidget
 from ...resources.widgets.CrsSelectorWidget import CrsSelectorWidget
-from ...resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ...resources.widgets.grid.OLDGridComplexSelector import GridComplexSelector
 from ...i18n.TranslationManager import STR
 
 

@@ -50,7 +50,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtCore import QTimer
 
-from ....resources.widgets.simple.ComplexSelector import ComplexSelector
+from ..simple.OLDComplexSelector import ComplexSelector
 
 from ....core.config.LogUtils import LogUtils
 

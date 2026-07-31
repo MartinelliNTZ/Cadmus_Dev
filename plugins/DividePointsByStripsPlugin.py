@@ -121,8 +121,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                     "allow_file": True,
                     "allow_folder": False,
                     "file_filter": StringManager.FILTER_VECTOR,
-                    "show_explorer_button": False,
-                    "show_copy_button": False,
                 },
             },
             tool_key=self.TOOL_KEY,

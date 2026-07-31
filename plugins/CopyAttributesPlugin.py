@@ -251,12 +251,10 @@ class CopyAttributes(BasePluginMTL):
 
         from ..utils.ProjectUtils import ProjectUtils
 
-        if not ProjectUtils.ensure_editable(target, self.logger):
-            QgisMessageUtil.bar_critical(
-                self.iface, STR.LAYER_MUST_BE_EDITABLE
-            )
-            self.logger.warning(
-                "Camada de destino nao editavel",
+        # Pergunta ao usuario se deseja tornar a camada de destino editavel
+        if not ProjectUtils.ask_and_make_editable(self.iface, target, self.logger):
+            self.logger.info(
+                "Operacao cancelada: usuario recusou editar a camada de destino",
                 code="TARGET_NOT_EDITABLE",
             )
             return

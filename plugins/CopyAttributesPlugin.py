@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from qgis.core import QgsVectorLayer, QgsMapLayerProxyModel
+
 from ..utils.ToolKeys import ToolKey
 from ..utils.QgisMessageUtil import QgisMessageUtil
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..utils.Preferences import Preferences
 from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from .BasePlugin import BasePluginMTL
 from ..i18n.TranslationManager import STR
+
+# NOVOS WIDGETS (substituem WidgetFactory)
+from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.new_widgets.GridAttributeSelector import GridAttributeSelector
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
 
 
 class CopyAttributes(BasePluginMTL):
@@ -22,6 +28,7 @@ class CopyAttributes(BasePluginMTL):
     # UI
     # =========================
     def _build_ui(self, **kwargs):
+        self.logger.debug("Inicializando PLUGIN CopyAttributes")
         super()._build_ui(
             title=STR.COPY_ATTRIBUTES_TITLE,
             icon_path="copy_attributes.ico",
@@ -29,99 +36,265 @@ class CopyAttributes(BasePluginMTL):
         )
         self.logger.info("Construindo interface da ferramenta")
 
-        # CAMADA DESTINO
-        tgt_layout, self.target_layer_input = WidgetFactory.create_layer_input(
-            label_text=STR.TARGET_LAYER,
-            filters=[QgsMapLayerProxyModel.Filter.VectorLayer],
+        # ── Layer Selectors (GridComplexSelector) ──────────────────────
+        self.logger.debug("Criando GridComplexSelector para camadas")
+        self.layer_selector = GridComplexSelector(
+            config={
+                "target_layer": {
+                    "label": STR.TARGET_LAYER,
+                    "description": "Selecione a camada vetorial de destino",
+                    "allow_layer": True,
+                    "layer_filters": QgsMapLayerProxyModel.VectorLayer,
+                    "allow_file": False,
+                    "allow_folder": False,
+                    "mode_type": "input",
+                },
+                "source_layer": {
+                    "label": STR.SOURCE_LAYER,
+                    "description": "Selecione a camada vetorial de origem",
+                    "allow_layer": True,
+                    "layer_filters": QgsMapLayerProxyModel.VectorLayer,
+                    "allow_file": False,
+                    "allow_folder": False,
+                    "mode_type": "input",
+                },
+            },
+            tool_key=self.TOOL_KEY,
+            separator_bottom=False,
             parent=self,
         )
-        self.logger.debug("Componente de camada de target adicionado")
+        self.logger.info(
+            "GridComplexSelector criado com 2 items: "
+            "target_layer e source_layer"
+        )
 
-        # CAMADA ORIGEM
-        src_layout, self.source_layer_input = WidgetFactory.create_layer_input(
-            label_text=STR.SOURCE_LAYER,
-            filters=[QgsMapLayerProxyModel.Filter.VectorLayer],
+        # Registra callback para quando a camada de origem mudar
+        self.layer_selector.set_on_changed(
+            "source_layer", self._populate_fields
+        )
+        self.logger.debug(
+            "Callback _populate_fields registrado no source_layer"
+        )
+
+        self.layout.addWidget(self.layer_selector)
+
+        # ── Separador ──────────────────────────────────────────────────
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Attribute Selector (GridAttributeSelector) ─────────────────
+        self.logger.debug("Criando GridAttributeSelector")
+        self.attr_selector = GridAttributeSelector(
+            title=STR.SOURCE_LAYER_ATTRIBUTES,
+            check_all_text=STR.USE_ALL_ATTRIBUTES,
+            tool_key=self.TOOL_KEY,
             parent=self,
         )
-        self.source_layer_input.layerChanged.connect(self._populate_fields)
-        self.logger.debug("Componente de camada de origem adicionado")
+        self.logger.info("GridAttributeSelector criado")
+        self.layout.addWidget(self.attr_selector)
 
-        # ATRIBUTOS
-        attr_layout, self.attr_widget = WidgetFactory.create_attribute_selector(
-            parent=self, title=STR.SOURCE_LAYER_ATTRIBUTES
+        # ── Separador ──────────────────────────────────────────────────
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Botões de Ação (GridExecutionButtons) ──────────────────────
+        self.logger.debug("Criando GridExecutionButtons")
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "run": {
+                    "label": "Executar",
+                    "description": "Inicia a copia de atributos",
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_info=True,
+            tool_key=self.TOOL_KEY,
+            parent=self,
+        )
+        self.logger.info(
+            "GridExecutionButtons criado com botao Executar + Fechar + Info"
+        )
+        self.layout.add_execution_buttons(self.action_buttons)
+
+        self.logger.info("Interface da ferramenta construida com sucesso")
+
+        # Popula campos se já houver camada selecionada
+        self._populate_fields([])
+
+    def _obter_layer_do_selector(self, key: str):
+        """
+        Obtém a camada atual do ComplexSelector interno do GridComplexSelector.
+
+        Parameters
+        ----------
+        key : str
+            Chave do selector no config dict ("target_layer" ou "source_layer").
+
+        Returns
+        -------
+        tuple
+            (selector, layer_or_none)
+        """
+        sel = self.layer_selector.get(key)
+        if not sel:
+            return (None, None)
+
+        layer = None
+        if sel.using_layer_combo:
+            layer = sel.current_layer
+        return (sel, layer)
+
+    def _populate_fields(self, paths: list[str] = None):
+        """
+        Atualiza lista de atributos quando a camada de origem muda.
+
+        Obtém a camada via get() no ComplexSelector interno.
+        Se layer for QgsVectorLayer válido, extrai campos e popula
+        o GridAttributeSelector. Se inválido, limpa a lista.
+        """
+        self.logger.info(
+            "_populate_fields chamado", code="POPULATE_FIELDS"
         )
 
-        # BOTÕES
-        buttons_layout, self.action_buttons = (
-            WidgetFactory.create_bottom_action_buttons(
-                parent=self,
-                run_callback=self.execute_tool,
-                close_callback=self.close,
-                info_callback=self.show_info_dialog,
-                tool_key=self.TOOL_KEY,
+        _sel, layer = self._obter_layer_do_selector("source_layer")
+        self.logger.info(
+            f"layer={layer.name() if layer else None}",
+            code="GET_SOURCE_LAYER",
+        )
+
+        if isinstance(layer, QgsVectorLayer) and layer.isValid():
+            field_names = [f.name() for f in layer.fields()]
+            self.logger.info(
+                f"Camada '{layer.name()}' valida, "
+                f"{len(field_names)} campos encontrados",
+                code="LAYER_FIELDS",
             )
+            self.logger.debug(f"Campos: {field_names}")
+
+            self.attr_selector.set_fields(field_names)
+            self.logger.info(
+                f"GridAttributeSelector populado com "
+                f"{len(field_names)} campos",
+                code="ATTR_SELECTOR_POPULATED",
+            )
+        else:
+            self.logger.info(
+                "Camada de origem invalida, limpando atributos",
+                code="CLEAR_FIELDS",
+            )
+            self.attr_selector.set_fields([])
+
+        self.logger.info(
+            "_populate_fields finalizado", code="POPULATE_FIELDS_END"
         )
-
-        self.layout.add_items([tgt_layout, src_layout, attr_layout, buttons_layout])
-
-        self._populate_fields()
-
-    def _populate_fields(self):
-        layer = self.source_layer_input.current_layer()
-        if not isinstance(layer, QgsVectorLayer):
-            self.attr_widget.set_fields([])
-            return
-
-        self.attr_widget.set_fields([f.name() for f in layer.fields()])
 
     def _load_prefs(self):
-        self.attr_widget.set_checked_all(
-            self.preferences.get("chk_all", False)
+        self.logger.debug("Carregando preferencias")
+
+        chk_all = self.preferences.get("chk_all", False)
+        self.logger.debug(f"Valor carregado de chk_all: {chk_all}")
+
+        self.attr_selector.set_checked_all(chk_all)
+        self.logger.debug(
+            f"chk_all aplicado: {self.attr_selector.use_all_fields()}",
+            code="LOAD_PREFS_DONE",
         )
 
     def _save_prefs(self):
-        self.preferences["chk_all"] = bool(self.attr_widget.use_all_fields())
+        self.logger.debug("Salvando preferencias")
+
+        self.preferences["chk_all"] = self.attr_selector.use_all_fields()
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
+
+        self.logger.debug(
+            f"Salvando: chk_all={self.preferences['chk_all']}, "
+            f"window=({self.preferences['window_width']}"
+            f"x{self.preferences['window_height']})",
+            code="SAVE_PREFS",
+        )
+
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
+        self.logger.debug(
+            "Preferencias salvas com sucesso", code="SAVE_PREFS_DONE"
+        )
 
     # =========================
     # CONTROLLER
     # =========================
     def execute_tool(self):
-        self.logger.info("Execução iniciada")
+        self.logger.info("Iniciando copia de atributos")
 
-        source = self.source_layer_input.current_layer()
-        target = self.target_layer_input.current_layer()
+        # Obtém camadas via get() nos ComplexSelectors internos
+        _sel, source = self._obter_layer_do_selector("source_layer")
+        _sel, target = self._obter_layer_do_selector("target_layer")
+
+        self.logger.info(
+            f"execute_tool: source={source.name() if source else None}, "
+            f"target={target.name() if target else None}",
+            code="EXECUTE_TOOL_LAYERS",
+        )
 
         if not isinstance(source, QgsVectorLayer):
             QgisMessageUtil.bar_warning(self.iface, STR.INVALID_SOURCE_LAYER)
-            self.logger.warning("Camada de origem inválida")
+            self.logger.warning(
+                "Camada de origem invalida", code="INVALID_SOURCE"
+            )
             return
 
         if not isinstance(target, QgsVectorLayer):
             QgisMessageUtil.bar_warning(self.iface, STR.INVALID_TARGET_LAYER)
-            self.logger.warning("Camada de destino inválida")
+            self.logger.warning(
+                "Camada de destino invalida", code="INVALID_TARGET"
+            )
             return
 
         from ..utils.ProjectUtils import ProjectUtils
 
         if not ProjectUtils.ensure_editable(target, self.logger):
-            QgisMessageUtil.bar_critical(self.iface, STR.LAYER_MUST_BE_EDITABLE)
-            self.logger.warning("Camada de destino não editável")
+            QgisMessageUtil.bar_critical(
+                self.iface, STR.LAYER_MUST_BE_EDITABLE
+            )
+            self.logger.warning(
+                "Camada de destino nao editavel",
+                code="TARGET_NOT_EDITABLE",
+            )
             return
 
         fields = None
-        if not self.attr_widget.use_all_fields():
-            fields = self.attr_widget.get_selected_fields()
+        if not self.attr_selector.use_all_fields():
+            fields = self.attr_selector.get_selected_fields()
+            self.logger.debug(
+                f"Campos selecionados manualmente: {fields}",
+                code="SELECTED_FIELDS",
+            )
 
             if not fields:
-                QgisMessageUtil.bar_warning(self.iface, STR.NO_ATTRIBUTE_SELECTED)
-                self.logger.warning("Execução abortada: nenhum atributo selecionado")
+                QgisMessageUtil.bar_warning(
+                    self.iface, STR.NO_ATTRIBUTE_SELECTED
+                )
+                self.logger.warning(
+                    "Execucao abortada: nenhum atributo selecionado",
+                    code="NO_FIELDS_SELECTED",
+                )
                 return
+        else:
+            self.logger.info(
+                "Usando todos os atributos (chk_all=True)",
+                code="USE_ALL_FIELDS",
+            )
 
         def conflict_resolver(field_name):
-            return QgisMessageUtil.ask_field_conflict(self.iface, field_name)
+            return QgisMessageUtil.ask_field_conflict(
+                self.iface, field_name
+            )
+
+        self.logger.info(
+            f"Iniciando copia: source='{source.name()}', "
+            f"target='{target.name()}', "
+            f"fields={'ALL' if fields is None else len(fields)}",
+            code="COPY_START",
+        )
 
         ok = VectorLayerAttributes.copy_attributes(
             target_layer=target,
@@ -131,10 +304,17 @@ class CopyAttributes(BasePluginMTL):
         )
 
         if ok:
-            QgisMessageUtil.bar_success(self.iface, STR.ATTRIBUTES_COPIED_SUCCESS)
-            self.logger.info("Cópia de atributos finalizada com sucesso")
+            QgisMessageUtil.bar_success(
+                self.iface, STR.ATTRIBUTES_COPIED_SUCCESS
+            )
+            self.logger.info(
+                "Copia de atributos finalizada com sucesso",
+                code="COPY_SUCCESS",
+            )
         else:
-            self.logger.error("Falha na cópia de atributos")
+            self.logger.error(
+                "Falha na copia de atributos", code="COPY_FAILED"
+            )
 
 
 def run(iface):

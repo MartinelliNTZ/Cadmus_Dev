@@ -390,3 +390,12 @@
    - _MODE_MAP removido, SeparatorWidget adicionado
    - SKILL_WIDGETS2.md v2.7.0: adicionada regra crítica #9 — `if widget is not None` em vez de `if widget:`
    - Plugin em conformidade com PLUGIN_CONTRACT.md
+[2.3.79.2][31/07/2026] Migração CopyAttributesPlugin para novo sistema de widgets:
+   - Criado GridAttributeSelector (resources/new_widgets/GridAttributeSelector.py) — widget específico com titulo, checkbox "Usar todos os atributos", GridCheckbox (1 coluna), GridModernButtons (Selecionar/Remover/Inverter), logger obrigatorio via LogUtils com tool_key, _specific_style() com tokens do tema AppStyles
+   - CopyAttributesPlugin reescrito sem WidgetFactory: GridComplexSelector (1 widget com 2 items: target_layer e source_layer, ambos allow_layer=True, VectorLayer, sem pasta/arquivo/feicoes), GridAttributeSelector, GridExecutionButtons
+   - Plugin registra callback via set_on_changed("source_layer", self._populate_fields) para atualizar atributos automaticamente ao mudar camada de origem
+   - _obter_layer_do_selector(key) padronizado para obter layer via layer_selector.get(key).current_layer
+   - _populate_fields() atualiza GridAttributeSelector com campos da camada de origem
+   - _load_prefs()/_save_prefs() mantidos com chk_all
+   - SeparatorWidget adicionado entre widgets, WidgetFactory removido
+   - Plugin em conformidade com PLUGIN_CONTRACT.md

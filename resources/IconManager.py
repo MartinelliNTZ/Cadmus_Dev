@@ -25,6 +25,7 @@ class IconManager:
     FILE1 = "file1.ico"
     FILE2 = "file2.ico"
     EXPLORER = "explorer.ico"
+    CONFIG = "config.ico"
     CONFIG1 = "config1.ico"
     CONFIG2 = "config2.ico"
     CONFIG3 = "config3.ico"
@@ -65,6 +66,7 @@ class IconManager:
     DIFFERENCE_BETWEEN_LINES = "difference_between_lines.ico"
     SAVE_TEMPORARY_LAYER = "save_temporary_layer.ico"
     PATH_EXTENSION = "path_extension_tool.ico"
+    PATH_EXTENSION_DIALOG = "path_extension.ico"
     FILE_CONVERTER = "file_converter.ico"
 
     # Social icons
@@ -83,6 +85,12 @@ class IconManager:
     GRID_GENERATOR = "grid_generator.ico"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average.ico"
     RASTER_OPTIMIZER = "raster_mass.ico"
+    RASTER_DIFFERENCE_STATISTICS = "raster_diference_statistics.ico"
+    NDVI_CALCULATOR = "ndvi_calculator.ico"
+    NDRE_CALCULATOR = "ndre_calculator.ico"
+    GLI_CALCULATOR = "gli_calculator.ico"
+    RGB_MOSAIC_CREATOR = "rgb_mosaic_creator.ico"
+    RGB_STYLE_STANDARDIZER = "rgb_style_standardizer.ico"
 
     @classmethod
     def icon(cls, name: str) -> QIcon:

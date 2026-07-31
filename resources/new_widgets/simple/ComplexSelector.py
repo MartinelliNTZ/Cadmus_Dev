@@ -236,6 +236,9 @@ class ComplexSelector(QWidget):
                 code="COMPLEX_INIT_LINE_EDIT",
             )
 
+        # Pré-seleciona camada ativa do QGIS (padrão nativo) quando em modo layer combo
+        self._try_select_active_layer()
+
         # Adiciona linha principal ao layout vertical
         main_layout.addLayout(layout)
 
@@ -441,6 +444,38 @@ class ComplexSelector(QWidget):
     def _ensure_line_edit_mode(self):
         self._using_layer_combo = False
         self._update_display()
+
+    def _try_select_active_layer(self):
+        """
+        Pré-seleciona a camada ativa do QGIS no QgsMapLayerComboBox.
+
+        No padrão QGIS, ao abrir um diálogo/provider, a camada atualmente
+        selecionada no TOC já vem pré-selecionada no seletor.
+        Aplica o mesmo comportamento no ComplexSelector quando em modo layer combo.
+        O próprio QgsMapLayerComboBox.setLayer() valida o filtro — se a camada
+        ativa não passar no QgsMapLayerProxyModel, nada é selecionado.
+        """
+        if not self._using_layer_combo:
+            return
+        try:
+            from qgis.utils import iface
+            layer = iface.activeLayer()
+        except Exception as e:
+            self.logger.error(
+                "Erro ao obter activeLayer para pré-seleção",
+                code="COMPLEX_ACTIVE_LAYER_ERROR",
+                error=str(e),
+            )
+            layer = None
+        if layer is not None:
+            try:
+                self._combo.setLayer(layer)
+            except RuntimeError as e:
+                self.logger.error(
+                    "Objeto C++ da layer deletado ao pré-selecionar camada ativa",
+                    code="COMPLEX_ACTIVE_LAYER_CPP_DELETED",
+                    error=str(e),
+                )
 
     # ══════════════════════════════════════════════════════════════════
     # 🔍 (file)
@@ -777,8 +812,23 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def _copy_to_clipboard(self):
-        """Copia o texto atual do campo para a área de transferência."""
-        text = self._edit.text()
+        """
+        Copia o caminho atual para a área de transferência.
+
+        Em modo LAYER (using_layer_combo), copia o path da layer selecionada
+        diretamente do QgsMapLayerComboBox (source da camada, sem sublayers).
+        Em modo line edit, copia o texto do campo.
+        """
+        text = ""
+        if self._using_layer_combo:
+            layer = self._combo.currentLayer()
+            if layer:
+                src = layer.source()
+                if src:
+                    text = src.split("|")[0] if "|" in src else src
+        else:
+            text = self._edit.text()
+
         if text:
             ProjectUtils.set_clipboard_text(text)
             self.logger.info("Caminho copiado para área de transferência", code="COMPLEX_COPY_CLIPBOARD")

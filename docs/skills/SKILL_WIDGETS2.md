@@ -203,6 +203,11 @@ selector = ComplexSelector(
 )
 ```
 
+**Comportamento em modo LAYER (`layer_filters` específico):**
+- Ao abrir o diálogo, pré-seleciona a camada ativa do QGIS (`iface.activeLayer()`) via `_try_select_active_layer()` — padrão nativo: a camada selecionada no TOC já vem pré-selecionada no seletor.
+- `QgsMapLayerComboBox.setLayer()` valida o filtro — se a camada ativa não passar no `QgsMapLayerProxyModel`, nada é selecionado.
+- Log `COMPLEX_ACTIVE_LAYER_ERROR` se `iface` não estiver disponível.
+
 **API pública:**
 - `path()` → str (primeiro path)
 - `get_paths()` → list[str]
@@ -1102,3 +1107,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-30 | 2.6.0 | Adicionados `SimpleRadioButton` (QRadioButton + AppStyles.radio_button()) e `GridRadioButton` (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. |
 | 2026-07-31 | 2.7.0 | **⚠️ Lição crítica:** Adicionada regra `if widget is not None` em vez de `if widget:` no contrato. Em PyQt, `if widget:` verifica `sip.isdeleted()` e pode retornar `False` mesmo com o objeto Python existindo. Sempre usar `if widget is not None` + `try/except RuntimeError` para segurança. GridComboBox corrigido com esta regra. PathExtensionPlugin migrado com `GridComplexSelector` + `GridComboBox` + `GridRadioButton` + `GridExecutionButtons`. População inicial do combo via `_on_layer_changed` após `set_on_changed()`. |
 | 2026-07-31 | 2.8.0 | **Suporte a campo vazio nos combos:** `SimpleComboBox.set_options()` agora aceita `allow_empty` (bool) e `empty_text` (str) — quando `allow_empty=True`, adiciona item "Selecionar..." com data `None` no início para campos opcionais. `SimpleComboBox.set_selected_key()` suporta `None` para selecionar o item vazio. `GridComboBox.set_options()` propaga `allow_empty`/`empty_text` e `_build_ui()` lê do config dict. DividePointsByStripsPlugin migrado com `time_field`/`group_field` usando `allow_empty=True`. |
+| 2026-07-31 | 2.8.1 | **Botão copiar do ComplexSelector em modo LAYER:** `_copy_to_clipboard()` agora copia o path da layer selecionada diretamente do `QgsMapLayerComboBox` (`layer.source()` com remoção de sublayers via `split("|")[0]`). Em modo line edit, mantém o comportamento de copiar o texto do campo. |

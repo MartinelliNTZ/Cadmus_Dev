@@ -426,5 +426,15 @@
    - BaseProcessingAlgorithm: DEFAULT_ICON = "cadmus_icon.ico"; ICON = DEFAULT_ICON
    - BaseProcessingAlgorithm.icon(): se ICON declarado diferente de DEFAULT_ICON, usa ICON (modo legado compatível); caso contrário resolve via IconManager.icon_by_tool_key(TOOL_KEY) (novo modo padrão)
    - Nenhum filho de BaseProcessingAlgorithm precisa mais declarar ICON — basta definir TOOL_KEY; o ícone deve ter o mesmo nome da tool_key (ex: gli_calculator → gli_calculator.ico)
-   - GliCalculator: removida declaração ICON (primeiro filho testado no novo modo)
-   - SKILL_PROCESSING.md atualizada para 1.1.0 com documentação do novo padrão e compatibilidade legada
+    - GliCalculator: removida declaração ICON (primeiro filho testado no novo modo)
+    - SKILL_PROCESSING.md atualizada para 1.1.0 com documentação do novo padrão e compatibilidade legada
+2.3.82 31/07/2026
+[2.3.82.1][31/07/2026] Corrigido botão copiar do ComplexSelector em modo LAYER (using_layer_combo):
+    - _copy_to_clipboard() agora copia o path da layer selecionada diretamente do QgsMapLayerComboBox (layer.source() com remoção de sublayers via split("|")[0])
+    - Em modo line edit, mantém comportamento de copiar o texto do campo
+    - Garantida linha vazia no final do arquivo (regra W292/flake8)
+[2.3.82.2][31/07/2026] ComplexSelector agora pré-seleciona a camada ativa do QGIS ao abrir em modo layer combo:
+    - Novo método _try_select_active_layer() obtém iface.activeLayer() via qgis.utils.iface
+    - Chama self._combo.setLayer(layer) — o próprio QgsMapLayerComboBox valida o filtro QgsMapLayerProxyModel
+    - Alinha com padrão nativo do QGIS (LayerInputWidget._try_select_active_layer) onde a camada selecionada no TOC já vem pré-selecionada no diálogo
+    - Log de erro COMPLEX_ACTIVE_LAYER_ERROR se iface não disponível

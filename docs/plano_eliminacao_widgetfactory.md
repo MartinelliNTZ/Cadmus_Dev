@@ -957,6 +957,7 @@ def resolve_qt_window_modality(name: str):
   [x] 2.17 VectorFieldsCalculationPlugin
   [ ] 2.18 VectorToSvgPlugin
   [ ] 2.19 SettingsPlugin
+  [ ] 2.20 RegistryDialog
 
 [ ] FASE 3: Eliminação da WidgetFactory
   [ ] 3.1 Marcar WidgetFactory como deprecated

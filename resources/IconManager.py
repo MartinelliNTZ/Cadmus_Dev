@@ -106,3 +106,27 @@ class IconManager:
         Retorna o caminho completo do ícone a partir do nome do arquivo.
         """
         return os.path.join(cls.BASE_PATH, name)
+
+    @classmethod
+    def icon_path_by_tool_key(cls, tool_key: str) -> str:
+        """
+        Retorna o caminho do ícone baseado na tool_key.
+
+        Se existir '{tool_key}.ico' na pasta de ícones, retorna esse
+        caminho; caso contrário, retorna o caminho do cadmus_icon.
+        """
+        if tool_key:
+            candidate = os.path.join(cls.BASE_PATH, f"{tool_key}.ico")
+            if os.path.exists(candidate):
+                return candidate
+        return os.path.join(cls.BASE_PATH, cls.CADMUS_ICON)
+
+    @classmethod
+    def icon_by_tool_key(cls, tool_key: str) -> QIcon:
+        """
+        Retorna um QIcon baseado na tool_key.
+
+        O ícone é resolvido por `icon_path_by_tool_key`: se não existir
+        '{tool_key}.ico', retorna o cadmus_icon como fallback.
+        """
+        return QIcon(cls.icon_path_by_tool_key(tool_key))

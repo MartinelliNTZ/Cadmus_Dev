@@ -37,7 +37,8 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     ALGORITHM_NAME = None
     ALGORITHM_DISPLAY_NAME = None
     ALGORITHM_GROUP = GROUP_VETORIAL
-    ICON = "cadmus_icon.ico"
+    DEFAULT_ICON = "cadmus_icon.ico"
+    ICON = DEFAULT_ICON
 
     # Constantes comuns de parâmetros booleano (reutilizáveis entre algoritmos)
     PARAM_OPEN_OUTPUT_FOLDER = "OPEN_OUTPUT_FOLDER"
@@ -53,10 +54,21 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
             return
 
     def icon(self):
-        icon_path = im.icon_path(self.ICON) if self.ICON else None
-        if os.path.exists(icon_path):
-            return QIcon(icon_path)
-        return QIcon()
+        """
+        Retorna o ícone do algoritmo.
+
+        Novo modo (padrão): resolve automaticamente pela tool_key —
+        se existir '{tool_key}.ico' na pasta de ícones, usa esse ícone;
+        caso contrário usa cadmus_icon.ico como fallback.
+
+        Modo legado (compatibilidade): se o filho declarar ICON com um
+        valor diferente do default, o ICON declarado tem prioridade.
+        """
+        if self.ICON and self.ICON != self.DEFAULT_ICON:
+            icon_path = im.icon_path(self.ICON)
+            if os.path.exists(icon_path):
+                return QIcon(icon_path)
+        return im.icon_by_tool_key(self.TOOL_KEY)
 
     def createInstance(self):
         return self.__class__()

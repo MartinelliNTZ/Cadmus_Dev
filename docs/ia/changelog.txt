@@ -418,5 +418,13 @@
    - GridComboBox.set_options() propaga allow_empty/empty_text para SimpleComboBox
    - GridComboBox._build_ui() lê allow_empty/empty_text do config dict de cada item
    - DividePointsByStripsPlugin: time_field e group_field agora usam allow_empty=True com empty_text="Selecionar..." — restaura comportamento do antigo DropdownSelectorWidget allow_empty=True
-   - _refresh_field_selectors() usa allow_empty=True ao repopular combos opcionais e seleciona None quando não há valor salvo
-   - SKILL_WIDGETS2.md atualizada com documentação de allow_empty/empty_text
+    - _refresh_field_selectors() usa allow_empty=True ao repopular combos opcionais e seleciona None quando não há valor salvo
+    - SKILL_WIDGETS2.md atualizada com documentação de allow_empty/empty_text
+2.3.81 31/07/2026
+[2.3.81.1][31/07/2026] Novo padrão de ícone para algoritmos de processing via tool_key:
+   - IconManager: adicionados icon_by_tool_key() e icon_path_by_tool_key() — resolve {tool_key}.ico na pasta resources/icons/ com fallback para cadmus_icon.ico
+   - BaseProcessingAlgorithm: DEFAULT_ICON = "cadmus_icon.ico"; ICON = DEFAULT_ICON
+   - BaseProcessingAlgorithm.icon(): se ICON declarado diferente de DEFAULT_ICON, usa ICON (modo legado compatível); caso contrário resolve via IconManager.icon_by_tool_key(TOOL_KEY) (novo modo padrão)
+   - Nenhum filho de BaseProcessingAlgorithm precisa mais declarar ICON — basta definir TOOL_KEY; o ícone deve ter o mesmo nome da tool_key (ex: gli_calculator → gli_calculator.ico)
+   - GliCalculator: removida declaração ICON (primeiro filho testado no novo modo)
+   - SKILL_PROCESSING.md atualizada para 1.1.0 com documentação do novo padrão e compatibilidade legada

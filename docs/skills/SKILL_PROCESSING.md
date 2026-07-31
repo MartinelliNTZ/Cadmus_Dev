@@ -267,8 +267,46 @@ class MyAlgorithm(BaseProcessingAlgorithm):
 
 ---
 
+## Sistema de Ícones — Novo Padrão (tool_key)
+
+A partir desta versão, o ícone de um algoritmo **não precisa mais ser declarado** pelo filho.
+
+### Como funciona
+
+1. O filho define apenas `TOOL_KEY` (ex: `ToolKey.GLI_CALCULATOR`).
+2. `BaseProcessingAlgorithm.icon()` chama `IconManager.icon_by_tool_key(TOOL_KEY)`.
+3. O `IconManager` procura por `{tool_key}.ico` na pasta `resources/icons/`.
+4. Se o arquivo existir, retorna o ícone; se não, retorna `cadmus_icon.ico` como fallback.
+
+### Compatibilidade (modo legado)
+
+- Se o filho declarar `ICON` com valor **diferente** de `DEFAULT_ICON` (`"cadmus_icon.ico"`), o `ICON` declarado tem prioridade.
+- Remover `ICON` (ou deixar igual a `DEFAULT_ICON`) ativa o novo modo automático por tool_key.
+
+### Exemplo — Novo modo (recomendado)
+
+```python
+class MyAlgorithm(BaseProcessingAlgorithm):
+    TOOL_KEY = ToolKey.MY_ALGORITHM
+    ALGORITHM_NAME = "my_algorithm"
+    ALGORITHM_DISPLAY_NAME = STR.MY_ALGORITHM_TITLE
+    ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
+    # ICON não precisa ser declarado — resolvedor por tool_key
+```
+
+### Exemplo — Modo legado (compatibilidade)
+
+```python
+class MyAlgorithm(BaseProcessingAlgorithm):
+    TOOL_KEY = ToolKey.MY_ALGORITHM
+    ICON = "icone_especial.ico"  # tem prioridade sobre tool_key
+```
+
+---
+
 ## Histórico de Mudanças
 
 | Data | Versão | Descrição |
 |------|--------|-----------|
 | 2026-04-20 | 1.0.0 | Criação via SKILL_FACTORY — lidos: provider.py, RasterMassClipper.py, RasterMassSampler.py, BaseProcessingAlgorithm.py, Preferences.py, ToolKeys.py, Strings_pt_BR.py, IconManager.py |
+| 2026-07-31 | 1.1.0 | Novo padrão de ícone via tool_key: `BaseProcessingAlgorithm.icon()` resolve por `IconManager.icon_by_tool_key(TOOL_KEY)` com fallback para `cadmus_icon.ico`; `ICON` declarado com valor diferente de `DEFAULT_ICON` mantém prioridade (compatibilidade). Adicionados `icon_by_tool_key` e `icon_path_by_tool_key` ao `IconManager`. |

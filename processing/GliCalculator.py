@@ -41,7 +41,6 @@ class GliCalculator(BaseProcessingAlgorithm):
     ALGORITHM_NAME = "gli_calculator"
     ALGORITHM_DISPLAY_NAME = STR.GLI_CALCULATOR_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "cadmus_icon.ico"
     INSTRUCTIONS_FILE = "gli_calculator.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="GliCalculator", level="DEBUG")
 

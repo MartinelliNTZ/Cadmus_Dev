@@ -221,6 +221,18 @@ class ComplexSelector(QWidget):
         if self._mode_type == "input" and has_layer_filter:
             self._using_layer_combo = True
             self._combo.setVisible(True)
+            self.logger.info(
+                f"ComplexSelector._build_ui: modo inicial=layer_combo "
+                f"(layer_filters={self._layer_filters})",
+                code="COMPLEX_INIT_LAYER_COMBO",
+            )
+        else:
+            self.logger.info(
+                f"ComplexSelector._build_ui: modo inicial=line_edit "
+                f"(allow_layer={self._allow_layer}, "
+                f"has_layer_filter={has_layer_filter})",
+                code="COMPLEX_INIT_LINE_EDIT",
+            )
 
         # Adiciona linha principal ao layout vertical
         main_layout.addLayout(layout)
@@ -373,6 +385,11 @@ class ComplexSelector(QWidget):
     def _on_edit_text_changed(self, text: str):
         if self._updating_display:
             return
+        self.logger.debug(
+            f"_on_edit_text_changed: text='{text[:50] if text else ''}', "
+            f"multiple={self._multiple}",
+            code="COMPLEX_EDIT_TEXT_CHANGED",
+        )
         if not text:
             self._root_path = ""
             self._selected_list = []
@@ -398,12 +415,25 @@ class ComplexSelector(QWidget):
         if self._updating_display:
             return
         layer = self._combo.currentLayer()
+        self.logger.info(
+            f"_on_combo_layer_changed: index={index}, "
+            f"layer={layer.name() if layer else 'None'}, "
+            f"layer_id={layer.id() if layer else 'N/A'}, "
+            f"layer_valid={layer.isValid() if layer else False}, "
+            f"using_layer_combo={self._using_layer_combo}",
+            code="COMPLEX_COMBO_LAYER_CHANGED",
+        )
         if layer:
             src = layer.source()
             if src:
                 layer_path = src.split("|")[0] if "|" in src else src
                 self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
                 self._selected_list = [layer_path]
+                self.logger.debug(
+                    f"_on_combo_layer_changed: path='{layer_path}', "
+                    f"root='{self._root_path}'",
+                    code="COMPLEX_COMBO_PATH_SET",
+                )
                 self._emit_path_change()
 
     def _ensure_line_edit_mode(self):
@@ -526,6 +556,10 @@ class ComplexSelector(QWidget):
             return
 
         self._using_layer_combo = not self._using_layer_combo
+        self.logger.debug(
+            f"_on_project_clicked: usando_layer_combo={self._using_layer_combo}",
+            code="COMPLEX_PROJECT_TOGGLED",
+        )
 
         if self._using_layer_combo:
             self._combo.setVisible(True)
@@ -752,7 +786,17 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def _emit_path_change(self):
+        self.logger.info(
+            f"_emit_path_change: selected_list={self._selected_list}, "
+            f"on_path_change={self.on_path_change is not None}, "
+            f"using_layer_combo={self._using_layer_combo}",
+            code="COMPLEX_EMIT_PATH_CHANGE",
+        )
         if self.on_path_change:
+            self.logger.debug(
+                f"_emit_path_change: chamando on_path_change com {self._selected_list}",
+                code="COMPLEX_CALLBACK_INVOKE",
+            )
             self.on_path_change(self._selected_list)
         self.pathChanged.emit(self._selected_list)
 
@@ -1047,5 +1091,3 @@ class ComplexSelector(QWidget):
     @parent_selector.setter
     def parent_selector(self, value):
         self._parent_selector = value
-
-

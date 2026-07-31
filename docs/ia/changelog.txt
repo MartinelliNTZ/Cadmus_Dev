@@ -376,3 +376,18 @@
    - Adicionado reverse mapping de _MODE_MAP (nome do modo → índice) para conversão segura
    - Fallback para índice 0 quando o nome do modo não é reconhecido
    - Log de debug registra a conversão do valor legado
+2.3.79 31/07/2026
+[2.3.79.1][31/07/2026] Migração PathExtensionPlugin para novo sistema de widgets:
+   - ComplexSelector: adicionados logs extensivos nos métodos _on_combo_layer_changed (COMPLEX_COMBO_LAYER_CHANGED com index, layer name, id, valid, using_layer_combo), _emit_path_change (COMPLEX_EMIT_PATH_CHANGE com selected_list, on_path_change, using_layer_combo), _on_edit_text_changed (COMPLEX_EDIT_TEXT_CHANGED), _on_project_clicked (COMPLEX_PROJECT_TOGGLED), _build_ui (COMPLEX_INIT_LAYER_COMBO/COMPLEX_INIT_LINE_EDIT)
+   - SimpleComboBox: adicionados logs em set_options (COMBO_SET_OPTIONS com qtd itens e current_data, COMBO_AFTER_ADD com count, COMBO_NO_RESTORE/COMBO_RESTORE_INDEX, COMBO_FINAL com count final) e set_selected_key (COMBO_SET_SELECTED com key e idx, COMBO_SET_SELECTED_DONE, COMBO_KEY_NOT_FOUND)
+   - GridComboBox: adicionados logs em set_options (GRID_SET_OPTIONS com key e qtd_itens, GRID_COMBO_NOT_FOUND com chaves disponiveis), set_selected_key (GRID_SET_SELECTED_KEY), _build_ui (GRID_BUILD_COMBO, GRID_BUILD_DONE)
+   - PathExtensionPlugin reescrito sem WidgetFactory: usa GridComplexSelector (allow_layer=True, layer_filters=VectorLayer), GridComboBox, GridRadioButton, GridExecutionButtons
+   - Plugin registra callback _on_layer_changed via set_on_changed() do GridComplexSelector
+   - Plugin acessa o ComplexSelector via self.layer_selector.get("input_layer") e usa current_layer/using_layer_combo diretamente
+   - _obter_layer_do_selector() método auxiliar que obtém selector e layer do ComplexSelector
+   - _on_layer_changed() popula combo com campos da camada, auto-seleciona "path" se existir
+   - _load_prefs() convertido para usar chaves string (remove/restore/zip/unzip) com suporte a valores legados int
+   - _MODE_MAP removido (não é mais necessário com GridRadioButton)
+   - Adicionados ~35 logs de validação espalhados por todo o fluxo
+   - SeparatorWidget adicionado entre widgets no layout
+   - Plugin em conformidade com PLUGIN_CONTRACT.md (sem WidgetFactory, sem setStyleSheet, sem imports de styles/)

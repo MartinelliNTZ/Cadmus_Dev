@@ -32,44 +32,20 @@ class SimpleComboBox(QComboBox):
     def set_options(self, options_dict: dict):
         """Popula o combo com {key: label}. Preserva selecao atual se possivel."""
         current = self.currentData()
-        item_count = len(options_dict)
         self._logger.info(
-            f"set_options: {item_count} itens, "
-            f"current_data='{current}', "
-            f"keys={list(options_dict.keys())[:5]}..."
-            f"{' (+' + str(item_count - 5) + ' mais)' if item_count > 5 else ''}",
+            f"set_options: {len(options_dict)} itens, "
+            f"current_data='{current}'",
             code="COMBO_SET_OPTIONS",
         )
         self.blockSignals(True)
         self.clear()
         for key, label in options_dict.items():
             self.addItem(str(label), key)
-        self._logger.debug(
-            f"set_options: apos clear+addItem, "
-            f"count={self.count()}, "
-            f"currentIndex={self.currentIndex()}, "
-            f"currentData={self.currentData()}",
-            code="COMBO_AFTER_ADD",
-        )
         if current is not None:
             idx = self.findData(current)
             if idx >= 0:
                 self.setCurrentIndex(idx)
-                self._logger.debug(
-                    f"set_options: restaurado currentIndex={idx}",
-                    code="COMBO_RESTORE_INDEX",
-                )
-        else:
-            self._logger.debug(
-                "set_options: current=None, sem restauracao de indice",
-                code="COMBO_NO_RESTORE",
-            )
         self.blockSignals(False)
-        self._logger.debug(
-            f"set_options: final count={self.count()}, "
-            f"currentIndex={self.currentIndex()}",
-            code="COMBO_FINAL",
-        )
 
     def get_selected_key(self):
         """Retorna a chave (data) do item selecionado."""
@@ -80,17 +56,11 @@ class SimpleComboBox(QComboBox):
         idx = self.findData(key)
         self._logger.info(
             f"set_selected_key: key='{key}', "
-            f"encontrado_idx={idx}, "
-            f"count={self.count()}",
+            f"encontrado_idx={idx}, count={self.count()}",
             code="COMBO_SET_SELECTED",
         )
         if idx >= 0:
             self.setCurrentIndex(idx)
-            self._logger.debug(
-                f"set_selected_key: currentIndex={self.currentIndex()}, "
-                f"currentData={self.currentData()}",
-                code="COMBO_SET_SELECTED_DONE",
-            )
         else:
             self._logger.warning(
                 f"set_selected_key: key='{key}' nao encontrado no combo",

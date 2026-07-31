@@ -207,7 +207,9 @@ class ComplexSelector(QWidget):
 
         # Página 1: QgsMapLayerComboBox (apenas input)
         self._combo = QgsMapLayerComboBox()
-        self._combo.setAllowEmptyLayer(True)
+        # Só permite vazio se não for layer mode (input com allow_layer)
+        # Se allow_layer=True, a primeira camada disponível é selecionada automaticamente
+        self._combo.setAllowEmptyLayer(not (self._mode_type == "input" and self._allow_layer))
         self._combo.setFilters(self._layer_filters)
         self._combo.setVisible(False)
         self._combo.currentIndexChanged.connect(self._on_combo_layer_changed)

@@ -8,6 +8,7 @@ from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..i18n.TranslationManager import STR
 from ..utils.ToolKeys import ToolKey
 from ..utils.Preferences import Preferences
+from ..utils.StringManager import StringManager
 
 # NOVOS WIDGETS (substituem WidgetFactory)
 from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
@@ -46,8 +47,9 @@ class PathExtensionPlugin(BasePluginMTL):
                     "description": "Selecione a camada vetorial de entrada",
                     "allow_layer": True,
                     "layer_filters": QgsMapLayerProxyModel.VectorLayer,
-                    "allow_file": False,        # folder=false
-                    "allow_folder": False,       # folder=false
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "file_filter": StringManager.FILTER_VECTOR,
                     "mode_type": "input",
                 },
             },
@@ -55,23 +57,9 @@ class PathExtensionPlugin(BasePluginMTL):
             parent=self,
         )
         self.logger.info(
-            "GridComplexSelector criado com allow_layer=True, mode_type=input"
+            "GridComplexSelector criado com allow_layer=True, "
+            "file_filter=StringManager.FILTER_VECTOR"
         )
-
-        # Registra callback via set_on_changed()
-        # O GridComplexSelector encapsula o on_path_change do ComplexSelector
-        # Quando o layer/path mudar, _on_layer_changed é chamado com paths
-        self.layer_selector.set_on_changed(
-            "input_layer", self._on_layer_changed
-        )
-        self.logger.debug(
-            "Callback _on_layer_changed registrado via set_on_changed()"
-        )
-
-        self.layout.addWidget(self.layer_selector)
-
-        # ── Separador ────────────────────────────────────────────────
-        self.layout.addWidget(SeparatorWidget())
 
         # ── Atributo Selector (GridComboBox) ─────────────────────────
         self.logger.debug("Criando GridComboBox para selecao de atributo")
@@ -92,6 +80,37 @@ class PathExtensionPlugin(BasePluginMTL):
         self.logger.info(
             "GridComboBox criado (vazio, aguardando selecao de camada)"
         )
+
+        # Registra callback para quando o layer/path mudar
+        self.layer_selector.set_on_changed(
+            "input_layer", self._on_layer_changed
+        )
+        self.logger.debug(
+            "Callback _on_layer_changed registrado via set_on_changed()"
+        )
+
+        # Popula inicialmente com a camada atual
+        # O ComplexSelector com allow_layer=True e setAllowEmptyLayer(False)
+        # já seleciona a primeira camada disponível automaticamente.
+        # Precisamos disparar o callback manualmente para popular o combo.
+        sel = self.layer_selector.get("input_layer")
+        if sel and sel.using_layer_combo and sel.current_layer:
+            self.logger.debug(
+                "Populando combo inicialmente com a camada atual: "
+                f"'{sel.current_layer.name()}'",
+                code="INITIAL_POPULATE",
+            )
+            self._on_layer_changed(sel.get_paths())
+        else:
+            self.logger.debug(
+                "Nenhuma camada selecionada inicialmente. "
+                f"using_layer_combo={sel.using_layer_combo if sel else 'N/A'}, "
+                f"current_layer={sel.current_layer if sel else 'N/A'}",
+                code="INITIAL_POPULATE_SKIP",
+            )
+
+        self.layout.addWidget(self.layer_selector)
+        self.layout.addWidget(SeparatorWidget())
         self.layout.addWidget(self.attr_selector)
 
         # ── Modo de Operação (GridRadioButton) ──────────────────────
@@ -151,74 +170,29 @@ class PathExtensionPlugin(BasePluginMTL):
     def _obter_layer_do_selector(self):
         """
         Obtém a camada atual do ComplexSelector interno do GridComplexSelector.
-        
-        Usa self.layer_selector.get("input_layer") para acessar o ComplexSelector
-        diretamente, e então usa a property current_layer do ComplexSelector.
-        
+
         Returns
         -------
         tuple
-            (selector, layer_or_none) onde:
-            - selector: ComplexSelector ou None
-            - layer_or_none: QgsMapLayer ou None
+            (selector, layer_or_none)
         """
         sel = self.layer_selector.get("input_layer")
         if not sel:
-            self.logger.warning(
-                "Selector 'input_layer' nao encontrado no GridComplexSelector",
-                code="GET_SELECTOR_NOT_FOUND",
-            )
             return (None, None)
 
         layer = None
         if sel.using_layer_combo:
             layer = sel.current_layer
-            self.logger.info(
-                f"_obter_layer_do_selector: modo=layer_combo, "
-                f"layer={layer.name() if layer else 'None'}, "
-                f"layer_valid={layer.isValid() if layer else False}",
-                code="GET_SELECTOR_LAYER",
-            )
-        else:
-            self.logger.info(
-                f"_obter_layer_do_selector: modo=line_edit, "
-                f"path='{sel.path()}'",
-                code="GET_SELECTOR_PATH",
-            )
-
         return (sel, layer)
 
     def _on_layer_changed(self, paths: list[str]):
         """
         Atualiza options do dropdown de atributos quando a camada/path muda.
-
-        Usa _obter_layer_do_selector() para obter o ComplexSelector e a layer.
-        Se layer for valido, popula combo com campos da camada.
-        Se layer for None (modo path de arquivo), limpa o combo.
-        Sempre busca se o atributo "Path"/"path" existe — se existir,
-        ja aparece selecionado. Se nao existir, fica sem selecao.
+        Se a camada tiver atributo "Path"/"path", auto-seleciona.
         """
-        self.logger.info(
-            f"_on_layer_changed chamado com paths={paths}",
-            code="ON_LAYER_CHANGED",
-        )
-
-        # Obtem selector e layer via metodo auxiliar
         _sel, layer = self._obter_layer_do_selector()
-        self.logger.info(
-            f"_on_layer_changed: selector={_sel is not None}, "
-            f"layer={layer.name() if layer else None}",
-            code="ON_LAYER_CHANGED_ITEM",
-        )
 
         if layer and layer.isValid():
-            # Modo camada: popula com campos da camada
-            self.logger.info(
-                f"Modo layer: camada '{layer.name()}' valida, "
-                f"extraindo campos...",
-                code="LAYER_MODE",
-            )
-
             fields = layer.fields()
             options = {}
             default_key = None
@@ -228,74 +202,25 @@ class PathExtensionPlugin(BasePluginMTL):
                 options[name] = name
                 if name.lower() == "path":
                     default_key = name
-                    self.logger.info(
-                        f"Campo 'path' encontrado no indice {i}",
-                        code="PATH_FIELD_FOUND",
-                    )
-
-            self.logger.info(
-                f"Populando combo com {len(options)} campos, "
-                f"default_key='{default_key}'",
-                code="POPULATE_COMBO",
-            )
-            self.logger.debug(f"Options do combo: {list(options.keys())}")
 
             self.attr_selector.set_options("path_field", options)
 
             if default_key:
                 self.attr_selector.set_selected_key("path_field", default_key)
-                self.logger.info(
-                    "Auto-selecionado campo 'path' no combo",
-                    code="AUTO_SELECT_PATH",
-                )
-            else:
-                self.logger.info(
-                    "Campo 'path' nao encontrado. "
-                    "Combo permanece sem selecao.",
-                    code="PATH_FIELD_NOT_FOUND",
-                )
         else:
-            # Modo path (arquivo): limpa options
-            self.logger.info(
-                "Modo path: limpando combo de atributos "
-                f"(layer={layer})",
-                code="CLEAR_COMBO",
-            )
             self.attr_selector.set_options("path_field", {})
-
-        self.logger.info(
-            "_on_layer_changed finalizado", code="ON_LAYER_CHANGED_END"
-        )
 
     def _load_prefs(self):
         self.logger.debug("Carregando preferencias")
 
         last_mode = self.preferences.get("last_mode", "remove")
-        self.logger.debug(
-            f"Valor carregado de last_mode: {last_mode} "
-            f"(tipo={type(last_mode).__name__})"
-        )
-
-        # Suporte a valor legado: se for int (indice do sistema antigo),
-        # converte para string (chave)
         if isinstance(last_mode, int):
             mode_map_reverse = {
                 0: "remove", 1: "restore", 2: "zip", 3: "unzip",
             }
-            converted = mode_map_reverse.get(last_mode, "remove")
-            self.logger.info(
-                f"Valor legado de modo convertido: "
-                f"indice {last_mode} -> chave '{converted}'",
-                code="LEGACY_MODE_CONVERTED",
-            )
-            last_mode = converted
+            last_mode = mode_map_reverse.get(last_mode, "remove")
 
         self.mode_selector.set_selected_key(str(last_mode))
-        self.logger.debug(
-            f"Modo selecionado apos load: "
-            f"{self.mode_selector.get_selected_key()}",
-            code="LOAD_PREFS_DONE",
-        )
 
     def _save_prefs(self):
         self.logger.debug("Salvando preferencias")
@@ -304,56 +229,30 @@ class PathExtensionPlugin(BasePluginMTL):
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
 
-        self.logger.debug(
-            f"Salvando: last_mode='{self.preferences['last_mode']}', "
-            f"window=({self.preferences['window_width']}"
-            f"x{self.preferences['window_height']})",
-            code="SAVE_PREFS",
-        )
-
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
-        self.logger.debug(
-            "Preferencias salvas com sucesso", code="SAVE_PREFS_DONE"
-        )
 
     def execute_tool(self):
         self.logger.info("Iniciando processamento: PathExtension")
 
-        # Obtem selector e layer via metodo auxiliar
         _sel, layer = self._obter_layer_do_selector()
-        self.logger.info(
-            f"execute_tool: selector={_sel is not None}, "
-            f"layer={layer.name() if layer else None}",
-            code="EXECUTE_TOOL_ITEM",
-        )
 
         if not layer or not layer.isValid():
-            self.logger.warning(
-                "Nenhuma camada vetorial valida selecionada",
-                code="NO_LAYER",
-            )
+            self.logger.warning("Nenhuma camada vetorial valida selecionada")
             return
 
         attribute = self.attr_selector.get_selected_key("path_field")
         if not attribute:
-            self.logger.warning(
-                "Nenhum atributo selecionado",
-                code="NO_ATTRIBUTE",
-            )
+            self.logger.warning("Nenhum atributo selecionado")
             return
 
         mode_key = self.mode_selector.get_selected_key()
         if not mode_key:
-            self.logger.warning(
-                "Nenhum modo selecionado",
-                code="NO_MODE",
-            )
+            self.logger.warning("Nenhum modo selecionado")
             return
 
         self.logger.info(
             f"Parametros: layer='{layer.name()}', "
-            f"attribute='{attribute}', mode='{mode_key}'",
-            code="EXECUTE_PARAMS",
+            f"attribute='{attribute}', mode='{mode_key}'"
         )
 
         context = ExecutionContext()

@@ -872,6 +872,7 @@ coll.set_preferences(Preferences.load_tool_prefs(self.TOOL_KEY).get("collapsible
 6. **Unidades** sempre no tema (`BaseTheme`), nunca `px` no widget ou `AppStyles`
 7. **Variável do tema** sempre `theme`, nunca `t`
 8. **Widgets que precisam de gradiente + glow** → use `SimpleModernButton` (botões) e `SimpleQLineEdit` (inputs)
+9. **⚠️ `if widget is not None` EM VEZ DE `if widget:`** — Em PyQt, `if widget:` verifica se o objeto C++ subjacente ainda existe via `sip.isdeleted()`. Se o C++ foi deletado (ex: garbage collection do container intermediário), `bool(widget)` retorna `False` mesmo com o objeto Python ainda existindo. Sempre use `if widget is not None` para verificar se o widget existe, e envolva chamadas em `try/except RuntimeError` para capturar caso o C++ tenha sido deletado.
 
 ### ❌ NUNCA FAZER:
 
@@ -1095,3 +1096,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-27 | 2.4.0 | Adicionados `SimpleComboBox` (QComboBox + AppStyles.input()) e `GridComboBox` (container de N combos com onchange callback, sem pyqtSignal). API: get_selected_key/set_selected_key/get_options/set_options/widget. SaveTemporaryLayersPlugin migrado usando GridInputFields + GridComboBox + GridComplexSelector + GridExecutionButtons. |
 | 2026-07-28 | 2.5.0 | Adicionado `CollapsibleParametersWidget` ao catálogo de widgets raiz com `get_preferences()`/`set_preferences()` para persistir estado expandido. `GridComplexSelector.get_preferences()`/`set_preferences()` agora inclui `lock_state` e `checked_state` de cada selector. GenerateTrailPlugin refatorado para usar `get_preferences()`/`set_preferences()` unificados. |
 | 2026-07-30 | 2.6.0 | Adicionados `SimpleRadioButton` (QRadioButton + AppStyles.radio_button()) e `GridRadioButton` (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. |
+| 2026-07-31 | 2.7.0 | **⚠️ Lição crítica:** Adicionada regra `if widget is not None` em vez de `if widget:` no contrato. Em PyQt, `if widget:` verifica `sip.isdeleted()` e pode retornar `False` mesmo com o objeto Python existindo. Sempre usar `if widget is not None` + `try/except RuntimeError` para segurança. GridComboBox corrigido com esta regra. PathExtensionPlugin migrado com `GridComplexSelector` + `GridComboBox` + `GridRadioButton` + `GridExecutionButtons`. População inicial do combo via `_on_layer_changed` após `set_on_changed()`. |

@@ -126,7 +126,8 @@ class GridComboBox(QWidget):
                 combo.set_selected_key(value)
             except RuntimeError:
                 self._logger.warning(
-                    f"set_selected_key: C++ object do combo '{key}' foi deletado",
+                    "set_selected_key: C++ object do combo "
+                    f"'{key}' foi deletado",
                     code="GRID_COMBO_CPP_DELETED",
                 )
         else:
@@ -136,7 +137,7 @@ class GridComboBox(QWidget):
             )
 
     def get_options(self, key: str) -> Optional[dict]:
-        """Retorna as options atuais do combo (aproximado pelo data dos itens)."""
+        """Retorna as options atuais do combo."""
         combo = self._combos.get(key)
         if combo is None:
             return None
@@ -150,34 +151,24 @@ class GridComboBox(QWidget):
 
     def set_options(self, key: str, options: dict):
         """Substitui as options de um combo."""
-        # Debug: verificar o valor real no dict
-        raw_value = self._combos.get(key)
         self._logger.info(
-            f"set_options: key='{key}', "
-            f"qtd_itens={len(options)}, "
-            f"tem_combo={key in self._combos}, "
-            f"raw_value_type={type(raw_value).__name__ if raw_value is not None else 'None'}, "
-            f"id(_combos)={id(self._combos)}",
+            f"set_options: key='{key}', qtd_itens={len(options)}",
             code="GRID_SET_OPTIONS",
         )
-        combo = raw_value
+        combo = self._combos.get(key)
         if combo is not None:
             try:
-                # Verifica se o objeto C++ Qt ainda existe
                 _ = combo.isWidgetType()
                 combo.set_options(options)
             except RuntimeError:
                 self._logger.warning(
-                    f"set_options: C++ object do combo '{key}' foi deletado. "
-                    f"_combos keys={list(self._combos.keys())}",
+                    "set_options: C++ object do combo "
+                    f"'{key}' foi deletado",
                     code="GRID_COMBO_CPP_DELETED",
                 )
         else:
             self._logger.warning(
-                f"set_options: combo '{key}' None. "
-                f"_combos keys={list(self._combos.keys())}, "
-                f"_combos len={len(self._combos)}, "
-                f"raw_value={raw_value}",
+                f"set_options: combo '{key}' nao encontrado",
                 code="GRID_COMBO_NOT_FOUND",
             )
 
@@ -198,7 +189,6 @@ class GridComboBox(QWidget):
         if self._separator_top:
             outer_layout.addWidget(SeparatorWidget())
 
-        # Pequeno espaco apos o separador superior
         if self._separator_top:
             outer_layout.addSpacing(theme.LAYOUT_VERTICAL_SPACING)
 
@@ -227,19 +217,10 @@ class GridComboBox(QWidget):
             selected_key = item_config.get("selected_key")
             onchange = item_config.get("onchange")
 
-            self._logger.debug(
-                f"_build_ui: criando combo '{key}' "
-                f"com {len(options)} options iniciais, "
-                f"selected_key='{selected_key}'",
-                code="GRID_BUILD_COMBO",
-            )
-
-            # Linha horizontal: label + combo
             row_layout = QHBoxLayout()
             row_layout.setSpacing(theme.LAYOUT_HORIZONTAL_SPACING)
             row_layout.setContentsMargins(0, 0, 0, 0)
 
-            # Label opcional: so adiciona se "label" foi explicitamente passado
             has_label = "label" in item_config
             if has_label:
                 lbl = QLabel(label_text)
@@ -248,7 +229,6 @@ class GridComboBox(QWidget):
                 if description:
                     lbl.setToolTip(description)
 
-            # Combo estilizado
             combo = SimpleComboBox(parent=self, tool_key="GridComboBox")
             combo.set_options(options)
             if selected_key is not None:
@@ -256,7 +236,6 @@ class GridComboBox(QWidget):
             if description:
                 combo.setToolTip(description)
 
-            # Conecta onchange callback
             if onchange:
                 combo.currentIndexChanged.connect(
                     lambda _idx, k=key, c=combo: self._fire_onchange(k, c, onchange)
@@ -274,11 +253,6 @@ class GridComboBox(QWidget):
         if self._separator_bottom:
             outer_layout.addSpacing(theme.LAYOUT_VERTICAL_SPACING)
             outer_layout.addWidget(SeparatorWidget())
-
-        self._logger.debug(
-            f"_build_ui: {len(self._combos)} combos criados",
-            code="GRID_BUILD_DONE",
-        )
 
     # -- Interno -----------------------------------------------------
 

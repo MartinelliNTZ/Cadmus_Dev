@@ -938,8 +938,8 @@ def resolve_qt_window_modality(name: str):
   [x] 2.2 CoorResultDialog ✅ (2.3.63.3)
   [x] 2.3 InfoDialog ✅ (2.3.64.1)
   [x] 2.4 ExportAllLayouts ✅ (2.3.65.1)
-  [ ] 2.5 RestartQgis
-  [ ] 2.6 VectorMultipartPlugin
+  [x] 2.5 RestartQgis
+  [x] 2.6 VectorMultipartPlugin
   [ ] 2.7 CopyAttributesPlugin
   [ ] 2.8 DividePointsByStripsPlugin
   [ ] 2.9 DroneCoordinates
@@ -949,8 +949,8 @@ def resolve_qt_window_modality(name: str):
   [x] 2.13 ReplaceInLayouts ✅ (2.3.67.1)
   [x] 2.14 SaveTemporaryLayersPlugin ✅ (2.3.70.1)
   [x] 2.15 GenerateTrailPlugin ✅ (2.3.71.1)
-  [ ] 2.16 ReportMetadataPlugin
-  [ ] 2.17 VectorFieldsCalculationPlugin
+  [x] 2.16 ReportMetadataPlugin
+  [x] 2.17 VectorFieldsCalculationPlugin
   [ ] 2.18 VectorToSvgPlugin
   [ ] 2.19 SettingsPlugin
 

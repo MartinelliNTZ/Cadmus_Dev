@@ -149,17 +149,18 @@ class GridComboBox(QWidget):
                 options[data] = text
         return options
 
-    def set_options(self, key: str, options: dict):
+    def set_options(self, key: str, options: dict, allow_empty: bool = False, empty_text: str = "Selecionar..."):
         """Substitui as options de um combo."""
         self._logger.info(
-            f"set_options: key='{key}', qtd_itens={len(options)}",
+            f"set_options: key='{key}', qtd_itens={len(options)}, "
+            f"allow_empty={allow_empty}",
             code="GRID_SET_OPTIONS",
         )
         combo = self._combos.get(key)
         if combo is not None:
             try:
                 _ = combo.isWidgetType()
-                combo.set_options(options)
+                combo.set_options(options, allow_empty=allow_empty, empty_text=empty_text)
             except RuntimeError:
                 self._logger.warning(
                     "set_options: C++ object do combo "
@@ -216,6 +217,10 @@ class GridComboBox(QWidget):
             options = item_config.get("options", {})
             selected_key = item_config.get("selected_key")
             onchange = item_config.get("onchange")
+            allow_empty = item_config.get("allow_empty", False)
+            empty_text = item_config.get("empty_text", "Selecionar...")
+            if not empty_text:
+                empty_text = "Selecionar..."
 
             row_layout = QHBoxLayout()
             row_layout.setSpacing(theme.LAYOUT_HORIZONTAL_SPACING)
@@ -230,7 +235,7 @@ class GridComboBox(QWidget):
                     lbl.setToolTip(description)
 
             combo = SimpleComboBox(parent=self, tool_key="GridComboBox")
-            combo.set_options(options)
+            combo.set_options(options, allow_empty=allow_empty, empty_text=empty_text)
             if selected_key is not None:
                 combo.set_selected_key(selected_key)
             if description:

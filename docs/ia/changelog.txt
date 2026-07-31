@@ -399,3 +399,24 @@
    - _load_prefs()/_save_prefs() mantidos com chk_all
    - SeparatorWidget adicionado entre widgets, WidgetFactory removido
    - Plugin em conformidade com PLUGIN_CONTRACT.md
+2.3.80 31/07/2026
+[2.3.80.1][31/07/2026] Finalizada migração DividePointsByStripsPlugin para novo sistema de widgets:
+   - Plugin 100% sem WidgetFactory: GridLabel, GridComboBox, GridInputFields, GridRadioButton, GridCheckbox, GridComplexSelector, GridExecutionButtons, CollapsibleParametersWidget, SeparatorWidget
+   - GridComboBox: todas as chamadas com chave identificadora (ex: get_selected_key("id_field"), set_options("id_field", opts))
+   - GridComplexSelector: layer input via getitem() do ComplexSelector (tupla path, layer) — helper _resolve_input_layer() suporta camada carregada OU arquivo externo não carregado via VectorLayerSource
+   - _refresh_field_selectors() carrega arquivo externo temporariamente só para ler campos quando em modo line edit
+   - GridCheckbox: usa get_checked_keys()/set_checked_keys()/get_checkbox() — APIs já existentes
+   - GridRadioButton: chaves = STR (get_selected_key() retorna o mesmo valor do antigo get_selected_text())
+   - Save selectors migrados para allow_lock_check + get/set_lock_state + get/set_path (substitui is_enabled/get_file_path)
+   - Corrigido bug advanced_params → sensitivity_params em _load_prefs/_save_prefs
+   - Corrigido import time duplicado e processing_time duplicado no except
+   - Removido import não utilizado StringAdapter
+   - Plugin em conformidade com PLUGIN_CONTRACT.md
+[2.3.80.2][31/07/2026] Adicionado suporte a campo vazio nos combos opcionais:
+   - SimpleComboBox.set_options() agora aceita allow_empty (bool) e empty_text (str) — adiciona item "Selecionar..." com data None no início quando allow_empty=True
+   - SimpleComboBox.set_selected_key() agora suporta None para selecionar o item vazio
+   - GridComboBox.set_options() propaga allow_empty/empty_text para SimpleComboBox
+   - GridComboBox._build_ui() lê allow_empty/empty_text do config dict de cada item
+   - DividePointsByStripsPlugin: time_field e group_field agora usam allow_empty=True com empty_text="Selecionar..." — restaura comportamento do antigo DropdownSelectorWidget allow_empty=True
+   - _refresh_field_selectors() usa allow_empty=True ao repopular combos opcionais e seleciona None quando não há valor salvo
+   - SKILL_WIDGETS2.md atualizada com documentação de allow_empty/empty_text

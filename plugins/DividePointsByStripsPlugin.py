@@ -11,13 +11,11 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant
 
 from .BasePlugin import BasePluginMTL
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR
 from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.StringManager import StringManager
 from ..utils.ToolKeys import ToolKey
-from ..utils.adapter.StringAdapter import StringAdapter
 from ..core.enum.OutputFieldKey import StripOutputFieldKey
 from ..utils.judge.SequentialPointBreakJudge import SequentialPointBreakJudge
 from ..utils.judge.SimpleSPBJudge import SimpleSPBJudge
@@ -26,6 +24,17 @@ from ..utils.vector.VectorLayerAttributes import VectorLayerAttributes
 from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
 from ..utils.ProjectUtils import ProjectUtils
+
+# NOVOS WIDGETS (substituem WidgetFactory)
+from ..resources.new_widgets.grid.GridLabel import GridLabel
+from ..resources.new_widgets.grid.GridComboBox import GridComboBox
+from ..resources.new_widgets.grid.GridInputFields import GridInputFields
+from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
+from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
 
 
 class DividePointsByStripsPlugin(BasePluginMTL):
@@ -51,211 +60,316 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             build_ui=True,
         )
 
+    def _convert_input_fields_config(self, fields_dict: dict) -> dict:
+        """
+        Converte config de campos (title → label) para GridInputFields.
+
+        O StringManager usa "title" como chave de rótulo; o GridInputFields
+        espera "label". Converte preservando description/default.
+        """
+        converted = {}
+        for key, cfg in (fields_dict or {}).items():
+            converted[key] = {
+                "label": cfg.get("title", key),
+                "description": cfg.get("description", ""),
+                "default": cfg.get("default", ""),
+            }
+        return converted
+
+    def _build_strip_fields_config(self) -> dict:
+        """
+        Constrói config dict do GridCheckbox a partir de DIVIDE_STRIP_FIELDS.
+
+        Cada chave vira o valor .value do StripOutputFieldKey (string),
+        com label/description vindos do Field spec.
+        """
+        strip_config = {}
+        for field_key, field_spec in SequentialPointBreakJudge.DIVIDE_STRIP_FIELDS.items():
+            key_value = field_key.value if hasattr(field_key, "value") else field_key
+            strip_config[key_value] = {
+                "label": field_spec.label,
+                "description": field_spec.description,
+                "default": True,
+            }
+        return strip_config
+
     def _build_ui(self, **kwargs):
-        """Monta componentes da interface."""
+        """Monta componentes da interface com novo sistema de widgets."""
         super()._build_ui(
             title=STR.DIVIDE_POINTS_BY_STRIPS_TITLE,
             icon_path="vector.ico",
             enable_scroll=True,
         )
 
-        intro_label = WidgetFactory.create_label(
-            text=STR.DIVIDE_POINTS_BY_STRIPS_INTRO,
-            word_wrap=True,
+        # ── Label Introdutório ───────────────────────────────────────
+        self.intro_label = GridLabel(config={
+            "intro": {"text": STR.DIVIDE_POINTS_BY_STRIPS_INTRO},
+        }, parent=self)
+        self.layout.addWidget(self.intro_label)
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Layer Input (GridComplexSelector) ────────────────────────
+        self.layer_input = GridComplexSelector(
+            config={
+                "camada": {
+                    "label": STR.INPUT_POINTS,
+                    "description": "Camada de pontos ou arquivo externo",
+                    "allow_layer": True,
+                    "layer_filters": QgsMapLayerProxyModel.PointLayer,
+                    "allow_features_check": True,
+                    "features_check_text": "Usar apenas feições selecionadas",
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "file_filter": StringManager.FILTER_VECTOR,
+                    "show_explorer_button": False,
+                    "show_copy_button": False,
+                },
+            },
+            tool_key=self.TOOL_KEY,
+            separator_bottom=False,
+            parent=self,
+        )
+        self.layer_input.set_on_changed("camada", self._on_layer_changed)
+        self.layout.addWidget(self.layer_input)
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Operational Parameters (Collapsible) ─────────────────────
+        self.operational_params = CollapsibleParametersWidget(
+            title=STR.OPERATIONAL_PARAMETERS,
+            expanded_by_default=True,
             parent=self,
         )
 
-        layer_layout, self.layer_input = WidgetFactory.create_layer_input(
-            label_text=STR.INPUT_POINTS,
-            filters=[QgsMapLayerProxyModel.Filter.PointLayer],
-            allow_empty=False,
-            enable_selected_checkbox=True,
+        self.id_field_selector = GridComboBox(
+            config={
+                "id_field": {
+                    "label": STR.UNIQUE_SEQUENTIAL_ID_FIELD,
+                    "description": "Campo com ID sequencial único",
+                    "options": {},
+                    "selected_key": "",
+                },
+            },
+            title="",
             parent=self,
-            separator_top=False,
-            separator_bottom=True,
         )
-        self.layer_input.layerChanged.connect(self._on_layer_changed)
+        self.operational_params.add_content_widget(self.id_field_selector)
 
-        operational_container_layout, self.operational_params = (
-            WidgetFactory.create_collapsible_parameters(
-                parent=self,
-                title=STR.OPERATIONAL_PARAMETERS,
-                expanded_by_default=self.preferences.get("", False),
-                separator_top=False,
-                separator_bottom=True,
-            )
+        self.group_field_selector = GridComboBox(
+            config={
+                "group_field": {
+                    "label": "Agrupar por Campo (opcional)",
+                    "description": "Agrupa pontos por valor de campo",
+                    "options": {},
+                    "selected_key": "",
+                    "allow_empty": True,
+                    "empty_text": "Selecionar...",
+                },
+            },
+            title="",
+            parent=self,
         )
-        id_field_layout, self.id_field_selector = (
-            WidgetFactory.create_dropdown_selector(
-                title=STR.UNIQUE_SEQUENTIAL_ID_FIELD,
-                options_dict={},
-                allow_empty=True,
-                empty_text=STR.SELECT,
-                parent=self,
-                separator_top=False,
-                separator_bottom=False,
-            )
-        )
-        time_field_layout, self.time_field_selector = (
-            WidgetFactory.create_dropdown_selector(
-                title=STR.TIMESTAMP_FIELD,
-                options_dict={},
-                allow_empty=True,
-                empty_text=STR.SELECT,
-                parent=self,
-                separator_top=False,
-                separator_bottom=False,
-            )
-        )
-        judge_mode_layout, self.judge_mode_selector = (
-            WidgetFactory.create_dropdown_selector(
-                title="Modo de Processamento",
-                options_dict=self.JUDGE_MODES,
-                selected_key=self.preferences.get(self.PREF_JUDGE_MODE, "Complexo"),
-                allow_empty=False,
-                parent=self,
-                separator_top=False,
-                separator_bottom=False,
-            )
-        )
-        group_field_layout, self.group_field_selector = (
-            WidgetFactory.create_dropdown_selector(
-                title="Agrupar por Campo (opcional)",
-                options_dict={},
-                allow_empty=True,
-                empty_text=STR.SELECT,
-                parent=self,
-                separator_top=False,
-                separator_bottom=False,
-            )
-        )
-        operational_layout, self.operational_fields = (
-            WidgetFactory.create_input_fields_widget(
-                fields_dict=StringManager.DIVIDE_POINTS_OPERATIONAL_FIELDS,
-                parent=self,
-                separator_top=False,
-                separator_bottom=False,
-            )
-        )
-        self.operational_params.add_content_layout(id_field_layout)
-        self.operational_params.add_content_layout(group_field_layout)
-        self.operational_params.add_content_layout(operational_layout)
+        self.operational_params.add_content_widget(self.group_field_selector)
 
-        sensitivity_fields_layout, self.sensitivity_fields = (
-            WidgetFactory.create_input_fields_widget(
-                fields_dict=StringManager.DIVIDE_POINTS_SENSITIVITY_FIELDS,
-                parent=self,
-                separator_top=False,
-                separator_bottom=False,
-            )
+        self.operational_fields = GridInputFields(
+            config=self._convert_input_fields_config(
+                StringManager.DIVIDE_POINTS_OPERATIONAL_FIELDS
+            ),
+            title="",
+            parent=self,
+        )
+        self.operational_params.add_content_widget(self.operational_fields)
+
+        self.layout.addWidget(self.operational_params)
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Sensitivity Parameters (Collapsible) ─────────────────────
+        self.sensitivity_params = CollapsibleParametersWidget(
+            title=STR.SENSITIVITY_PARAMETERS,
+            expanded_by_default=True,
+            parent=self,
         )
 
-        sensitivity_layout, self.advanced_params = (
-            WidgetFactory.create_collapsible_parameters(
-                parent=self,
-                title=STR.SENSITIVITY_PARAMETERS,
-                expanded_by_default=self.preferences.get("", False),
-                separator_top=False,
-                separator_bottom=True,
-            )
+        self.sensitivity_fields = GridInputFields(
+            config=self._convert_input_fields_config(
+                StringManager.DIVIDE_POINTS_SENSITIVITY_FIELDS
+            ),
+            title="",
+            parent=self,
         )
+        self.sensitivity_params.add_content_widget(self.sensitivity_fields)
 
-        radio_layout, self.radio_path_mode = WidgetFactory.create_radio_button_grid(
-            items=self.PATH_MODES,
+        self.time_field_selector = GridComboBox(
+            config={
+                "time_field": {
+                    "label": STR.TIMESTAMP_FIELD,
+                    "description": "Campo com timestamp",
+                    "options": {},
+                    "selected_key": "",
+                    "allow_empty": True,
+                    "empty_text": "Selecionar...",
+                },
+            },
+            title="",
+            parent=self,
+        )
+        self.sensitivity_params.add_content_widget(self.time_field_selector)
+
+        self.judge_mode_selector = GridComboBox(
+            config={
+                "judge_mode": {
+                    "label": "Modo de Processamento",
+                    "description": "Algoritmo de julgamento",
+                    "options": self.JUDGE_MODES,
+                    "selected_key": self.preferences.get(self.PREF_JUDGE_MODE, "Complexo"),
+                },
+            },
+            title="",
+            parent=self,
+        )
+        self.sensitivity_params.add_content_widget(self.judge_mode_selector)
+
+        # ── Radio Button: Path Mode (chaves = STR) ───────────────────
+        self.radio_path_mode = GridRadioButton(
+            config={
+                STR.CURVE: {"label": STR.CURVE},
+                STR.STRAIGHT: {"label": STR.STRAIGHT},
+                STR.BOTH_PATH: {"label": STR.BOTH_PATH},
+            },
             columns=3,
-            title=STR.SEGMENTATION_MODE,
-            checked_index=2,
+            default_key=STR.BOTH_PATH,
+            parent=self,
+        )
+        self.sensitivity_params.add_content_widget(self.radio_path_mode)
+
+        self.layout.addWidget(self.sensitivity_params)
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Attributes (Collapsible) ─────────────────────────────────
+        self.attributes_params = CollapsibleParametersWidget(
+            title=STR.ATTRIBUTES,
+            expanded_by_default=True,
+            parent=self,
+        )
+
+        self.output_fields_grid = GridCheckbox(
+            config=self._build_strip_fields_config(),
+            items_per_row=2,
+            control_buttons_config={
+                "select_all": {
+                    "label": STR.SELECT,
+                    "callback": self._select_all_output_fields,
+                },
+                "deselect_all": {
+                    "label": STR.REMOVE,
+                    "callback": self._deselect_all_output_fields,
+                },
+                "invert": {
+                    "label": STR.INVERT,
+                    "callback": self._invert_output_fields,
+                },
+            },
+            parent=self,
+        )
+
+        # Forçar shot_id sempre marcado e desabilitado
+        self._force_shot_id_checked()
+
+        self.attributes_params.add_content_widget(self.output_fields_grid)
+
+        self.layout.addWidget(self.attributes_params)
+        self.layout.addWidget(SeparatorWidget())
+
+        # ── Saving (Collapsible) ─────────────────────────────────────
+        self.save_collapsible = CollapsibleParametersWidget(
+            title=STR.SAVING,
+            expanded_by_default=False,
+            parent=self,
+        )
+
+        # Save Points Selector — lock button habilita/desabilita
+        self.save_points_selector = GridComplexSelector(
+            config={
+                "save_points": {
+                    "label": f"{STR.SAVE_IN} {STR.SAVE_POINTS_CHECKBOX}",
+                    "mode_type": "output",
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "file_filter": StringManager.FILTER_VECTOR,
+                    "allow_lock_check": True,
+                    "lock_check_default": False,
+                    "show_explorer_button": True,
+                    "show_copy_button": False,
+                },
+            },
             tool_key=self.TOOL_KEY,
             parent=self,
-            separator_top=False,
-            separator_bottom=True,
         )
+        self.save_collapsible.add_content_widget(self.save_points_selector)
 
-        self.advanced_params.add_content_layout(sensitivity_fields_layout)
-        self.advanced_params.add_content_layout(time_field_layout)
-        self.advanced_params.add_content_layout(judge_mode_layout)
-        self.advanced_params.add_content_layout(radio_layout)
+        # Save Track Selector — lock button habilita/desabilita
+        self.save_track_selector = GridComplexSelector(
+            config={
+                "save_track": {
+                    "label": f"{STR.SAVE_IN} {STR.SAVE_TRACK_CHECKBOX}",
+                    "mode_type": "output",
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "file_filter": StringManager.FILTER_VECTOR,
+                    "allow_lock_check": True,
+                    "lock_check_default": False,
+                    "show_explorer_button": True,
+                    "show_copy_button": False,
+                },
+            },
+            tool_key=self.TOOL_KEY,
+            parent=self,
+        )
+        self.save_collapsible.add_content_widget(self.save_track_selector)
 
-        output_layout, self.output_fields_grid = WidgetFactory.create_checkbox_grid(
-            options_data=StringAdapter.to_key_label_description(
-                SequentialPointBreakJudge.DIVIDE_STRIP_FIELDS
-            ),
-            items_per_row=2,
-            checked_by_default=True,
-            show_control_buttons=True,
-            return_widget=True,
-            separator_top=False,
-            separator_bottom=False,
-        )
-        self.output_fields_grid.set_checked_keys(["shot_id"])
-        shot_id_checkbox = self.output_fields_grid.get_checkbox("shot_id")
-        if shot_id_checkbox is not None:
-            shot_id_checkbox.setChecked(True)
-            shot_id_checkbox.setEnabled(False)
+        self.layout.addWidget(self.save_collapsible)
 
-        attributes_layout, self.attributes_params = (
-            WidgetFactory.create_collapsible_parameters(
-                parent=self,
-                title=STR.ATTRIBUTES,
-                expanded_by_default=self.preferences.get("", False),
-                separator_top=False,
-                separator_bottom=True,
-            )
+        # ── Action Buttons ───────────────────────────────────────────
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "run": {
+                    "label": STR.EXECUTE,
+                    "description": "Inicia a segmentação por faixas",
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_info=True,
+            tool_key=self.TOOL_KEY,
+            parent=self,
         )
-        self.attributes_params.add_content_layout(output_layout)
+        self.layout.add_execution_buttons(self.action_buttons)
 
-        # ====== SALVAMENTO (Expandido para Pontos e Linhas) ======
-        save_layout, self.save_collapsible = (
-            WidgetFactory.create_collapsible_parameters(
-                parent=self,
-                title=STR.SAVING,
-                expanded_by_default=False,
-                separator_bottom=True,
-            )
-        )
-        save_pts_layout, self.save_points_selector = (
-            WidgetFactory.create_save_file_selector(
-                parent=self,
-                file_filter=StringManager.FILTER_VECTOR,
-                checkbox_text=STR.SAVE_POINTS_CHECKBOX,
-                label_text=STR.SAVE_IN,
-            )
-        )
-        save_lines_layout, self.save_track_selector = (
-            WidgetFactory.create_save_file_selector(
-                parent=self,
-                file_filter=StringManager.FILTER_VECTOR,
-                checkbox_text=STR.SAVE_TRACK_CHECKBOX,
-                label_text=STR.SAVE_IN,
-            )
-        )
-        self.save_collapsible.add_content_layout(save_pts_layout)
-        self.save_collapsible.add_content_layout(save_lines_layout)
-
-        buttons_layout, self.action_buttons = (
-            WidgetFactory.create_bottom_action_buttons(
-                parent=self,
-                run_callback=self.execute_tool,
-                close_callback=self.close,
-                info_callback=self.show_info_dialog,
-                tool_key=self.TOOL_KEY,
-                separator_top=False,
-                separator_bottom=False,
-            )
-        )
-
-        self.layout.add_items(
-            [
-                intro_label,
-                layer_layout,
-                operational_container_layout,
-                sensitivity_layout,
-                attributes_layout,
-                save_layout,
-                buttons_layout,
-            ]
-        )
         self._refresh_field_selectors()
+
+    # ── Callbacks dos botões de controle ───────────────────────────
+
+    def _select_all_output_fields(self):
+        """Marca todos os checkboxes de campos de saída."""
+        self.output_fields_grid.select_all()
+        self._force_shot_id_checked()
+
+    def _deselect_all_output_fields(self):
+        """Desmarca todos os checkboxes de campos de saída (exceto shot_id)."""
+        self.output_fields_grid.deselect_all()
+        self._force_shot_id_checked()
+
+    def _invert_output_fields(self):
+        """Inverte seleção de todos os checkboxes de campos de saída."""
+        self.output_fields_grid.invert_selection()
+        self._force_shot_id_checked()
+
+    def _force_shot_id_checked(self):
+        """Mantém shot_id sempre marcado e desabilitado."""
+        shot_id_cb = self.output_fields_grid.get_checkbox(self.REQUIRED_OUTPUT_FIELD)
+        if shot_id_cb is not None:
+            shot_id_cb.setChecked(True)
+            shot_id_cb.setEnabled(False)
 
     def _load_prefs(self):
         """Restaura preferências na UI."""
@@ -275,7 +389,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         path_mode = self.preferences.get("path_mode", STR.BOTH_PATH)
         if path_mode in self.PATH_MODES:
-            self.radio_path_mode.set_selected_index(self.PATH_MODES.index(path_mode))
+            self.radio_path_mode.set_selected_key(path_mode)
 
         selected_output_fields = self.preferences.get(
             self.PREF_SELECTED_OUTPUT_FIELDS, []
@@ -292,31 +406,31 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             shot_id_checkbox.setChecked(True)
             shot_id_checkbox.setEnabled(False)
 
-        self.save_points_selector.set_enabled(
-            self.preferences.get("save_to_folder", False)
+        self.save_points_selector.set_lock_state(
+            "save_points", self.preferences.get("save_to_folder", False)
         )
-        self.save_points_selector.set_file_path(
-            self.preferences.get("last_output_file", "")
+        self.save_points_selector.set_path(
+            "save_points", self.preferences.get("last_output_file", "")
         )
-        self.save_track_selector.set_enabled(
-            self.preferences.get("save_track_to_folder", False)
+        self.save_track_selector.set_lock_state(
+            "save_track", self.preferences.get("save_track_to_folder", False)
         )
-        self.save_track_selector.set_file_path(
-            self.preferences.get("last_output_track_file", "")
+        self.save_track_selector.set_path(
+            "save_track", self.preferences.get("last_output_track_file", "")
         )
 
         self.group_field_selector.set_selected_key(
-            self.preferences.get("group_field", "")
+            "group_field", self.preferences.get("group_field", "")
         )
         self.judge_mode_selector.set_selected_key(
-            self.preferences.get(self.PREF_JUDGE_MODE, "Complexo")
+            "judge_mode", self.preferences.get(self.PREF_JUDGE_MODE, "Complexo")
         )
 
         # Restaurar estado de expansão dos colapsáveis
         self.operational_params.set_expanded(
             self.preferences.get("expanded_operational", True)
         )
-        self.advanced_params.set_expanded(
+        self.sensitivity_params.set_expanded(
             self.preferences.get("expanded_sensitivity", True)
         )
         self.attributes_params.set_expanded(
@@ -329,47 +443,69 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     def _save_prefs(self):
         """Persiste preferências da UI."""
-        self.preferences["id_field"] = self.id_field_selector.get_selected_key() or ""
+        self.preferences["id_field"] = (
+            self.id_field_selector.get_selected_key("id_field") or ""
+        )
         self.preferences["time_field"] = (
-            self.time_field_selector.get_selected_key() or ""
+            self.time_field_selector.get_selected_key("time_field") or ""
         )
         self.preferences["group_field"] = (
-            self.group_field_selector.get_selected_key() or ""
+            self.group_field_selector.get_selected_key("group_field") or ""
         )
         self.preferences[self.PREF_JUDGE_MODE] = (
-            self.judge_mode_selector.get_selected_key() or "Complexo"
+            self.judge_mode_selector.get_selected_key("judge_mode") or "Complexo"
         )
         self.preferences["operational_fields"] = self.operational_fields.get_values()
         self.preferences["sensitivity_fields"] = self.sensitivity_fields.get_values()
-        self.preferences["path_mode"] = self.radio_path_mode.get_selected_text()
+        self.preferences["path_mode"] = self.radio_path_mode.get_selected_key()
         self.preferences[self.PREF_SELECTED_OUTPUT_FIELDS] = (
             self._get_selected_output_fields()
         )
         self.preferences["save_to_folder"] = bool(
-            self.save_points_selector.is_enabled()
+            self.save_points_selector.get_lock_state("save_points")
         )
-        self.preferences["last_output_file"] = self.save_points_selector.get_file_path()
+        self.preferences["last_output_file"] = (
+            self.save_points_selector.get_path("save_points") or ""
+        )
         self.preferences["save_track_to_folder"] = bool(
-            self.save_track_selector.is_enabled()
+            self.save_track_selector.get_lock_state("save_track")
         )
         self.preferences["last_output_track_file"] = (
-            self.save_track_selector.get_file_path()
+            self.save_track_selector.get_path("save_track") or ""
         )
         self.preferences["window_width"] = self.width()
         self.preferences["window_height"] = self.height()
 
         # Salvar estado de expansão dos colapsáveis
         self.preferences["expanded_operational"] = self.operational_params.is_expanded()
-        self.preferences["expanded_sensitivity"] = self.advanced_params.is_expanded()
+        self.preferences["expanded_sensitivity"] = (
+            self.sensitivity_params.is_expanded()
+        )
         self.preferences["expanded_attributes"] = self.attributes_params.is_expanded()
 
         self.preferences["expanded_save"] = self.save_collapsible.is_expanded()
 
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
 
-    def _on_layer_changed(self, _layer):
-        """Recarrega seletores após troca de camada."""
+    def _on_layer_changed(self, _paths):
+        """Recarrega seletores após troca de camada ou arquivo."""
         self._refresh_field_selectors()
+
+    def _resolve_input_layer(self):
+        """
+        Resolve a camada de entrada a partir do seletor.
+
+        Usa o método genérico getitem() do ComplexSelector que retorna
+        tupla (path, layer):
+
+        - layer não-None → camada carregada no QGIS
+        - layer None + path não-vazio → arquivo externo não carregado
+        - layer None + path vazio → nada selecionado
+
+        Retorna:
+            tuple (path, layer)
+        """
+        return self.layer_input.get("camada").getitem()
 
     def _normalize_selected_output_fields(self, selected_output_fields):
         """Normaliza campos selecionados de saída."""
@@ -696,30 +832,42 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         }
 
     def _refresh_field_selectors(self):
-        """Atualiza opções dos seletores de campo."""
-        layer = self.layer_input.current_layer()
-        options = VectorLayerAttributes.get_field_options(layer)
+        """Atualiza opções dos seletores de campo com base na camada atual."""
+        path, layer = self._resolve_input_layer()
 
-        selected_id = getattr(self, "id_field", "") or self.preferences.get(
-            "id_field", ""
-        )
-        selected_time = getattr(self, "time_field", "") or self.preferences.get(
-            "time_field", ""
-        )
-        selected_group = getattr(self, "group_field", "") or self.preferences.get(
-            "group_field", ""
+        # Se modo line edit (arquivo externo), tenta carregar só para ler campos
+        if layer is None and path:
+            loaded = VectorLayerSource.open_vector_layer(
+                path, tool_key=self.TOOL_KEY
+            )
+            if loaded and loaded.isValid():
+                layer = loaded
+
+        options = VectorLayerAttributes.get_field_options(layer) if layer else {}
+
+        selected_id = self.id_field_selector.get_selected_key("id_field") or ""
+        selected_time = self.time_field_selector.get_selected_key("time_field") or ""
+        selected_group = (
+            self.group_field_selector.get_selected_key("group_field") or ""
         )
 
-        self.id_field_selector.set_options(options)
-        self.time_field_selector.set_options(options)
-        self.group_field_selector.set_options(options)
+        self.id_field_selector.set_options("id_field", options)
+        self.time_field_selector.set_options(
+            "time_field", options, allow_empty=True, empty_text="Selecionar..."
+        )
+        self.group_field_selector.set_options(
+            "group_field", options, allow_empty=True, empty_text="Selecionar..."
+        )
 
         if selected_id:
-            self.id_field_selector.set_selected_key(selected_id)
-        if selected_time:
-            self.time_field_selector.set_selected_key(selected_time)
-        if selected_group:
-            self.group_field_selector.set_selected_key(selected_group)
+            self.id_field_selector.set_selected_key("id_field", selected_id)
+        # Campos opcionais: seleciona vazio (None) se nenhum valor salvo
+        self.time_field_selector.set_selected_key(
+            "time_field", selected_time or None
+        )
+        self.group_field_selector.set_selected_key(
+            "group_field", selected_group or None
+        )
 
     @staticmethod
     def _normalize_group_key(group_value):
@@ -813,14 +961,28 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
     def execute_tool(self):
         """Executa processamento de segmentação."""
-        layer = self.layer_input.current_layer()
-        if not isinstance(layer, QgsVectorLayer):
+        path, layer = self._resolve_input_layer()
+
+        if isinstance(layer, QgsVectorLayer):
+            pass  # camada carregada no QGIS — OK
+        elif path:
+            # Modo arquivo externo não carregado — carrega temporariamente
+            loaded = VectorLayerSource.open_vector_layer(
+                path, tool_key=self.TOOL_KEY
+            )
+            if loaded and loaded.isValid():
+                layer = loaded
+                ProjectUtils.add_layer(layer)
+            else:
+                QgisMessageUtil.bar_warning(self.iface, STR.SELECT_POINT_VECTOR_LAYER)
+                return
+        else:
             QgisMessageUtil.bar_warning(self.iface, STR.SELECT_POINT_VECTOR_LAYER)
             return
 
-        field_id = self.id_field_selector.get_selected_key()
-        field_time = self.time_field_selector.get_selected_key()
-        field_group = self.group_field_selector.get_selected_key()
+        field_id = self.id_field_selector.get_selected_key("id_field")
+        field_time = self.time_field_selector.get_selected_key("time_field")
+        field_group = self.group_field_selector.get_selected_key("group_field")
 
         # O campo ID continua obrigatório para ordenação, mas tempo agora é opcional.
         if not field_id:
@@ -854,14 +1016,12 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             sensitivity_fields=sensitivity_values,
         )
 
-        import time
-
         start_time = time.time()
         self.logger.info("Iniciando processamento sincrono da segmentacao")
 
         try:
             selected_fields = self._get_selected_output_fields()
-            judge_mode = self.judge_mode_selector.get_selected_key()
+            judge_mode = self.judge_mode_selector.get_selected_key("judge_mode")
             judge_mode_id = self.JUDGE_MODES[judge_mode]
             if judge_mode_id == "simple":
                 judge_class = SimpleSPBJudge
@@ -897,7 +1057,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
                 "retroactive_relabel_window": 5,
                 "fusion_azimuth_tolerance": 10.0,
                 "conflict_resolver": "replace",
-                "path_mode": self.radio_path_mode.get_selected_text(),
+                "path_mode": self.radio_path_mode.get_selected_key(),
                 "max_distance_meters": float(operational_values["max_distance"]),
             }
 
@@ -1085,8 +1245,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             else:
                 self.logger.warning("Camada de resultado invalida ou nao encontrada")
 
-            if self.save_points_selector and self.save_points_selector.is_enabled():
-                out_path = self.save_points_selector.get_file_path().strip()
+            if (
+                self.save_points_selector
+                and self.save_points_selector.get_lock_state("save_points")
+            ):
+                out_path = self.save_points_selector.get_path("save_points").strip()
                 if out_path:
                     if result_layer and result_layer.isValid():
                         self.logger.info(
@@ -1136,9 +1299,11 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
                     if (
                         self.save_track_selector
-                        and self.save_track_selector.is_enabled()
+                        and self.save_track_selector.get_lock_state("save_track")
                     ):
-                        line_out_path = self.save_track_selector.get_file_path().strip()
+                        line_out_path = (
+                            self.save_track_selector.get_path("save_track").strip()
+                        )
                         if line_out_path:
                             saved_line_layer = VectorLayerSource.save_and_load_layer(
                                 strip_lines_layer,
@@ -1184,7 +1349,6 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             summary = summary_data
 
         except Exception as e:
-            processing_time = time.time() - start_time
             processing_time = time.time() - start_time
             self.logger.error(
                 f"Erro na segmentacao de tiros apos {processing_time:.2f}s: {e}",

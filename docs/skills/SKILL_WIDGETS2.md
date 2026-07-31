@@ -563,6 +563,10 @@ combo.widget("vector_ext")            # → SimpleComboBox
 | `"options"` | Sim | Dict `{key: label}` para popular o combo |
 | `"selected_key"` | Não | Chave inicialmente selecionada |
 | `"onchange"` | Não | `callback(chave_selecionada, texto_selecionado)` |
+| `"allow_empty"` | Não | `bool` — adiciona item "Selecionar..." com data `None` no início (para campos opcionais) |
+| `"empty_text"` | Não | `str` — texto do item vazio (default `"Selecionar..."`) |
+
+**Suporte a campo vazio (campos opcionais):** quando `allow_empty=True`, o combo ganha um item "Selecionar..." com data `None` no início. `get_selected_key()` retorna `None` quando o item vazio está selecionado — o plugin trata isso como "nenhum campo". `set_selected_key(key, None)` seleciona o item vazio.
 
 ### GridRadioButton 🆕
 Container de radio buttons configurável via dict, com `QButtonGroup` exclusivo. Usa `SimpleRadioButton` internamente. Suporta `columns` para layout em grid e `default_key` para seleção inicial.
@@ -1097,3 +1101,4 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-28 | 2.5.0 | Adicionado `CollapsibleParametersWidget` ao catálogo de widgets raiz com `get_preferences()`/`set_preferences()` para persistir estado expandido. `GridComplexSelector.get_preferences()`/`set_preferences()` agora inclui `lock_state` e `checked_state` de cada selector. GenerateTrailPlugin refatorado para usar `get_preferences()`/`set_preferences()` unificados. |
 | 2026-07-30 | 2.6.0 | Adicionados `SimpleRadioButton` (QRadioButton + AppStyles.radio_button()) e `GridRadioButton` (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. |
 | 2026-07-31 | 2.7.0 | **⚠️ Lição crítica:** Adicionada regra `if widget is not None` em vez de `if widget:` no contrato. Em PyQt, `if widget:` verifica `sip.isdeleted()` e pode retornar `False` mesmo com o objeto Python existindo. Sempre usar `if widget is not None` + `try/except RuntimeError` para segurança. GridComboBox corrigido com esta regra. PathExtensionPlugin migrado com `GridComplexSelector` + `GridComboBox` + `GridRadioButton` + `GridExecutionButtons`. População inicial do combo via `_on_layer_changed` após `set_on_changed()`. |
+| 2026-07-31 | 2.8.0 | **Suporte a campo vazio nos combos:** `SimpleComboBox.set_options()` agora aceita `allow_empty` (bool) e `empty_text` (str) — quando `allow_empty=True`, adiciona item "Selecionar..." com data `None` no início para campos opcionais. `SimpleComboBox.set_selected_key()` suporta `None` para selecionar o item vazio. `GridComboBox.set_options()` propaga `allow_empty`/`empty_text` e `_build_ui()` lê do config dict. DividePointsByStripsPlugin migrado com `time_field`/`group_field` usando `allow_empty=True`. |

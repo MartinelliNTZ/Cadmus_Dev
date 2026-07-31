@@ -868,6 +868,22 @@ class ComplexSelector(QWidget):
             return f"{self._selection_mode}s"
         return self._selection_mode
 
+    def getitem(self) -> tuple:
+        """
+        Retorna tupla genérica (path, layer) com o estado atual do seletor.
+
+        Casos possíveis:
+        - layer combo:          (source_path, QgsMapLayer)
+        - line edit com arquivo: (file_path, None)
+        - vazio:                 ("", None)
+
+        Lógica de interpretação pelo plugin:
+        - layer não-None → camada carregada no QGIS
+        - layer None + path não-vazio → arquivo externo não carregado
+        - layer None + path vazio → nada selecionado
+        """
+        return self.path(), self.current_layer
+
     def path_count(self) -> int:
         return len(self._selected_list)
 

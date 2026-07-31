@@ -137,6 +137,29 @@ class GridCheckbox(QWidget):
         """Acesso direto ao QCheckBox (para signals como toggled)."""
         return self._checkboxes.get(key)
 
+    def get_checked_keys(self) -> list:
+        """
+        Retorna lista de chaves onde checkbox está marcado.
+        Equivalente ao antigo GridCheckboxWidget.get_checked_keys().
+        """
+        return [key for key, cb in self._checkboxes.items() if cb.isChecked()]
+
+    def set_checked_keys(self, keys: list):
+        """
+        Marca as chaves da lista, desmarca as demais.
+        Equivalente ao antigo GridCheckboxWidget.set_checked_keys().
+        """
+        keys_set = set(keys or [])
+        for key, cb in self._checkboxes.items():
+            cb.setChecked(key in keys_set)
+
+    def get_checkbox(self, key: str):
+        """
+        Alias para widget(key) — retorna o SimpleCheckbox.
+        Compatibilidade com API antiga get_checkbox().
+        """
+        return self._checkboxes.get(key)
+
     def select_all(self):
         """Marca todos os checkboxes."""
         for cb in self._checkboxes.values():

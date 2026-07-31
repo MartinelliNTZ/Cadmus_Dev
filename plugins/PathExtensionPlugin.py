@@ -51,6 +51,8 @@ class PathExtensionPlugin(BasePluginMTL):
                     "allow_folder": False,
                     "file_filter": StringManager.FILTER_VECTOR,
                     "mode_type": "input",
+                    "allow_features_check": True,
+                    "features_check_text": STR.ONLY_SELECTED_FEATURES,
                 },
             },
             tool_key=self.TOOL_KEY,

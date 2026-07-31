@@ -556,7 +556,7 @@ Criados em `resources/new_widgets/`.
 | 9 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
 | 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_collapsible_parameters, create_bottom_action_buttons | GridComplexSelector + GridCheckbox + CollapsibleParametersWidget + GridExecutionButtons | ✅ Migrado (2.3.68.1) |
 | 11 | `CreateProjectPlugin` | create_path_selector, create_input_fields, create_bottom_action_buttons | GridLabel + GridComplexSelector + GridInputFields + GridExecutionButtons | ✅ Migrado (2.3.69.1) |
-| 12 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridRadioButton + GridButton | ⬜ Pendente |
+| 12 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | **GridComplexSelector** + **GridComboBox** + **GridRadioButton** + **GridExecutionButtons** | ✅ **Migrado (2.3.79.1)** |
 | 13 | `ReplaceInLayouts` | create_input_fields_widget, create_simple_button, create_checkbox_grid, create_label, create_bottom_action_buttons | GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons | ✅ Migrado (2.3.67.1) |
 | 14 | `SaveTemporaryLayersPlugin` | create_input_fields_widget, create_dropdown_selector (x2), create_grid_complex_selector, create_bottom_action_buttons | GridInputFields + GridComboBox + GridComplexSelector + GridExecutionButtons | ✅ Migrado (2.3.70.1) |
 | 15 | `GenerateTrailPlugin` | create_layer_input, create_save_file_selector, create_double_spin_input, create_collapsible_parameters, create_qml_selector, create_bottom_action_buttons | GridComplexSelector (input+output) + GridDoubleSpin + GridComplexSelector (qml) + CollapsibleParametersWidget + GridExecutionButtons | ✅ Migrado (2.3.71.1) |
@@ -945,7 +945,7 @@ def resolve_qt_window_modality(name: str):
   [ ] 2.9 DroneCoordinates
   [x] 2.10 LoadFolderLayers ✅ (2.3.68.1)
   [x] 2.11 CreateProjectPlugin ✅ (2.3.69.1)
-  [ ] 2.12 PathExtensionPlugin
+  [x] 2.12 PathExtensionPlugin ✅ (2.3.79.1)
   [x] 2.13 ReplaceInLayouts ✅ (2.3.67.1)
   [x] 2.14 SaveTemporaryLayersPlugin ✅ (2.3.70.1)
   [x] 2.15 GenerateTrailPlugin ✅ (2.3.71.1)
@@ -976,3 +976,4 @@ def resolve_qt_window_modality(name: str):
 | 2026-07-24 | 5.1.0 | **Atualização:** Adicionado TextBrowser.py aos widgets raiz (FASE 1.3). Adicionado InfoDialog como migrado (FASE 2 - 2.3.64.1). Atualizadas seções 3, 4.1, 4.2, 7.3, 8.1 e TODO com TextBrowser e InfoDialog. |
 | 2026-07-27 | 5.3.0 | **Atualização:** Criado GridInputFields (container de campos de texto + SimpleQLineEdit). ReplaceInLayouts migrado usando GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons. Botao Inverter como item extra no GridExecutionButtons. FASE 2: 5 plugins migrados. |
 | 2026-07-30 | 5.4.0 | **Atualização:** Adicionados SimpleRadioButton (QRadioButton + AppStyles.radio_button()) e GridRadioButton (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. Atualizadas seções 3, 4.1, 4.2, 7.1, 7.2, 8.1, 13 e TODO. |
+| 2026-07-31 | 5.5.0 | **Atualização:** PathExtensionPlugin migrado ✅ (2.3.79.1). Usa GridComplexSelector (allow_layer=True, layer_filters=VectorLayer, allow_features_check=True) + GridComboBox (atributos) + GridRadioButton (modos) + GridExecutionButtons. GridComboBox corrigido: `if widget:` → `if widget is not None:` (bug sip.isdeleted). ComplexSelector: setAllowEmptyLayer condicional (False quando allow_layer=True). SKILL_WIDGETS2.md v2.7.0 com regra crítica #9. |

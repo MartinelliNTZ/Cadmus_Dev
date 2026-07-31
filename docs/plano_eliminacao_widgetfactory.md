@@ -565,7 +565,7 @@ Criados em `resources/new_widgets/`.
 | 15 | `GenerateTrailPlugin` | create_layer_input, create_save_file_selector, create_double_spin_input, create_collapsible_parameters, create_qml_selector, create_bottom_action_buttons | GridComplexSelector (input+output) + GridDoubleSpin + GridComplexSelector (qml) + CollapsibleParametersWidget + GridExecutionButtons | ✅ Migrado (2.3.71.1) |
 | 16 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
 | 17 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton | ⬜ Pendente |
-| 18 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
+| 18 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_color_button (x3), create_double_spin_input (x2), create_checkbox_grid, create_bottom_action_buttons | GridComplexSelector + ComplexColorPicker (x3) + GridDoubleSpin + GridCheckbox + GridExecutionButtons | ✅ **Migrado (2.3.83.3)** |
 | 19 | `SettingsPlugin` | Múltiplos | Análise individual | ⬜ Pendente |
 
 ### 8.2 Checklist por Plugin
@@ -955,7 +955,7 @@ def resolve_qt_window_modality(name: str):
   [x] 2.15 GenerateTrailPlugin ✅ (2.3.71.1)
   [x] 2.16 ReportMetadataPlugin
   [x] 2.17 VectorFieldsCalculationPlugin
-  [ ] 2.18 VectorToSvgPlugin
+  [x] 2.18 VectorToSvgPlugin ✅ (2.3.83.3)
   [ ] 2.19 SettingsPlugin
   [ ] 2.20 RegistryDialog
 
@@ -983,4 +983,5 @@ def resolve_qt_window_modality(name: str):
 | 2026-07-30 | 5.4.0 | **Atualização:** Adicionados SimpleRadioButton (QRadioButton + AppStyles.radio_button()) e GridRadioButton (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. Atualizadas seções 3, 4.1, 4.2, 7.1, 7.2, 8.1, 13 e TODO. |
 | 2026-07-31 | 5.5.0 | **Atualização:** PathExtensionPlugin migrado ✅ (2.3.79.1). Usa GridComplexSelector (allow_layer=True, layer_filters=VectorLayer, allow_features_check=True) + GridComboBox (atributos) + GridRadioButton (modos) + GridExecutionButtons. GridComboBox corrigido: `if widget:` → `if widget is not None:` (bug sip.isdeleted). ComplexSelector: setAllowEmptyLayer condicional (False quando allow_layer=True). SKILL_WIDGETS2.md v2.7.0 com regra crítica #9. |
 | 2026-07-31 | 5.6.0 | **Atualização:** CopyAttributesPlugin migrado ✅ (2.3.79.2). Criado GridAttributeSelector (widget raiz) com QScrollArea interna + fundo secondary transparente (COLOR_BACKGROUND_SOFT). GridComplexSelector com 2 items (target_layer + source_layer, ambos allow_layer=True, VectorLayer, sem pasta/arquivo/feicoes). VectorFieldsCalculationPlugin: ao recusar editar camada, apenas loga e retorna (sem bar_critical). |
+| 2026-07-31 | 5.8.0 | **Atualização:** VectorToSvgPlugin migrado ✅ (2.3.83.3). Criado ComplexColorPicker (label + QgsColorButton + SimpleQLineEdit + SquareIconButton COPY2). GridComplexSelector._generate_output() agora suporta folder mode com subfolder (ignora suffix/fixed_name/fixed_extension). Plugin usa GridComplexSelector (camada + pasta_saida subfolder "svgs") + 3x ComplexColorPicker + 2x GridDoubleSpin + GridCheckbox 2 colunas + GridExecutionButtons. |
 | 2026-07-31 | 5.7.0 | **Atualização:** DividePointsByStripsPlugin migrado ✅ (2.3.80.1). GridComplexSelector layer input via getitem() do ComplexSelector (tupla path, layer) — helper _resolve_input_layer() suporta camada carregada OU arquivo externo não carregado. GridComboBox com chaves identificadoras. Save selectors usam allow_lock_check + get/set_lock_state + get/set_path. GridRadioButton chaves = STR. Corrigido bug advanced_params → sensitivity_params e duplicados. |

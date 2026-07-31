@@ -147,8 +147,12 @@ class GridComplexSelector(QWidget):
             # Save mode state (layer combo vs line edit)
             item["using_layer_combo"] = sel.using_layer_combo
             # Lock state
-            if self._link_meta.get(key, {}).get("allow_lock_check", False) or \
-               hasattr(sel, '_allow_lock_check') and sel._allow_lock_check:
+            has_lock = bool(
+                self._link_meta.get(key, {}).get("allow_lock_check", False)
+                or getattr(sel, '_allow_lock_check', False)
+                and sel._allow_lock_check
+            )
+            if has_lock:
                 item["lock_state"] = sel.get_lock_state()
             # Features/checked state
             if self._link_meta.get(key, {}).get("allow_features_check", False) or \
@@ -492,6 +496,18 @@ class GridComplexSelector(QWidget):
             suffix = meta.get("suffix", "")
             fixed_extension = meta.get("fixed_extension", "")
             fixed_name = meta.get("fixed_name", "")
+            subfolder = meta.get("subfolder", "")
+
+            # Folder mode
+            if selector.selection_mode == "folder":
+                output_path = os.path.join(parent_dir, subfolder) if subfolder else parent_dir
+                selector.set_path(output_path)
+                self._self_generated[label] = True
+                self._logger.info(
+                    "Output pasta gerado: %s", selector.path(),
+                    code="GRID_OUTPUT_FOLDER_GENERATED",
+                )
+                return
 
             # Usa fixed_extension se definida, senão usa extensão do parent
             ext = fixed_extension if fixed_extension else os.path.splitext(parent_path)[1]

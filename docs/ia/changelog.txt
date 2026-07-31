@@ -428,6 +428,30 @@
    - Nenhum filho de BaseProcessingAlgorithm precisa mais declarar ICON — basta definir TOOL_KEY; o ícone deve ter o mesmo nome da tool_key (ex: gli_calculator → gli_calculator.ico)
     - GliCalculator: removida declaração ICON (primeiro filho testado no novo modo)
     - SKILL_PROCESSING.md atualizada para 1.1.0 com documentação do novo padrão e compatibilidade legada
+2.3.83 31/07/2026
+[2.3.83.1][31/07/2026] Criado ComplexColorPicker em resources/new_widgets/:
+   - Composicao: SimpleLabel + QgsColorButton + SimpleQLineEdit (hex readonly) + SquareIconButton (COPY2)
+   - API: set_color(), get_color(), color(), color_button(), hex_input()
+   - Permite opacidade via QgsColorButton.setAllowOpacity(True)
+   - Hex exibe HexRgb ou HexArgb conforme alpha
+   - Botao copiar usa ProjectUtils.set_clipboard_text()
+   - Logger via LogUtils com tool_key
+[2.3.83.2][31/07/2026] GridComplexSelector._generate_output() agora suporta folder mode:
+   - Quando output selector tem selection_mode="folder", gera pasta ao inves de arquivo
+   - Usa subfolder do meta (ignora suffix/fixed_name/fixed_extension)
+   - Log GRID_OUTPUT_FOLDER_GENERATED
+[2.3.83.3][31/07/2026] VectorToSvgPlugin migrado para novo sistema de widgets:
+   - Plugin 100% sem WidgetFactory
+   - GridComplexSelector: camada (layer + file, VectorLayer, features check) + pasta_saida (output, parent linking, subfolder "svgs", folder mode)
+   - 3x ComplexColorPicker (fundo, borda, rotulo)
+   - 2x GridDoubleSpin (espessura borda, tamanho rotulo)
+   - GridCheckbox 2 colunas (4 opcoes)
+   - GridExecutionButtons via add_execution_buttons()
+   - _resolve_input_layer() via getitem() do ComplexSelector (camada carregada OU arquivo externo via VectorLayerSource)
+   - _resolve_output_folder() via get_path("pasta_saida")
+   - only_selected via get_checked_state("camada")
+   - Removido import WidgetFactory
+   - Plugin em conformidade com PLUGIN_CONTRACT.md
 2.3.82 31/07/2026
 [2.3.82.1][31/07/2026] Corrigido botão copiar do ComplexSelector em modo LAYER (using_layer_combo):
     - _copy_to_clipboard() agora copia o path da layer selecionada diretamente do QgsMapLayerComboBox (layer.source() com remoção de sublayers via split("|")[0])

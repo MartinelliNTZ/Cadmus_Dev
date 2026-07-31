@@ -869,6 +869,57 @@ coll.set_preferences(Preferences.load_tool_prefs(self.TOOL_KEY).get("collapsible
 
 ---
 
+
+
+### ComplexColorPicker 🆕
+Seletor de cor com label, QgsColorButton, campo hex readonly e botão copiar.
+
+```python
+from ..resources.new_widgets.ComplexColorPicker import ComplexColorPicker
+
+color = ComplexColorPicker(
+    label_text=STR.BACKGROUND_COLOR,
+    initial_color=QColor("#ffffff"),
+    tooltip=STR.SELECT_FILL_COLOR,
+    tool_key=self.TOOL_KEY,
+    parent=self,
+)
+layout.addWidget(color)
+
+color.set_color(QColor("#ff0000"))
+cor = color.get_color()
+```
+
+**API pública:**
+| Método | Descrição |
+|--------|-----------|
+| `set_color(color)` | Define cor e atualiza hex |
+| `get_color() → QColor` | Retorna cor atual |
+| `color() → QColor` | Alias de get_color |
+| `color_button()` | Acesso ao QgsColorButton |
+| `hex_input()` | Acesso ao campo hex |
+
+**Detalhes:**
+- `QgsColorButton.setAllowOpacity(True)` — suporta opacidade
+- Hex exibe HexRgb ou HexArgb (se alpha < 255)
+- Botão copiar: `SquareIconButton` com ícone `COPY2` + `ProjectUtils.set_clipboard_text()`
+
+### GridComplexSelector — Folder Mode 🆕
+Quando o output selector tem `allow_folder=True` e `allow_file=False`, o `_generate_output()` gera **pasta** (não arquivo):
+
+```python
+"pasta_saida": {
+    "label": STR.OUTPUT_FOLDER,
+    "mode_type": "output",
+    "parent": "camada",
+    "subfolder": "svgs",       # pasta gerada junto do parent
+    "allow_file": False,
+    "allow_folder": True,
+}
+```
+
+**Regra:** folder mode ignora `suffix`, `fixed_name` e `fixed_extension` — somente usa `subfolder`.
+
 ## 📌 CONTRATO RÍGIDO
 
 ### ✅ FAZER:
@@ -1107,4 +1158,8 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-07-30 | 2.6.0 | Adicionados `SimpleRadioButton` (QRadioButton + AppStyles.radio_button()) e `GridRadioButton` (container de radio buttons com QButtonGroup + dict config + columns + default_key). API: get_selected_key/set_selected_key/get_selected_index/set_selected_index. |
 | 2026-07-31 | 2.7.0 | **⚠️ Lição crítica:** Adicionada regra `if widget is not None` em vez de `if widget:` no contrato. Em PyQt, `if widget:` verifica `sip.isdeleted()` e pode retornar `False` mesmo com o objeto Python existindo. Sempre usar `if widget is not None` + `try/except RuntimeError` para segurança. GridComboBox corrigido com esta regra. PathExtensionPlugin migrado com `GridComplexSelector` + `GridComboBox` + `GridRadioButton` + `GridExecutionButtons`. População inicial do combo via `_on_layer_changed` após `set_on_changed()`. |
 | 2026-07-31 | 2.8.0 | **Suporte a campo vazio nos combos:** `SimpleComboBox.set_options()` agora aceita `allow_empty` (bool) e `empty_text` (str) — quando `allow_empty=True`, adiciona item "Selecionar..." com data `None` no início para campos opcionais. `SimpleComboBox.set_selected_key()` suporta `None` para selecionar o item vazio. `GridComboBox.set_options()` propaga `allow_empty`/`empty_text` e `_build_ui()` lê do config dict. DividePointsByStripsPlugin migrado com `time_field`/`group_field` usando `allow_empty=True`. |
+| 2026-07-31 | 2.9.0 | **Cryptome:**
+   - Adicionado `ComplexColorPicker` (raiz) — SimpleLabel + QgsColorButton + SimpleQLineEdit + SquareIconButton (COPY2)
+   - Adicionado folder mode ao `GridComplexSelector._generate_output()` — gera pasta com subfolder (ignora suffix/fixed_name/fixed_extension)
+   - VectorToSvgPlugin migrado com GridComplexSelector (camada + pasta_saida subfolder "svgs") + 3x ComplexColorPicker + 2x GridDoubleSpin + GridCheckbox 2 colunas + GridExecutionButtons
 | 2026-07-31 | 2.8.1 | **Botão copiar do ComplexSelector em modo LAYER:** `_copy_to_clipboard()` agora copia o path da layer selecionada diretamente do `QgsMapLayerComboBox` (`layer.source()` com remoção de sublayers via `split("|")[0]`). Em modo line edit, mantém o comportamento de copiar o texto do campo. |

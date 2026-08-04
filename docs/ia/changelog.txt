@@ -513,3 +513,20 @@
    - Novas strings: STR.RESTORE_DISTRIBUTION, STR.SELECT_DIST_FILE, STR.DIST_FILE_NOT_FOUND, STR.LICENSE_KEY
    - docs/plano_eliminacao_widgetfactory.md atualizado (RegistryDialog migrado, TODO 2.20)
    - SKILL_WIDGETS2.md atualizada para v3.2.0 (GridLabel com color)
+
+2.3.87 04/08/2026
+[2.3.87.1][04/08/2026] Eliminacao completa da WidgetFactory:
+   - core/ui/WidgetFactory.py REMOVIDO - nenhum plugin importa mais
+   - resources/widgets/ REMOVIDO - widgets antigos eliminados
+   - Apenas referencias em comentarios de plugins (''substituem WidgetFactory'') e docs/OLD/andtigo.py (backup)
+[2.3.87.2][04/08/2026] DropdownToolButton padronizado no novo sistema de widgets:
+   - resources/new_widgets/DropdownToolButton.py migrado para o padrao de widget raiz
+   - Adicionados LogUtils com class_name como tool (widget de infraestrutura, nao plugin)
+   - Adicionados _apply_styles() / _get_global_style() / _specific_style()
+   - _specific_style() estiliza QToolButton e QMenu com tokens do tema (PXBORDER_ONE, COLOR_BORDER_DEFAULT, COLOR_BACKGROUND_PANEL, etc)
+   - Try/except com logger.exception + code DROPDOWN_TOOL_BUTTON_BUILD_ERROR
+   - API publica preservada (setup(), _popup_mode(), clique principal dispara main_action)
+[2.3.87.3][04/08/2026] Skills atualizadas:
+   - SKILL_WIDGETS2.md v3.3.0 - DropdownToolButton documentado no catalogo de widgets raiz; WidgetFactory e resources/widgets/ removidos
+   - SKILL_PLUGIN_CONTRACT.md - regras #1 (UI), #5 (Estilos) e #9 (Widgets Customizados) atualizadas para o novo sistema (new_widgets/ + AppStyles + BaseTheme, sem WidgetFactory)
+   - SKILL_AGENT.md - mapeamento UI/Widgets atualizado para SKILL_WIDGETS2.md (substitui SKILL_WIDGET_ENGINE.md inexistente); regras do contrato atualizadas (18 regras, UI via new_widgets/)

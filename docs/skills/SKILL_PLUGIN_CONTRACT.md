@@ -7,9 +7,9 @@
 ## 1. UI — Widgets
 
 ❌ `from qgis.PyQt.QtWidgets import QLabel, QPushButton`
-✅ `widget = WidgetFactory.create_label("Texto")`
+✅ `widget = GridLabel(config={"key": {"text": "Texto"}}, parent=self)`
 
-Plugins nunca importam QtWidgets direto. Toda UI passa por WidgetFactory que centraliza estilos e garante consistência visual em todo o plugin.
+Plugins nunca importam QtWidgets direto. Toda UI usa widgets de `resources/new_widgets/` (grid/ para plugins, raiz para widgets sem versão grid). Widgets se autoconfiguram com `AppStyles` + `ThemeManager` + `BaseTheme`. Consulte `docs/skills/SKILL_WIDGETS2.md`.
 
 ---
 
@@ -43,9 +43,9 @@ ToolKey é enum, não string. Evita typos, facilita refatoração global e garan
 ## 5. Estilos
 
 ❌ `label.setStyleSheet("color: red; font-weight: bold")`
-✅ Usar `WidgetFactory` que aplica `Styles.label()` automaticamente
+✅ Usar widgets de `resources/new_widgets/` que aplicam `AppStyles` automaticamente
 
-Estilos customizados em plugins quebram consistência visual e dificultam mudanças globais. Todos os estilos em Styles.py, aplicados via Factory. Se precisa estilo novo, criar em Styles.py.
+Estilos customizados em plugins quebram consistência visual e dificultam mudanças globais. Todos os estilos em `AppStyles` + `BaseTheme`, aplicados via widgets autoconfiguráveis. Se precisa estilo novo, criar em `AppStyles` ou `_specific_style()` do widget.
 
 ---
 
@@ -79,9 +79,9 @@ Variáveis globais são compartilhadas (conflitos). Arquivos diretos são não-s
 ## 9. Widgets Customizados
 
 ❌ `class MyDialog(QDialog):` em `plugins/`
-✅ Criar em `resources/widgets/MyCustomWidget.py` + `WidgetFactory.create_my_custom_widget(...)`
+✅ Criar em `resources/new_widgets/MyCustomWidget.py` + usar diretamente no plugin
 
-Widgets em plugins criam acoplamento UI-lógica e violam contrato. Widgets compostos ficam em resources/widgets/ com encapsulamento, e Factory os fornece ao plugin.
+Widgets em plugins criam acoplamento UI-lógica e violam contrato. Widgets compostos ficam em `resources/new_widgets/` com encapsulamento total (AppStyles + _specific_style), e o plugin apenas consome via construtor.
 
 ---
 
@@ -102,7 +102,6 @@ Help hardcoded em código é impossível traduzir, mistura lógica com documenta
 Logs servem auditoria/debug de desenvolvedores. STR é para UI do usuário. Logs traduzidos quebram rastreamento e dificultam busca. Sempre em pt_BR.
 
 ---
----
 
 ## 12. Processing — Algoritmos e Preferências
 
@@ -119,7 +118,6 @@ Logs servem auditoria/debug de desenvolvedores. STR é para UI do usuário. Logs
 ❌ Nunca criar logs sem tool_key rastreável (exceto casos de utilitários genéricos).
 ✅ A `tool_key` é a credencial mestra de rastreio de logs e preferências.
 ❌ Widgets exclusivos e helpers não precisam logar criação, mas devem logar exceções e erros relevantes se houver tratamento, oque muitas vezes nao ha.
-
 
 ## 14. Preferences — Padrão para Processing
 
@@ -147,6 +145,7 @@ Logs servem auditoria/debug de desenvolvedores. STR é para UI do usuário. Logs
 ❌ Nunca criar helpers duplicados já existentes em utils.
 ❌ Nunca salvar preferências fora de Preferences.
 ❌ Nunca explorar arquivos/camadas fora das classes autorizadas.
+
 ---
 
 ## 16. Plugins Instantaneos - BasePlugin

@@ -35,14 +35,14 @@ Use esta tabela para decidir qual skill ler **além** dos contratos obrigatório
 | Logging, sinais entre componentes, mensagens ao usuário | `docs/skills/SKILL_COMUNICATION_SYSTEM.md` | Quando usar LogUtils vs SignalHub vs QgisMessageUtil, payloads, tool_key |
 | Strings, tradução, STR, InstructionsManager, HtmlInstructions | `docs/skills/SKILL_I18N.md` | STR, locale, InstructionsManager, HtmlInstructionsProvider — sempre ler ao adicionar nova string |
 | Preferências do usuário, configurações persistentes | `docs/skills/SKILL_PREFERENCES.md` | Preferences.load_tool_prefs, save_tool_prefs, operações em lote com filtro |
-| UI, Widgets, WidgetFactory, Styles | `docs/skills/SKILL_WIDGET_ENGINE.md` | Contrato WidgetFactory, categorias de componentes, widget exclusivo vs simples |
+| UI, Widgets, novo sistema de widgets autoconfiguráveis | `docs/skills/SKILL_WIDGETS2.md` | Contrato do novo sistema: widgets de new_widgets/, AppStyles + ThemeManager + BaseTheme, _specific_style(), config dict, callbacks |
 | Algoritmo de processing (initAlgorithm, processAlgorithm) | `docs/skills/SKILL_PROCESSING.md` | BaseProcessingAlgorithm, load/save preferences, OPEN_OUTPUT_FOLDER, DISPLAY_HELP |
 | Registro de plugin no ToolRegistry (menu/toolbar) | `docs/skills/SKILL_TOOLREGISTRY_PLUGINS.md` | Tool → ToolRegistry → MenuManager, main_action, executor, ToolTypeEnum |
 | Manipulação de camadas vetoriais ou raster | `docs/skills/SKILL_VECTOR_RASTER_LAYER_UTILS.md` | VectorLayerAttributes, VectorLayerGeometry, RasterLayerRendering, RasterLayerProcessing |
 | Utilitários gerais (arquivos, zip, compressão, ProjectUtils, QgisMessageUtil) | `docs/skills/SKILL_UTILS.md` | Todas as classes do utils/ — ExplorerUtils, FileCompressUtils, FormatUtils, etc. |
 | Documentar novo sistema, criar skill nova | `docs/skills/SKILL_FACTORY.md` | Protocolo de documentação: ler código → rastrear dependências → gravar skill |
 | Instruções de ferramenta (.md ou HTML), InstructionsManager, HtmlInstructionsProvider | `docs/skills/SKILL_INSTRUCTIONS_SYSTEM.md` | Sistema completo de instruções: .md para plugins (BasePluginMTL), HTML para algoritmos de processing, resolução por locale |
-| Contratos do plugin (12 regras críticas) | `docs/skills/PLUGIN_CONTRACT.md` | **OBRIGATÓRIO** — ler sempre antes de qualquer alteração |
+| Contratos do plugin (18 regras críticas) | `docs/skills/PLUGIN_CONTRACT.md` | **OBRIGATÓRIO** — ler sempre antes de qualquer alteração |
 | Contratos da pipeline assíncrona | `docs/skills/SKILL_ASYNC_PAPELINE.md` | **OBRIGATÓRIO** — ler sempre antes de qualquer alteração |
 
 ---
@@ -55,18 +55,18 @@ Use esta tabela para decidir qual skill ler **além** dos contratos obrigatório
 
 Regras críticas do plugin que **nunca** podem ser violadas:
 
-- UI via WidgetFactory (nunca QtWidgets direto)
+- UI via `resources/new_widgets/` (nunca QtWidgets direto)
 - Logging via LogUtils com ToolKey (nunca print/stderr)
 - Strings via STR (nunca hardcoded)
 - ToolKey é enum (nunca string)
-- Estilos via WidgetFactory + Styles.py (nunca setStyleSheet direto)
+- Estilos via widgets autoconfiguráveis + AppStyles + BaseTheme (nunca setStyleSheet direto)
 - Exceções sempre logadas com logger.exception (nunca except: pass)
 - Métodos estáticos recebem tool_key como parâmetro
 - Configurações via Preferences (nunca globais/arquivos diretos)
 - Help via InstructionsManager + .md (nunca hardcoded)
 - Logs em pt_BR (nunca traduzir logs com STR)
 - Processing herda de BaseProcessingAlgorithm
-- Plugons registrados no ToolRegistry
+- Plugins registrados no ToolRegistry
 
 ## 📜 SKILL_ASYNC_PAPELINE.md
 
@@ -353,6 +353,8 @@ Se informação estiver faltando, responda com:
 | Erro silenciado com `except: pass` | Pipeline continua em estado inconsistente |
 | Não consultar skills complementares | Perde contexto, viola contratos |
 | Ignorar SKILL_FACTORY ao documentar sistema | Skill gerada sem profundidade ou sem ler código |
+| Plugin importando QtWidgets direto | Viola contrato #1 (UI via new_widgets/) |
+| Plugin chamando setStyleSheet() | Viola contrato #5 (estilos via AppStyles/widgets) |
 
 ---
 
@@ -371,8 +373,8 @@ Use este agente quando:
 
 **NÃO** use este agente para:
 
-- Gerar plugins completos do zero (use `SKILL_TOOLREGISTRY_PLUGINS.md` + `SKILL_WIDGET_ENGINE.md`)
-- Modificar UI/widgets (use `SKILL_WIDGET_ENGINE.md`)
+- Gerar plugins completos do zero (use `SKILL_TOOLREGISTRY_PLUGINS.md` + `SKILL_WIDGETS2.md`)
+- Modificar UI/widgets (use `SKILL_WIDGETS2.md`)
 - Modificar algoritmos de processing (use `SKILL_PROCESSING.md`)
 - Modificar sistema de relatório fotogramétrico (use `SKILL_REPORT_SYSTEM.md` + `SKILL_PQI.md`)
 - Gerenciar preferências ou configurações (use `SKILL_PREFERENCES.md`)
@@ -384,4 +386,4 @@ Use este agente quando:
 flake8 e bandit serao usados para validar e boas praticas do codigo 
 .\core\exemple.py:207:10: W292 no newline at end of file
 todo final de codigo precisa de uma linha vazia(sem espaço)
-F401 'os' imported but unused   nao deixe import nao usados 
+F401 'os' imported but unused   nao deixe import nao usados

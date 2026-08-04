@@ -882,6 +882,35 @@ coll.set_preferences(Preferences.load_tool_prefs(self.TOOL_KEY).get("collapsible
 
 
 
+### DropdownToolButton 🆕
+Botão dropdown para a toolbar do QGIS. Usado pela infraestrutura do sistema (`MenuManager`), **não por plugins**.
+
+```python
+from ...resources.new_widgets.DropdownToolButton import DropdownToolButton
+
+dropdown = DropdownToolButton(
+    iface=self.iface,
+    title="Ferramentas",
+    main_action=main_tool.action,
+    secondary_actions=secondary_actions,
+    icon=main_tool.icon,
+)
+self.toolbar.addWidget(dropdown)
+```
+
+**API pública:**
+| Método | Descrição |
+|--------|-----------|
+| `setup(title, main_action, secondary_actions, icon)` | Configura ações do botão |
+
+**Detalhes:**
+- `QToolButton` com `MenuButtonPopup` (compat Qt5/Qt6 via `_popup_mode()`)
+- Clique principal dispara `main_action`; ações secundárias no menu
+- `None` em `secondary_actions` adiciona separador
+- Estilos globais: `AppStyles.button()` + `AppStyles.label()`
+- `_specific_style()` estiliza `QToolButton` e `QMenu` com tokens do tema
+- Logger via `LogUtils` (não é plugin, usa class_name como tool)
+
 ### ComplexCrsSelector 🆕
 Seletor de CRS (EPSG) com label e `QgsProjectionSelectionWidget`.
 
@@ -1226,3 +1255,10 @@ border: 1px solid {theme.COLOR_BORDER};
    - `GridLabel.set_config()` também aceita `"color"` para atualizar cor dinamicamente
    - `RegistryDialog` usa `GridInputFields` (chave) + `GridLabel` (Nível/Validade/Status com cor) + `GridComplexSelector` (.dist) + `GridExecutionButtons` (Validar/Remover/Restaurar/Salvar/Fechar)
    - Novas strings: `STR.RESTORE_DISTRIBUTION`, `STR.SELECT_DIST_FILE`, `STR.DIST_FILE_NOT_FOUND`, `STR.LICENSE_KEY` |
+| 2026-08-04 | 3.3.0 | **DropdownToolButton padronizado no novo sistema:**
+   - `DropdownToolButton` migrado para o padrão de widget raiz (AppStyles + _specific_style + LogUtils)
+   - `_apply_styles()` aplica `AppStyles.button()` + `AppStyles.label()` + `_specific_style()`
+   - `_specific_style()` estiliza `QToolButton` e `QMenu` com tokens do tema (PXBORDER_ONE, COLOR_BORDER_DEFAULT, COLOR_BACKGROUND_PANEL, etc)
+   - Logger via `LogUtils` com class_name como tool (widget de infraestrutura, não plugin)
+   - Try/except com `logger.exception` + code `DROPDOWN_TOOL_BUTTON_BUILD_ERROR`
+   - `WidgetFactory` e `resources/widgets/` removidos — nenhum arquivo do sistema antigo restante |

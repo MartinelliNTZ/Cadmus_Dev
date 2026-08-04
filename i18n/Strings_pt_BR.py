@@ -711,6 +711,10 @@ class Strings_pt_BR:
     ACTIVE = "Ativa"
     INACTIVE = "Inativa"
     VALIDATE = "Validar"
+    RESTORE_DISTRIBUTION = "Restaurar Registro"
+    SELECT_DIST_FILE = "Selecione um arquivo .dist primeiro."
+    DIST_FILE_NOT_FOUND = "Seletor de registro não encontrado."
+    LICENSE_KEY = "Chave"
 
     # plugins/SaveTemporaryLayersPlugin.py
     SAVE_TEMPORARY_LAYER_TITLE = "Salvar Temporárias"

@@ -210,7 +210,7 @@ class SettingsPlugin(BasePluginMTL):
                 },
                 "open_registry": {
                     "label": STR.REG_TITLE,
-                    "description": "Abre o gerenciador de licença/registry",
+                    "description": "Abre o gerenciador",
                     "callback": self._open_lic_dialog,
                 },
             },

@@ -333,19 +333,26 @@ readonly = SimpleReadOnly(text="valor", parent=self)
 Widgets em `resources/new_widgets/grid/` — plugins USAM estes.
 
 ### GridLabel
-Container de labels em layout vertical. Configuração via dict.
+Container de labels em layout vertical. Configuração via dict. Suporta `"color"` para cor dinâmica do texto.
 
 ```python
 info = GridLabel(config={
     "title": {"text": "<h2>Meu App</h2>"},
     "version": {"text": "Versão 1.0", "description": "Data de atualização"},
+    "status": {"text": "Status: Ativa", "color": "green"},
 }, parent=self)
 ```
 
 **API pública:**
 - `set_text(key, text)` — atualiza texto
 - `get_text(key)` → str
-- `set_config(config)` — atualiza múltiplos labels
+- `set_config(config)` — atualiza múltiplos labels (texto, description, color)
+
+**Suporte a cor (`"color"`):**
+- Cada item do config dict pode ter `"color"` (ex: `"green"`, `"red"`, `"gray"`)
+- `set_config()` também aceita `"color"` para atualizar cor dinamicamente
+- Exemplo: `labels.set_config({"status": {"text": "Ativa", "color": "green"}})`
+- Usado pelo `RegistryDialog` para colorir o label de Status (verde=ativa, vermelho=inválida, cinza=inativa)
 
 ### GridReadOnly
 Container com título + campos readonly (`SimpleReadOnly`). Cada campo pode ter botão copiar individual.
@@ -1214,3 +1221,8 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-08-04 | 3.1.0 | **SettingsPlugin migrado (100% sem WidgetFactory):**
    - Criado `ComplexCrsSelector` (raiz) — label + `QgsProjectionSelectionWidget` com `AppStyles.combobox()` para fundo padronizado
    - `CollapsibleParametersWidget` (Geral + Cálculos) + `GridComplexSelector` (pasta projetos) + `GridComboBox` (idioma) + `GridDoubleSpin` (precisão + threshold) + `GridCheckbox` (toolbar 3 colunas) + `GridRadioButton` (método cálculo) + `GridInputFields` (sufixos) + `GridExecutionButtons` (Salvar/Fechar/Info + extras Prefs/Registry, `enable_config_button=False`) |
+| 2026-08-04 | 3.2.0 | **RegistryDialog migrado (100% sem WidgetFactory):**
+   - `GridLabel` agora suporta `"color"` no config dict (ex: `"green"`, `"red"`, `"gray"`) — aplica cor dinâmica ao texto do label
+   - `GridLabel.set_config()` também aceita `"color"` para atualizar cor dinamicamente
+   - `RegistryDialog` usa `GridInputFields` (chave) + `GridLabel` (Nível/Validade/Status com cor) + `GridComplexSelector` (.dist) + `GridExecutionButtons` (Validar/Remover/Restaurar/Salvar/Fechar)
+   - Novas strings: `STR.RESTORE_DISTRIBUTION`, `STR.SELECT_DIST_FILE`, `STR.DIST_FILE_NOT_FOUND`, `STR.LICENSE_KEY` |

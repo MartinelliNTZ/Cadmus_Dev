@@ -501,3 +501,15 @@
    - AppStyles.combobox(): adicionada seta customizada (resources/icons/arrow_down.svg) com tamanho 12x8 e raio no drop-down
    - AppStyles.main_application() agora inclui combobox() no escopo global — QComboBox do QGIS (ex: QgsProjectionSelectionWidget) herdam o mesmo padrão visual
    - SimpleComboBox._apply_styles() atualizado de AppStyles.input() para AppStyles.combobox() — padroniza GridComboBox (lang_selector, json_selector, etc) com fundo/borda/seta idênticos
+
+2.3.86 04/08/2026
+[2.3.86.1][04/08/2026] RegistryDialog migrado para novo sistema de widgets (100% sem WidgetFactory):
+   - GridLabel agora suporta "color" no config dict (ex: "green", "red", "gray") — aplica cor dinâmica ao texto do label; set_config() também aceita "color"
+   - RegistryDialog usa GridInputFields (chave) + GridLabel (Nível/Validade/Status com cor dinâmica) + GridComplexSelector (.dist) + GridExecutionButtons (Validar/Remover/Restaurar/Salvar/Fechar)
+   - Removidos imports de WidgetFactory, Styles e QtWidgets direto (QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QWidget)
+   - Botões Validar/Remover/Restaurar/Salvar adicionados como items do GridExecutionButtons (enable_config_button=False, enable_info=False)
+   - _refresh() usa GridLabel.set_text()/set_config() para atualizar cor do status (verde=ativa, vermelho=inválida, cinza=inativa)
+   - _on_restore_distribution() usa GridComplexSelector.get_path("Distribuição")
+   - Novas strings: STR.RESTORE_DISTRIBUTION, STR.SELECT_DIST_FILE, STR.DIST_FILE_NOT_FOUND, STR.LICENSE_KEY
+   - docs/plano_eliminacao_widgetfactory.md atualizado (RegistryDialog migrado, TODO 2.20)
+   - SKILL_WIDGETS2.md atualizada para v3.2.0 (GridLabel com color)

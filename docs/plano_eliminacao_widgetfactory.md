@@ -567,6 +567,7 @@ Criados em `resources/new_widgets/`.
 | 17 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton | ⬜ Pendente |
 | 18 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_color_button (x3), create_double_spin_input (x2), create_checkbox_grid, create_bottom_action_buttons | GridComplexSelector + ComplexColorPicker (x3) + GridDoubleSpin + GridCheckbox + GridExecutionButtons | ✅ **Migrado (2.3.83.3)** |
 | 19 | `SettingsPlugin` | Múltiplos | CollapsibleParametersWidget + GridComplexSelector + ComplexCrsSelector + GridComboBox + GridDoubleSpin + GridCheckbox + GridRadioButton + GridInputFields + GridExecutionButtons | ✅ **Migrado (2.3.85.1)** |
+| 20 | `RegistryDialog` | create_grid_complex_selector, QLineEdit, QPushButton, QLabel | GridInputFields + GridLabel (com cor) + GridComplexSelector + GridExecutionButtons | ✅ **Migrado (2.3.86.1)** |
 
 ### 8.2 Checklist por Plugin
 
@@ -957,7 +958,7 @@ def resolve_qt_window_modality(name: str):
   [x] 2.17 VectorFieldsCalculationPlugin
   [x] 2.18 VectorToSvgPlugin ✅ (2.3.83.3)
   [x] 2.19 SettingsPlugin ✅ (2.3.85.1)
-  [ ] 2.20 RegistryDialog
+  [x] 2.20 RegistryDialog ✅ (2.3.86.1)
 
 [ ] FASE 3: Eliminação da WidgetFactory
   [ ] 3.1 Marcar WidgetFactory como deprecated

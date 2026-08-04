@@ -63,6 +63,10 @@ class GridLabel(QWidget):
             if description:
                 label.setToolTip(description)
 
+            color = cfg.get("color")
+            if color:
+                label.setStyleSheet(f"{AppStyles.label()} color: {color};")
+
             self._labels.append(label)
             self._label_map[key] = label
             layout.addWidget(label)
@@ -101,6 +105,11 @@ class GridLabel(QWidget):
             description = cfg.get("description")
             if description and key in self._label_map:
                 self._label_map[key].setToolTip(description)
+            color = cfg.get("color")
+            if color and key in self._label_map:
+                self._label_map[key].setStyleSheet(
+                    f"{AppStyles.label()} color: {color};"
+                )
 
     def _apply_styles(self):
         combined = self._specific_style()

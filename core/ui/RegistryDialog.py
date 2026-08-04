@@ -1,36 +1,26 @@
 # -*- coding: utf-8 -*-
 
 
-from qgis.PyQt.QtWidgets import (
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QGridLayout,
-    QWidget,
-)
 from ...plugins.BaseDialog import BaseDialog
 from ...i18n.TranslationManager import STR
-from ...resources.styles.Styles import Styles
 from ..config.LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
-from ..ui.WidgetFactory import WidgetFactory
 from ..services.PackageManager import PackageManager
+from ...resources.new_widgets.grid.GridInputFields import GridInputFields
+from ...resources.new_widgets.grid.GridLabel import GridLabel
+from ...resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ...resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
 
 
 class RegistryDialog(BaseDialog):
     """
-    Diálogo modal para gerenciamento de licença e restauração de distribuição.
+    Diálogo modal para gerenciamento de registro e restauração.
 
     Layout:
-    - QLineEdit para inserir chave
-    - Botão 🔑 para validar
-    - Grid: Nível, Validade, Status
-    - Botão Apagar Licença
+    - GridInputFields para inserir chave
+    - GridLabel: Nível, Validade, Status (com cor dinâmica)
+    - GridExecutionButtons: Validar, Remover, Restaurar, Salvar, Fechar
     - GridComplexSelector para selecionar arquivo .dist
-    - Botão Restaurar
-    - Botão Salvar + Fechar
     """
 
     def __init__(self, iface, parent=None):
@@ -47,14 +37,9 @@ class RegistryDialog(BaseDialog):
         self.setModal(True)
 
         self._input_key = None
-        self._btn_validate = None
-        self._lbl_level = None
-        self._lbl_expiry = None
-        self._lbl_status = None
-        self._btn_delete = None
-        self._btn_save = None
+        self._info_labels = None
         self._dist_grid = None
-        self._btn_restore = None
+        self._action_buttons = None
 
         self._build_ui()
         self._refresh()
@@ -80,98 +65,95 @@ class RegistryDialog(BaseDialog):
     # ----------------------------------------------------------------
 
     def _build_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
+        super()._build_ui(
+            title=STR.REG_TITLE,
+            icon_path="cadmus_icon.ico",
+            enable_scroll=True,
+            minimum_size=(400, 400),
+        )
 
-        # Linha: input + botão validar
-        key_row = QHBoxLayout()
-        key_row.setSpacing(4)
+        # ── Campo de Chave (GridInputFields) ─────────────────────
+        self._input_key = GridInputFields(
+            config={
+                "lic_key": {
+                    "label": f"{STR.LICENSE_KEY}:",
+                    "description": "Insira a chave",
+                    "default": "",
+                },
+            },
+            parent=self,
+        )
+        self.layout.addWidget(self._input_key)
 
-        self._input_key = QLineEdit()
-        self._input_key.setPlaceholderText("...")
-        self._input_key.setStyleSheet(Styles.input())
-        key_row.addWidget(self._input_key)
+        # ── Labels de Info (GridLabel + opção color) ─────────────
+        self._info_labels = GridLabel(
+            config={
+                "level": {"text": f"{STR.LEVEL}: -", "color": ""},
+                "expiry": {"text": f"{STR.EXPIRATION_DATE}: -", "color": ""},
+                "status": {
+                    "text": f"{STR.STATUS}: {STR.INACTIVE}",
+                    "color": "gray",
+                },
+            },
+            separator_bottom=True,
+            parent=self,
+        )
+        self.layout.addWidget(self._info_labels)
 
-        self._btn_validate = QPushButton("_")
-        self._btn_validate.setFixedWidth(32)
-        self._btn_validate.setFixedHeight(24)
-        self._btn_validate.setToolTip(STR.VALIDATE)
-        self._btn_validate.clicked.connect(self._on_validate)
-        key_row.addWidget(self._btn_validate)
-
-        layout.addLayout(key_row)
-
-        # Grid: Nível, Validade, Status
-        grid_w = QWidget()
-        grid = QGridLayout(grid_w)
-        grid.setSpacing(6)
-        grid.setContentsMargins(0, 4, 0, 4)
-
-        self._lbl_level_title = QLabel(f"{STR.LEVEL}:")
-        self._lbl_level_title.setStyleSheet("font-weight: bold;")
-        self._lbl_level = QLabel("-")
-        grid.addWidget(self._lbl_level_title, 0, 0)
-        grid.addWidget(self._lbl_level, 0, 1)
-
-        self._lbl_expiry_title = QLabel(f"{STR.EXPIRATION_DATE}:")
-        self._lbl_expiry_title.setStyleSheet("font-weight: bold;")
-        self._lbl_expiry = QLabel("-")
-        grid.addWidget(self._lbl_expiry_title, 1, 0)
-        grid.addWidget(self._lbl_expiry, 1, 1)
-
-        self._lbl_status_title = QLabel(f"{STR.STATUS}:")
-        self._lbl_status_title.setStyleSheet("font-weight: bold;")
-        self._lbl_status = QLabel(STR.INACTIVE)
-        self._lbl_status.setStyleSheet("color: gray;")
-        grid.addWidget(self._lbl_status_title, 2, 0)
-        grid.addWidget(self._lbl_status, 2, 1)
-
-        layout.addWidget(grid_w)
-
-        # Botão Apagar
-        self._btn_delete = QPushButton(f"🗑️ {STR.REMOVE}")
-        self._btn_delete.clicked.connect(self._on_delete)
-        layout.addWidget(self._btn_delete)
-
-        # GridComplexSelector para selecionar arquivo .dist
-        dist_layout, self._dist_grid = WidgetFactory.create_grid_complex_selector(
-            specs={
-                "Distribuição": {
-                    "label_text": "📦 Arquivo de distribuição (.dist):",
-                    "file_filter": "Distribuição Cadmus (*.dist);;Todos os arquivos (*)",
+        # ── Restaurar Registro (GridComplexSelector) ─────────────
+        self._dist_grid = GridComplexSelector(
+            config={
+                "Registro": {
+                    "label": f"📦 {STR.SELECT_FILE} (.dist):",
+                    "description": "Selecione o arquivo de registro Cadmus",
+                    "file_filter": "Registro Cadmus (*.dist);;Todos os arquivos (*)",
                     "mode_type": "input",
                     "allow_file": True,
                     "allow_folder": False,
                     "multiple": False,
-                    "show_project_button": False,
+                    "show_explorer_button": True,
+                    "show_copy_button": False,
                 },
             },
-            title="Restaurar Distribuição",
-            columns=1,
+            tool_key=ToolKey.SETTINGS,
+            title=STR.RESTORE_DISTRIBUTION,
+            separator_bottom=True,
+            parent=self,
         )
-        layout.addLayout(dist_layout)
+        self.layout.addWidget(self._dist_grid)
 
-        # Botão Restaurar
-        self._btn_restore = QPushButton("📦 Restaurar")
-        self._btn_restore.clicked.connect(self._on_restore_distribution)
-        layout.addWidget(self._btn_restore)
-
-        # Botões Salvar + Fechar
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-
-        self._btn_save = QPushButton(f"💾 {STR.SAVE}")
-        self._btn_save.setFixedHeight(28)
-        self._btn_save.clicked.connect(self._on_save)
-        btn_row.addWidget(self._btn_save)
-
-        btn_close = QPushButton(STR.CLOSE)
-        btn_close.setFixedHeight(28)
-        btn_close.clicked.connect(self.reject)
-        btn_row.addWidget(btn_close)
-
-        layout.addLayout(btn_row)
+        # ── Botões de Ação (GridExecutionButtons) ────────────────
+        self._action_buttons = GridExecutionButtons(
+            config={
+                "validate": {
+                    "label": STR.VALIDATE,
+                    "description": "Valida a chave",
+                    "callback": self._on_validate,
+                    "is_run_button": True,
+                },
+                "delete": {
+                    "label": f"🗑️ {STR.REMOVE}",
+                    "description": "Remove o registro atual",
+                    "callback": self._on_delete,
+                },
+                "restore": {
+                    "label": f"📦 {STR.MODE_RESTORE}",
+                    "description": "Restaura o registro a partir do arquivo .dist",
+                    "callback": self._on_restore_distribution,
+                },
+                "save": {
+                    "label": f"💾 {STR.SAVE}",
+                    "description": "Salva e valida a chave",
+                    "callback": self._on_save,
+                },
+            },
+            enable_close_button=True,
+            enable_config_button=False,
+            enable_info=False,
+            tool_key=ToolKey.SETTINGS,
+            parent=self,
+        )
+        self.layout.add_execution_buttons(self._action_buttons)
 
     # ----------------------------------------------------------------
     # Handlers
@@ -190,13 +172,13 @@ class RegistryDialog(BaseDialog):
 
             QgisMessageUtil.modal_info(
                 self.iface,
-                message="Versão premium — licença não necessária.",
+                message="Versão premium — registro não necessário.",
                 title=STR.REG_TITLE,
             )
             self.accept()
             return
 
-        key = self._input_key.text().strip()
+        key = self._input_key.get_value("lic_key").strip()
         if not key:
             self._refresh()
             if show_message:
@@ -233,7 +215,7 @@ class RegistryDialog(BaseDialog):
         if self.lic_mgr is None:
             return
         self.lic_mgr.delete_lic()
-        self._input_key.clear()
+        self._input_key.set_value("lic_key", "")
         self._refresh()
         from ...utils.QgisMessageUtil import QgisMessageUtil
 
@@ -254,25 +236,15 @@ class RegistryDialog(BaseDialog):
         from pathlib import Path
 
         # Obtém o caminho do arquivo do GridComplexSelector
-        dist_selector = self._dist_grid.get("Distribuição")
-        if not dist_selector:
+        file_path = self._dist_grid.get_path("Registro")
+        if not file_path:
             QgisMessageUtil.modal_warning(
                 self.iface,
-                message="Seletor de distribuição não encontrado.",
-                title="Restaurar Distribuição",
+                message=STR.SELECT_DIST_FILE,
+                title=STR.RESTORE_DISTRIBUTION,
             )
             return
 
-        file_paths = dist_selector.get_paths()
-        if not file_paths or not file_paths[0]:
-            QgisMessageUtil.modal_warning(
-                self.iface,
-                message="Selecione um arquivo .dist primeiro.",
-                title="Restaurar Distribuição",
-            )
-            return
-
-        file_path = file_paths[0]
         plugin_root = Path(__file__).resolve().parent.parent.parent
 
         # Callback para aplicar chave de licença
@@ -280,7 +252,7 @@ class RegistryDialog(BaseDialog):
             self.logger.info(
                 f"Chave de licença encontrada no pacote: " f"{key[:4]}****"
             )
-            self._input_key.setText(key)
+            self._input_key.set_value("lic_key", key)
             # Re-inicializa _mgr — agora RegistryManager está disponível
             self.lic_mgr = self._init_lic_mgr()
             self._premium = self.lic_mgr is None
@@ -318,14 +290,14 @@ class RegistryDialog(BaseDialog):
             QgisMessageUtil.modal_info(
                 self.iface,
                 message=result["message"],
-                title="Restaurar Distribuição",
+                title=STR.RESTORE_DISTRIBUTION,
             )
 
         else:
             QgisMessageUtil.modal_warning(
                 self.iface,
                 message=result["message"],
-                title="Restaurar Distribuição",
+                title=STR.RESTORE_DISTRIBUTION,
             )
         self._refresh()
 
@@ -334,22 +306,8 @@ class RegistryDialog(BaseDialog):
         if self.lic_mgr is None:
             # Premium — esconde campos de licença
             self.setWindowTitle(STR.REG_TITLE)
-            self._lbl_level_title.setVisible(False)
-            self._lbl_level.setVisible(False)
-            self._lbl_expiry_title.setVisible(False)
-            self._lbl_expiry.setVisible(False)
-            self._lbl_status_title.setVisible(False)
-            self._lbl_status.setVisible(False)
-            self._btn_delete.setVisible(False)
-            self._btn_save.setVisible(False)
-            self._btn_validate.setVisible(False)
             self._input_key.setVisible(False)
-            self._lbl_level_title.setParent(None)
-            self._lbl_level.setParent(None)
-            self._lbl_expiry_title.setParent(None)
-            self._lbl_expiry.setParent(None)
-            self._lbl_status_title.setParent(None)
-            self._lbl_status.setParent(None)
+            self._info_labels.setVisible(False)
             self.logger.info(f"Licensa nao encontrada {self.lic_mgr}")
             return
 
@@ -360,33 +318,46 @@ class RegistryDialog(BaseDialog):
         is_valid = has_key and is_active
 
         nivel = info.get("nivel", 0)
-        self._lbl_level.setText(str(nivel) if is_valid and nivel > 0 else "")
-        self._lbl_expiry.setText(info.get("expiry") if is_valid else "")
+        self._info_labels.set_text(
+            "level",
+            f"{STR.LEVEL}: {str(nivel) if is_valid and nivel > 0 else '-'}",
+        )
+        self._info_labels.set_text(
+            "expiry",
+            f"{STR.EXPIRATION_DATE}: {info.get('expiry') if is_valid else '-'}",
+        )
         self.logger.info(
             f"Debug has lic: {has_key} lice manager: {self.lic_mgr}, is_valid: {is_valid},is active: {is_active}, info: {info}, nivel: {nivel}"
         )
 
-        # Show/hide title labels based on whether a lic exists
-        self._lbl_level_title.setVisible(is_valid)
-        self._lbl_expiry_title.setVisible(is_valid)
-        self._lbl_status_title.setVisible(is_valid)
-
         if is_valid:
             self.setWindowTitle(STR.REG_TITLE)
-            self._btn_delete.setText(f"🗑️ {STR.REMOVE}")
-            self._btn_save.setText(f"💾 {STR.SAVE}")
-
             days = info.get("days_remaining", 0)
-            self._lbl_status.setText(f"{STR.ACTIVE} ({days} {STR.REMAINING_DAYS})")
-            self._lbl_status.setStyleSheet("color: green; font-weight: bold;")
+            self._info_labels.set_config(
+                {
+                    "status": {
+                        "text": f"{STR.STATUS}: {STR.ACTIVE} ({days} {STR.REMAINING_DAYS})",
+                        "color": "green",
+                    }
+                }
+            )
         else:
             self.setWindowTitle("")
-            self._btn_delete.setText("")
-            self._btn_save.setText("")
-
             if not has_key:
-                self._lbl_status.setText("")
-                self._lbl_status.setStyleSheet("color: gray;")
+                self._info_labels.set_config(
+                    {
+                        "status": {
+                            "text": f"{STR.STATUS}: {STR.INACTIVE}",
+                            "color": "gray",
+                        }
+                    }
+                )
             else:
-                self._lbl_status.setText("")
-                self._lbl_status.setStyleSheet("color: red; font-weight: bold;")
+                self._info_labels.set_config(
+                    {
+                        "status": {
+                            "text": f"{STR.STATUS}: {STR.INACTIVE}",
+                            "color": "red",
+                        }
+                    }
+                )

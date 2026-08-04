@@ -95,6 +95,34 @@ class GridInputFields(QWidget):
 
         self._build_ui()
 
+    # -- Preferencias -------------------------------------------------
+
+    def get_preferences(self) -> dict:
+        """
+        Retorna dict com todos os valores dos campos para salvar em Preferences.
+
+        Returns
+        -------
+        dict
+            {"values": {key: str, ...}} — valores de cada campo.
+        """
+        return {"values": self.get_values()}
+
+    def set_preferences(self, prefs: dict):
+        """
+        Carrega valores dos campos de um dict (vindo de Preferences).
+
+        Parâmetros
+        ----------
+        prefs : dict
+            Dict com chave "values" ({key: str}).
+        """
+        if not prefs:
+            return
+        values = prefs.get("values")
+        if isinstance(values, dict):
+            self.set_values(values)
+
     # -- API publica -------------------------------------------------
 
     def get_value(self, key: str) -> str:

@@ -453,6 +453,8 @@ layout.addWidget(checkbox_widget)
 - `set_checked(key, value)`
 - `get_all_states()` → dict[str, bool]
 - `widget(key)` → QCheckBox (acesso direto ao signal `toggled`)
+- `get_preferences()` → dict `{"checked": {key: bool, ...}}` (salvar em Preferences)
+- `set_preferences(prefs)` → carrega estado de dict `{"checked": {key: bool, ...}}`
 
 **Parâmetros:**
 
@@ -504,6 +506,8 @@ input_fields.widget("old_text")             # → SimpleQLineEdit (acesso direto
 | `get_values()` | Retorna dict `{key: value, ...}` |
 | `set_values(values)` | Define múltiplos campos via dict |
 | `widget(key)` | Acesso direto ao QLineEdit |
+| `get_preferences()` | Retorna dict `{"values": {key: str, ...}}` (salvar em Preferences) |
+| `set_preferences(prefs)` | Carrega valores de dict `{"values": {key: str, ...}}` |
 
 **Parâmetros:**
 
@@ -1171,4 +1175,5 @@ border: 1px solid {theme.COLOR_BORDER};
    - Cross-grid parent linking: `parent="grid_input.pasta_mrk"` — `GridComplexSelector._grid_registry` + `grid_id` + `grid_id.selector_key`
    - `lock_state` (get/set) substitui `is_enabled`/`set_enabled` dos selectors antigos
    - Helper `_to_checkbox_config()` converte lista de dicts (`StringAdapter.to_key_label_description`) em dict config para `GridCheckbox`
-   - Novas strings: `STR.SELECT_ALL`, `STR.DESELECT_ALL` |
+   - Novas strings: `STR.SELECT_ALL`, `STR.DESELECT_ALL`
+   - **Novo Padrão de Preferências:** `GridCheckbox` e `GridInputFields` agora têm `get_preferences()`/`set_preferences()` — o widget gerencia seu próprio estado de prefs (padrão do novo sistema); o plugin salva via `self.preferences["key"] = widget.get_preferences()` e carrega via `widget.set_preferences(self.preferences.get("key", {}))` |

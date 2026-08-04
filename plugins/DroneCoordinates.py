@@ -39,9 +39,11 @@ def _to_checkbox_config(items) -> dict:
     """
     config = {}
     for item in items or []:
-        key = item.get("key", "")
-        if not key:
+        raw_key = item.get("key", "")
+        if not raw_key:
             continue
+        # Converte MetadataFieldKey (enum) para string value
+        key = getattr(raw_key, "value", raw_key)
         label = item.get("label") or key
         description = item.get("description") or ""
         config[key] = {"label": label, "description": description}
@@ -62,11 +64,6 @@ class DroneCordinates(BasePluginMTL):
         "generate_report": STR.GENERATE_REPORT,
     }
 
-    PREF_INITIAL_FIELDS = "initial_fields_selected"
-    PREF_EXIF_FIELDS = "exif_fields_selected"
-    PREF_XMP_FIELDS = "xmp_fields_selected"
-    PREF_CUSTOM_FIELDS = "custom_fields_selected"
-    PREF_MRK_FIELDS = "mrk_fields_selected"
     AUTO_SAVE_PREFS_ON_CLOSE = True
 
     def __init__(self, iface):
@@ -286,6 +283,7 @@ class DroneCordinates(BasePluginMTL):
             separator_bottom=False,
             parent=self,
         )
+        self.custom_checkbox.set_checked_keys(MetadataFields.custom_keys())
         self.custom_fields_collapsible.add_content_widget(self.custom_checkbox)
 
         # ====== METADATA INITIAL FIELDS ======
@@ -485,129 +483,69 @@ class DroneCordinates(BasePluginMTL):
     def on_photos_changed(self, checked: bool):
         self._ensure_photos_dependency(checked)
 
-    def _get_selected_exif_fields(self):
-        return MetadataFields.normalize_selected_keys(
-            self.exif_checkbox.get_checked_keys(),
-            allowed_keys=MetadataFields.exif_keys(),
-        )
-
-    def _get_selected_xmp_fields(self):
-        return MetadataFields.normalize_selected_keys(
-            self.xmp_checkbox.get_checked_keys(),
-            allowed_keys=MetadataFields.xmp_keys(),
-        )
-
-    def _get_selected_custom_fields(self):
-        return MetadataFields.normalize_selected_keys(
-            self.custom_checkbox.get_checked_keys(),
-            allowed_keys=MetadataFields.custom_keys(),
-        )
-
-    def _get_selected_initial_fields(self):
-        return MetadataFields.normalize_selected_keys(
-            self.initial_checkbox.get_checked_keys(),
-            allowed_keys=MetadataFields.initial_keys(),
-        )
-
-    def _get_selected_mrk_fields(self):
-        return MetadataFields.normalize_selected_keys(
-            self.mrk_checkbox.get_checked_keys(),
-            allowed_keys=MetadataFields.mrk_keys(),
-        )
-
     def _load_prefs(self):
-        folder_path = self.preferences.get("folder", "")
-        if folder_path:
-            self.grid_input.set_path("pasta_mrk", folder_path)
-            self.logger.debug(
-                "Caminho restaurado", code="PREFS_FOLDER_RESTORED", path=folder_path
-            )
-        self.opts_checkbox.set_checked("recursive", self.preferences.get("recursive", True))
-        self.opts_checkbox.set_checked("use_mrk", self.preferences.get("use_mrk", True))
-        self.opts_checkbox.set_checked("photos", self.preferences.get("photos", True))
-        chk_report = self.opts_checkbox.widget("generate_report")
-        if chk_report is not None:
-            chk_report.setChecked(self.preferences.get("generate_report", True))
-        initial_selected = self.preferences.get(self.PREF_INITIAL_FIELDS)
-        exif_selected = self.preferences.get(self.PREF_EXIF_FIELDS)
-        xmp_selected = self.preferences.get(self.PREF_XMP_FIELDS)
-        custom_selected = self.preferences.get(self.PREF_CUSTOM_FIELDS)
-        mrk_selected = self.preferences.get(self.PREF_MRK_FIELDS)
-        if isinstance(initial_selected, list):
-            self.initial_checkbox.set_checked_keys(
-                MetadataFields.normalize_selected_keys(
-                    initial_selected,
-                    allowed_keys=MetadataFields.initial_keys(),
-                )
-            )
-        if isinstance(exif_selected, list):
-            self.exif_checkbox.set_checked_keys(
-                MetadataFields.normalize_selected_keys(
-                    exif_selected,
-                    allowed_keys=MetadataFields.exif_keys(),
-                )
-            )
-        if isinstance(xmp_selected, list):
-            self.xmp_checkbox.set_checked_keys(
-                MetadataFields.normalize_selected_keys(
-                    xmp_selected,
-                    allowed_keys=MetadataFields.xmp_keys(),
-                )
-            )
-        if isinstance(custom_selected, list):
-            self.custom_checkbox.set_checked_keys(
-                MetadataFields.normalize_selected_keys(
-                    custom_selected,
-                    allowed_keys=MetadataFields.custom_keys(),
-                )
-            )
-        if isinstance(mrk_selected, list):
-            self.mrk_checkbox.set_checked_keys(
-                MetadataFields.normalize_selected_keys(
-                    mrk_selected,
-                    allowed_keys=MetadataFields.mrk_keys(),
-                )
-            )
-        self.grid_save.set_lock_state("save_points", self.preferences.get("save_file_pts", False))
-        self.grid_save.set_path("save_points", self.preferences.get("output_path_pts", ""))
-        self.grid_save.set_lock_state("save_track", self.preferences.get("save_file", False))
-        self.grid_save.set_path("save_track", self.preferences.get("output_path", ""))
-        if hasattr(self, "logo_selector"):
-            self.logo_selector.set_lock_state("logo", self.preferences.get("logo_enabled", False))
-            self.logo_selector.set_path("logo", self.preferences.get("logo_path", ""))
-        if hasattr(self, "title_input"):
-            title_val = self.preferences.get("project_title", "")
-            if title_val:
-                self.title_input.set_value("project_title", title_val)
-        self.grid_qml.set_lock_state("qml_points", self.preferences.get("apply_style_points", False))
-        self.grid_qml.set_path("qml_points", self.preferences.get("qml_path_points", ""))
-        self.grid_qml.set_lock_state("qml_track", self.preferences.get("apply_style_track", False))
-        self.grid_qml.set_path("qml_track", self.preferences.get("qml_path_track", ""))
-        self.opts_collapsible.set_expanded(
-            self.preferences.get("opts_expanded", True))
-        self.exif_fields_collapsible.set_expanded(
-            self.preferences.get("exif_expanded", False)
-        )
-        self.xmp_fields_collapsible.set_expanded(
-            self.preferences.get("xmp_expanded", False)
-        )
-        self.custom_fields_collapsible.set_expanded(
-            self.preferences.get("custom_expanded", False)
-        )
-        self.initial_fields_collapsible.set_expanded(
-            self.preferences.get("initial_expanded", False)
-        )
-        self.mrk_fields_collapsible.set_expanded(
-            self.preferences.get("mrk_expanded", False)
-        )
-        self.save_collapsible.set_expanded(
-            self.preferences.get("save_expanded", False))
-        self.styles_collapsible.set_expanded(
-            self.preferences.get("styles_expanded", False)
-        )
+        self.logger.debug("Carregando preferencias do DroneCoordinates",
+                          code="PREFS_LOAD_START")
 
-        # Aplica visibilidade do MRK conforme preferência
-        use_mrk = self.preferences.get("use_mrk", True)
+        # GridComplexSelectors (paths + lock_state + checked_state)
+        grid_input_prefs = self.preferences.get("grid_input", {})
+        if grid_input_prefs:
+            self.grid_input.set_preferences(grid_input_prefs)
+        grid_save_prefs = self.preferences.get("grid_save", {})
+        if grid_save_prefs:
+            self.grid_save.set_preferences(grid_save_prefs)
+        grid_qml_prefs = self.preferences.get("grid_qml", {})
+        if grid_qml_prefs:
+            self.grid_qml.set_preferences(grid_qml_prefs)
+        if hasattr(self, "logo_selector"):
+            grid_logo_prefs = self.preferences.get("grid_logo", {})
+            if grid_logo_prefs:
+                self.logo_selector.set_preferences(grid_logo_prefs)
+
+        # GridCheckbox (opções + metadados)
+        checkbox_prefs = self.preferences.get("opts_checkbox", {})
+        if checkbox_prefs:
+            self.opts_checkbox.set_preferences(checkbox_prefs)
+        checkbox_prefs = self.preferences.get("exif_checkbox", {})
+        if checkbox_prefs:
+            self.exif_checkbox.set_preferences(checkbox_prefs)
+        checkbox_prefs = self.preferences.get("xmp_checkbox", {})
+        if checkbox_prefs:
+            self.xmp_checkbox.set_preferences(checkbox_prefs)
+        checkbox_prefs = self.preferences.get("custom_checkbox", {})
+        if checkbox_prefs:
+            self.custom_checkbox.set_preferences(checkbox_prefs)
+        checkbox_prefs = self.preferences.get("initial_checkbox", {})
+        if checkbox_prefs:
+            self.initial_checkbox.set_preferences(checkbox_prefs)
+        checkbox_prefs = self.preferences.get("mrk_checkbox", {})
+        if checkbox_prefs:
+            self.mrk_checkbox.set_preferences(checkbox_prefs)
+
+        # GridInputFields (título do projeto)
+        if hasattr(self, "title_input"):
+            title_prefs = self.preferences.get("title_input", {})
+            if title_prefs:
+                self.title_input.set_preferences(title_prefs)
+
+        # CollapsibleParametersWidget (estado expandido)
+        collapsible_map = {
+            "opts_collapsible": self.opts_collapsible,
+            "exif_fields_collapsible": self.exif_fields_collapsible,
+            "xmp_fields_collapsible": self.xmp_fields_collapsible,
+            "custom_fields_collapsible": self.custom_fields_collapsible,
+            "initial_fields_collapsible": self.initial_fields_collapsible,
+            "mrk_fields_collapsible": self.mrk_fields_collapsible,
+            "save_collapsible": self.save_collapsible,
+            "styles_collapsible": self.styles_collapsible,
+        }
+        for prefs_key, collapsible in collapsible_map.items():
+            prefs = self.preferences.get(prefs_key, {})
+            if prefs:
+                collapsible.set_preferences(prefs)
+
+        # Aplica visibilidade do MRK conforme checkbox "Obter dados MRK"
+        use_mrk = self.opts_checkbox.is_checked("use_mrk")
         self.mrk_fields_collapsible.setVisible(use_mrk)
         self.mrk_fields_collapsible.setEnabled(use_mrk)
 
@@ -616,43 +554,40 @@ class DroneCordinates(BasePluginMTL):
 
     def _save_prefs(self):
         self.logger.debug("Salvando preferências", code="PREFS_SAVE_START")
-        self.preferences["folder"] = self.grid_input.get_path("pasta_mrk") or ""
-        self.preferences["recursive"] = self.opts_checkbox.is_checked("recursive")
-        self.preferences["use_mrk"] = self.opts_checkbox.is_checked("use_mrk")
-        self.preferences["photos"] = self.opts_checkbox.is_checked("photos")
-        chk_report = self.opts_checkbox.widget("generate_report")
-        if chk_report is not None:
-            self.preferences["generate_report"] = chk_report.isChecked()
-        self.preferences[self.PREF_INITIAL_FIELDS] = self._get_selected_initial_fields()
-        self.preferences[self.PREF_EXIF_FIELDS] = self._get_selected_exif_fields()
-        self.preferences[self.PREF_XMP_FIELDS] = self._get_selected_xmp_fields()
-        self.preferences[self.PREF_CUSTOM_FIELDS] = self._get_selected_custom_fields()
-        self.preferences[self.PREF_MRK_FIELDS] = self._get_selected_mrk_fields()
-        self.preferences["save_file"] = self.grid_save.get_lock_state("save_track")
-        self.preferences["save_file_pts"] = self.grid_save.get_lock_state("save_points")
-        self.preferences["output_path"] = self.grid_save.get_path("save_track")
-        self.preferences["output_path_pts"] = self.grid_save.get_path("save_points")
-        if hasattr(self, "title_input"):
-            self.preferences["project_title"] = self.title_input.get_value("project_title")
+
+        # GridComplexSelectors (paths + lock_state + checked_state)
+        self.preferences["grid_input"] = self.grid_input.get_preferences()
+        self.preferences["grid_save"] = self.grid_save.get_preferences()
+        self.preferences["grid_qml"] = self.grid_qml.get_preferences()
         if hasattr(self, "logo_selector"):
-            self.preferences["logo_path"] = self.logo_selector.get_path("logo")
-            self.preferences["logo_enabled"] = self.logo_selector.get_lock_state("logo")
-        self.preferences["apply_style_track"] = self.grid_qml.get_lock_state("qml_track")
-        self.preferences["qml_path_track"] = self.grid_qml.get_path("qml_track")
-        self.preferences["apply_style_points"] = self.grid_qml.get_lock_state("qml_points")
-        self.preferences["qml_path_points"] = self.grid_qml.get_path("qml_points")
-        self.preferences["opts_expanded"] = self.opts_collapsible.is_expanded()
-        self.preferences["exif_expanded"] = self.exif_fields_collapsible.is_expanded()
-        self.preferences["xmp_expanded"] = self.xmp_fields_collapsible.is_expanded()
-        self.preferences["custom_expanded"] = (
-            self.custom_fields_collapsible.is_expanded()
-        )
-        self.preferences["initial_expanded"] = (
-            self.initial_fields_collapsible.is_expanded()
-        )
-        self.preferences["mrk_expanded"] = self.mrk_fields_collapsible.is_expanded()
-        self.preferences["save_expanded"] = self.save_collapsible.is_expanded()
-        self.preferences["styles_expanded"] = self.styles_collapsible.is_expanded()
+            self.preferences["grid_logo"] = self.logo_selector.get_preferences()
+
+        # GridCheckbox (opções + metadados)
+        self.preferences["opts_checkbox"] = self.opts_checkbox.get_preferences()
+        self.preferences["exif_checkbox"] = self.exif_checkbox.get_preferences()
+        self.preferences["xmp_checkbox"] = self.xmp_checkbox.get_preferences()
+        self.preferences["custom_checkbox"] = self.custom_checkbox.get_preferences()
+        self.preferences["initial_checkbox"] = self.initial_checkbox.get_preferences()
+        self.preferences["mrk_checkbox"] = self.mrk_checkbox.get_preferences()
+
+        # GridInputFields (título do projeto)
+        if hasattr(self, "title_input"):
+            self.preferences["title_input"] = self.title_input.get_preferences()
+
+        # CollapsibleParametersWidget (estado expandido)
+        collapsible_map = {
+            "opts_collapsible": self.opts_collapsible,
+            "exif_fields_collapsible": self.exif_fields_collapsible,
+            "xmp_fields_collapsible": self.xmp_fields_collapsible,
+            "custom_fields_collapsible": self.custom_fields_collapsible,
+            "initial_fields_collapsible": self.initial_fields_collapsible,
+            "mrk_fields_collapsible": self.mrk_fields_collapsible,
+            "save_collapsible": self.save_collapsible,
+            "styles_collapsible": self.styles_collapsible,
+        }
+        for prefs_key, collapsible in collapsible_map.items():
+            self.preferences[prefs_key] = collapsible.get_preferences()
+
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.debug("Preferências salvas", code="PREFS_SAVE_COMPLETE")
 

@@ -479,3 +479,13 @@
    - Removidos imports não utilizados (WidgetFactory, save_tool_prefs legado)
    - Plugin em conformidade com PLUGIN_CONTRACT.md
    - SKILL_WIDGETS2.md atualizada para v3.0.0
+[2.3.84.2][04/08/2026] Novo padrão de preferências nos widgets do novo sistema:
+   - GridCheckbox: adicionados get_preferences()/set_preferences() — retorna {"checked": {key: bool}} e carrega estado de dict
+   - GridInputFields: adicionados get_preferences()/set_preferences() — retorna {"values": {key: str}} e carrega valores de dict
+   - DroneCoordinates._load_prefs()/_save_prefs() refatorados: plugin agora apenas acessa e modifica via widget.get_preferences()/set_preferences() (padrão do novo sistema)
+   - Removidos métodos antigos _get_selected_*_fields e constantes PREF_* (não mais usados)
+   - GridCheckbox de metadados (EXIF/DJI/Custom/Initial/MRK) iniciam com todos os campos marcados por padrão (sem prefs salvas)
+   - SKILL_WIDGETS2.md v3.0.0 atualizada com documentação do novo padrão de prefs
+[2.3.84.3][04/08/2026] Corrigido TypeError "keys must be str, int, float, bool or None, not MetadataFieldKey":
+   - _to_checkbox_config() agora converte MetadataFieldKey (enum) para .value (string) via getattr(raw_key, "value", raw_key)
+   - Corrigia falha no json.dump em Preferences.save_tool_prefs quando as prefs dos GridCheckbox de metadados continham chaves enum não serializáveis

@@ -116,6 +116,36 @@ class GridCheckbox(QWidget):
 
         self._build_ui()
 
+    # -- Preferencias -------------------------------------------------
+
+    def get_preferences(self) -> dict:
+        """
+        Retorna dict com o estado atual dos checkboxes para salvar em Preferences.
+
+        Returns
+        -------
+        dict
+            {"checked": {key: bool, ...}} — estado de cada checkbox.
+        """
+        return {"checked": self.get_all_states()}
+
+    def set_preferences(self, prefs: dict):
+        """
+        Carrega estado dos checkboxes de um dict (vindo de Preferences).
+
+        Parâmetros
+        ----------
+        prefs : dict
+            Dict com chave "checked" ({key: bool}).
+        """
+        if not prefs:
+            return
+        checked = prefs.get("checked")
+        if isinstance(checked, dict):
+            for key, state in checked.items():
+                if key in self._checkboxes:
+                    self._checkboxes[key].setChecked(bool(state))
+
     # -- API publica -------------------------------------------------
 
     def is_checked(self, key: str) -> bool:

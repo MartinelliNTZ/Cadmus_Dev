@@ -30,6 +30,8 @@ class Strings_pt_BR:
     SELECT = "Selecionar"
     REMOVE = "Remover"
     INVERT = "Inverter"
+    SELECT_ALL = "Selecionar Todos"
+    DESELECT_ALL = "Desselecionar Todos"
     ENABLE = "Ativar"
     INFO = "Info"
     INSTRUCTIONS = "Instruções"

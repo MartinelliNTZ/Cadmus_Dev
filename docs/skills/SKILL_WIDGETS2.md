@@ -1163,3 +1163,12 @@ border: 1px solid {theme.COLOR_BORDER};
    - Adicionado folder mode ao `GridComplexSelector._generate_output()` — gera pasta com subfolder (ignora suffix/fixed_name/fixed_extension)
    - VectorToSvgPlugin migrado com GridComplexSelector (camada + pasta_saida subfolder "svgs") + 3x ComplexColorPicker + 2x GridDoubleSpin + GridCheckbox 2 colunas + GridExecutionButtons
 | 2026-07-31 | 2.8.1 | **Botão copiar do ComplexSelector em modo LAYER:** `_copy_to_clipboard()` agora copia o path da layer selecionada diretamente do `QgsMapLayerComboBox` (`layer.source()` com remoção de sublayers via `split("|")[0]`). Em modo line edit, mantém o comportamento de copiar o texto do campo. |
+| 2026-08-04 | 3.0.0 | **DroneCoordinates migrado (100% sem WidgetFactory):**
+   - `GridComplexSelector` folder input para pasta MRK (`allow_folder=True`)
+   - 5× `CollapsibleParametersWidget` + `GridCheckbox` (EXIF/DJI/Custom/Initial/MRK) com `control_buttons_config` (Selecionar/Remover/Inverter via `GridModernButtons`)
+   - `GridCheckbox` com `control_buttons_config` — botões de controle via `GridModernButtons` com callbacks `select_all()`, `deselect_all()`, `invert_selection()`
+   - `CollapsibleParametersWidget` + `GridComplexSelector` (output + `allow_lock_check`) para Salvamento e Estilos QML
+   - Cross-grid parent linking: `parent="grid_input.pasta_mrk"` — `GridComplexSelector._grid_registry` + `grid_id` + `grid_id.selector_key`
+   - `lock_state` (get/set) substitui `is_enabled`/`set_enabled` dos selectors antigos
+   - Helper `_to_checkbox_config()` converte lista de dicts (`StringAdapter.to_key_label_description`) em dict config para `GridCheckbox`
+   - Novas strings: `STR.SELECT_ALL`, `STR.DESELECT_ALL` |

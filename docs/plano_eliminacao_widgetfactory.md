@@ -556,7 +556,7 @@ Criados em `resources/new_widgets/`.
 | 6 | `ExportAllLayouts` | create_readonly_field, create_bottom_action_buttons, create_path_selector | GridCheckbox + GridDoubleSpin + GridComplexSelector + GridExecutionButtons | ✅ Migrado (2.3.65.1) |
 | 7 | `CopyAttributesPlugin` | create_layer_input, create_checkbox_grid, create_bottom_action_buttons | GridComplexSelector + GridAttributeSelector + GridExecutionButtons | ✅ **Migrado (2.3.79.2)** |
 | 8 | `DividePointsByStripsPlugin` | create_layer_input, create_input_fields, create_bottom_action_buttons | GridComplexSelector + GridComboBox + GridInputFields + GridRadioButton + GridCheckbox + GridExecutionButtons | ✅ **Migrado (2.3.80.1)** |
-| 9 | `DroneCoordinates` | create_label, create_double_spin_input | GridInput | ⬜ Pendente |
+| 9 | `DroneCoordinates` | create_path_selector, create_collapsible_parameters, create_checkbox_grid, create_save_file_selector, create_input_fields_widget, create_qml_selector, create_bottom_action_buttons | GridComplexSelector + GridCheckbox + GridInputFields + CollapsibleParametersWidget + GridExecutionButtons | ✅ **Migrado (2.3.84.1)** |
 | 10 | `LoadFolderLayers` | create_path_selector, create_checkbox_grid, create_collapsible_parameters, create_bottom_action_buttons | GridComplexSelector + GridCheckbox + CollapsibleParametersWidget + GridExecutionButtons | ✅ Migrado (2.3.68.1) |
 | 11 | `CreateProjectPlugin` | create_path_selector, create_input_fields, create_bottom_action_buttons | GridLabel + GridComplexSelector + GridInputFields + GridExecutionButtons | ✅ Migrado (2.3.69.1) |
 | 12 | `PathExtensionPlugin` | create_layer_input, create_dropdown_selector, create_radio_button_grid, create_bottom_action_buttons | **GridComplexSelector** + **GridComboBox** + **GridRadioButton** + **GridExecutionButtons** | ✅ **Migrado (2.3.79.1)** |
@@ -937,7 +937,7 @@ def resolve_qt_window_modality(name: str):
     [ ] ComplexColorPicker.py
     [ ] ComplexCrsSelector.py
 
-[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (11/19 migrados)
+[ ] FASE 2: Migração Plugin por Plugin — PARCIAL (12/19 migrados)
   [x] 2.1 AboutDialog ✅ (2.3.62.2)
   [x] 2.2 CoorResultDialog ✅ (2.3.63.3)
   [x] 2.3 InfoDialog ✅ (2.3.64.1)
@@ -946,7 +946,7 @@ def resolve_qt_window_modality(name: str):
   [x] 2.6 VectorMultipartPlugin
   [x] 2.7 CopyAttributesPlugin ✅ (2.3.79.2)
   [x] 2.8 DividePointsByStripsPlugin ✅ (2.3.80.1)
-  [ ] 2.9 DroneCoordinates
+  [x] 2.9 DroneCoordinates ✅ (2.3.84.1)
   [x] 2.10 LoadFolderLayers ✅ (2.3.68.1)
   [x] 2.11 CreateProjectPlugin ✅ (2.3.69.1)
   [x] 2.12 PathExtensionPlugin ✅ (2.3.79.1)
@@ -985,3 +985,4 @@ def resolve_qt_window_modality(name: str):
 | 2026-07-31 | 5.6.0 | **Atualização:** CopyAttributesPlugin migrado ✅ (2.3.79.2). Criado GridAttributeSelector (widget raiz) com QScrollArea interna + fundo secondary transparente (COLOR_BACKGROUND_SOFT). GridComplexSelector com 2 items (target_layer + source_layer, ambos allow_layer=True, VectorLayer, sem pasta/arquivo/feicoes). VectorFieldsCalculationPlugin: ao recusar editar camada, apenas loga e retorna (sem bar_critical). |
 | 2026-07-31 | 5.8.0 | **Atualização:** VectorToSvgPlugin migrado ✅ (2.3.83.3). Criado ComplexColorPicker (label + QgsColorButton + SimpleQLineEdit + SquareIconButton COPY2). GridComplexSelector._generate_output() agora suporta folder mode com subfolder (ignora suffix/fixed_name/fixed_extension). Plugin usa GridComplexSelector (camada + pasta_saida subfolder "svgs") + 3x ComplexColorPicker + 2x GridDoubleSpin + GridCheckbox 2 colunas + GridExecutionButtons. |
 | 2026-07-31 | 5.7.0 | **Atualização:** DividePointsByStripsPlugin migrado ✅ (2.3.80.1). GridComplexSelector layer input via getitem() do ComplexSelector (tupla path, layer) — helper _resolve_input_layer() suporta camada carregada OU arquivo externo não carregado. GridComboBox com chaves identificadoras. Save selectors usam allow_lock_check + get/set_lock_state + get/set_path. GridRadioButton chaves = STR. Corrigido bug advanced_params → sensitivity_params e duplicados. |
+| 2026-08-04 | 5.9.0 | **Atualização:** DroneCoordinates migrado ✅ (2.3.84.1). GridComplexSelector folder input (pasta MRK) + GridCheckbox (opções + 5× metadados com control_buttons_config) + GridInputFields (título) + CollapsibleParametersWidget (8×) + GridExecutionButtons. Cross-grid parent linking (grid_input.pasta_mrk → grid_save/grid_qml). lock_state substitui is_enabled/set_enabled. Novas strings STR.SELECT_ALL/STR.DESELECT_ALL. FASE 2: 12/19 migrados. |

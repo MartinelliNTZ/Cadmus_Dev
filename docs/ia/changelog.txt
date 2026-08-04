@@ -462,3 +462,20 @@
     - Chama self._combo.setLayer(layer) — o próprio QgsMapLayerComboBox valida o filtro QgsMapLayerProxyModel
     - Alinha com padrão nativo do QGIS (LayerInputWidget._try_select_active_layer) onde a camada selecionada no TOC já vem pré-selecionada no diálogo
     - Log de erro COMPLEX_ACTIVE_LAYER_ERROR se iface não disponível
+2.3.84 04/08/2026
+[2.3.84.1][04/08/2026] DroneCoordinates migrado para novo sistema de widgets:
+   - Plugin 100% sem WidgetFactory
+   - GridComplexSelector: pasta_mrk (folder input) + grid_save + grid_qml (output com lock) + grid_logo (output com lock)
+   - Cross-grid parent linking: parent="grid_input.pasta_mrk" — _grid_registry + grid_id
+   - GridCheckbox 1 coluna (opções) + 5x GridCheckbox 2 colunas (EXIF/DJI/Custom/Initial/MRK) com control_buttons_config
+   - control_buttons_config usa GridModernButtons com callbacks select_all()/deselect_all()/invert_selection()
+   - CollapsibleParametersWidget x8 (Opções, EXIF, DJI, Custom, Initial, MRK, Salvamento, Estilos)
+   - GridInputFields (título do projeto)
+   - GridExecutionButtons via add_execution_buttons()
+   - lock_state (get/set) substitui is_enabled/set_enabled dos save/qml/logo selectors
+   - _on_use_mrk_changed refatorado com opts_checkbox.widget("use_mrk")
+   - Helper _to_checkbox_config() converte StringAdapter.to_key_label_description em dict config
+   - Novas strings STR.SELECT_ALL / STR.DESELECT_ALL em Strings_pt_BR
+   - Removidos imports não utilizados (WidgetFactory, save_tool_prefs legado)
+   - Plugin em conformidade com PLUGIN_CONTRACT.md
+   - SKILL_WIDGETS2.md atualizada para v3.0.0

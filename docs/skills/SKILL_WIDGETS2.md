@@ -875,6 +875,40 @@ coll.set_preferences(Preferences.load_tool_prefs(self.TOOL_KEY).get("collapsible
 
 
 
+### ComplexCrsSelector 🆕
+Seletor de CRS (EPSG) com label e `QgsProjectionSelectionWidget`.
+
+```python
+from ..resources.new_widgets.ComplexCrsSelector import ComplexCrsSelector
+
+crs_selector = ComplexCrsSelector(
+    label_text=STR.DEFAULT_CRS,
+    default_auth_id="EPSG:4326",
+    tooltip="Selecione o SRC padrão",
+    tool_key=self.TOOL_KEY,
+    parent=self,
+)
+layout.addWidget(crs_selector)
+
+crs_selector.set_crs_authid("EPSG:31983")
+crs = crs_selector.get_crs()
+authid = crs_selector.get_crs_authid()
+```
+
+**API pública:**
+| Método | Descrição |
+|--------|-----------|
+| `set_crs(crs)` | Define CRS via `QgsCoordinateReferenceSystem` |
+| `set_crs_authid(authid)` → `bool` | Define CRS por authid (retorna False se inválido) |
+| `get_crs()` → `QgsCoordinateReferenceSystem` | Retorna CRS atual |
+| `get_crs_authid()` → `str` | Retorna authid do CRS atual |
+| `selector()` | Acesso direto ao `QgsProjectionSelectionWidget` |
+
+**Detalhes:**
+- `QgsProjectionSelectionWidget.crsChanged` conectado a `_on_crs_changed` (loga mudança)
+- Estilos globais: `AppStyles.label()` + `AppStyles.combobox()` (fundo padronizado do combo)
+- `_specific_style()` para estilo próprio
+
 ### ComplexColorPicker 🆕
 Seletor de cor com label, QgsColorButton, campo hex readonly e botão copiar.
 
@@ -1177,3 +1211,6 @@ border: 1px solid {theme.COLOR_BORDER};
    - Helper `_to_checkbox_config()` converte lista de dicts (`StringAdapter.to_key_label_description`) em dict config para `GridCheckbox`
    - Novas strings: `STR.SELECT_ALL`, `STR.DESELECT_ALL`
    - **Novo Padrão de Preferências:** `GridCheckbox` e `GridInputFields` agora têm `get_preferences()`/`set_preferences()` — o widget gerencia seu próprio estado de prefs (padrão do novo sistema); o plugin salva via `self.preferences["key"] = widget.get_preferences()` e carrega via `widget.set_preferences(self.preferences.get("key", {}))` |
+| 2026-08-04 | 3.1.0 | **SettingsPlugin migrado (100% sem WidgetFactory):**
+   - Criado `ComplexCrsSelector` (raiz) — label + `QgsProjectionSelectionWidget` com `AppStyles.combobox()` para fundo padronizado
+   - `CollapsibleParametersWidget` (Geral + Cálculos) + `GridComplexSelector` (pasta projetos) + `GridComboBox` (idioma) + `GridDoubleSpin` (precisão + threshold) + `GridCheckbox` (toolbar 3 colunas) + `GridRadioButton` (método cálculo) + `GridInputFields` (sufixos) + `GridExecutionButtons` (Salvar/Fechar/Info + extras Prefs/Registry, `enable_config_button=False`) |

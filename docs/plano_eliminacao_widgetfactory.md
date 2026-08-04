@@ -566,7 +566,7 @@ Criados em `resources/new_widgets/`.
 | 16 | `ReportMetadataPlugin` | create_path_selector, create_layer_input, create_checkbox_grid, create_bottom_action_buttons | ComplexPathSelector + GridLayerInput + GridCheckbox + GridButton | ⬜ Pendente |
 | 17 | `VectorFieldsCalculationPlugin` | create_layer_input, create_dropdown_selector, create_input_fields, create_bottom_action_buttons | GridLayerInput + GridDropdown + GridInput + GridButton | ⬜ Pendente |
 | 18 | `VectorToSvgPlugin` | create_path_selector, create_layer_input, create_color_button (x3), create_double_spin_input (x2), create_checkbox_grid, create_bottom_action_buttons | GridComplexSelector + ComplexColorPicker (x3) + GridDoubleSpin + GridCheckbox + GridExecutionButtons | ✅ **Migrado (2.3.83.3)** |
-| 19 | `SettingsPlugin` | Múltiplos | Análise individual | ⬜ Pendente |
+| 19 | `SettingsPlugin` | Múltiplos | CollapsibleParametersWidget + GridComplexSelector + ComplexCrsSelector + GridComboBox + GridDoubleSpin + GridCheckbox + GridRadioButton + GridInputFields + GridExecutionButtons | ✅ **Migrado (2.3.85.1)** |
 
 ### 8.2 Checklist por Plugin
 
@@ -934,8 +934,8 @@ def resolve_qt_window_modality(name: str):
     [ ] ComplexPathSelector.py
   [ ] 1.3 Raiz (SEM versão grid) — PARCIAL
   [x] 1.3 Raiz (SEM versão grid) — QUASE COMPLETO
-    [ ] ComplexColorPicker.py
-    [ ] ComplexCrsSelector.py
+    [x] ComplexColorPicker.py
+    [x] ComplexCrsSelector.py
 
 [ ] FASE 2: Migração Plugin por Plugin — PARCIAL (12/19 migrados)
   [x] 2.1 AboutDialog ✅ (2.3.62.2)
@@ -956,7 +956,7 @@ def resolve_qt_window_modality(name: str):
   [x] 2.16 ReportMetadataPlugin
   [x] 2.17 VectorFieldsCalculationPlugin
   [x] 2.18 VectorToSvgPlugin ✅ (2.3.83.3)
-  [ ] 2.19 SettingsPlugin
+  [x] 2.19 SettingsPlugin ✅ (2.3.85.1)
   [ ] 2.20 RegistryDialog
 
 [ ] FASE 3: Eliminação da WidgetFactory

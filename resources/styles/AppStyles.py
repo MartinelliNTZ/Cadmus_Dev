@@ -228,7 +228,12 @@ class AppStyles:
     @classmethod
     def combobox(cls) -> str:
         """Estilo global para QComboBox."""
+        import os
+
         theme = cls._get_theme()
+        arrow_path = os.path.join(
+            os.path.dirname(__file__), "..", "icons", "arrow_down.svg"
+        ).replace("\\", "/")
         return (
             "QComboBox {"
             f"    background: {theme.COLOR_BACKGROUND_PANEL};"
@@ -248,6 +253,13 @@ class AppStyles:
             f"    width: {theme.SPINBOX_ARROW_BUTTON_WIDTH};"
             f"    border-left: {theme.PXBORDER_ONE} {theme.COLOR_BORDER_DEFAULT};"
             f"    background: {theme.COLOR_PRIMARY};"
+            f"    border-top-right-radius: {theme.BORDER_RADIUS_INPUT_FIELD};"
+            f"    border-bottom-right-radius: {theme.BORDER_RADIUS_INPUT_FIELD};"
+            "}"
+            "QComboBox::down-arrow {"
+            f"    image: url(\"{arrow_path}\");"
+            "    width: 12px;"
+            "    height: 8px;"
             "}"
         )
 
@@ -306,6 +318,7 @@ class AppStyles:
             + cls.radio_button()
             + cls.button()
             + cls.input()
+            + cls.combobox()
             + cls.map_layer_combobox()
             + cls.scroll_area()
         )

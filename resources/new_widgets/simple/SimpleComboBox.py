@@ -80,4 +80,4 @@ class SimpleComboBox(QComboBox):
 
     def _apply_styles(self):
         """Aplica estilo global via AppStyles."""
-        self.setStyleSheet(AppStyles.input())
+        self.setStyleSheet(AppStyles.combobox())

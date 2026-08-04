@@ -489,3 +489,15 @@
 [2.3.84.3][04/08/2026] Corrigido TypeError "keys must be str, int, float, bool or None, not MetadataFieldKey":
    - _to_checkbox_config() agora converte MetadataFieldKey (enum) para .value (string) via getattr(raw_key, "value", raw_key)
    - Corrigia falha no json.dump em Preferences.save_tool_prefs quando as prefs dos GridCheckbox de metadados continham chaves enum não serializáveis
+
+2.3.85 04/08/2026
+[2.3.85.1][04/08/2026] SettingsPlugin migrado para novo sistema de widgets (100% sem WidgetFactory):
+   - Criado resources/new_widgets/ComplexCrsSelector.py (raiz) — label + QgsProjectionSelectionWidget com AppStyles.combobox() para fundo padronizado
+   - CollapsibleParametersWidget (Geral + Cálculos) + GridComplexSelector (pasta projetos) + GridComboBox (idioma) + GridDoubleSpin (precisão + threshold) + GridCheckbox (toolbar 3 colunas) + GridRadioButton (método cálculo) + GridInputFields (sufixos) + GridExecutionButtons (Salvar/Fechar/Info + extras Prefs/Registry, enable_config_button=False)
+   - Ajustes de API: GridRadioButton.get_selected_key() (sem get_selected_text), GridCheckbox.set_checked()/get_all_states(), GridDoubleSpin.set_value()/get_value(), GridComboBox.set_selected_key(key, value)
+   - docs/plano_eliminacao_widgetfactory.md atualizado (SettingsPlugin migrado, ComplexCrsSelector adicionado)
+   - SKILL_WIDGETS2.md atualizada para v3.1.0 (ComplexCrsSelector documentado)
+[2.3.85.2][04/08/2026] Padronizado estilo de QComboBox em todo o sistema:
+   - AppStyles.combobox(): adicionada seta customizada (resources/icons/arrow_down.svg) com tamanho 12x8 e raio no drop-down
+   - AppStyles.main_application() agora inclui combobox() no escopo global — QComboBox do QGIS (ex: QgsProjectionSelectionWidget) herdam o mesmo padrão visual
+   - SimpleComboBox._apply_styles() atualizado de AppStyles.input() para AppStyles.combobox() — padroniza GridComboBox (lang_selector, json_selector, etc) com fundo/borda/seta idênticos

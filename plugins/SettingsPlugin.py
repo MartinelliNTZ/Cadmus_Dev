@@ -6,10 +6,20 @@ from ..plugins.BasePlugin import BasePluginMTL
 from ..utils.Preferences import Preferences
 from ..utils.ToolKeys import ToolKey
 from ..utils.ExplorerUtils import ExplorerUtils
-from ..core.ui.WidgetFactory import WidgetFactory
 from ..i18n.TranslationManager import STR, TranslationManager
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..core.config.MenuManager import MenuManager
+from ..resources.new_widgets.CollapsibleParametersWidget import (
+    CollapsibleParametersWidget,
+)
+from ..resources.new_widgets.ComplexCrsSelector import ComplexCrsSelector
+from ..resources.new_widgets.grid.GridComboBox import GridComboBox
+from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
+from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
+from ..resources.new_widgets.grid.GridInputFields import GridInputFields
+from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
 
 
 class SettingsPlugin(BasePluginMTL):
@@ -30,7 +40,6 @@ class SettingsPlugin(BasePluginMTL):
     AUTO_SAVE_PREFS_ON_CLOSE = False
     system_preferences = {}
     prefer_VectorFields = {}
-    toolbar_category_checks = {}
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
@@ -49,173 +58,173 @@ class SettingsPlugin(BasePluginMTL):
 
         self.logger.info("Construindo componentes de interface")
 
-        pref_button_layout, self.pref_button = WidgetFactory.create_simple_button(
-            text=STR.OPEN_PREFERENCES_FOLDER,
-            parent=self,
-            spacing=2,
-        )
-        self.pref_button.clicked.connect(self._open_preferences_folder)
-
-        self.logger.debug("Botão de preferências adicionado")
-
-        calc_layout, self.radio_calc = WidgetFactory.create_radio_button_grid(
-            items=self.CALCULATION_METHODS,
-            columns=3,
-            title=f"⚙️ {STR.VECTOR_CALCULATION_METHOD}",
-            checked_index=0,
-            tool_key=ToolKey.SETTINGS,
-            separator_top=False,
-            separator_bottom=False,
-            parent=self,
-        )
-        self.logger.debug("Widget de cálculo vetorial adicionado")
-
-        langs = StringManager.AVAILABLE_LANGUAGES
-        selected_lang = self.system_preferences.get("plugin_language", "none")
-        lang_layout, self.lang_selector = WidgetFactory.create_dropdown_selector(
-            title=f"⚙️ {STR.PLUGIN_LANGUAGE}",
-            options_dict=langs,
-            selected_key=selected_lang,
-            separator_top=False,
-            separator_bottom=False,
+        # ── Colapsável Geral ──────────────────────────────────────
+        self.geral_collapsable = CollapsibleParametersWidget(
+            title=STR.GENERAL,
+            expanded_by_default=True,
             parent=self,
         )
 
-        crs_layout, self.crs_selector = WidgetFactory.create_crs_selector(
-            title=STR.DEFAULT_CRS,
-            tool_key=ToolKey.SETTINGS,
+        # ── Pasta de Projetos (GridComplexSelector - folder) ──────
+        self.project_folder_selector = GridComplexSelector(
+            config={
+                "projects_folder": {
+                    "label": STR.PROJECTS_FOLDER,
+                    "mode_type": "input",
+                    "allow_file": False,
+                    "allow_folder": True,
+                },
+            },
+            tool_key=self.TOOL_KEY,
+            parent=self,
+        )
+        self.geral_collapsable.add_content_widget(self.project_folder_selector)
+        self.logger.debug("Seletor de pasta de projetos adicionado")
+
+        # ── Seletor de EPSG (ComplexCrsSelector) ──────────────────
+        self.crs_selector = ComplexCrsSelector(
+            label_text=STR.DEFAULT_CRS,
             default_auth_id=self.system_preferences.get(
                 "default_crs_authid", self.DEFAULT_CRS_AUTHID
             ),
-            separator_top=False,
-            separator_bottom=False,
+            tool_key=self.TOOL_KEY,
             parent=self,
         )
-        self.logger.debug("Widget exclusivo de selecao de SRC adicionado")
+        self.geral_collapsable.add_content_widget(self.crs_selector)
+        self.logger.debug("Widget de selecao de SRC adicionado")
 
-        prec_layout, self.spin_precision = WidgetFactory.create_double_spin_input(
-            f"🎯 {STR.VECTOR_FIELDS_PRECISION}",
-            decimals=0,
-            step=1,
-            minimum=0,
-            maximum=10,
-            value=2,
-            separator_top=False,
-            separator_bottom=False,
+        # ── Idioma (GridComboBox) ─────────────────────────────────
+        langs = StringManager.AVAILABLE_LANGUAGES
+        selected_lang = self.system_preferences.get("plugin_language", "none")
+        self.lang_selector = GridComboBox(
+            config={
+                "language": {
+                    "label": STR.PLUGIN_LANGUAGE,
+                    "options": langs,
+                    "selected_key": selected_lang,
+                },
+            },
+            parent=self,
         )
+        self.geral_collapsable.add_content_widget(self.lang_selector)
+        self.logger.debug("Seletor de idioma adicionado")
+
+        # ── Precisão de campos vetoriais (GridDoubleSpin) ─────────
+        self.spin_precision = GridDoubleSpin(
+            config={
+                "precision": {
+                    "label": STR.VECTOR_FIELDS_PRECISION,
+                    "value": 2,
+                    "min": 0,
+                    "max": 10,
+                    "step": 1,
+                    "type": "int",
+                },
+            },
+            parent=self,
+        )
+        self.geral_collapsable.add_content_widget(self.spin_precision)
         self.logger.debug("Widget de precisão de campos vetoriais adicionado")
 
-        thresh_layout, self.spin_threshold = WidgetFactory.create_double_spin_input(
-            f"📦 {STR.ASYNC_THRESHOLD}",
-            decimals=0,
-            step=1,
-            minimum=1,
-            maximum=100000000,
-            value=1000,
-            separator_top=False,
-            separator_bottom=False,
+        # ── Limiar assíncrono (GridDoubleSpin) ────────────────────
+        self.spin_threshold = GridDoubleSpin(
+            config={
+                "threshold": {
+                    "label": STR.ASYNC_THRESHOLD,
+                    "value": 1000,
+                    "min": 1,
+                    "max": 100000000,
+                    "step": 1,
+                    "type": "int",
+                },
+            },
+            parent=self,
         )
+        self.geral_collapsable.add_content_widget(self.spin_threshold)
         self.logger.debug("Widget de limiar assíncrono por feições adicionado")
 
-        toolbar_layout, self.toolbar_category_checks = (
-            WidgetFactory.create_checkbox_grid(
-                options_dict=MenuManager.toolbar_category_options(),
-                items_per_row=3,
-                checked_by_default=True,
-                title=STR.TOOLBAR_VISIBLE_CATEGORIES,
-                separator_top=False,
-                separator_bottom=False,
-            )
+        # ── Toolbar - Categorias visíveis (GridCheckbox - 3 colunas)
+        self.toolbar_category_checks = GridCheckbox(
+            config={
+                key: {"label": label, "default": True}
+                for key, label in MenuManager.toolbar_category_options().items()
+            },
+            items_per_row=3,
+            title=STR.TOOLBAR_VISIBLE_CATEGORIES,
+            parent=self,
         )
+        self.geral_collapsable.add_content_widget(self.toolbar_category_checks)
         self.logger.debug("Grid de categorias visiveis da toolbar adicionado")
 
-        geral_layout, self.geral_collapsable = (
-            WidgetFactory.create_collapsible_parameters(
-                parent=self,
-                title=STR.GENERAL,
-                expanded_by_default=True,
-                separator_top=False,
-                separator_bottom=False,
-            )
-        )
-
-        projects_layout, self.project_folder_selector = (
-            WidgetFactory.create_path_selector(
-                title=STR.PROJECTS_FOLDER,
-                mode="folder",
-                parent=self,
-                separator_top=False,
-                separator_bottom=False,
-            )
-        )
-
-        self.geral_collapsable.add_content_layout(projects_layout)
-        self.geral_collapsable.add_content_layout(crs_layout)
-        self.geral_collapsable.add_content_layout(lang_layout)
-        self.geral_collapsable.add_content_layout(prec_layout)
-        self.geral_collapsable.add_content_layout(thresh_layout)
-        self.geral_collapsable.add_content_layout(pref_button_layout)
-
-        lic_layout, self.lic_btn = WidgetFactory.create_simple_button(
-            text="_",
+        # ── Colapsável Cálculos Vetoriais ─────────────────────────
+        self.calc_collapsable = CollapsibleParametersWidget(
+            title=STR.VECTOR_CALCULATIONS_PLUGIN,
+            expanded_by_default=False,
             parent=self,
-            spacing=6,
         )
-        self.lic_btn.clicked.connect(self._open_lic_dialog)
-        self.geral_collapsable.add_content_layout(lic_layout)
 
-        self.geral_collapsable.add_content_layout(toolbar_layout)
-
-        calc_layout_collapsible, self.calc_collapsable = (
-            WidgetFactory.create_collapsible_parameters(
-                parent=self,
-                title=STR.VECTOR_CALCULATIONS_PLUGIN,
-                expanded_by_default=False,
-                separator_top=False,
-                separator_bottom=False,
-            )
+        # ── Método de Cálculo (GridRadioButton) ───────────────────
+        self.radio_calc = GridRadioButton(
+            config={
+                STR.ELLIPSOIDAL: {"label": STR.ELLIPSOIDAL},
+                STR.CARTESIAN: {"label": STR.CARTESIAN},
+                STR.BOTH: {"label": STR.BOTH},
+            },
+            columns=3,
+            default_key=STR.ELLIPSOIDAL,
+            parent=self,
         )
-        self.calc_collapsable.add_content_layout(calc_layout)
+        self.calc_collapsable.add_content_widget(self.radio_calc)
+        self.logger.debug("Widget de cálculo vetorial adicionado")
 
-        field_names_layout, self.area_fields_inputs = (
-            WidgetFactory.create_input_fields_widget(
-                fields_dict={
-                    "cartesian_suffix": {
-                        "title": STR.CARTESIAN_SUFFIX,
-                        "type": "text",
-                        "default": "",
-                    },
-                    "ellipsoidal_suffix": {
-                        "title": STR.ELLIPSOIDAL_SUFFIX,
-                        "type": "text",
-                        "default": "_eli",
-                    },
+        # ── Sufixos de área (GridInputFields) ─────────────────────
+        self.area_fields_inputs = GridInputFields(
+            config={
+                "cartesian_suffix": {
+                    "label": STR.CARTESIAN_SUFFIX,
+                    "default": "",
                 },
-                parent=self,
-                separator_top=False,
-                separator_bottom=False,
-            )
+                "ellipsoidal_suffix": {
+                    "label": STR.ELLIPSOIDAL_SUFFIX,
+                    "default": "_eli",
+                },
+            },
+            parent=self,
         )
-        self.calc_collapsable.add_content_layout(field_names_layout)
+        self.calc_collapsable.add_content_widget(self.area_fields_inputs)
+        self.logger.debug("Widget de sufixos de área adicionado")
 
-        buttons_layout, self.action_buttons = (
-            WidgetFactory.create_bottom_action_buttons(
-                parent=self,
-                run_callback=self.execute_tool,
-                close_callback=self.close,
-                info_callback=self.show_info_dialog,
-                tool_key=ToolKey.SETTINGS,
-                run_text=STR.SAVE,
-            )
+        # ── Botões de Ação (GridExecutionButtons) ─────────────────
+        self.action_buttons = GridExecutionButtons(
+            config={
+                "save": {
+                    "label": STR.SAVE,
+                    "description": "Salva as configurações",
+                    "callback": self.execute_tool,
+                    "is_run_button": True,
+                },
+                "open_prefs": {
+                    "label": STR.OPEN_PREFERENCES_FOLDER,
+                    "description": "Abre a pasta de preferências",
+                    "callback": self._open_preferences_folder,
+                },
+                "open_registry": {
+                    "label": STR.REG_TITLE,
+                    "description": "Abre o gerenciador de licença/registry",
+                    "callback": self._open_lic_dialog,
+                },
+            },
+            enable_close_button=True,
+            enable_config_button=False,
+            enable_info=True,
+            tool_key=self.TOOL_KEY,
+            parent=self,
         )
 
-        self.layout.add_items(
-            [
-                geral_layout,
-                calc_layout_collapsible,
-                buttons_layout,
-            ]
-        )
+        # Ordem de adição no layout
+        self.layout.addWidget(self.geral_collapsable)
+        self.layout.addWidget(self.calc_collapsable)
+        self.layout.add_execution_buttons(self.action_buttons)
         self.logger.info("Interface de configurações construída com sucesso")
 
     def _load_prefs(self):
@@ -237,11 +246,11 @@ class SettingsPlugin(BasePluginMTL):
 
         selected_language = self.system_preferences.get("plugin_language", "none")
         if selected_language in StringManager.AVAILABLE_LANGUAGES:
-            self.lang_selector.set_selected_key(selected_language)
+            self.lang_selector.set_selected_key("language", selected_language)
             self.logger.debug(f"Idioma selecionado carregado: {selected_language}")
         else:
             self.logger.warning(f"Idioma inválido: {selected_language}, usando padrão")
-            self.lang_selector.set_selected_key("pt_BR")
+            self.lang_selector.set_selected_key("language", "pt_BR")
 
         selected_crs_authid = self.system_preferences.get(
             "default_crs_authid", self.DEFAULT_CRS_AUTHID
@@ -266,7 +275,7 @@ class SettingsPlugin(BasePluginMTL):
             if isinstance(thresh_feats, int)
             else (int(thresh_feats) if str(thresh_feats).isdigit() else 1000)
         )
-        self.spin_threshold.setValue(thresh_value)
+        self.spin_threshold.set_value("threshold", thresh_value)
         self.logger.debug(f"Limiar assíncrono carregado: {thresh_value} feições")
 
         prec = self.system_preferences.get("vector_field_precision", 2)
@@ -275,7 +284,7 @@ class SettingsPlugin(BasePluginMTL):
             if isinstance(prec, int)
             else (int(prec) if str(prec).isdigit() else 2)
         )
-        self.spin_precision.setValue(precision_value)
+        self.spin_precision.set_value("precision", precision_value)
         self.logger.debug(f"Precisão de campos vetoriais carregada: {precision_value}")
 
         self.area_fields_inputs.set_values(
@@ -292,12 +301,14 @@ class SettingsPlugin(BasePluginMTL):
         toolbar_visibility = MenuManager.normalize_toolbar_category_visibility(
             self.system_preferences.get(MenuManager.TOOLBAR_VISIBILITY_PREF_KEY)
         )
-        for category, checkbox in self.toolbar_category_checks.items():
-            checkbox.setChecked(toolbar_visibility.get(category, True))
+        for category in MenuManager.toolbar_category_options():
+            self.toolbar_category_checks.set_checked(
+                category, toolbar_visibility.get(category, True)
+            )
 
         project_folder = self.system_preferences.get("projects_folder", "")
         if project_folder:
-            self.project_folder_selector.set_path(project_folder)
+            self.project_folder_selector.set_path("projects_folder", project_folder)
 
         self.calc_collapsable.set_expanded(self.preferences.get("calc_expanded", False))
         self.geral_collapsable.set_expanded(
@@ -310,7 +321,7 @@ class SettingsPlugin(BasePluginMTL):
         self.preferences["calc_expanded"] = self.calc_collapsable.is_expanded()
         self.preferences["geral_expanded"] = self.geral_collapsable.is_expanded()
 
-        selected_text = self.radio_calc.get_selected_text()
+        selected_text = self.radio_calc.get_selected_key()
         self.system_preferences["calculation_method"] = selected_text
         selected_crs = self.crs_selector.get_crs()
         if not selected_crs or not selected_crs.isValid():
@@ -319,15 +330,15 @@ class SettingsPlugin(BasePluginMTL):
         self.system_preferences["default_crs_authid"] = selected_crs.authid()
         self.logger.debug(f"SRC padrao salvo: {selected_crs.authid()}")
 
-        feats_value = int(self.spin_threshold.value())
+        feats_value = int(self.spin_threshold.get_value("threshold"))
         self.system_preferences["async_threshold_features"] = feats_value
         self.logger.debug(f"Limiar assíncrono por feições salvo: {feats_value} feições")
 
-        precision_val = int(self.spin_precision.value())
+        precision_val = int(self.spin_precision.get_value("precision"))
         self.system_preferences["vector_field_precision"] = precision_val
         self.logger.debug(f"Precisão de campos vetoriais salva: {precision_val} casas")
 
-        selected_language = self.lang_selector.get_selected_key()
+        selected_language = self.lang_selector.get_selected_key("language")
         if selected_language != "none":
             self.system_preferences["plugin_language"] = selected_language
             self.logger.debug(f"Idioma selecionado salvo: {selected_language}")
@@ -336,10 +347,7 @@ class SettingsPlugin(BasePluginMTL):
                 del self.system_preferences["plugin_language"]
                 self.logger.debug("Idioma selecionado removido para auto-detectar")
 
-        toolbar_visibility = {
-            category: bool(checkbox.isChecked())
-            for category, checkbox in self.toolbar_category_checks.items()
-        }
+        toolbar_visibility = self.toolbar_category_checks.get_all_states()
 
         # Detecta se houve alteração na visibilidade para disparar refresh dinâmico
         old_visibility = self.system_preferences.get(
@@ -407,7 +415,7 @@ class SettingsPlugin(BasePluginMTL):
         if not self._save_prefs():
             return
 
-        selected_method = self.radio_calc.get_selected_text()
+        selected_method = self.radio_calc.get_selected_key()
         QgisMessageUtil.modal_info(
             self.iface,
             message=(

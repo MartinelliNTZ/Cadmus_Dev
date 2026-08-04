@@ -122,6 +122,9 @@ class RegistryDialog(BaseDialog):
         )
         self.layout.addWidget(self._dist_grid)
 
+        # Stretch para empurrar o conteúdo para cima
+        self.layout.addStretch()
+
         # ── Botões de Ação (GridExecutionButtons) ────────────────
         self._action_buttons = GridExecutionButtons(
             config={

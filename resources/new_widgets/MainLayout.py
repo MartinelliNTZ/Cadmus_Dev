@@ -417,7 +417,11 @@ class MainLayout(QVBoxLayout):
             self._content_layout.addLayout(layout, *args, **kwargs)
 
     def addStretch(self, *args, **kwargs):
-        self._content_layout.addStretch(*args, **kwargs)
+        """Adiciona stretch ao layout (scroll interno se habilitado, senão content)."""
+        if self._scroll is not None:
+            self._scroll.addStretch(*args, **kwargs)
+        else:
+            self._content_layout.addStretch(*args, **kwargs)
 
     def addSpacing(self, *args, **kwargs):
         self._content_layout.addSpacing(*args, **kwargs)

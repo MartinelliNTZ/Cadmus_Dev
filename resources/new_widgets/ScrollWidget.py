@@ -52,9 +52,9 @@ class ScrollWidget(QScrollArea):
         """Adiciona layout ao layout interno do scroll."""
         self._layout.addLayout(layout)
 
-    def addStretch(self):
+    def addStretch(self, *args, **kwargs):
         """Adiciona stretch ao layout interno do scroll."""
-        self._layout.addStretch()
+        self._layout.addStretch(*args, **kwargs)
 
     def set_content_widget(self, widget: QWidget):
         """Define o widget de conteúdo (substitui tudo)."""

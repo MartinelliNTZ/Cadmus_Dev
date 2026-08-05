@@ -15,7 +15,7 @@
 2.3.30 09/06/2026
 [2.3.30.1][09/06/2026] Consolidada documentação da skill de comunicação (SignalHub / PyQtSignalManager / QgisMessageUtil) em docs/skills/SKILL_COMUNICATION_SYSTEM.md — inclui padrões de payload, exemplos de uso, integração com LogUtils e recomendações de segurança/threads.
 2.3.31 09/06/2026
-[2.3.31.1][09/06/2026] Reestruturada skill de comunicação: clarificados cenários de uso para LogUtils, PluginSignalHub/PyQtSignalManager e QgisMessageUtil; adicionadas políticas sobre `tool_key`, payloads, responsabilidades e testes.
+[2.3.31.1][09/06/2026] Reestrturada skill de comunicação: clarificados cenários de uso para LogUtils, PluginSignalHub/PyQtSignalManager e QgisMessageUtil; adicionadas políticas sobre `tool_key`, payloads, responsabilidades e testes.
 2.3.32 09/06/2026
 [2.3.32.1][09/06/2026] Ajuste da skill de comunicação: `tool_key` declarado exclusivo para ferramentas; classes não-ferramentas devem receber `tool_key` como parâmetro ou receber `logger` injetado. Exemplos padronizados atualizados.
 2.3.33 08/07/2026
@@ -543,3 +543,8 @@
    - GridInputFields (sufixos): STR.CARTESIAN_SUFFIX_DESC, STR.ELLIPSOIDAL_SUFFIX_DESC
    - GridExecutionButtons (Salvar/Abrir Prefs/Gerenciar): STR.SAVE_DESC, STR.OPEN_PREFERENCES_FOLDER_DESC, STR.REG_TITLE_DESC
    - Novas strings adicionadas em Strings_pt_BR, Strings_en, Strings_es, Strings_de
+[2.3.88.2][05/08/2026] Instruções de configuração atualizadas em resources/instructions:
+   - settings_help.md atualizado em pt_BR, en, es e de com:
+     - Seção "Método de cálculo vetorial (Elipsoidal vs Cartesiano)" explicando quando usar cada método (WGS84/geográfico → elipsoidal; UTM/projetado → cartesiano)
+     - Seção "Tooltips (descrições dos widgets)" documentando todas as descrições exibidas ao passar o mouse
+     - Comportamento automático: Cartesiano em camada geográfica força modo Ambos com aviso

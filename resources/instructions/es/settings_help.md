@@ -34,6 +34,45 @@ En el estado actual del codigo, permite:
 - `Precision de campos vectoriales`: guarda un valor entero en `vector_field_precision`.
 - `Umbral asincrono`: guarda un valor entero en `async_threshold_features`.
 
+## Metodo de calculo vectorial (Elipsoidal vs Cartesiano)
+
+### Elipsoidal (recomendado para WGS84 / SRC geografico)
+
+Calcula areas y longitudes sobre la **superficie curva del elipsoide** de la Tierra (ej: WGS84).
+- **Ideal para capas en SRC geografico (lat/lon)** como WGS84 (EPSG:4326).
+- Los resultados estan en **metros / metros²**, independientemente del SRC de la capa.
+- Es mas preciso para grandes areas y altas latitudes, pues considera la curvatura terrestre.
+- **Ejemplo**: un area calculada en EPSG:4326 con este metodo devuelve valores fisicos reales en m².
+
+### Cartesiano (recomendado para UTM / SRC proyectado)
+
+Calcula areas y longitudes en el **plano cartesiano** del SRC de la capa.
+- **Ideal para SRC proyectados como UTM** (ej: EPSG:31983 SIRGAS 2000 / UTM 23S), donde las unidades ya estan en metros.
+- Es rapido y simple, pues usa solo calculos planares (teorema de Pitagoras / producto vectorial).
+- **Precaucion**: en SRC geografico (grados), el calculo cartesiano produciria valores en **grados / grados²**, sin significado fisico.
+- Si se solicita el modo Cartesiano en una capa geografica, el plugin cambia automaticamente a `Ambos` y muestra una advertencia.
+
+### Ambos
+
+Calcula los dos metodos simultaneamente.
+- Genera **dos campos separados** para cada metrica (uno cartesiano y uno elipsoidal).
+- Usa los sufijos configurados abajo para diferenciar los campos.
+- Util para comparar resultados y validar la calidad de los datos.
+
+## Tooltips (descripciones de los widgets)
+
+Al pasar el mouse sobre cualquier campo de la configuracion, se muestra una descripcion detallada:
+
+- **Carpeta de proyectos**: carpeta raiz donde se crean y organizan los proyectos de Cadmus; se usa como ubicacion predeterminada para nuevos proyectos y archivos de entrada/salida.
+- **SRC por defecto**: sistema de referencia usado cuando no se especifica ningun SRC; WGS84 (EPSG:4326) es el predeterminado recomendado para datos globales.
+- **Idioma**: define el idioma de la interfaz; `Auto-detectar` usa el idioma de QGIS.
+- **Precision de campos vectoriales**: numero de decimales usados en area, longitud y coordenadas X/Y; valores mayores aumentan la precision pero generan campos mas largos.
+- **Umbral asincrono**: numero minimo de entidades para que el procesamiento se ejecute en segundo plano; las capas mas pequenas que el umbral se ejecutan de forma sincrona (bloqueante).
+- **Barra de herramientas - Categorias visibles**: controla que categorias de herramientas aparecen en la barra; desmarque para ocultar botones.
+- **Metodo de calculo**: elipsoidal (ideal WGS84/geografico), cartesiano (ideal UTM/proyectado) o ambos.
+- **Sufijo cartesiano**: texto anadido a los campos calculados en modo cartesiano; vacio = sin sufijo.
+- **Sufijo elipsoidal**: texto anadido a los campos calculados en modo elipsoidal; predeterminado `_eli` para diferenciar de los cartesianos.
+
 ## Comportamiento importante
 
 - El umbral asincrono actual se mide en numero de entidades, no en MB.

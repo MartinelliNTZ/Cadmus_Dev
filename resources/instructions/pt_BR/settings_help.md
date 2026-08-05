@@ -34,6 +34,45 @@ No estado atual do codigo, ela permite:
 - `Precisao de campos vetoriais`: salva um valor inteiro em `vector_field_precision`.
 - `Limiar assincrono`: salva um valor inteiro em `async_threshold_features`.
 
+## Metodo de calculo vetorial (Elipsoidal vs Cartesiano)
+
+### Elipsoidal (recomendado para WGS84 / SRC geografico)
+
+Calcula areas e comprimentos sobre a **superficie curva do elipsoide** da Terra (ex: WGS84).
+- **Ideal para camadas em SRC geografico (lat/lon)** como WGS84 (EPSG:4326).
+- Os resultados sao em **metros / metros²**, independente do SRC da camada.
+- E mais preciso para grandes areas e altas latitudes, pois considera a curvatura terrestre.
+- **Exemplo**: uma area calculada em EPSG:4326 com este metodo retorna valores fisicos reais em m².
+
+### Cartesiano (recomendado para UTM / SRC projetado)
+
+Calcula areas e comprimentos no **plano cartesiano** do SRC da camada.
+- **Ideal para SRC projetados como UTM** (ex: EPSG:31983 SIRGAS 2000 / UTM 23S), onde as unidades ja sao metros.
+- E rapido e simples, pois usa apenas calculos planares (teorema de Pitagoras / produto vetorial).
+- **Cuidado**: em SRC geografico (graus), o calculo cartesiano produziria valores em **graus / graus²**, sem significado fisico.
+- Se o modo Cartesiano for solicitado em uma camada geografica, o plugin automaticamente muda para `Ambos` e exibe um aviso.
+
+### Ambos
+
+Calcula os dois metodos simultaneamente.
+- Gera **dois campos separados** para cada metrica (um cartesiano e um elipsoidal).
+- Usa os sufixos configurados abaixo para diferenciar os campos.
+- Util para comparar resultados e validar a qualidade dos dados.
+
+## Tooltips (descricoes dos widgets)
+
+Ao passar o mouse sobre qualquer campo das configuracoes, uma descricao detalhada e exibida:
+
+- **Pasta de projetos**: pasta raiz onde os projetos Cadmus sao criados e organizados; usada como local padrao para novos projetos e arquivos de entrada/saida.
+- **SRC padrao**: sistema de referencia usado quando nenhum SRC e especificado; WGS84 (EPSG:4326) e o padrao recomendado para dados globais.
+- **Idioma**: define o idioma da interface; `Auto-detectar` usa o idioma do QGIS.
+- **Precisao de campos vetoriais**: numero de casas decimais usadas em area, comprimento e coordenadas X/Y; valores maiores aumentam precisao mas geram campos mais longos.
+- **Limiar assincrono**: numero minimo de feicoes para o processamento rodar em segundo plano; camadas menores que o limiar rodam de forma sincrona (bloqueante).
+- **Toolbar - Categorias visiveis**: controla quais categorias de ferramentas aparecem na toolbar; desmarque para ocultar botoes.
+- **Metodo de calculo**: elipsoidal (ideal WGS84/geografico), cartesiano (ideal UTM/projetado) ou ambos.
+- **Sufixo cartesiano**: texto adicionado aos campos calculados em modo cartesiano; vazio = sem sufixo.
+- **Sufixo elipsoidal**: texto adicionado aos campos calculados em modo elipsoidal; padrao `_eli` para diferenciar dos cartesianos.
+
 ## Comportamento importante
 
 - O limiar assincrono atual e medido em numero de feicoes, nao em MB.

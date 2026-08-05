@@ -5,16 +5,11 @@ from .LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 from ...utils.QgisMessageUtil import QgisMessageUtil
 from ...i18n.TranslationManager import STR
-from ...utils.StringManager import StringManager
 from ...utils.Preferences import Preferences
-from ..enum import ToolTypeEnum
+from ..enum import MenuCategory, ToolTypeEnum
 
 
 class ToolRegistry:
-    # Tipos de ferramenta (não usar enum separado conforme requisito)
-    SYSTEM, LAYOUTS, FOLDER, VECTOR, AGRICULTURE, RASTER = (
-        StringManager.MENU_CATEGORIES.keys()
-    )
 
     _instance = None  # Singleton instance
 
@@ -163,7 +158,7 @@ class ToolRegistry:
             tool_key=ToolKey.EXPORT_ALL_LAYOUTS,
             name=STR.EXPORT_ALL_LAYOUTS_TITLE,
             icon=im.icon(im.EXPORT_ALL_LAYOUTS),
-            category=self.LAYOUTS,
+            category=MenuCategory.LAYOUTS,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.EXPORT_ALL_LAYOUTS, True),
             executor=self._make_plugin_executor("...plugins.ExportAllLayoutsPlugin"),
@@ -177,7 +172,7 @@ class ToolRegistry:
             tool_key=ToolKey.REPLACE_IN_LAYOUTS,
             name=STR.REPLACE_IN_LAYOUTS_TITLE,
             icon=im.icon(im.REPLACE_IN_LAYOUTS),
-            category=self.LAYOUTS,
+            category=MenuCategory.LAYOUTS,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.REPLACE_IN_LAYOUTS, False),
             executor=self._make_plugin_executor("...plugins.ReplaceInLayouts"),
@@ -195,7 +190,7 @@ class ToolRegistry:
             tool_key=ToolKey.RESTART_QGIS,
             name=STR.RESTART_QGIS_TITLE,
             icon=im.icon(im.RESTART_QGIS),
-            category=self.SYSTEM,
+            category=MenuCategory.SYSTEM,
             tool_type=ToolTypeEnum.INSTANT,
             main_action=self._main_action_prefs.get(ToolKey.RESTART_QGIS, False),
             executor=self._make_plugin_executor("...plugins.RestartQgis"),
@@ -209,7 +204,7 @@ class ToolRegistry:
             tool_key=ToolKey.LOGCAT,
             name=STR.LOGCAT_TITLE,
             icon=im.icon(im.LOGCAT),
-            category=self.SYSTEM,
+            category=MenuCategory.SYSTEM,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.LOGCAT, False),
             executor=self._make_plugin_executor("...plugins.logcat.logcat_plugin"),
@@ -224,7 +219,7 @@ class ToolRegistry:
             tool_key=ToolKey.SETTINGS,
             name=STR.SETTINGS_TITLE,
             icon=im.icon(im.SETTINGS),
-            category=self.SYSTEM,
+            category=MenuCategory.SYSTEM,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.SETTINGS, True),
             executor=self._make_plugin_executor("...plugins.SettingsPlugin"),
@@ -238,7 +233,7 @@ class ToolRegistry:
             tool_key=ToolKey.ABOUT_DIALOG,
             name=STR.ABOUT_CADMUS,
             icon=im.icon(im.ABOUT),
-            category=self.SYSTEM,
+            category=MenuCategory.SYSTEM,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.ABOUT_DIALOG, False),
             executor=self._make_plugin_executor("...plugins.AboutDialog"),
@@ -256,7 +251,7 @@ class ToolRegistry:
             tool_key=ToolKey.LOAD_FOLDER_LAYERS,
             name=STR.LOAD_FOLDER_LAYERS_TITLE,
             icon=im.icon(im.LOAD_FOLDER_LAYER),
-            category=self.FOLDER,
+            category=MenuCategory.FOLDER,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.LOAD_FOLDER_LAYERS, False),
             executor=self._make_plugin_executor("...plugins.LoadFolderLayers"),
@@ -270,7 +265,7 @@ class ToolRegistry:
             tool_key=ToolKey.CREATE_PROJECT,
             name=STR.CREATE_PROJECT_TITLE,
             icon=im.icon(im.CREATE_PROJECT),
-            category=self.FOLDER,
+            category=MenuCategory.FOLDER,
             tool_type=ToolTypeEnum.INSTANT,
             main_action=self._main_action_prefs.get(ToolKey.CREATE_PROJECT, True),
             executor=self._make_plugin_executor("...plugins.CreateProjectPlugin"),
@@ -284,7 +279,7 @@ class ToolRegistry:
             tool_key=ToolKey.VECTOR_TO_SVG,
             name=STR.VECTOR_TO_SVG_TITLE,
             icon=im.icon(im.VECTOR_TO_SVG),
-            category=self.FOLDER,
+            category=MenuCategory.FOLDER,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.VECTOR_TO_SVG, False),
             executor=self._make_plugin_executor("...plugins.VectorToSvgPlugin"),
@@ -302,7 +297,7 @@ class ToolRegistry:
             tool_key=ToolKey.VECTOR_FIELDS,
             name=STR.VECTOR_FIELDS_TITLE,
             icon=im.icon(im.VECTOR_FIELD),
-            category=self.VECTOR,
+            category=MenuCategory.VECTOR,
             tool_type=ToolTypeEnum.INSTANT,
             main_action=self._main_action_prefs.get(ToolKey.VECTOR_FIELDS, True),
             executor=self._make_plugin_executor(
@@ -318,7 +313,7 @@ class ToolRegistry:
             tool_key=ToolKey.REMOVE_KML_FIELDS,
             name=STR.REMOVE_KML_FIELDS_TITLE,
             icon=im.icon(im.REMOVE_KML_FIELDS),
-            category=self.VECTOR,
+            category=MenuCategory.VECTOR,
             tool_type=ToolTypeEnum.INSTANT,
             main_action=self._main_action_prefs.get(ToolKey.REMOVE_KML_FIELDS, False),
             executor=self._make_plugin_executor("...plugins.RemoveKmlFieldsPlugin"),
@@ -332,7 +327,7 @@ class ToolRegistry:
             tool_key=ToolKey.COORD_CLICK_TOOL,
             name=STR.COORD_CLICK_TOOL_TITLE,
             icon=im.icon(im.COORD_CLICK_TOOL),
-            category=self.VECTOR,
+            category=MenuCategory.VECTOR,
             tool_type=ToolTypeEnum.MAP_TOOL,
             main_action=self._main_action_prefs.get(ToolKey.COORD_CLICK_TOOL, False),
             executor=self.run_coord_click,
@@ -346,7 +341,7 @@ class ToolRegistry:
             tool_key=ToolKey.CONVERTER_MULTIPART,
             name=STR.CONVERTER_MULTIPART_TITLE,
             icon=im.icon(im.VECTOR_MULTPART),
-            category=self.VECTOR,
+            category=MenuCategory.VECTOR,
             tool_type=ToolTypeEnum.INSTANT,
             main_action=self._main_action_prefs.get(ToolKey.CONVERTER_MULTIPART, False),
             executor=self._make_plugin_executor("...plugins.VectorMultipartPlugin"),
@@ -360,7 +355,7 @@ class ToolRegistry:
             tool_key=ToolKey.COPY_ATTRIBUTES,
             name=STR.COPY_ATTRIBUTES_TITLE,
             icon=im.icon(im.COPY_ATTRIBUTES),
-            category=self.VECTOR,
+            category=MenuCategory.VECTOR,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.COPY_ATTRIBUTES, False),
             executor=self._make_plugin_executor("...plugins.CopyAttributesPlugin"),
@@ -374,7 +369,7 @@ class ToolRegistry:
             tool_key=ToolKey.DIVIDE_POINTS_BY_STRIPS,
             name=STR.DIVIDE_POINTS_BY_STRIPS_TITLE,
             icon=im.icon(im.DIVIDE_POINTS_BY_STRIPS),
-            category=self.VECTOR,
+            category=MenuCategory.VECTOR,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(
                 ToolKey.DIVIDE_POINTS_BY_STRIPS, False
@@ -393,7 +388,7 @@ class ToolRegistry:
             tool_key=ToolKey.SAVE_TEMPORARY_LAYER,
             name=STR.SAVE_TEMPORARY_LAYER_TITLE,
             icon=im.icon(im.SAVE_TEMPORARY_LAYER),
-            category=self.FOLDER,
+            category=MenuCategory.FOLDER,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(
                 ToolKey.SAVE_TEMPORARY_LAYER, False
@@ -409,7 +404,7 @@ class ToolRegistry:
             tool_key=ToolKey.PATH_EXTENSION_TOOL,
             name=STR.PATH_EXTENSION_TITLE,
             icon=im.icon(im.PATH_EXTENSION),
-            category=self.AGRICULTURE,
+            category=MenuCategory.AGRICULTURE,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.PATH_EXTENSION_TOOL, False),
             executor=self._make_plugin_executor("...plugins.PathExtensionPlugin"),
@@ -428,7 +423,7 @@ class ToolRegistry:
             tool_key=ToolKey.DRONE_COORDINATES,
             name=STR.DRONE_COORDINATES_TITLE,
             icon=im.icon(im.DRONE_COORDINATES),
-            category=self.AGRICULTURE,
+            category=MenuCategory.AGRICULTURE,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.DRONE_COORDINATES, True),
             executor=self._make_plugin_executor("...plugins.DroneCoordinates"),
@@ -442,7 +437,7 @@ class ToolRegistry:
             tool_key=ToolKey.GENERATE_TRAIL,
             name=STR.GENERATE_TRAIL_TITLE,
             icon=im.icon(im.GENERATE_TRAIL),
-            category=self.AGRICULTURE,
+            category=MenuCategory.AGRICULTURE,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.GENERATE_TRAIL, False),
             executor=self._make_plugin_executor("...plugins.GenerateTrailPlugin"),
@@ -455,7 +450,7 @@ class ToolRegistry:
             tool_key=ToolKey.REPORT_METADATA,
             name=STR.REPORT_METADATA_TITLE,
             icon=im.icon(im.REPORT_METADATA),
-            category=self.AGRICULTURE,
+            category=MenuCategory.AGRICULTURE,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.REPORT_METADATA, False),
             executor=self._make_plugin_executor("...plugins.ReportMetadataPlugin"),
@@ -474,7 +469,7 @@ class ToolRegistry:
             tool_key=ToolKey.RASTER_MASS_CLIPPER,
             name=STR.RASTER_MASS_CLIPPER_TITLE,
             icon=im.icon(im.RASTER_MASS_CLIPPER),
-            category=self.RASTER,
+            category=MenuCategory.RASTER,
             tool_type=ToolTypeEnum.PROCESSING,
             main_action=self._main_action_prefs.get(
                 ToolKey.RASTER_MASS_CLIPPER, True
@@ -492,7 +487,7 @@ class ToolRegistry:
             tool_key=ToolKey.RASTER_MASS_SAMPLER,
             name=STR.RASTER_MASS_SAMPLER_TITLE,
             icon=im.icon(im.RASTER_MASS_SAMPLER),
-            category=self.RASTER,
+            category=MenuCategory.RASTER,
             tool_type=ToolTypeEnum.PROCESSING,
             main_action=self._main_action_prefs.get(
                 ToolKey.RASTER_MASS_SAMPLER, False

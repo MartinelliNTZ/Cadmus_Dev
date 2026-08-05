@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from ..core.enum.MenuCategory import MenuCategory
 from ..core.enum.OutputFieldKey import StripOutputFieldKey
 from ..core.model.Field import Field
 from qgis.PyQt.QtCore import QVariant
@@ -149,14 +150,16 @@ class StringManager(BaseUtil):
             precision=8,
         ),
     }
+
     MENU_CATEGORIES = {
-        "SYSTEM": STR.MENU_SYSTEM,
-        "LAYOUTS": STR.MENU_LAYOUTS,
-        "FOLDER": STR.MENU_FOLDER,
-        "VECTOR": STR.MENU_VECTOR,
-        "AGRICULTURE": STR.MENU_AGRICULTURE,
-        "RASTER": STR.MENU_RASTER,
+        MenuCategory.SYSTEM: STR.MENU_SYSTEM,
+        MenuCategory.LAYOUTS: STR.MENU_LAYOUTS,
+        MenuCategory.FOLDER: STR.MENU_FOLDER,
+        MenuCategory.VECTOR: STR.MENU_VECTOR,
+        MenuCategory.AGRICULTURE: STR.MENU_AGRICULTURE,
+        MenuCategory.RASTER: STR.MENU_RASTER,
     }
+
     KML_FIELDS = [
         "descriptio",
         "timestamp",

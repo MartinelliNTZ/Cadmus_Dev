@@ -558,6 +558,14 @@
    - Novas strings GEOREFERENCE_PDF e GEOREFERENCE_PDF_DESC em Strings_pt_BR, Strings_en, Strings_es, Strings_de
    - Removido import não utilizado de QgsMapLayerProxyModel (F401)
 
+2.3.91 05/08/2026
+[2.3.91.1][05/08/2026] Refatoração MenuCategory: MENU_CATEGORIES agora usa enum MenuCategory (str, Enum) como chaves em vez de strings hardcoded.
+   - Criado core/enum/MenuCategory.py com membros SYSTEM, LAYOUTS, FOLDER, VECTOR, AGRICULTURE, RASTER
+   - ToolRegistry: removida gambiarra SYSTEM, LAYOUTS, FOLDER, VECTOR, AGRICULTURE, RASTER = StringManager.MENU_CATEGORIES.keys(); agora usa MenuCategory.* diretamente
+   - StringManager.MENU_CATEGORIES gerado automaticamente a partir do enum; para adicionar nova categoria basta adicionar membro no enum e label em _MENU_CATEGORY_LABELS
+   - MenuManager atualizado para usar MenuCategory nos mapeamentos de ícone
+   - Compatibilidade JSON preservada: MenuCategory é str Enum, então serializa como string em Preferences
+
 2.3.90 05/08/2026
 [2.3.90.1][05/08/2026] ExportAllLayouts: seleção individual de layouts:
    - Novo botão "Layouts" no GridExecutionButtons (STR.SELECT_LAYOUTS / STR.SELECT_LAYOUTS_DESC)

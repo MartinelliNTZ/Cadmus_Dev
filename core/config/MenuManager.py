@@ -6,6 +6,7 @@ from .LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 from ...utils.Preferences import Preferences
 from ...utils.StringManager import StringManager
+from ..enum import MenuCategory
 
 
 class MenuManager:
@@ -82,12 +83,12 @@ class MenuManager:
 
         # Mapeamento de categoria para ícone
         category_icons = {
-            "SYSTEM": im.icon(im.SYSTEM),
-            "LAYOUTS": im.icon(im.LAYOUT),
-            "FOLDER": im.icon(im.LAYER),  # Usar ícone de layer para folder
-            "VECTOR": im.icon(im.VECTOR),
-            "AGRICULTURE": im.icon(im.AGRICULTURE),
-            "RASTER": im.icon(im.RASTER),
+            MenuCategory.SYSTEM: im.icon(im.SYSTEM),
+            MenuCategory.LAYOUTS: im.icon(im.LAYOUT),
+            MenuCategory.FOLDER: im.icon(im.LAYER),  # Usar ícone de layer para folder
+            MenuCategory.VECTOR: im.icon(im.VECTOR),
+            MenuCategory.AGRICULTURE: im.icon(im.AGRICULTURE),
+            MenuCategory.RASTER: im.icon(im.RASTER),
         }
         self.logger.debug(
             f"Criando submenus para cada categoria: {list(category_icons.keys())}"

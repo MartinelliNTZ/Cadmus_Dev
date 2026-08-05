@@ -53,7 +53,36 @@ Traducao: 9
 atualizar o flush de drone corditates, 
 colocar o 
 
- changelog=
+changelog=
+  3.1.0 05/08/2026
+    - Reestruturação da Arquitetura de Processamento:
+      - ExecutionContext redesenhado com atributos canônicos para entrada e saída.
+      - Steps parametrizados via __init__, removendo dependência direta do contexto.
+      - Padronização de BaseTask e BaseStep para todas as tarefas e etapas, incluindo gerenciamento de callbacks e cancelamento cooperativo.
+      - Adaptação de BaseProcessingAlgorithm para _run_tool(), com tratamento robusto de exceções e feedback visual.
+
+    - Melhorias na Gestão de Preferências e Configurações:
+      - Refatoração dos métodos de carregamento e salvamento de preferências para preservar valores padrão.
+      - Adição de descrições detalhadas (tooltips) a todos os widgets de configuração no SettingsPlugin.
+      - Atualização das instruções de configuração para maior clareza.
+
+    - Novo Sistema de Widgets e UI/UX:
+      - Migração de diálogos (CoorResultDialog, AboutDialog, RegistryDialog) para um novo sistema de widgets, eliminando a WidgetFactory.
+      - Introdução de novos widgets como GridCheckbox (com layout responsivo), GridDoubleSpinBox e CollapsibleParametersWidget.
+      - Criação de AppStyles e expansão do BaseTheme para padronização visual e estilização global.
+      - Suporte a traduções nativas do QGIS para ícones e strings em diversos idiomas.
+
+    - Nova Ferramenta de Processamento de Imagens:
+      - Lançamento do ImageProcessingPlugin com funcionalidades de conversão (TIFF para JPG/PNG), recorte por extensão, redimensionamento e mesclagem de imagens com modos de blend.
+
+    - Aprimoramentos na Exportação de Layouts:
+      - Adição de opção para exportar PDFs com geolocalização embutida no ExportAllLayouts.
+      - Implementação de seleção individual de layouts para exportação, com diálogo dedicado e persistência de preferências.
+
+    - Modernização da Infraestrutura Interna:
+      - Eliminação completa da WidgetFactory e de widgets antigos, consolidando o novo sistema.
+      - Atualização e aprimoramento da documentação das Skills (SKILL_AGENT.md, SKILL_FACTORY.md, SKILL_WIDGETS2.md, SKILL_PLUGIN_CONTRACT.md), incluindo aspectos de segurança e mapeamento de situações para skills.
+
 3.0.0 27/04/2026
     - Reestruturação completa da arquitetura de processamento:
       - ExecutionContext redesenhado com atributos canônicos

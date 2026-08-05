@@ -8,7 +8,7 @@ from qgis.core import QgsLayoutExporter, QgsProject
 from ..core.ui.ProgressDialog import ProgressDialog
 from ..core.ui.dialogs.LayoutsSelectionDialog import LayoutsSelectionDialog
 from ..i18n.TranslationManager import STR
-from ..plugins.BasePlugin import BasePluginMTL
+from .BasePlugin import BasePluginMTL
 from ..resources.widgets.grid.GridCheckbox import GridCheckbox
 from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
 from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
@@ -20,7 +20,7 @@ from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.ToolKeys import ToolKey
 
 
-class ExportAllLayoutsDialog(BasePluginMTL):
+class ExportAllLayoutsPlugin(BasePluginMTL):
     """
     Plugin para exportar todos os layouts do projeto em PDF e/ou PNG.
 
@@ -525,7 +525,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
 
 def run(iface):
     """Função de entrada do plugin."""
-    dlg = ExportAllLayoutsDialog(iface)
+    dlg = ExportAllLayoutsPlugin(iface)
     dlg.setModal(False)
     dlg.show()
     return dlg

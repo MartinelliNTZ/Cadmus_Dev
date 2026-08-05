@@ -166,7 +166,7 @@ class ToolRegistry:
             category=self.LAYOUTS,
             tool_type=ToolTypeEnum.DIALOG,
             main_action=self._main_action_prefs.get(ToolKey.EXPORT_ALL_LAYOUTS, True),
-            executor=self._make_plugin_executor("...plugins.ExportAllLayouts"),
+            executor=self._make_plugin_executor("...plugins.ExportAllLayoutsPlugin"),
             tooltip=STR.EXPORT_ALL_LAYOUTS_TOOLTIP,
             order=10,
             show_in_toolbar=True,

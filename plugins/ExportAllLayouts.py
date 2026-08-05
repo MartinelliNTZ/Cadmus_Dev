@@ -41,7 +41,7 @@ class LayoutsSelectionDialog(BaseDialog):
 
         self.setWindowTitle(STR.SELECT_LAYOUTS_TITLE)
         self.setModal(True)
-        self.setMinimumSize(400, 400)
+        self.setMinimumSize(400, 500)
 
         self._build_ui()
 
@@ -51,7 +51,7 @@ class LayoutsSelectionDialog(BaseDialog):
             title=STR.SELECT_LAYOUTS_TITLE,
             icon_path="export_icon.ico",
             enable_scroll=True,
-            minimum_size=(400, 400),
+            minimum_size=(400, 500),
         )
 
         project = QgsProject.instance()

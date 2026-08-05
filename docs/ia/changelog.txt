@@ -548,3 +548,12 @@
      - Seção "Método de cálculo vetorial (Elipsoidal vs Cartesiano)" explicando quando usar cada método (WGS84/geográfico → elipsoidal; UTM/projetado → cartesiano)
      - Seção "Tooltips (descrições dos widgets)" documentando todas as descrições exibidas ao passar o mouse
      - Comportamento automático: Cartesiano em camada geográfica força modo Ambos com aviso
+
+2.3.89 05/08/2026
+[2.3.89.1][05/08/2026] ExportAllLayouts: adicionada opção de PDF com geolocalização:
+   - Novo checkbox "georeference_pdf" no GridCheckbox (STR.GEOREFERENCE_PDF / STR.GEOREFERENCE_PDF_DESC)
+   - Quando marcado, define PdfExportSettings.georeference = True na exportação de PDFs
+   - Gera PDFs georreferenciados (com geolocalização embutida) para uso em softwares GIS
+   - Preferência "georeference_pdf" persistida via _load_prefs()/_save_prefs()
+   - Novas strings GEOREFERENCE_PDF e GEOREFERENCE_PDF_DESC em Strings_pt_BR, Strings_en, Strings_es, Strings_de
+   - Removido import não utilizado de QgsMapLayerProxyModel (F401)

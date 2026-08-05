@@ -12,7 +12,6 @@ from ..resources.widgets.grid.GridCheckbox import GridCheckbox
 from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
 from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
 from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
-from qgis.core import QgsMapLayerProxyModel
 from ..utils.DependenciesManager import DependenciesManager
 from ..utils.PDFUtils import PDFUtils
 from ..utils.Preferences import Preferences
@@ -67,6 +66,11 @@ class ExportAllLayoutsDialog(BasePluginMTL):
                 "export_png": {
                     "label": STR.EXPORT_PNG,
                     "description": "Exporta layouts em formato PNG",
+                    "default": False,
+                },
+                "georeference_pdf": {
+                    "label": STR.GEOREFERENCE_PDF,
+                    "description": STR.GEOREFERENCE_PDF_DESC,
                     "default": False,
                 },
                 "merge_pdf": {
@@ -236,6 +240,9 @@ class ExportAllLayoutsDialog(BasePluginMTL):
                 "export_png", self.preferences.get("export_png", True)
             )
             self.checkbox_widget.set_checked(
+                "georeference_pdf", self.preferences.get("georeference_pdf", False)
+            )
+            self.checkbox_widget.set_checked(
                 "merge_pdf", self.preferences.get("merge_pdf", False)
             )
             self.checkbox_widget.set_checked(
@@ -262,6 +269,9 @@ class ExportAllLayoutsDialog(BasePluginMTL):
         all_states = self.checkbox_widget.get_all_states()
         self.preferences["export_pdf"] = all_states.get("export_pdf", True)
         self.preferences["export_png"] = all_states.get("export_png", False)
+        self.preferences["georeference_pdf"] = all_states.get(
+            "georeference_pdf", False
+        )
         self.preferences["merge_pdf"] = all_states.get("merge_pdf", False)
         self.preferences["merge_png"] = all_states.get("merge_png", False)
         self.preferences["replace_existing"] = all_states.get("replace_existing", False)
@@ -288,6 +298,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
         all_states = self.checkbox_widget.get_all_states()
         export_pdf = all_states.get("export_pdf", True)
         export_png = all_states.get("export_png", False)
+        georeference_pdf = all_states.get("georeference_pdf", False)
         merge_pdf = all_states.get("merge_pdf", False)
         merge_png = all_states.get("merge_png", False)
         replace_existing = all_states.get("replace_existing", False)
@@ -371,13 +382,15 @@ class ExportAllLayoutsDialog(BasePluginMTL):
                 ok_pdf = ok_png = True
 
                 if export_pdf:
-                    result = exporter.exportToPdf(
-                        pdf_path, QgsLayoutExporter.PdfExportSettings()
-                    )
+                    pdf_settings = QgsLayoutExporter.PdfExportSettings()
+                    pdf_settings.georeference = georeference_pdf
+                    result = exporter.exportToPdf(pdf_path, pdf_settings)
                     ok_pdf = result == QgsLayoutExporter.Success
                     if ok_pdf:
                         pdf_list.append(pdf_path)
-                        self.logger.debug(f"PDF exportado: {pdf_path}")
+                        self.logger.debug(
+                            f"PDF exportado: {pdf_path} (georeference={georeference_pdf})"
+                        )
                     else:
                         erros.append(f"{STR.FAILED_EXPORT_PDF} {nome}")
 

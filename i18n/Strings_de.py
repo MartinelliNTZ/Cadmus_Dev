@@ -72,6 +72,11 @@ class Strings_de(Strings_pt_BR):
     USE_PROJECT_FOLDER = "Projektordner verwenden"
     EXPORT_PDF = "PDF exportieren"
     EXPORT_PNG = "PNG exportieren"
+    GEOREFERENCE_PDF = "PDF mit Geolokalisierung"
+    GEOREFERENCE_PDF_DESC = (
+        "Erzeugt georeferenzierte PDFs (mit eingebetteter Geolokalisierung).\n"
+        "Ermöglicht das Öffnen der PDF in GIS-Software mit korrekter Positionierung."
+    )
     MERGE_PDFS_FINAL = "PDFs zu einer finalen PDF zusammenführen"
     MERGE_PNGS_FINAL = "PNGs zu einer finalen PDF zusammenführen"
     REPLACE_EXISTING_FILES = "Vorhandene Dateien ersetzen"

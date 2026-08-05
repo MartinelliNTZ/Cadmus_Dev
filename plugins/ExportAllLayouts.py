@@ -5,8 +5,10 @@ import re
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import QgsLayoutExporter, QgsProject
 
+from ..core.config.LogUtils import LogUtils
 from ..core.ui.ProgressDialog import ProgressDialog
 from ..i18n.TranslationManager import STR
+from ..plugins.BaseDialog import BaseDialog
 from ..plugins.BasePlugin import BasePluginMTL
 from ..resources.widgets.grid.GridCheckbox import GridCheckbox
 from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
@@ -17,6 +19,99 @@ from ..utils.PDFUtils import PDFUtils
 from ..utils.Preferences import Preferences
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.ToolKeys import ToolKey
+
+
+class LayoutsSelectionDialog(BaseDialog):
+    """
+    Diálogo modal para selecionar quais layouts do projeto exportar.
+
+    Usa GridCheckbox com control_buttons_config (Selecionar Todos /
+    Desselecionar / Inverter) e GridExecutionButtons (OK/Fechar).
+    """
+
+    PLUGIN_NAME = STR.SELECT_LAYOUTS_TITLE
+
+    def __init__(self, parent=None, selected=None):
+        super().__init__(parent)
+        self.logger = LogUtils(
+            tool=ToolKey.EXPORT_ALL_LAYOUTS, class_name="LayoutsSelectionDialog"
+        )
+        self._selected = set(selected or [])
+        self._checkbox = None
+
+        self.setWindowTitle(STR.SELECT_LAYOUTS_TITLE)
+        self.setModal(True)
+        self.setMinimumSize(400, 400)
+
+        self._build_ui()
+
+    def _build_ui(self):
+        """Constrói a interface do diálogo de seleção de layouts."""
+        super()._build_ui(
+            title=STR.SELECT_LAYOUTS_TITLE,
+            icon_path="export_icon.ico",
+            enable_scroll=True,
+            minimum_size=(400, 400),
+        )
+
+        project = QgsProject.instance()
+        layouts = project.layoutManager().layouts()
+
+        config = {}
+        for layout in layouts:
+            name = layout.name()
+            config[name] = {
+                "label": name,
+                "default": name in self._selected,
+            }
+
+        self._checkbox = GridCheckbox(
+            config=config,
+            title=STR.SELECT_LAYOUTS_HINT,
+            items_per_row=1,
+            control_buttons_config={
+                "select_all": {
+                    "label": STR.SELECT_ALL,
+                    "callback": lambda: self._checkbox.select_all(),
+                },
+                "deselect_all": {
+                    "label": STR.DESELECT_ALL,
+                    "callback": lambda: self._checkbox.deselect_all(),
+                },
+                "invert": {
+                    "label": STR.INVERT_SELECTION,
+                    "callback": lambda: self._checkbox.invert_selection(),
+                },
+            },
+            separator_bottom=True,
+            parent=self,
+        )
+        self.layout.addWidget(self._checkbox)
+
+        self._buttons = GridExecutionButtons(
+            config={
+                "ok": {
+                    "label": STR.OK,
+                    "description": "Confirma a seleção de layouts",
+                    "callback": self._on_ok,
+                    "is_run_button": True,
+                },
+            },
+            enable_close_button=True,
+            enable_config_button=False,
+            enable_info=False,
+            parent=self,
+        )
+        self.layout.add_execution_buttons(self._buttons)
+
+    def _on_ok(self):
+        """Confirma a seleção e fecha o diálogo."""
+        self._selected = set(self._checkbox.get_checked_keys())
+        self.accept()
+
+    def get_selected_layouts(self):
+        """Retorna a lista de nomes de layouts selecionados."""
+        return list(self._selected)
 
 
 class ExportAllLayoutsDialog(BasePluginMTL):
@@ -36,6 +131,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
         super().__init__(iface.mainWindow())
         self.iface = iface
         self._suppress_merge_dependency_check = False
+        self._selected_layouts = set()
 
         self.init(
             self.TOOL_KEY,
@@ -147,6 +243,11 @@ class ExportAllLayoutsDialog(BasePluginMTL):
         # ── Execution Buttons ─────────────────────────────────────
         self.action_buttons = GridExecutionButtons(
             config={
+                "layouts": {
+                    "label": STR.SELECT_LAYOUTS,
+                    "description": STR.SELECT_LAYOUTS_DESC,
+                    "callback": self.open_layouts_selection,
+                },
                 "exportar": {
                     "label": STR.EXPORT,
                     "description": "Inicia a exportação dos layouts",
@@ -165,6 +266,22 @@ class ExportAllLayoutsDialog(BasePluginMTL):
 
         self.logger.info("Interface de exportação construída com sucesso")
 
+    def open_layouts_selection(self):
+        """Abre o diálogo de seleção de layouts."""
+        self.logger.debug("Abrindo diálogo de seleção de layouts")
+
+        project = QgsProject.instance()
+        layouts = project.layoutManager().layouts()
+        if not layouts:
+            QgisMessageUtil.modal_error(self.iface, STR.NO_LAYOUTS_SELECTED)
+            return
+
+        dlg = LayoutsSelectionDialog(parent=self, selected=self._selected_layouts)
+        if dlg.exec():
+            self._selected_layouts = set(dlg.get_selected_layouts())
+            self.logger.info(
+                f"Layouts selecionados: {len(self._selected_layouts)}"
+            )
 
     def _ensure_merge_dependency(
         self, *, checkbox_key: str, dependency_name: str, message: str
@@ -263,6 +380,12 @@ class ExportAllLayoutsDialog(BasePluginMTL):
         self.folder_selector.set_paths([pasta_salva])
         self.logger.debug(f"Pasta de saída carregada: {pasta_salva}")
 
+        saved_layouts = self.preferences.get("selected_layouts", [])
+        self._selected_layouts = set(saved_layouts or [])
+        self.logger.debug(
+            f"Layouts selecionados carregados: {len(self._selected_layouts)}"
+        )
+
     def _save_prefs(self):
         self.logger.debug("Salvando preferências de exportação")
 
@@ -286,6 +409,8 @@ class ExportAllLayoutsDialog(BasePluginMTL):
             else os.path.join(QgsProject.instance().homePath(), "exports")
         )
         self.preferences["output_folder"] = pasta
+
+        self.preferences["selected_layouts"] = list(self._selected_layouts)
 
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.info(
@@ -319,6 +444,24 @@ class ExportAllLayoutsDialog(BasePluginMTL):
             )
             return
 
+        project = QgsProject.instance()
+        layouts = project.layoutManager().layouts()
+
+        # Filtra layouts selecionados (se houver seleção)
+        if self._selected_layouts:
+            layouts = [
+                layout
+                for layout in layouts
+                if layout.name() in self._selected_layouts
+            ]
+            self.logger.info(
+                f"Filtrando para {len(layouts)} layout(s) selecionado(s)"
+            )
+
+        if not layouts:
+            QgisMessageUtil.modal_error(self.iface, STR.NO_LAYOUTS_SELECTED)
+            return
+
         os.makedirs(output_folder, exist_ok=True)
         self.logger.info(f"Pasta de saída: {output_folder}")
 
@@ -339,9 +482,6 @@ class ExportAllLayoutsDialog(BasePluginMTL):
             )
             merge_png = False
             self.checkbox_widget.set_checked("merge_png", False)
-
-        project = QgsProject.instance()
-        layouts = project.layoutManager().layouts()
 
         pdf_list = []
         png_list = []

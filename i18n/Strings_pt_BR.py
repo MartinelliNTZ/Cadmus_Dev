@@ -590,6 +590,13 @@ class Strings_pt_BR:
         "converter os PNGs em PDF e controlar sobrescrita\n"
         "dos arquivos na pasta de saída."
     )
+    SELECT_LAYOUTS = "Layouts"
+    SELECT_LAYOUTS_DESC = "Escolhe quais layouts do projeto exportar"
+    SELECT_LAYOUTS_TITLE = "Selecionar Layouts"
+    SELECT_LAYOUTS_HINT = "Marque os layouts que deseja exportar"
+    INVERT_SELECTION = "Inverter"
+    NO_LAYOUTS_SELECTED = "Nenhum layout selecionado para exportação."
+    LAYOUTS_SELECTED_COUNT = "{count} layout(s) selecionado(s)"
 
     # plugins/VectorMultipartPlugin.py
     CONVERTER_MULTIPART_TITLE = "Converter Multipart"

@@ -22,8 +22,12 @@ COMPATIBILIDADE TOTAL COM
   - QGIS 3.16 A 4.99
   - QT5 /QT6 
   PYTHON 3.7 A 3.13
-
+Não precisa testar o codigo, quem testa sou eu o desenvolvedor
+nunca traduzir nada quem vai traduzir sou eu e nao voce, proibido ler ou acessar Strings_en, Strings_es ou Strings_de, somente Strings_ptbr
+Proibido ler o plugin inteiro para uma tarefa simples, economize tokens, o plugins tem mais de 200 arquivos, leia somente o necessario para a tarefa, se precisar de mais arquivos me pergunte antes de ler, leia as skill 
+e use as instrucoes delas 
 # MAPEAMENTO RÁPIDO — SKILL RELEVANTE PARA CADA SITUAÇÃO
+
 
 Use esta tabela para decidir qual skill ler **além** dos contratos obrigatórios.
 

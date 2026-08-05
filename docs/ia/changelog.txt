@@ -557,3 +557,15 @@
    - Preferência "georeference_pdf" persistida via _load_prefs()/_save_prefs()
    - Novas strings GEOREFERENCE_PDF e GEOREFERENCE_PDF_DESC em Strings_pt_BR, Strings_en, Strings_es, Strings_de
    - Removido import não utilizado de QgsMapLayerProxyModel (F401)
+
+2.3.90 05/08/2026
+[2.3.90.1][05/08/2026] ExportAllLayouts: seleção individual de layouts:
+   - Novo botão "Layouts" no GridExecutionButtons (STR.SELECT_LAYOUTS / STR.SELECT_LAYOUTS_DESC)
+   - Nova classe LayoutsSelectionDialog (BaseDialog) com GridCheckbox de layouts do projeto
+   - GridCheckbox com control_buttons_config: Selecionar Todos / Desselecionar Todos / Inverter (STR.SELECT_ALL, STR.DESELECT_ALL, STR.INVERT_SELECTION)
+   - Botões OK/Fechar via GridExecutionButtons (add_execution_buttons)
+   - Seleção persistida em Preferences via "selected_layouts" (_load_prefs/_save_prefs)
+   - execute_tool filtra layouts pela seleção; se nenhum selecionado, exporta todos (comportamento padrão)
+   - Validação: se nenhum layout no projeto ou seleção vazia → modal NO_LAYOUTS_SELECTED
+   - Novas strings: SELECT_LAYOUTS, SELECT_LAYOUTS_DESC, SELECT_LAYOUTS_TITLE, SELECT_LAYOUTS_HINT, INVERT_SELECTION, NO_LAYOUTS_SELECTED, LAYOUTS_SELECTED_COUNT (pt_BR, en; es/de herdam de pt_BR)
+   - Import de BaseDialog adicionado; sem imports não utilizados (F401)

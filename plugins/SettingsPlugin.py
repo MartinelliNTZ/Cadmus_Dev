@@ -70,6 +70,7 @@ class SettingsPlugin(BasePluginMTL):
             config={
                 "projects_folder": {
                     "label": STR.PROJECTS_FOLDER,
+                    "description": STR.PROJECTS_FOLDER_DESC,
                     "mode_type": "input",
                     "allow_file": False,
                     "allow_folder": True,
@@ -87,6 +88,7 @@ class SettingsPlugin(BasePluginMTL):
             default_auth_id=self.system_preferences.get(
                 "default_crs_authid", self.DEFAULT_CRS_AUTHID
             ),
+            tooltip=STR.DEFAULT_CRS_DESC,
             tool_key=self.TOOL_KEY,
             parent=self,
         )
@@ -100,6 +102,7 @@ class SettingsPlugin(BasePluginMTL):
             config={
                 "language": {
                     "label": STR.PLUGIN_LANGUAGE,
+                    "description": STR.PLUGIN_LANGUAGE_DESC,
                     "options": langs,
                     "selected_key": selected_lang,
                 },
@@ -114,6 +117,7 @@ class SettingsPlugin(BasePluginMTL):
             config={
                 "precision": {
                     "label": STR.VECTOR_FIELDS_PRECISION,
+                    "description": STR.VECTOR_FIELDS_PRECISION_DESC,
                     "value": 2,
                     "min": 0,
                     "max": 10,
@@ -131,6 +135,7 @@ class SettingsPlugin(BasePluginMTL):
             config={
                 "threshold": {
                     "label": STR.ASYNC_THRESHOLD,
+                    "description": STR.ASYNC_THRESHOLD_DESC,
                     "value": 1000,
                     "min": 1,
                     "max": 100000000,
@@ -146,7 +151,11 @@ class SettingsPlugin(BasePluginMTL):
         # ── Toolbar - Categorias visíveis (GridCheckbox - 3 colunas)
         self.toolbar_category_checks = GridCheckbox(
             config={
-                key: {"label": label, "default": True}
+                key: {
+                    "label": label,
+                    "description": STR.TOOLBAR_VISIBLE_CATEGORIES_DESC,
+                    "default": True,
+                }
                 for key, label in MenuManager.toolbar_category_options().items()
             },
             items_per_row=3,
@@ -166,9 +175,18 @@ class SettingsPlugin(BasePluginMTL):
         # ── Método de Cálculo (GridRadioButton) ───────────────────
         self.radio_calc = GridRadioButton(
             config={
-                STR.ELLIPSOIDAL: {"label": STR.ELLIPSOIDAL},
-                STR.CARTESIAN: {"label": STR.CARTESIAN},
-                STR.BOTH: {"label": STR.BOTH},
+                STR.ELLIPSOIDAL: {
+                    "label": STR.ELLIPSOIDAL,
+                    "description": STR.ELLIPSOIDAL_DESC,
+                },
+                STR.CARTESIAN: {
+                    "label": STR.CARTESIAN,
+                    "description": STR.CARTESIAN_DESC,
+                },
+                STR.BOTH: {
+                    "label": STR.BOTH,
+                    "description": STR.BOTH_DESC,
+                },
             },
             columns=3,
             default_key=STR.ELLIPSOIDAL,
@@ -182,10 +200,12 @@ class SettingsPlugin(BasePluginMTL):
             config={
                 "cartesian_suffix": {
                     "label": STR.CARTESIAN_SUFFIX,
+                    "description": STR.CARTESIAN_SUFFIX_DESC,
                     "default": "",
                 },
                 "ellipsoidal_suffix": {
                     "label": STR.ELLIPSOIDAL_SUFFIX,
+                    "description": STR.ELLIPSOIDAL_SUFFIX_DESC,
                     "default": "_eli",
                 },
             },
@@ -199,18 +219,18 @@ class SettingsPlugin(BasePluginMTL):
             config={
                 "save": {
                     "label": STR.SAVE,
-                    "description": "Salva as configurações",
+                    "description": STR.SAVE_DESC,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },
                 "open_prefs": {
                     "label": STR.OPEN_PREFERENCES_FOLDER,
-                    "description": "Abre a pasta de preferências",
+                    "description": STR.OPEN_PREFERENCES_FOLDER_DESC,
                     "callback": self._open_preferences_folder,
                 },
                 "open_registry": {
                     "label": STR.REG_TITLE,
-                    "description": "Abre o gerenciador",
+                    "description": STR.REG_TITLE_DESC,
                     "callback": self._open_lic_dialog,
                 },
             },

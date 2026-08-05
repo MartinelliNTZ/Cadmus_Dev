@@ -451,6 +451,74 @@ class Strings_de(Strings_pt_BR):
     CARTESIAN = "Kartesisch"
     BOTH = "Beides"
 
+    # Tooltips/Beschreibungen der SettingsPlugin-Widgets
+    PROJECTS_FOLDER_DESC = (
+        "Stammordner, in dem Cadmus-Projekte erstellt und organisiert werden.\n"
+        "Wird als Standardort für neue Projekte und zum Auffinden\n"
+        "von Ein-/Ausgabedateien der Werkzeuge verwendet."
+    )
+    DEFAULT_CRS_DESC = (
+        "Standard-Koordinatenreferenzsystem (KBS), das verwendet wird,\n"
+        "wenn kein KBS angegeben ist. WGS84 (EPSG:4326) ist der empfohlene\n"
+        "Standard für globale geografische Daten."
+    )
+    PLUGIN_LANGUAGE_DESC = (
+        "Sprache der Cadmus-Oberfläche.\n"
+        "Wählen Sie 'Automatisch erkennen', um die QGIS-Sprache zu verwenden,\n"
+        "oder wählen Sie manuell eine bestimmte Sprache."
+    )
+    VECTOR_FIELDS_PRECISION_DESC = (
+        "Anzahl der Dezimalstellen, die in berechneten Vektorfeldern verwendet werden\n"
+        "(Fläche, Länge, X/Y-Koordinaten).\n"
+        "Höhere Werte erhöhen die Genauigkeit, erzeugen aber längere Felder."
+    )
+    ASYNC_THRESHOLD_DESC = (
+        "Mindestanzahl von Objekten, damit die Verarbeitung im Hintergrund\n"
+        "(asynchron) ausgeführt wird. Ebenen mit weniger Objekten als dieser\n"
+        "Schwellenwert werden synchron (blockierend) verarbeitet."
+    )
+    TOOLBAR_VISIBLE_CATEGORIES_DESC = (
+        "Steuert, welche Werkzeugkategorien in der Cadmus-Werkzeugleiste erscheinen.\n"
+        "Deaktivieren Sie eine Kategorie, um ihre Schaltflächen auszublenden."
+    )
+    VECTOR_CALCULATIONS_PLUGIN_DESC = (
+        "Einstellungen für das Plugin zur Berechnung von Vektorfeldern.\n"
+        "Definiert die Berechnungsmethode (ellipsoidisch/kartesisch), die Suffixe\n"
+        "für Flächen- und Längenfelder."
+    )
+    ELLIPSOIDAL_DESC = (
+        "Berechnet Flächen und Längen über die gekrümmte Oberfläche des\n"
+        "Erdellipsoids (z. B. WGS84). Ideal für Ebenen in geografischem KBS (lat/lon)\n"
+        "wie WGS84 (EPSG:4326). Ergebnisse in Metern/m² unabhängig vom KBS.\n"
+        "Genauer für große Flächen und hohe Breitengrade."
+    )
+    CARTESIAN_DESC = (
+        "Berechnet Flächen und Längen in der kartesischen Ebene des Ebenen-KBS.\n"
+        "Ideal für projizierte KBS wie UTM, bei denen die Einheiten Meter sind.\n"
+        "Schnell und einfach, aber in geografischem KBS würde es Grad/Grad² ergeben\n"
+        "(Werte ohne physikalische Bedeutung)."
+    )
+    BOTH_DESC = (
+        "Berechnet beide Methoden (ellipsoidisch und kartesisch) gleichzeitig.\n"
+        "Erzeugt zwei getrennte Felder für jede Metrik, unter Verwendung der\n"
+        "unten konfigurierten Suffixe. Nützlich zum Vergleich der Ergebnisse."
+    )
+    CARTESIAN_SUFFIX_DESC = (
+        "Suffix, das dem Namen der im kartesischen Modus berechneten Felder hinzugefügt wird.\n"
+        "Z. B.: Feld 'area' mit Suffix '' wird zu 'area'.\n"
+        "Leer lassen, um kein Suffix hinzuzufügen."
+    )
+    ELLIPSOIDAL_SUFFIX_DESC = (
+        "Suffix, das dem Namen der im ellipsoidischen Modus berechneten Felder hinzugefügt wird.\n"
+        "Z. B.: Feld 'area' mit Suffix '_eli' wird zu 'area_eli'.\n"
+        "Der Standard ist '_eli', um es von kartesischen Feldern zu unterscheiden."
+    )
+    SAVE_DESC = "Speichert alle Einstellungen und schließt das Fenster."
+    OPEN_PREFERENCES_FOLDER_DESC = (
+        "Öffnet den Ordner, in dem die Cadmus-Einstellungen gespeichert sind."
+    )
+    REG_TITLE_DESC = "Öffnet den Lizenz-/Registrierungsmanager von Cadmus."
+
     # plugins/ReplaceInLayouts.py
     REPLACE_IN_LAYOUTS_TITLE = "Text in Layouts ersetzen"
     REPLACE_IN_LAYOUTS_TOOLTIP = (

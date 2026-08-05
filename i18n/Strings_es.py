@@ -447,6 +447,74 @@ class Strings_es(Strings_pt_BR):
     CARTESIAN = "Cartesiano"
     BOTH = "Ambos"
 
+    # Tooltips/descripciones de los widgets del SettingsPlugin
+    PROJECTS_FOLDER_DESC = (
+        "Carpeta raíz donde se crean y organizan los proyectos de Cadmus.\n"
+        "Se usa como ubicación predeterminada para nuevos proyectos y para\n"
+        "localizar archivos de entrada/salida de las herramientas."
+    )
+    DEFAULT_CRS_DESC = (
+        "Sistema de Referencia de Coordenadas (SRC) predeterminado usado\n"
+        "cuando no se especifica ningún SRC. WGS84 (EPSG:4326) es el\n"
+        "predeterminado recomendado para datos geográficos globales."
+    )
+    PLUGIN_LANGUAGE_DESC = (
+        "Idioma de la interfaz de Cadmus.\n"
+        "Elija 'Auto-detectar' para usar el idioma de QGIS,\n"
+        "o seleccione un idioma específico manualmente."
+    )
+    VECTOR_FIELDS_PRECISION_DESC = (
+        "Número de decimales usados en los campos vectoriales calculados\n"
+        "(área, longitud, coordenadas X/Y).\n"
+        "Valores mayores aumentan la precisión, pero generan campos más largos."
+    )
+    ASYNC_THRESHOLD_DESC = (
+        "Número mínimo de entidades para que el procesamiento se ejecute\n"
+        "en segundo plano (asíncrono). Las capas con menos entidades que este\n"
+        "umbral se procesan de forma síncrona (bloqueante)."
+    )
+    TOOLBAR_VISIBLE_CATEGORIES_DESC = (
+        "Controla qué categorías de herramientas aparecen en la barra de herramientas de Cadmus.\n"
+        "Desmarque una categoría para ocultar sus botones de la barra."
+    )
+    VECTOR_CALCULATIONS_PLUGIN_DESC = (
+        "Configuración del plugin de cálculo de campos vectoriales.\n"
+        "Define el método de cálculo (elipsoidal/cartesiano), los sufijos\n"
+        "de los campos de área y longitud."
+    )
+    ELLIPSOIDAL_DESC = (
+        "Calcula áreas y longitudes sobre la superficie curva del elipsoide\n"
+        "de la Tierra (ej: WGS84). Ideal para capas en SRC geográfico (lat/lon)\n"
+        "como WGS84 (EPSG:4326). Resultados en metros/m² independiente del SRC.\n"
+        "Más preciso para grandes áreas y altas latitudes."
+    )
+    CARTESIAN_DESC = (
+        "Calcula áreas y longitudes en el plano cartesiano del SRC de la capa.\n"
+        "Ideal para SRC proyectados como UTM, donde las unidades son metros.\n"
+        "Rápido y simple, pero en SRC geográfico resultaría en grados/grados²\n"
+        "(valores sin sentido físico)."
+    )
+    BOTH_DESC = (
+        "Calcula ambos métodos (elipsoidal y cartesiano) simultáneamente.\n"
+        "Genera dos campos separados para cada métrica, usando los sufijos\n"
+        "configurados abajo. Útil para comparar resultados."
+    )
+    CARTESIAN_SUFFIX_DESC = (
+        "Sufijo añadido al nombre de los campos calculados en modo cartesiano.\n"
+        "Ej: campo 'area' con sufijo '' se convierte en 'area'.\n"
+        "Déjelo vacío para no añadir sufijo."
+    )
+    ELLIPSOIDAL_SUFFIX_DESC = (
+        "Sufijo añadido al nombre de los campos calculados en modo elipsoidal.\n"
+        "Ej: campo 'area' con sufijo '_eli' se convierte en 'area_eli'.\n"
+        "El predeterminado es '_eli' para diferenciar de los campos cartesianos."
+    )
+    SAVE_DESC = "Guarda todas las configuraciones y cierra la ventana."
+    OPEN_PREFERENCES_FOLDER_DESC = (
+        "Abre la carpeta donde se almacenan las preferencias de Cadmus."
+    )
+    REG_TITLE_DESC = "Abre el administrador de licencias/registro de Cadmus."
+
     # plugins/ReplaceInLayouts.py
     REPLACE_IN_LAYOUTS_TITLE = "Reemplazar texto en layouts"
     REPLACE_IN_LAYOUTS_TOOLTIP = (

@@ -530,3 +530,16 @@
    - SKILL_WIDGETS2.md v3.3.0 - DropdownToolButton documentado no catalogo de widgets raiz; WidgetFactory e resources/widgets/ removidos
    - SKILL_PLUGIN_CONTRACT.md - regras #1 (UI), #5 (Estilos) e #9 (Widgets Customizados) atualizadas para o novo sistema (widgets/ + AppStyles + BaseTheme, sem WidgetFactory)
    - SKILL_AGENT.md - mapeamento UI/Widgets atualizado para SKILL_WIDGETS2.md (substitui SKILL_WIDGET_ENGINE.md inexistente); regras do contrato atualizadas (18 regras, UI via widgets/)
+
+2.3.88 05/08/2026
+[2.3.88.1][05/08/2026] SettingsPlugin: adicionadas descrições (tooltips) detalhadas a todos os widgets:
+   - GridComplexSelector (pasta de projetos): STR.PROJECTS_FOLDER_DESC
+   - ComplexCrsSelector (SRC padrão): STR.DEFAULT_CRS_DESC via tooltip
+   - GridComboBox (idioma): STR.PLUGIN_LANGUAGE_DESC
+   - GridDoubleSpin (precisão): STR.VECTOR_FIELDS_PRECISION_DESC
+   - GridDoubleSpin (limiar assíncrono): STR.ASYNC_THRESHOLD_DESC
+   - GridCheckbox (categorias toolbar): STR.TOOLBAR_VISIBLE_CATEGORIES_DESC
+   - GridRadioButton (método de cálculo): STR.ELLIPSOIDAL_DESC, STR.CARTESIAN_DESC, STR.BOTH_DESC — explicações detalhadas sobre elipsoidal (ideal WGS84/geográfico) vs cartesiano (ideal UTM/projetado) vs ambos
+   - GridInputFields (sufixos): STR.CARTESIAN_SUFFIX_DESC, STR.ELLIPSOIDAL_SUFFIX_DESC
+   - GridExecutionButtons (Salvar/Abrir Prefs/Gerenciar): STR.SAVE_DESC, STR.OPEN_PREFERENCES_FOLDER_DESC, STR.REG_TITLE_DESC
+   - Novas strings adicionadas em Strings_pt_BR, Strings_en, Strings_es, Strings_de

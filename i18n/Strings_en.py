@@ -429,6 +429,74 @@ class Strings_en(Strings_pt_BR):
     CARTESIAN = "Cartesian"
     BOTH = "Both"
 
+    # Tooltips/descriptions for SettingsPlugin widgets
+    PROJECTS_FOLDER_DESC = (
+        "Root folder where Cadmus projects are created and organized.\n"
+        "Used as the default location for new projects and for locating\n"
+        "input/output files of the tools."
+    )
+    DEFAULT_CRS_DESC = (
+        "Default Coordinate Reference System (CRS) used\n"
+        "when no CRS is specified. WGS84 (EPSG:4326) is the recommended\n"
+        "default for global geographic data."
+    )
+    PLUGIN_LANGUAGE_DESC = (
+        "Cadmus interface language.\n"
+        "Choose 'Auto-detect' to use the QGIS language,\n"
+        "or select a specific language manually."
+    )
+    VECTOR_FIELDS_PRECISION_DESC = (
+        "Number of decimal places used in calculated vector fields\n"
+        "(area, length, X/Y coordinates).\n"
+        "Higher values increase precision but generate longer fields."
+    )
+    ASYNC_THRESHOLD_DESC = (
+        "Minimum number of features for processing to run\n"
+        "in the background (asynchronous). Layers with fewer features\n"
+        "than this threshold are processed synchronously (blocking)."
+    )
+    TOOLBAR_VISIBLE_CATEGORIES_DESC = (
+        "Controls which tool categories appear on the Cadmus toolbar.\n"
+        "Uncheck a category to hide its buttons from the toolbar."
+    )
+    VECTOR_CALCULATIONS_PLUGIN_DESC = (
+        "Settings for the vector field calculation plugin.\n"
+        "Defines the calculation method (ellipsoidal/cartesian), the suffixes\n"
+        "for area and length fields."
+    )
+    ELLIPSOIDAL_DESC = (
+        "Calculates areas and lengths over the curved surface of the Earth's\n"
+        "ellipsoid (e.g., WGS84). Ideal for layers in geographic CRS (lat/lon)\n"
+        "such as WGS84 (EPSG:4326). Results in meters/m² regardless of CRS.\n"
+        "More accurate for large areas and high latitudes."
+    )
+    CARTESIAN_DESC = (
+        "Calculates areas and lengths on the cartesian plane of the layer CRS.\n"
+        "Ideal for projected CRS such as UTM, where units are meters.\n"
+        "Fast and simple, but in geographic CRS it would result in degrees/degrees²\n"
+        "(values without physical meaning)."
+    )
+    BOTH_DESC = (
+        "Calculates both methods (ellipsoidal and cartesian) simultaneously.\n"
+        "Generates two separate fields for each metric, using the suffixes\n"
+        "configured below. Useful for comparing results."
+    )
+    CARTESIAN_SUFFIX_DESC = (
+        "Suffix added to the name of fields calculated in cartesian mode.\n"
+        "E.g., field 'area' with suffix '' becomes 'area'.\n"
+        "Leave empty to add no suffix."
+    )
+    ELLIPSOIDAL_SUFFIX_DESC = (
+        "Suffix added to the name of fields calculated in ellipsoidal mode.\n"
+        "E.g., field 'area' with suffix '_eli' becomes 'area_eli'.\n"
+        "The default is '_eli' to differentiate from cartesian fields."
+    )
+    SAVE_DESC = "Saves all settings and closes the window."
+    OPEN_PREFERENCES_FOLDER_DESC = (
+        "Opens the folder where Cadmus preferences are stored."
+    )
+    REG_TITLE_DESC = "Opens the Cadmus license/registry manager."
+
     # plugins/ReplaceInLayouts.py
     REPLACE_IN_LAYOUTS_TITLE = "Replace Text in Layouts"
     REPLACE_IN_LAYOUTS_TOOLTIP = (

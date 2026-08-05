@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Refatoração ExportAllLayouts — Novo Sistema de Widgets
 
-**Objetivo:** Migrar `ExportAllLayouts` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`), eliminando dependências do sistema antigo.
+**Objetivo:** Migrar `ExportAllLayouts` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/widgets/`), eliminando dependências do sistema antigo.
 
 **Data:** 2026-07-24
 **Versão:** 2.0.0
@@ -24,7 +24,7 @@
 
 ## 1. Widgets Necessários
 
-| Widget Atual (WidgetFactory) | Novo Widget (new_widgets/) | Status |
+| Widget Atual (WidgetFactory) | Novo Widget (widgets/) | Status |
 |---|---|---|
 | `create_checkbox_grid()` — Export Options (PDF, PNG, Merge, Replace) | **`GridCheckbox`** 🆕 | ⬜ Criar |
 | `create_input_fields_widget()` — Max Width (int, default 3500) | **`GridDoubleSpin`** 🆕 | ⬜ Criar |
@@ -33,7 +33,7 @@
 
 ### 🧩 GridComplexSelector — Comportamento
 
-Baseado no `GridComplexSelector` existente em `resources/widgets/grid/`, adaptado para new_widgets:
+Baseado no `GridComplexSelector` existente em `resources/widgets/grid/`, adaptado para widgets:
 - **subfolder = "exports"** (subpasta padrão)
 - **SEM parent** — seletor independente, sem linking
 - **mode = "folder"** — seleciona pasta, não arquivo
@@ -84,7 +84,7 @@ Layout do diálogo (top → bottom):
 ### 3.1 GridCheckbox
 
 ```python
-# resources/new_widgets/grid/GridCheckbox.py
+# resources/widgets/grid/GridCheckbox.py
 ```
 
 Container de checkboxes configurável via dict. Substitui `WidgetFactory.create_checkbox_grid()`.
@@ -160,7 +160,7 @@ self.layout.addWidget(self.checkbox_widget)
 ### SimpleCheckbox
 
 ```python
-# resources/new_widgets/simple/SimpleCheckbox.py (NOVO)
+# resources/widgets/simple/SimpleCheckbox.py (NOVO)
 ```
 
 ```python
@@ -177,7 +177,7 @@ class SimpleCheckbox(QCheckBox):
 ### 3.2 GridDoubleSpin
 
 ```python
-# resources/new_widgets/grid/GridDoubleSpin.py
+# resources/widgets/grid/GridDoubleSpin.py
 ```
 
 Container de campos numéricos (double/int) com título. Substitui `WidgetFactory.create_input_fields_widget()`.
@@ -235,7 +235,7 @@ self.layout.addWidget(self.max_width_input)
 ### SimpleDoubleSpinBox
 
 ```python
-# resources/new_widgets/simple/SimpleDoubleSpinBox.py (NOVO)
+# resources/widgets/simple/SimpleDoubleSpinBox.py (NOVO)
 ```
 
 ```python
@@ -264,10 +264,10 @@ class SimpleDoubleSpinBox(QDoubleSpinBox):
 
 > Se `type="int"`, usa `QSpinBox` em vez de `QDoubleSpinBox` (decimals=0, sem casas decimais).
 
-### 3.3 GridComplexSelector (new_widgets)
+### 3.3 GridComplexSelector (widgets)
 
 ```python
-# resources/new_widgets/grid/GridComplexSelector.py (NOVO — baseado no antigo resources/widgets/grid/GridComplexSelector.py)
+# resources/widgets/grid/GridComplexSelector.py (NOVO — baseado no antigo resources/widgets/grid/GridComplexSelector.py)
 ```
 
 Seletor de pasta/arquivo com subfolder, simplificado para o novo sistema.
@@ -326,18 +326,18 @@ self.layout.addWidget(self.folder_selector)
 ### Arquivos a criar (3 novos Simple + 3 novos Grid = 6 arquivos)
 
 ```
-resources/new_widgets/simple/SimpleCheckbox.py         🆕 NOVO
-resources/new_widgets/simple/SimpleDoubleSpinBox.py    🆕 NOVO
-resources/new_widgets/grid/GridCheckbox.py              🆕 NOVO
-resources/new_widgets/grid/GridDoubleSpin.py            🆕 NOVO
-resources/new_widgets/grid/GridComplexSelector.py       🆕 NOVO (baseado no antigo)
+resources/widgets/simple/SimpleCheckbox.py         🆕 NOVO
+resources/widgets/simple/SimpleDoubleSpinBox.py    🆕 NOVO
+resources/widgets/grid/GridCheckbox.py              🆕 NOVO
+resources/widgets/grid/GridDoubleSpin.py            🆕 NOVO
+resources/widgets/grid/GridComplexSelector.py       🆕 NOVO (baseado no antigo)
 ```
 
 ### Arquivos a modificar
 
 | Arquivo | Tipo de Mudança | Descrição |
 |---------|----------------|-----------|
-| `plugins/ExportAllLayouts.py` | Modificar | Substituir WidgetFactory por new_widgets |
+| `plugins/ExportAllLayouts.py` | Modificar | Substituir WidgetFactory por widgets |
 | `docs/skills/SKILL_WIDGETS2.md` | Atualizar | Adicionar catálogo: GridCheckbox, GridDoubleSpin, GridComplexSelector |
 | `docs/plano_eliminacao_widgetfactory.md` | Atualizar | Marcar ExportAllLayouts como migrado |
 | `docs/ia/changelog.txt` | Atualizar | Registrar nova versão |
@@ -399,7 +399,7 @@ ExportAllLayouts.py
    self.max_width_input.set_value("max_width", ...)
    self.folder_selector.set_paths([...])
 
-   # DEPOIS (new_widgets):
+   # DEPOIS (widgets):
    self.checkbox_widget.set_checked("export_pdf", ...)
    self.max_width_input.set_value("max_width", ...)
    self.folder_selector.set_paths([...])
@@ -519,7 +519,7 @@ GridCheckbox(
        [ ] API: get_value, set_value, get_all_values
        [ ] description → tooltip no label
        [ ] onchange → conectado ao valueChanged
-  [ ] 2.3 Criar GridComplexSelector.py (new_widgets)
+  [ ] 2.3 Criar GridComplexSelector.py (widgets)
        [ ] Baseado no antigo resources/widgets/grid/GridComplexSelector.py
        [ ] config dict: label, description, path, mode, subfolder
        [ ] subfolder = "exports"
@@ -532,7 +532,7 @@ GridCheckbox(
 [ ] FASE 3: Refatorar ExportAllLayouts
   [ ] 3.1 Remover imports: WidgetFactory
   [ ] 3.2 Adicionar imports: GridCheckbox, GridDoubleSpin, GridComplexSelector, GridExecutionButtons
-  [ ] 3.3 Reescrever _build_ui() com new_widgets
+  [ ] 3.3 Reescrever _build_ui() com widgets
        [ ] GridCheckbox com 5 opções (PDF, PNG, Merge PDF, Merge PNG, Replace)
        [ ] GridDoubleSpin com max_width
        [ ] GridComplexSelector com subfolder="exports"

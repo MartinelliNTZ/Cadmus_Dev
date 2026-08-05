@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração AboutDialog
 
-**Objetivo:** Migrar o `AboutDialog` do sistema antigo (`WidgetFactory`) para o novo sistema (`new_widgets` + `AppStyles`).
+**Objetivo:** Migrar o `AboutDialog` do sistema antigo (`WidgetFactory`) para o novo sistema (`widgets` + `AppStyles`).
 
 **Data:** 2026-07-21
 **Plugin:** `plugins/AboutDialog.py`
@@ -35,21 +35,21 @@
 
 | Widget | Arquivo | Qt Base | AppStyles | Métodos extras |
 |--------|---------|---------|-----------|----------------|
-| `SimpleLabel` | `new_widgets/simple/SimpleLabel.py` | QLabel | `label()` | `setText()`, `setAlignment()` |   ERRADO VC IRA CRIAR UM SIMPLE LABEL PARA USO EM WIDGETS E UM GRIDLABELWIDGET PARA USO INTERNO DO PLUGIN
-| `SimpleButton` | `new_widgets/simple/SimpleButton.py` | QPushButton | `button()` | `clicked` SERA VIA CALLBACK NAO POR SINAL WIDGETS NAO USAM SINAL ?(ADICIONE NA SKILL )
+| `SimpleLabel` | `widgets/simple/SimpleLabel.py` | QLabel | `label()` | `setText()`, `setAlignment()` |   ERRADO VC IRA CRIAR UM SIMPLE LABEL PARA USO EM WIDGETS E UM GRIDLABELWIDGET PARA USO INTERNO DO PLUGIN
+| `SimpleButton` | `widgets/simple/SimpleButton.py` | QPushButton | `button()` | `clicked` SERA VIA CALLBACK NAO POR SINAL WIDGETS NAO USAM SINAL ?(ADICIONE NA SKILL )
 
 ### Grid (PLUGINS USAM)
 
 | Widget | Arquivo | Composição | Parâmetros |
 |--------|---------|------------|------------|
-| `GridLabel` | `new_widgets/grid/GridLabel.py` | 1+ SimpleLabel em VBox | `items: list[str]` |
-| `GridButton` | `new_widgets/grid/GridButton.py` | 1+ SimpleButton em layout | `close_callback`, `run_callback`, `info_callback` |
+| `GridLabel` | `widgets/grid/GridLabel.py` | 1+ SimpleLabel em VBox | `items: list[str]` |
+| `GridButton` | `widgets/grid/GridButton.py` | 1+ SimpleButton em layout | `close_callback`, `run_callback`, `info_callback` |
 
 ### Raiz (SEM versão grid)
 
 | Widget | Arquivo | Qt Base | Descrição |
 |--------|---------|---------|-----------|
-| `SeparatorWidget` | `new_widgets/SeparatorWidget.py` | QFrame | Separador visual entre widgets |
+| `SeparatorWidget` | `widgets/SeparatorWidget.py` | QFrame | Separador visual entre widgets |
 
 ---
 
@@ -89,9 +89,9 @@ self.layout.addLayout(close_layout)
 ### Depois (New Widgets)
 
 ```python
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridButton import GridButton
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridButton import GridButton
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
 
 # Labels via GridLabel
 self.grid_info = GridLabel(
@@ -126,18 +126,18 @@ self.layout.addWidget(self.action_buttons)
 - [x] SKILL_WIDGETS2.md criada
 
 ### Widgets a criar (FASE 1)
-- [ ] `new_widgets/simple/__init__.py`
-- [ ] `new_widgets/simple/SimpleLabel.py`
-- [ ] `new_widgets/simple/SimpleButton.py`
-- [ ] `new_widgets/grid/__init__.py`
-- [ ] `new_widgets/grid/GridLabel.py`
-- [ ] `new_widgets/grid/GridButton.py`
-- [ ] `new_widgets/SeparatorWidget.py`
-- [ ] `new_widgets/__init__.py`
+- [ ] `widgets/simple/__init__.py`
+- [ ] `widgets/simple/SimpleLabel.py`
+- [ ] `widgets/simple/SimpleButton.py`
+- [ ] `widgets/grid/__init__.py`
+- [ ] `widgets/grid/GridLabel.py`
+- [ ] `widgets/grid/GridButton.py`
+- [ ] `widgets/SeparatorWidget.py`
+- [ ] `widgets/__init__.py`
 
 ### Migração (FASE 2 — AboutDialog)
 - [ ] Remover `from ..core.ui.WidgetFactory import WidgetFactory`
-- [ ] Adicionar imports dos new_widgets
+- [ ] Adicionar imports dos widgets
 - [ ] Substituir `create_label()` por `GridLabel`
 - [ ] Substituir `create_simple_button()` por `GridButton` + `SeparatorWidget`
 - [ ] NÃO modificar ícones sociais (código manual)

@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Refatoração CreateProjectPlugin — Novo Sistema de Widgets
 
-**Objetivo:** Migrar `CreateProjectPlugin` (incluindo `DefaultProjectsFolderDialog` e `ProjectNameDialog`) da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`), eliminando dependências do sistema antigo.
+**Objetivo:** Migrar `CreateProjectPlugin` (incluindo `DefaultProjectsFolderDialog` e `ProjectNameDialog`) da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/widgets/`), eliminando dependências do sistema antigo.
 
 **Data:** 2026-07-27
 **Versão:** 2.0.0
@@ -25,7 +25,7 @@
 
 ### 1.1 DefaultProjectsFolderDialog (NOVO)
 
-| Widget Atual (WidgetFactory) | Novo Widget (new_widgets/) | Status |
+| Widget Atual (WidgetFactory) | Novo Widget (widgets/) | Status |
 |---|---|---|
 | `WidgetFactory.create_label()` — texto informativo | **`GridLabel`** ✅ | ✅ Existe |
 | `SelectorWidget` — seletor de pasta | **`GridComplexSelector`** ✅ | ✅ Existe |
@@ -33,7 +33,7 @@
 
 ### 1.2 ProjectNameDialog (NOVO)
 
-| Widget Atual (WidgetFactory) | Novo Widget (new_widgets/) | Status |
+| Widget Atual (WidgetFactory) | Novo Widget (widgets/) | Status |
 |---|---|---|
 | `WidgetFactory.create_label()` + QLineEdit + QHBoxLayout — tudo num único GridLabel | **`GridLabel`** ✅ (único, com texto formatado: pasta + nome) | ✅ Existe |
 | `WidgetFactory.create_simple_button()` — ⚙️ Abrir Config | **❌ Removido** — `GridExecutionButtons` já tem `enable_config_button` nativo | 🔄 Substituir |
@@ -353,7 +353,7 @@ execute_tool()
 |---------|------|---------|
 | `core/ui/dialogs/DefaultProjectsFolderDialog.py` | Refatorar | Substituir WidgetFactory + SelectorWidget + ExecutionButtonsWidget por GridLabel + GridComplexSelector + GridExecutionButtons (nativo) |
 | `core/ui/dialogs/ProjectNameDialog.py` | Refatorar | Substituir WidgetFactory + QLineEdit + ExecutionButtonsWidget por GridLabel único + GridInputFields + GridExecutionButtons (nativo). Remover botão Config ⚙️ manual. |
-| `resources/new_widgets/grid/GridInputFields.py` | Melhorar | Adicionar suporte a `"placeholder"` no config dict (chama `setPlaceholderText()`) |
+| `resources/widgets/grid/GridInputFields.py` | Melhorar | Adicionar suporte a `"placeholder"` no config dict (chama `setPlaceholderText()`) |
 
 ### 5.2 Arquivos NÃO Modificados
 
@@ -363,11 +363,11 @@ execute_tool()
 
 ### 5.3 Dependências
 
-- `GridLabel` ✅ — já existe em `resources/new_widgets/grid/GridLabel.py`
-- `GridComplexSelector` ✅ — já existe em `resources/new_widgets/grid/GridComplexSelector.py`
-- `GridInputFields` ✅ — já existe em `resources/new_widgets/grid/GridInputFields.py` (precisa adicionar suporte a `placeholder`)
-- `GridExecutionButtons` ✅ — já existe em `resources/new_widgets/grid/GridExecutionButtons.py`
-- `SeparatorWidget` ✅ — já existe em `resources/new_widgets/SeparatorWidget.py`
+- `GridLabel` ✅ — já existe em `resources/widgets/grid/GridLabel.py`
+- `GridComplexSelector` ✅ — já existe em `resources/widgets/grid/GridComplexSelector.py`
+- `GridInputFields` ✅ — já existe em `resources/widgets/grid/GridInputFields.py` (precisa adicionar suporte a `placeholder`)
+- `GridExecutionButtons` ✅ — já existe em `resources/widgets/grid/GridExecutionButtons.py`
+- `SeparatorWidget` ✅ — já existe em `resources/widgets/SeparatorWidget.py`
 
 ---
 
@@ -399,9 +399,9 @@ if placeholder:
    - ❌ `from ....resources.widgets.simple.SelectorWidget import SelectorWidget`
    - ❌ `from ....resources.widgets.ExecutionButtonsWidget import ExecutionButtonsWidget`
    - ❌ `from ....core.ui.WidgetFactory import WidgetFactory`
-   - ✅ `from ..resources.new_widgets.grid.GridLabel import GridLabel`
-   - ✅ `from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector`
-   - ✅ `from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons`
+   - ✅ `from ..resources.widgets.grid.GridLabel import GridLabel`
+   - ✅ `from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector`
+   - ✅ `from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons`
 
 2. Substituir `WidgetFactory.create_label()` por `GridLabel(config=...)`
 
@@ -417,9 +417,9 @@ if placeholder:
    - ❌ `from ....resources.widgets.ExecutionButtonsWidget import ExecutionButtonsWidget`
    - ❌ `from ....core.ui.WidgetFactory import WidgetFactory`
    - ❌ `from ....plugins.SettingsPlugin import SettingsPlugin`
-   - ✅ `from ..resources.new_widgets.grid.GridLabel import GridLabel`
-   - ✅ `from ..resources.new_widgets.grid.GridInputFields import GridInputFields`
-   - ✅ `from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons`
+   - ✅ `from ..resources.widgets.grid.GridLabel import GridLabel`
+   - ✅ `from ..resources.widgets.grid.GridInputFields import GridInputFields`
+   - ✅ `from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons`
 
 2. Substituir labels + QLineEdit da pasta + QHBoxLayout manual por **1 único `GridLabel`** com todos os textos
 
@@ -444,7 +444,7 @@ if placeholder:
 
 ### 7.1 DefaultProjectsFolderDialog
 
-- [ ] Substituir imports antigos por new_widgets
+- [ ] Substituir imports antigos por widgets
 - [ ] Substituir `WidgetFactory.create_label()` por `GridLabel(config=...)`
 - [ ] Substituir `SelectorWidget` por `GridComplexSelector(config=...)`
 - [ ] Substituir `ExecutionButtonsWidget` por `GridExecutionButtons(config=...)` com 1 item + built-ins
@@ -454,7 +454,7 @@ if placeholder:
 
 ### 7.2 ProjectNameDialog
 
-- [ ] Substituir imports antigos por new_widgets
+- [ ] Substituir imports antigos por widgets
 - [ ] Substituir labels + QLineEdit da pasta por **1 único `GridLabel`** com textos
 - [ ] Substituir QLineEdit + QHBoxLayout do nome por `GridInputFields(config=...)` com `placeholder`
 - [ ] Remover botão Config ⚙️ manual (linhas `settings_layout, settings_btn = ...`)

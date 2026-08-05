@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração do LoadFolderLayers
 
-**Objetivo:** Migrar o plugin `LoadFolderLayers` do sistema antigo (`WidgetFactory`) para o novo sistema (`new_widgets`), eliminando dependências de `core/ui/WidgetFactory.py` e `resources/widgets/`.
+**Objetivo:** Migrar o plugin `LoadFolderLayers` do sistema antigo (`WidgetFactory`) para o novo sistema (`widgets`), eliminando dependências de `core/ui/WidgetFactory.py` e `resources/widgets/`.
 
 **Data:** 2026-07-27
 **Versão:** 2.0.0
@@ -31,9 +31,9 @@
 
 ## 2. O QUE PRECISA SER CRIADO / MELHORADO
 
-### 2.1 `CollapsibleParametersWidget` (NOVO — raiz de new_widgets/)
+### 2.1 `CollapsibleParametersWidget` (NOVO — raiz de widgets/)
 
-**Arquivo:** `resources/new_widgets/CollapsibleParametersWidget.py`
+**Arquivo:** `resources/widgets/CollapsibleParametersWidget.py`
 
 Widget expansível igual ao antigo, mas seguindo o contrato DO NOVO SISTEMA:
 
@@ -77,7 +77,7 @@ class CollapsibleParametersWidget(QWidget):
 
 ### 2.2 `GridCheckboxButtons` (NOVO — grid/)
 
-**Arquivo:** `resources/new_widgets/grid/GridCheckboxButtons.py`
+**Arquivo:** `resources/widgets/grid/GridCheckboxButtons.py`
 
 Widget de botões genérico, similar ao `GridExecutionButtons` mas **sem botões built-in** (sem Fechar, Info, Config). TODOS os botões são configurados via `config` dict. Usa `SimpleModernButton` internamente (gradiente + glow).
 
@@ -118,7 +118,7 @@ class GridCheckboxButtons(QWidget):
 
 ### 2.3 `GridCheckbox` — Melhorias (ADAPTAR)
 
-**Arquivo:** `resources/new_widgets/grid/GridCheckbox.py`
+**Arquivo:** `resources/widgets/grid/GridCheckbox.py`
 
 #### 2.3.1 Sistema de dependentes (`dependents`)
 
@@ -530,10 +530,10 @@ from ..core.ui.WidgetFactory import WidgetFactory
 
 ### Adicionar (imports novos)
 ```python
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
 ```
 
 ---
@@ -542,9 +542,9 @@ from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParam
 
 | Passo | O que fazer | Arquivos |
 |-------|-------------|----------|
-| 1 | **CRIAR** `GridCheckboxButtons` — widget genérico de botões (sem built-ins, tudo via dict) | `resources/new_widgets/grid/GridCheckboxButtons.py` |
-| 2 | **MELHORAR** `GridCheckbox` — adicionar `dependents` (sistema de dependência) + `control_buttons_config` (botões opcionais) + `select_all/deselect_all/invert_selection` | `resources/new_widgets/grid/GridCheckbox.py` |
-| 3 | **CRIAR** `CollapsibleParametersWidget` — com paintEvent gradiente, AppStyles, tokens do tema | `resources/new_widgets/CollapsibleParametersWidget.py` |
+| 1 | **CRIAR** `GridCheckboxButtons` — widget genérico de botões (sem built-ins, tudo via dict) | `resources/widgets/grid/GridCheckboxButtons.py` |
+| 2 | **MELHORAR** `GridCheckbox` — adicionar `dependents` (sistema de dependência) + `control_buttons_config` (botões opcionais) + `select_all/deselect_all/invert_selection` | `resources/widgets/grid/GridCheckbox.py` |
+| 3 | **CRIAR** `CollapsibleParametersWidget` — com paintEvent gradiente, AppStyles, tokens do tema | `resources/widgets/CollapsibleParametersWidget.py` |
 | 4 | **ATUALIZAR** `docs/skills/SKILL_WIDGETS2.md` — adicionar CollapsibleParametersWidget + GridCheckboxButtons + GridCheckbox melhorias | `docs/skills/SKILL_WIDGETS2.md` |
 | 5 | **MIGRAR** `LoadFolderLayers.py` — substituir todos os widgets da Factory | `plugins/LoadFolderLayers.py` |
 | 6 | **ATUALIZAR** `docs/plano_eliminacao_widgetfactory.md` — marcar LoadFolderLayers como migrado | `docs/plano_eliminacao_widgetfactory.md` |
@@ -556,7 +556,7 @@ from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParam
 
 | Risco | Impacto | Mitigação |
 |-------|---------|-----------|
-| `CollapsibleParametersWidget` com paintEvent gradiente não ficar igual ao antigo | Alto | Seguir o padrão dos widgets new_widgets: AppStyles + tokens do tema |
+| `CollapsibleParametersWidget` com paintEvent gradiente não ficar igual ao antigo | Alto | Seguir o padrão dos widgets widgets: AppStyles + tokens do tema |
 | Sistema de `dependents` quebrar outros plugins que usam GridCheckbox | Alto | `dependents` é opcional (default vazio). Só afeta quem declarar |
 | `control_buttons_config` aumentar complexidade do GridCheckbox | Médio | Desacoplar: GridCheckbox cria GridCheckboxButtons internamente, sem expor ao plugin |
 | Prefs antigas não carregarem no novo formato | Baixo | `set_preferences()` aceita dict vazio |

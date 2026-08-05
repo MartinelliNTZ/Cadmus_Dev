@@ -8,10 +8,10 @@ from qgis.core import QgsLayoutExporter, QgsProject
 from ..core.ui.ProgressDialog import ProgressDialog
 from ..i18n.TranslationManager import STR
 from ..plugins.BasePlugin import BasePluginMTL
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 from qgis.core import QgsMapLayerProxyModel
 from ..utils.DependenciesManager import DependenciesManager
 from ..utils.PDFUtils import PDFUtils
@@ -28,7 +28,7 @@ class ExportAllLayoutsDialog(BasePluginMTL):
     - Interface padronizada com MainLayout + AppBar
     - Persistência automática de preferências via _save_prefs()
     - Carregamento automático via _load_prefs()
-    - Widgets autoconfiguráveis (new_widgets)
+    - Widgets autoconfiguráveis (widgets)
     """
 
     TOOL_KEY = ToolKey.EXPORT_ALL_LAYOUTS

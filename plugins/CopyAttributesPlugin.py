@@ -10,10 +10,10 @@ from .BasePlugin import BasePluginMTL
 from ..i18n.TranslationManager import STR
 
 # NOVOS WIDGETS (substituem WidgetFactory)
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.GridAttributeSelector import GridAttributeSelector
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.GridAttributeSelector import GridAttributeSelector
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
 
 
 class CopyAttributes(BasePluginMTL):

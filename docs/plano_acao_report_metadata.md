@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração do ReportMetadataPlugin
 
-**Objetivo:** Migrar `plugins/ReportMetadataPlugin.py` do sistema antigo (`WidgetFactory`) para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`).
+**Objetivo:** Migrar `plugins/ReportMetadataPlugin.py` do sistema antigo (`WidgetFactory`) para o novo sistema de widgets autoconfiguráveis (`resources/widgets/`).
 
 **Data:** 2026-07-27
 **Versão:** 1.0.0
@@ -11,7 +11,7 @@
 ## Sumário
 
 1. [Análise do Plugin Atual](#1-análise-do-plugin-atual)
-2. [Mapeamento WidgetFactory → new_widgets](#2-mapeamento-widgetfactory--new_widgets)
+2. [Mapeamento WidgetFactory → widgets](#2-mapeamento-widgetfactory--widgets)
 3. [Estratégia de Migração](#3-estratégia-de-migração)
 4. [Checklist de Migração](#4-checklist-de-migração)
 5. [Código Migrado (Preview)](#5-código-migrado-preview)
@@ -66,16 +66,16 @@ from ..core.ui.WidgetFactory import WidgetFactory
 
 ---
 
-## 2. Mapeamento WidgetFactory → new_widgets
+## 2. Mapeamento WidgetFactory → widgets
 
 ### 2.1 Tabela de Substituição
 
-| WidgetFactory (ANTIGO) | new_widgets (NOVO) | Arquivo |
+| WidgetFactory (ANTIGO) | widgets (NOVO) | Arquivo |
 |------------------------|-------------------|---------|
-| — (ausente) | **`GridLabel`** (explicação do plugin) | `resources/new_widgets/grid/GridLabel.py` |
-| `create_dropdown_selector` | `GridComboBox` (1 item: "json_selector") | `resources/new_widgets/grid/GridComboBox.py` |
-| `create_simple_button` (x4) | `GridModernButtons` (4 itens no config) | `resources/new_widgets/grid/GridModernButtons.py` |
-| `create_bottom_action_buttons` | `GridExecutionButtons` | `resources/new_widgets/grid/GridExecutionButtons.py` |
+| — (ausente) | **`GridLabel`** (explicação do plugin) | `resources/widgets/grid/GridLabel.py` |
+| `create_dropdown_selector` | `GridComboBox` (1 item: "json_selector") | `resources/widgets/grid/GridComboBox.py` |
+| `create_simple_button` (x4) | `GridModernButtons` (4 itens no config) | `resources/widgets/grid/GridModernButtons.py` |
+| `create_bottom_action_buttons` | `GridExecutionButtons` | `resources/widgets/grid/GridExecutionButtons.py` |
 
 ### 2.2 GridComboBox — Configuração
 
@@ -171,7 +171,7 @@ self.layout.add_execution_buttons(self.exec_buttons)  # GridExecutionButtons
 ### 3.1 O que MUDA
 
 1. **Imports:** Remover `WidgetFactory`, adicionar `GridComboBox`, `GridModernButtons`, `GridExecutionButtons`, `SeparatorWidget`
-2. **UI:** Substituir chamadas Factory por construtores de new_widgets
+2. **UI:** Substituir chamadas Factory por construtores de widgets
 3. **API de acesso ao combo:** `self.json_selector.get_selected_key()` → `self.json_selector.get_selected_key("json_selector")`
 4. **API de atualização do combo:** `self.json_selector.set_options(options)` → `self.json_selector.set_options("json_selector", options)`
 5. **Botões individuais:** Remover `self.refresh_button`, `self.open_json_button`, `self.open_reports_button`, `self.vetorize_button` — usar `GridModernButtons`
@@ -213,10 +213,10 @@ self.layout.add_execution_buttons(self.exec_buttons)  # GridExecutionButtons
 
 - [ ] **Substituir imports:**
   - Remover: `from ..core.ui.WidgetFactory import WidgetFactory`
-  - Adicionar: `from ..resources.new_widgets.grid.GridComboBox import GridComboBox`
-  - Adicionar: `from ..resources.new_widgets.grid.GridModernButtons import GridModernButtons`
-  - Adicionar: `from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons`
-  - Adicionar: `from ..resources.new_widgets.SeparatorWidget import SeparatorWidget`
+  - Adicionar: `from ..resources.widgets.grid.GridComboBox import GridComboBox`
+  - Adicionar: `from ..resources.widgets.grid.GridModernButtons import GridModernButtons`
+  - Adicionar: `from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons`
+  - Adicionar: `from ..resources.widgets.SeparatorWidget import SeparatorWidget`
 
 - [ ] **Substituir dropdown selector:**
   - Antigo: `dropdown_layout, self.json_selector = WidgetFactory.create_dropdown_selector(...)`
@@ -290,10 +290,10 @@ self.layout.add_execution_buttons(self.exec_buttons)  # GridExecutionButtons
 # Função _qt_adjust_to_minimum_contents_length_with_icon
 
 # Adicionar:
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridComboBox import GridComboBox
-from ..resources.new_widgets.grid.GridModernButtons import GridModernButtons
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridComboBox import GridComboBox
+from ..resources.widgets.grid.GridModernButtons import GridModernButtons
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 ```
 
 ### 5.2 Novo `_build_ui`
@@ -468,7 +468,7 @@ Os seguintes itens **devem ser removidos**:
 ### 6.3 Changelog
 
 ```
-2.3.71.1[27/07/2026] Migração ReportMetadataPlugin para new_widgets:
+2.3.71.1[27/07/2026] Migração ReportMetadataPlugin para widgets:
    - Substituído WidgetFactory.create_dropdown_selector por GridComboBox
    - Substituído WidgetFactory.create_simple_button (x4) por GridModernButtons
    - Substituído WidgetFactory.create_bottom_action_buttons por GridExecutionButtons

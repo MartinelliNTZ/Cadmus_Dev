@@ -37,10 +37,10 @@
 | **FASE 1.3** — Widgets Raiz criados | Parcial |
 | **AboutDialog** (plugin #1) | ✅ |
 
-### 📊 O Que Existe em `resources/new_widgets/`
+### 📊 O Que Existe em `resources/widgets/`
 
 ```
-resources/new_widgets/
+resources/widgets/
 ├── __init__.py
 ├── AppBarWidget.py          ✅ (raiz)
 ├── MainLayout.py            ✅ (raiz)
@@ -178,7 +178,7 @@ CoorResultDialog (novo)
 ### 3.1 SimpleReadOnly — Interno para GridReadOnly
 
 ```python
-# resources/new_widgets/simple/SimpleReadOnly.py
+# resources/widgets/simple/SimpleReadOnly.py
 """
 SimpleReadOnly — QLineEdit readonly + AppStyles.input()
 USO INTERNO — GridReadOnly usa este widget.
@@ -204,7 +204,7 @@ class SimpleReadOnly(QLineEdit):
 ### 3.2 GridReadOnly — Container de ReadOnly Fields
 
 ```python
-# resources/new_widgets/grid/GridReadOnly.py
+# resources/widgets/grid/GridReadOnly.py
 """
 GridReadOnly — Container de campos readonly com título e botão copiar opcional.
 Plugins USAM este widget.
@@ -278,12 +278,12 @@ CoorResultDialog
 
 1. **Criar SimpleReadOnly** primeiro — depende de nada
 2. **Criar GridReadOnly** depois — depende de SimpleReadOnly
-3. **Migrar CoorResultDialog** — substituir Factory → new_widgets
+3. **Migrar CoorResultDialog** — substituir Factory → widgets
 4. **Nunca modificar arquivos antigos** — manter `WidgetFactory.py`, `resources/widgets/`, etc.
 
 ### 5.2 Contratos Obrigatórios
 
-✅ Todo widget em `new_widgets/` segue o contrato SKILL_WIDGETS2.md:
+✅ Todo widget em `widgets/` segue o contrato SKILL_WIDGETS2.md:
 - Herda de `QWidget` (ou similar)
 - `try/except` com logger no `__init__`
 - `_apply_styles()` no final
@@ -300,7 +300,7 @@ No sistema novo:
 ro_layout, self.wgs_widget = WidgetFactory.create_readonly_field(...)
 self.layout.add_items([ro_layout, ...])
 
-# NOVO (new_widgets) — plugin instancia widget direto
+# NOVO (widgets) — plugin instancia widget direto
 self.wgs_widget = GridReadOnly(
     title=STR.WGS84_EPSG4326,
     fields={...},
@@ -322,7 +322,7 @@ A API `set_value(key, value)` e `get_value(key)` é mantida **exatamente igual**
 
 ### 🔴 Passo 1: Criar `SimpleReadOnly`
 
-**Arquivo:** `resources/new_widgets/simple/SimpleReadOnly.py`
+**Arquivo:** `resources/widgets/simple/SimpleReadOnly.py`
 
 Baseado em `QLineEdit` com `setReadOnly(True)`.
 - Aplica `AppStyles.input()` no `_apply_styles()`
@@ -330,7 +330,7 @@ Baseado em `QLineEdit` com `setReadOnly(True)`.
 
 ### 🔴 Passo 2: Criar `GridReadOnly`
 
-**Arquivo:** `resources/new_widgets/grid/GridReadOnly.py`
+**Arquivo:** `resources/widgets/grid/GridReadOnly.py`
 
 Container título + campos readonly + botão copiar opcional.
 - Título: `SimpleLabel` (bold, maior)
@@ -342,9 +342,9 @@ Container título + campos readonly + botão copiar opcional.
 
 **Arquivo:** `plugins/CoorResultDialog.py`
 
-Substituir todas as chamadas `WidgetFactory.create_xxx()` por widgets de `new_widgets/`:
+Substituir todas as chamadas `WidgetFactory.create_xxx()` por widgets de `widgets/`:
 
-| Factory (antigo) | new_widgets (novo) |
+| Factory (antigo) | widgets (novo) |
 |-----------------|-------------------|
 | `create_readonly_field(...)` → retorna (layout, widget) | `GridReadOnly(...)` → retorna widget |
 | `create_label(text="", parent=self)` | `SimpleLabel(text="", parent=self)` ou `GridLabel` com config dict |
@@ -373,7 +373,7 @@ Substituir todas as chamadas `WidgetFactory.create_xxx()` por widgets de `new_wi
 ### 7.1 SimpleReadOnly
 
 ```python
-# resources/new_widgets/simple/SimpleReadOnly.py
+# resources/widgets/simple/SimpleReadOnly.py
 # -*- coding: utf-8 -*-
 """
 SimpleReadOnly — QLineEdit readonly com AppStyles.input().
@@ -433,7 +433,7 @@ O CoorResultDialog usa `ReadOnlyFieldWidget` do sistema antigo que também usava
 ## 8. FASE 1 — Criar GridReadOnly
 
 ```python
-# resources/new_widgets/grid/GridReadOnly.py
+# resources/widgets/grid/GridReadOnly.py
 # -*- coding: utf-8 -*-
 """
 GridReadOnly — Container de campos readonly com título e botão copiar opcional.
@@ -600,12 +600,12 @@ from ..utils.ProjectUtils import ProjectUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.Preferences import Preferences
 from ..i18n.TranslationManager import STR
-from ..resources.new_widgets.grid.GridReadOnly import GridReadOnly
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.grid.GridButton import GridButton
-from ..resources.new_widgets.simple.SimpleLabel import SimpleLabel
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.grid.GridReadOnly import GridReadOnly
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridButton import GridButton
+from ..resources.widgets.simple.SimpleLabel import SimpleLabel
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
 
 
 class CoordResultDialog(BasePluginMTL):

@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração CopyAttributesPlugin para Novo Sistema de Widgets
 
-**Objetivo:** Migrar `CopyAttributesPlugin` do sistema antigo (`WidgetFactory`) para o novo sistema (`resources/new_widgets/`), seguindo o contrato do plano de eliminação da WidgetFactory. Criar novo widget específico `GridAttributeSelector` para seleção de atributos com checkboxes.
+**Objetivo:** Migrar `CopyAttributesPlugin` do sistema antigo (`WidgetFactory`) para o novo sistema (`resources/widgets/`), seguindo o contrato do plano de eliminação da WidgetFactory. Criar novo widget específico `GridAttributeSelector` para seleção de atributos com checkboxes.
 
 **Plugin:** `plugins/CopyAttributesPlugin.py`
 **Data:** 2026-07-31
@@ -31,7 +31,7 @@
 
 ### 1.3 Arquitetura do Novo Widget: GridAttributeSelector
 
-O `GridAttributeSelector` é um widget **específico** (não tem versão simple/grid separada — fica na raiz de `new_widgets/`), que encapsula:
+O `GridAttributeSelector` é um widget **específico** (não tem versão simple/grid separada — fica na raiz de `widgets/`), que encapsula:
 
 ```
 GridAttributeSelector (QWidget)
@@ -72,7 +72,7 @@ GridAttributeSelector (QWidget)
 
 ### 2.1 NOVO Widget: GridAttributeSelector
 
-**Arquivo:** `resources/new_widgets/GridAttributeSelector.py`
+**Arquivo:** `resources/widgets/GridAttributeSelector.py`
 
 Widget específico para seleção de atributos com checkboxes, estilo próprio importando AppStyles.
 
@@ -423,7 +423,7 @@ O `GridComplexSelector` já possui o método `set_on_changed(label, callback)` q
 
 ### 3.1 Passo 1: Criar GridAttributeSelector
 
-**Arquivo:** `resources/new_widgets/GridAttributeSelector.py`
+**Arquivo:** `resources/widgets/GridAttributeSelector.py`
 
 Widget específico conforme descrito na seção 2.1.
 
@@ -435,10 +435,10 @@ Widget específico conforme descrito na seção 2.1.
 
 ```python
 # NOVOS IMPORTS (substituem WidgetFactory)
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.GridAttributeSelector import GridAttributeSelector
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.GridAttributeSelector import GridAttributeSelector
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
 
 # IMPORTS ANTIGOS QUE PERMANECEM
 from qgis.core import QgsVectorLayer, QgsMapLayerProxyModel
@@ -798,7 +798,7 @@ Usuário clica "Executar"
 
 | Arquivo | Tipo de Mudança | Risco |
 |---------|----------------|-------|
-| `resources/new_widgets/GridAttributeSelector.py` | **CRIAR** — widget específico novo | Baixo |
+| `resources/widgets/GridAttributeSelector.py` | **CRIAR** — widget específico novo | Baixo |
 | `plugins/CopyAttributesPlugin.py` | Reescrever `_build_ui()`, `_populate_fields()`, `execute_tool()`, `_load_prefs()`, `_save_prefs()` | Médio |
 | `docs/ia/changelog.txt` | Adicionar entrada de versão | Baixo |
 
@@ -854,7 +854,7 @@ Usuário clica "Executar"
 - [ ] Analisar `GridExecutionButtons.py` atual (API config dict)
 
 ### Criação do GridAttributeSelector
-- [ ] Criar `resources/new_widgets/GridAttributeSelector.py`
+- [ ] Criar `resources/widgets/GridAttributeSelector.py`
 - [ ] Implementar `__init__` com título, check_all_text, parent
 - [ ] Implementar `_build_ui()` com container, chk_all, GridCheckbox, GridModernButtons
 - [ ] Implementar `_rebuild_attr_grid()` para reconstruir checkboxes dinamicamente
@@ -899,7 +899,7 @@ Usuário clica "Executar"
 
 | Regra | Status | Verificação |
 |-------|--------|-------------|
-| #1 UI via WidgetFactory (ou new_widgets) | ✅ | Usa `resources/new_widgets/` |
+| #1 UI via WidgetFactory (ou widgets) | ✅ | Usa `resources/widgets/` |
 | #2 Logging via LogUtils com ToolKey | ✅ | Herda de `BasePluginMTL` |
 | #3 Strings via STR | ✅ | Já usa `STR.*` |
 | #4 ToolKey é enum | ✅ | `ToolKey.COPY_ATTRIBUTES` |
@@ -907,7 +907,7 @@ Usuário clica "Executar"
 | #6 Exceções logadas com logger.exception | ✅ | Herda tratamento |
 | #7 Métodos estáticos recebem tool_key | N/A | Não tem métodos estáticos |
 | #8 Configurações via Preferences | ✅ | `_load_prefs()` / `_save_prefs()` |
-| #9 Widgets customizados em resources/ | ✅ | `GridAttributeSelector` em `resources/new_widgets/` |
+| #9 Widgets customizados em resources/ | ✅ | `GridAttributeSelector` em `resources/widgets/` |
 | #10 Help via InstructionsManager | ✅ | `enable_info=True` no GridExecutionButtons |
 | #11 Logs em pt_BR | ✅ | Herda padrão |
 | #17 Registro no ToolRegistry | ✅ | Já registrado |

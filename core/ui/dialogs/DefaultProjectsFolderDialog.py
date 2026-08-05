@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from ....i18n.TranslationManager import STR
-from ....resources.new_widgets.grid.GridLabel import GridLabel
-from ....resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ....resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ....resources.widgets.grid.GridLabel import GridLabel
+from ....resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ....resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ....core.config.LogUtils import LogUtils
 from ....utils.ToolKeys import ToolKey
 from ....plugins.BaseDialog import BaseDialog

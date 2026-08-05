@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração do RegistryDialog para o Novo Sistema de Widgets
 
-**Objetivo:** Migrar `core/ui/RegistryDialog.py` do `WidgetFactory` + QtWidgets direto para os widgets de `resources/new_widgets/`, seguindo estritamente o contrato do plugin e o plano de eliminação da WidgetFactory.
+**Objetivo:** Migrar `core/ui/RegistryDialog.py` do `WidgetFactory` + QtWidgets direto para os widgets de `resources/widgets/`, seguindo estritamente o contrato do plugin e o plano de eliminação da WidgetFactory.
 
 **Data:** 2026-08-04
 **Versão pretendida:** 2.3.86.x
@@ -10,7 +10,7 @@
 
 ## 1. Resumo da Migração
 
-| Widget Antigo (QtWidgets/Factory) | Widget Novo (new_widgets) | Observação |
+| Widget Antigo (QtWidgets/Factory) | Widget Novo (widgets) | Observação |
 |-----------------------------------|---------------------------|-----------|
 | `QLineEdit` (chave) | `GridInputFields` | Campo de texto para chave de licença |
 | `QPushButton` Validar (ícone) | `GridExecutionButtons` (item `validate`) | Botão Validar com `is_run_button=True` |
@@ -26,23 +26,23 @@
 
 | Widget | Arquivo | API usada no plugin |
 |--------|---------|---------------------|
-| `GridInputFields` | `resources/new_widgets/grid/GridInputFields.py` | `set_value()`, `get_value()`, `clear()` via `set_value(key, "")` |
-| `GridLabel` | `resources/new_widgets/grid/GridLabel.py` | `set_text()`, `get_text()` — **precisa suporte a `color`** |
-| `GridExecutionButtons` | `resources/new_widgets/grid/GridExecutionButtons.py` | `config` (callbacks por botão), `enable_close_button`, `enable_info` |
-| `GridComplexSelector` | `resources/new_widgets/grid/GridComplexSelector.py` | `get_path("Distribuição")`, `set_path()`, `get_preferences()`/`set_preferences()` |
+| `GridInputFields` | `resources/widgets/grid/GridInputFields.py` | `set_value()`, `get_value()`, `clear()` via `set_value(key, "")` |
+| `GridLabel` | `resources/widgets/grid/GridLabel.py` | `set_text()`, `get_text()` — **precisa suporte a `color`** |
+| `GridExecutionButtons` | `resources/widgets/grid/GridExecutionButtons.py` | `config` (callbacks por botão), `enable_close_button`, `enable_info` |
+| `GridComplexSelector` | `resources/widgets/grid/GridComplexSelector.py` | `get_path("Distribuição")`, `set_path()`, `get_preferences()`/`set_preferences()` |
 
 ---
 
 ## 3. Ajuste Necessário no Widget: `GridLabel` — Suporte a Cor
 
-O `GridLabel` atual (`resources/new_widgets/grid/GridLabel.py`, 111 linhas) **NÃO suporta cor por item**. O RegistryDialog precisa colorir o label de Status (verde=ativa, vermelho=inválida, cinza=inativa).
+O `GridLabel` atual (`resources/widgets/grid/GridLabel.py`, 111 linhas) **NÃO suporta cor por item**. O RegistryDialog precisa colorir o label de Status (verde=ativa, vermelho=inválida, cinza=inativa).
 
 ### 3.1 Proposta — adicionar `"color"` ao config dict do `GridLabel`
 
 **Modificação mínima no widget** (o plugin NUNCA chama `setStyleSheet`):
 
 ```python
-# resources/new_widgets/grid/GridLabel.py
+# resources/widgets/grid/GridLabel.py
 
 def __init__(self, config, separator_top=False, separator_bottom=False, parent=None):
     ...
@@ -243,10 +243,10 @@ from ..ui.WidgetFactory import WidgetFactory
 
 ### Adicionar
 ```python
-from ..resources.new_widgets.grid.GridInputFields import GridInputFields
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridInputFields import GridInputFields
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
 ```
 
 ### Manter
@@ -293,7 +293,7 @@ from ..services.PackageManager import PackageManager
 
 ## 8. Passos de Implementação
 
-1. **Modificar** `resources/new_widgets/grid/GridLabel.py` — adicionar suporte a `"color"` no config dict (seção 3)
+1. **Modificar** `resources/widgets/grid/GridLabel.py` — adicionar suporte a `"color"` no config dict (seção 3)
 2. **Adicionar** strings novas em `i18n/Strings_pt_BR.py` (seção 7)
 3. **Migrar** `core/ui/RegistryDialog.py`:
    - Remover imports `WidgetFactory`, `Styles`, QtWidgets
@@ -310,11 +310,11 @@ from ..services.PackageManager import PackageManager
 
 | Regra | Conformidade |
 |-------|-------------|
-| UI via new_widgets (nunca QtWidgets direto) | ✅ `GridInputFields`, `GridLabel`, `GridComplexSelector`, `GridExecutionButtons` |
+| UI via widgets (nunca QtWidgets direto) | ✅ `GridInputFields`, `GridLabel`, `GridComplexSelector`, `GridExecutionButtons` |
 | Logging via LogUtils (nunca print) | ✅ mantém `self.logger` |
 | Strings via STR (nunca hardcoded) | ✅ requiridas strings novas |
 | ToolKey é enum | ✅ `ToolKey.SETTINGS` |
-| Estilos via new_widgets (nunca setStyleSheet no plugin) | ✅ plugin não chama setStyleSheet; cor via `GridLabel` config |
+| Estilos via widgets (nunca setStyleSheet no plugin) | ✅ plugin não chama setStyleSheet; cor via `GridLabel` config |
 | Exceções logadas com logger.exception | ✅ mantém |
 | Configurações via Preferences | ✅ `GridComplexSelector.get_preferences()/set_preferences()` |
 | `GridExecutionButtons` SEM botão config | ✅ `enable_config_button=False` |
@@ -338,7 +338,7 @@ from ..services.PackageManager import PackageManager
 
 ## 11. Checklist Final
 
-- [ ] Modificar `resources/new_widgets/grid/GridLabel.py` (suporte a `color`)
+- [ ] Modificar `resources/widgets/grid/GridLabel.py` (suporte a `color`)
 - [ ] Adicionar strings novas em `i18n/Strings_pt_BR.py`
 - [ ] Migrar `core/ui/RegistryDialog.py` (remover WidgetFactory + QtWidgets)
 - [ ] Ajustar `_refresh()` (label status com cor dinâmica)

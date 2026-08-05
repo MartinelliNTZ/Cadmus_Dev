@@ -164,7 +164,7 @@
 [2.3.57.5][21/07/2026] Adicionado método modern_input_secondary() ao AppStyles.
 [2.3.57.6][21/07/2026] SimpleQLineEdit agora com sombra dinâmica (expande no focusInEvent, recolhe no focusOutEvent).
 2.3.58 21/07/2026
-[2.3.58.1][21/07/2026] AboutDialog migrado para novo sistema de widgets (GridLabel + GridIconButton + GridExecutionButtons). Substituídas todas as chamadas WidgetFactory.create_label/create_image_widget por widgets new_widgets/.
+[2.3.58.1][21/07/2026] AboutDialog migrado para novo sistema de widgets (GridLabel + GridIconButton + GridExecutionButtons). Substituídas todas as chamadas WidgetFactory.create_label/create_image_widget por widgets widgets/.
 2.3.59 21/07/2026
 [2.3.59.1][21/07/2026] Atualizado docs/plano_eliminacao_widgetfactory.md (FASE 2: AboutDialog migrado, FASE 1: SimpleModernButton + GridExecutionButtons + GridIconButton, contrato regras 13-17).
 2.3.60 22/07/2026
@@ -191,7 +191,7 @@
 2.3.64 24/07/2026
 [2.3.64.1][24/07/2026] Migrado core/ui/info_dialog.py para novo sistema de widgets:
    - FASE 0: Criado resources/styles/AppStyles.text_browser() (estilo global QTextBrowser)
-   - FASE 0: Criado resources/new_widgets/TextBrowser.py (raiz, sem versão grid)
+   - FASE 0: Criado resources/widgets/TextBrowser.py (raiz, sem versão grid)
      - set_markdown() com fallback Qt5/Qt6 (setMarkdown nativo ou _markdown_to_html())
    - FASE 1: InfoDialog migrado:
      - Substituído WidgetFactory.create_text_browser() por TextBrowser()
@@ -202,7 +202,7 @@
    - SKILL_WIDGETS2.md atualizado para v2.1.0: adicionado TextBrowser ao catálogo de widgets raiz
 2.3.65 24/07/2026
 [2.3.65.1][24/07/2026] GridComplexSelector refatorado: eliminada classe _SelectorWrapper, agora usa ComplexSelector direto:
-   - resources/new_widgets/simple/ComplexSelector.py reescrito:
+   - resources/widgets/simple/ComplexSelector.py reescrito:
      - SimpleModernButton substitui SimpleButtonWidget (botões com glow/gradiente)
      - AppStyles.modern_input_primary() substitui Styles.input() (input com glow)
      - Botões com tamanho dinâmico baseado na altura do input (_get_button_size)
@@ -213,7 +213,7 @@
      - 🛠️ (suggest) sempre visível em modo output
      - Se layer_filters específico, começa com QgsMapLayerComboBox ativo
      - Explorer mostra QgisMessageUtil se não houver path válido
-   - resources/new_widgets/grid/GridComplexSelector.py reescrito:
+   - resources/widgets/grid/GridComplexSelector.py reescrito:
      - _SelectorWrapper eliminado — GridComplexSelector usa ComplexSelector diretamente
      - Construtor via config dict com tool_key, separator_top/bottom
      - Novos métodos get_preferences() / set_preferences() para persistência
@@ -243,8 +243,8 @@
      - Catálogo 4.1 atualizado com todos os widgets existentes
      - Fluxo de migração atualizado (4 plugins migrados)
 2.3.67 27/07/2026
-[2.3.67.1][27/07/2026] Migrado ReplaceInLayouts para novo sistema de widgets (new_widgets/):
-   - Criado GridInputFields em resources/new_widgets/grid/GridInputFields.py — container de campos de texto com labels, SimpleQLineEdit com glow/gradiente, API get_value/set_value/get_values/set_values/widget
+[2.3.67.1][27/07/2026] Migrado ReplaceInLayouts para novo sistema de widgets (widgets/):
+   - Criado GridInputFields em resources/widgets/grid/GridInputFields.py — container de campos de texto com labels, SimpleQLineEdit com glow/gradiente, API get_value/set_value/get_values/set_values/widget
    - ReplaceInLayouts migrado: substituido WidgetFactory por GridInputFields + GridCheckbox + GridLabel + GridExecutionButtons
    - Botao Inverter (⇄) adicionado como item extra no config do GridExecutionButtons, callback _swap_fields no plugin
    - Removidos imports de WidgetFactory, Styles, etc.
@@ -252,16 +252,16 @@
    - Atualizado docs/plano_eliminacao_widgetfactory.md v5.3.0 — ReplaceInLayouts marcado como migrado
    - docs/plano_acao_replaceinlayouts.md criado com plano completo
 2.3.68 27/07/2026
-[2.3.68.1][27/07/2026] Migrado LoadFolderLayers para novo sistema de widgets (new_widgets/):
-   - Criado resources/new_widgets/grid/GridCheckboxButtons.py — widget genérico de botões configurável via dict, sem botões built-in (Fechar/Info/Config), usa SimpleModernButton internamente
-   - Criado resources/new_widgets/CollapsibleParametersWidget.py — seção colapsável com header gradiente via paintEvent (QPainter + QLinearGradient), tokens do tema (COLOR_COLLAPSIBLE_HEADER_START/END_GRADIENT), ícone ▶/▼, API add_content_widget/add_content_layout/set_expanded/is_expanded
+[2.3.68.1][27/07/2026] Migrado LoadFolderLayers para novo sistema de widgets (widgets/):
+   - Criado resources/widgets/grid/GridCheckboxButtons.py — widget genérico de botões configurável via dict, sem botões built-in (Fechar/Info/Config), usa SimpleModernButton internamente
+   - Criado resources/widgets/CollapsibleParametersWidget.py — seção colapsável com header gradiente via paintEvent (QPainter + QLinearGradient), tokens do tema (COLOR_COLLAPSIBLE_HEADER_START/END_GRADIENT), ícone ▶/▼, API add_content_widget/add_content_layout/set_expanded/is_expanded
    - GridCheckbox melhorado: sistema `dependents` nativo (plugin declara "dependents": ["filho"], widget gerencia desabilitar/habilitar + salvar/restaurar estado); parâmetro `control_buttons_config` para criar GridCheckboxButtons internamente; métodos select_all/deselect_all/invert_selection
    - LoadFolderLayers migrado: WidgetFactory substituido por GridComplexSelector (seletor pasta) + CollapsibleParametersWidget + GridCheckbox (tipos com control_buttons + opções com dependents preserve→lastfolder) + GridExecutionButtons
    - Removidos imports de WidgetFactory, Styles, etc.
    - docs/plano_acao_load_folder_layers.md v2.0.0 criado
    - Atualizado docs/skills/SKILL_WIDGETS2.md e docs/plano_eliminacao_widgetfactory.md v5.4.0
 2.3.69 27/07/2026
-[2.3.69.1][27/07/2026] Migrado CreateProjectPlugin (DefaultProjectsFolderDialog + ProjectNameDialog) para novo sistema de widgets (new_widgets/):
+[2.3.69.1][27/07/2026] Migrado CreateProjectPlugin (DefaultProjectsFolderDialog + ProjectNameDialog) para novo sistema de widgets (widgets/):
    - GridInputFields: adicionado suporte a "placeholder" no config dict (chama setPlaceholderText() no SimpleQLineEdit)
    - DefaultProjectsFolderDialog: WidgetFactory + SelectorWidget + ExecutionButtonsWidget substituidos por GridLabel + GridComplexSelector + GridExecutionButtons (nativo com close/config/info built-in). Removido import de QVBoxLayout — usa self.layout.addWidget() e add_execution_buttons() direto.
    - ProjectNameDialog: WidgetFactory + QLineEdit + QHBoxLayout substituidos por GridLabel único + GridInputFields com placeholder (suggest ao fundo) + GridExecutionButtons (nativo). Removido botão Config ⚙️ manual e método _open_settings() — GridExecutionButtons já tem enable_config_button nativo. Removido import de SettingsPlugin e QVBoxLayout.
@@ -270,16 +270,16 @@
    - SKILL_WIDGETS2.md atualizado: adicionada REGRA ABSOLUTA sobre MainLayout — plugins NUNCA importam QtWidgets, GridExecutionButtons SEMPRE via add_execution_buttons(), NUNCA criam layouts intermediários
    - GridExecutionButtons._open_settings() corrigido: adicionado fallback via qgis.utils.iface (2a tentativa) antes do QgsApplication.activeInstance(). Isto resolve abertura do Config em diálogos BaseDialog que não têm self.iface (DefaultProjectsFolderDialog, ProjectNameDialog, InfoDialog, etc) — sem precisar de config_callback manual em cada um.
 2.3.70 27/07/2026
-[2.3.70.1][27/07/2026] Migrado SaveTemporaryLayersPlugin para novo sistema de widgets (new_widgets/):
-   - Criado resources/new_widgets/simple/SimpleComboBox.py — QComboBox com AppStyles.input(), API: set_options/get_selected_key/set_selected_key
-   - Criado resources/new_widgets/grid/GridComboBox.py — Container de N combos configurável via dict, com onchange callback (sem pyqtSignal), title opcional (QGroupBox), API: get_selected_key/set_selected_key/get_options/set_options/widget
+[2.3.70.1][27/07/2026] Migrado SaveTemporaryLayersPlugin para novo sistema de widgets (widgets/):
+   - Criado resources/widgets/simple/SimpleComboBox.py — QComboBox com AppStyles.input(), API: set_options/get_selected_key/set_selected_key
+   - Criado resources/widgets/grid/GridComboBox.py — Container de N combos configurável via dict, com onchange callback (sem pyqtSignal), title opcional (QGroupBox), API: get_selected_key/set_selected_key/get_options/set_options/widget
    - SaveTemporaryLayersPlugin: WidgetFactory substituido por GridInputFields (prefix+suffix) + GridComboBox (1 widget com 2 items: vector_ext + raster_ext) + GridComplexSelector (output folder) + GridExecutionButtons (salvar/fechar/info)
    - Removido import de WidgetFactory e DropdownSelectorWidget (antigo com pyqtSignal)
    - Mantida lógica de negócio inalterada (_get_temporary_layers, _replace_memory_layer, _replace_raster_layer)
    - docs/plano_acao_save_temporary_layers.md v1.1.0 criado
    - Atualizado docs/skills/SKILL_WIDGETS2.md e docs/plano_eliminacao_widgetfactory.md
 2.3.71 27/07/2026
-[2.3.71.1][27/07/2026] Migrado GenerateTrailPlugin para novo sistema de widgets (new_widgets/):
+[2.3.71.1][27/07/2026] Migrado GenerateTrailPlugin para novo sistema de widgets (widgets/):
    - ComplexSelector modificado: adicionados parâmetros `allow_checked`, `checked_text`, `checked_default` para checkbox de proteção (bloqueio) via config dict
    - ComplexSelector modificado: checkbox sem texto entre lineedit e botões, sub-label abaixo, bloqueio interno via _update_blocked_state()
    - ComplexSelector modificado: API get_checked_state()/set_checked_state() para consulta programática
@@ -353,8 +353,8 @@
       últimos ~4KB do JPG) e garante robustez para arquivos com posição atípica.
 2.3.76 30/07/2026
 [2.3.76.1][30/07/2026] Adicionados SimpleRadioButton e GridRadioButton ao novo sistema de widgets:
-  - Criado resources/new_widgets/simple/SimpleRadioButton.py (QRadioButton + AppStyles.radio_button())
-  - Criado resources/new_widgets/grid/GridRadioButton.py (container de radio buttons com QButtonGroup + dict config + columns + default_key)
+  - Criado resources/widgets/simple/SimpleRadioButton.py (QRadioButton + AppStyles.radio_button())
+  - Criado resources/widgets/grid/GridRadioButton.py (container de radio buttons com QButtonGroup + dict config + columns + default_key)
   - API pública: get_selected_key/set_selected_key/get_selected_index/set_selected_index
   - Atualizada docs/skills/SKILL_WIDGETS2.md para versão 2.6.0
   - Atualizado docs/plano_eliminacao_widgetfactory.md para versão 5.4.0
@@ -391,7 +391,7 @@
    - SKILL_WIDGETS2.md v2.7.0: adicionada regra crítica #9 — `if widget is not None` em vez de `if widget:`
    - Plugin em conformidade com PLUGIN_CONTRACT.md
 [2.3.79.2][31/07/2026] Migração CopyAttributesPlugin para novo sistema de widgets:
-   - Criado GridAttributeSelector (resources/new_widgets/GridAttributeSelector.py) — widget específico com titulo, checkbox "Usar todos os atributos", GridCheckbox (1 coluna), GridModernButtons (Selecionar/Remover/Inverter), logger obrigatorio via LogUtils com tool_key, _specific_style() com tokens do tema AppStyles
+   - Criado GridAttributeSelector (resources/widgets/GridAttributeSelector.py) — widget específico com titulo, checkbox "Usar todos os atributos", GridCheckbox (1 coluna), GridModernButtons (Selecionar/Remover/Inverter), logger obrigatorio via LogUtils com tool_key, _specific_style() com tokens do tema AppStyles
    - CopyAttributesPlugin reescrito sem WidgetFactory: GridComplexSelector (1 widget com 2 items: target_layer e source_layer, ambos allow_layer=True, VectorLayer, sem pasta/arquivo/feicoes), GridAttributeSelector, GridExecutionButtons
    - Plugin registra callback via set_on_changed("source_layer", self._populate_fields) para atualizar atributos automaticamente ao mudar camada de origem
    - _obter_layer_do_selector(key) padronizado para obter layer via layer_selector.get(key).current_layer
@@ -429,7 +429,7 @@
     - GliCalculator: removida declaração ICON (primeiro filho testado no novo modo)
     - SKILL_PROCESSING.md atualizada para 1.1.0 com documentação do novo padrão e compatibilidade legada
 2.3.83 31/07/2026
-[2.3.83.1][31/07/2026] Criado ComplexColorPicker em resources/new_widgets/:
+[2.3.83.1][31/07/2026] Criado ComplexColorPicker em resources/widgets/:
    - Composicao: SimpleLabel + QgsColorButton + SimpleQLineEdit (hex readonly) + SquareIconButton (COPY2)
    - API: set_color(), get_color(), color(), color_button(), hex_input()
    - Permite opacidade via QgsColorButton.setAllowOpacity(True)
@@ -492,7 +492,7 @@
 
 2.3.85 04/08/2026
 [2.3.85.1][04/08/2026] SettingsPlugin migrado para novo sistema de widgets (100% sem WidgetFactory):
-   - Criado resources/new_widgets/ComplexCrsSelector.py (raiz) — label + QgsProjectionSelectionWidget com AppStyles.combobox() para fundo padronizado
+   - Criado resources/widgets/ComplexCrsSelector.py (raiz) — label + QgsProjectionSelectionWidget com AppStyles.combobox() para fundo padronizado
    - CollapsibleParametersWidget (Geral + Cálculos) + GridComplexSelector (pasta projetos) + GridComboBox (idioma) + GridDoubleSpin (precisão + threshold) + GridCheckbox (toolbar 3 colunas) + GridRadioButton (método cálculo) + GridInputFields (sufixos) + GridExecutionButtons (Salvar/Fechar/Info + extras Prefs/Registry, enable_config_button=False)
    - Ajustes de API: GridRadioButton.get_selected_key() (sem get_selected_text), GridCheckbox.set_checked()/get_all_states(), GridDoubleSpin.set_value()/get_value(), GridComboBox.set_selected_key(key, value)
    - docs/plano_eliminacao_widgetfactory.md atualizado (SettingsPlugin migrado, ComplexCrsSelector adicionado)
@@ -520,7 +520,7 @@
    - resources/widgets/ REMOVIDO - widgets antigos eliminados
    - Apenas referencias em comentarios de plugins (''substituem WidgetFactory'') e docs/OLD/andtigo.py (backup)
 [2.3.87.2][04/08/2026] DropdownToolButton padronizado no novo sistema de widgets:
-   - resources/new_widgets/DropdownToolButton.py migrado para o padrao de widget raiz
+   - resources/widgets/DropdownToolButton.py migrado para o padrao de widget raiz
    - Adicionados LogUtils com class_name como tool (widget de infraestrutura, nao plugin)
    - Adicionados _apply_styles() / _get_global_style() / _specific_style()
    - _specific_style() estiliza QToolButton e QMenu com tokens do tema (PXBORDER_ONE, COLOR_BORDER_DEFAULT, COLOR_BACKGROUND_PANEL, etc)
@@ -528,5 +528,5 @@
    - API publica preservada (setup(), _popup_mode(), clique principal dispara main_action)
 [2.3.87.3][04/08/2026] Skills atualizadas:
    - SKILL_WIDGETS2.md v3.3.0 - DropdownToolButton documentado no catalogo de widgets raiz; WidgetFactory e resources/widgets/ removidos
-   - SKILL_PLUGIN_CONTRACT.md - regras #1 (UI), #5 (Estilos) e #9 (Widgets Customizados) atualizadas para o novo sistema (new_widgets/ + AppStyles + BaseTheme, sem WidgetFactory)
-   - SKILL_AGENT.md - mapeamento UI/Widgets atualizado para SKILL_WIDGETS2.md (substitui SKILL_WIDGET_ENGINE.md inexistente); regras do contrato atualizadas (18 regras, UI via new_widgets/)
+   - SKILL_PLUGIN_CONTRACT.md - regras #1 (UI), #5 (Estilos) e #9 (Widgets Customizados) atualizadas para o novo sistema (widgets/ + AppStyles + BaseTheme, sem WidgetFactory)
+   - SKILL_AGENT.md - mapeamento UI/Widgets atualizado para SKILL_WIDGETS2.md (substitui SKILL_WIDGET_ENGINE.md inexistente); regras do contrato atualizadas (18 regras, UI via widgets/)

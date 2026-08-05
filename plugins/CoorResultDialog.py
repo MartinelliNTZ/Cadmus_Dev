@@ -6,10 +6,10 @@ from ..utils.ProjectUtils import ProjectUtils
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.Preferences import Preferences
 from ..i18n.TranslationManager import STR
-from ..resources.new_widgets.grid.GridReadOnly import GridReadOnly
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.simple.SimpleLabel import SimpleLabel
+from ..resources.widgets.grid.GridReadOnly import GridReadOnly
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.simple.SimpleLabel import SimpleLabel
 
 
 class CoordResultDialog(BasePluginMTL):

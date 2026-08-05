@@ -6,10 +6,10 @@ from ...i18n.TranslationManager import STR
 from ..config.LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 from ..services.PackageManager import PackageManager
-from ...resources.new_widgets.grid.GridInputFields import GridInputFields
-from ...resources.new_widgets.grid.GridLabel import GridLabel
-from ...resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ...resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
+from ...resources.widgets.grid.GridInputFields import GridInputFields
+from ...resources.widgets.grid.GridLabel import GridLabel
+from ...resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ...resources.widgets.grid.GridComplexSelector import GridComplexSelector
 
 
 class RegistryDialog(BaseDialog):

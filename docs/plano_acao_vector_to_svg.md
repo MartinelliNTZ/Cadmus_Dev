@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração do VectorToSvgPlugin para Novo Sistema de Widgets
 
-**Objetivo:** Migrar o `VectorToSvgPlugin` do `WidgetFactory` para o novo sistema `resources/new_widgets/`, eliminando dependência da Factory e de `resources/styles/`.
+**Objetivo:** Migrar o `VectorToSvgPlugin` do `WidgetFactory` para o novo sistema `resources/widgets/`, eliminando dependência da Factory e de `resources/styles/`.
 
 **Data:** 2026-07-31
 **Versão:** 5.8.0
@@ -12,7 +12,7 @@
 
 O `VectorToSvgPlugin` é a ferramenta #18 da FASE 2 do plano de eliminação da WidgetFactory. Atualmente usa:
 
-| Widget atual | Factory | Widget alvo (new_widgets) |
+| Widget atual | Factory | Widget alvo (widgets) |
 |-------------|---------|--------------------------|
 | Layer input | `create_layer_input` | `GridComplexSelector` (layer + file) |
 | Cor de fundo | `create_color_button` | `ComplexColorPicker` (NOVO) |
@@ -142,7 +142,7 @@ else:
     ...
 ```
 
-**Local da mudança:** `resources/new_widgets/grid/GridComplexSelector.py` → `_generate_output()`.
+**Local da mudança:** `resources/widgets/grid/GridComplexSelector.py` → `_generate_output()`.
 
 **Regra:** folder mode ignora `suffix`, `fixed_name` e `fixed_extension` — somente usa `subfolder`.
 
@@ -150,7 +150,7 @@ else:
 
 **Requisito do usuário:** `label | seletor de cor | simplelineedit | iconbutton copiar` — mesmo padrão de composição do `ComplexSelector`.
 
-**Arquivo:** `resources/new_widgets/ComplexColorPicker.py`
+**Arquivo:** `resources/widgets/ComplexColorPicker.py`
 
 **Composição (layout horizontal):**
 
@@ -486,9 +486,9 @@ for_each_feature = self.options_checkbox.is_checked("for_each_feature")
 
 | # | Ação | Arquivo |
 |---|------|---------|
-| 1 | Criar `ComplexColorPicker` (label + QgsColorButton + SimpleQLineEdit + SimpleModernButton copy) | `resources/new_widgets/ComplexColorPicker.py` |
-| 2 | Ajustar `GridComplexSelector._generate_output()` para suportar **folder mode** com `subfolder` | `resources/new_widgets/grid/GridComplexSelector.py` |
-| 3 | Substituir imports da Factory por new_widgets | `plugins/VectorToSvgPlugin.py` |
+| 1 | Criar `ComplexColorPicker` (label + QgsColorButton + SimpleQLineEdit + SimpleModernButton copy) | `resources/widgets/ComplexColorPicker.py` |
+| 2 | Ajustar `GridComplexSelector._generate_output()` para suportar **folder mode** com `subfolder` | `resources/widgets/grid/GridComplexSelector.py` |
+| 3 | Substituir imports da Factory por widgets | `plugins/VectorToSvgPlugin.py` |
 | 4 | Reescrever `_build_ui` | `plugins/VectorToSvgPlugin.py` |
 | 5 | Adaptar `_load_prefs`/`_save_prefs` | `plugins/VectorToSvgPlugin.py` |
 | 6 | Adaptar `execute_tool` e helpers | `plugins/VectorToSvgPlugin.py` |
@@ -511,9 +511,9 @@ for_each_feature = self.options_checkbox.is_checked("for_each_feature")
 - [x] TEM LOGGER? SIM (herda de BasePluginMTL)
 
 ### Migração
-- [ ] Criar ComplexColorPicker em resources/new_widgets/
+- [ ] Criar ComplexColorPicker em resources/widgets/
 - [ ] Ajustar GridComplexSelector para folder mode
-- [ ] Substituir WidgetFactory.create_xxx() por new_widgets
+- [ ] Substituir WidgetFactory.create_xxx() por widgets
 - [ ] Remover imports da Factory
 - [ ] Adicionar SeparatorWidget() entre widgets
 - [ ] GridExecutionButtons via add_execution_buttons()
@@ -548,7 +548,7 @@ for_each_feature = self.options_checkbox.is_checked("for_each_feature")
 
 ```
 2.3.83 31/07/2026
-[2.3.83.1][31/07/2026] Criado ComplexColorPicker (label + QgsColorButton + SimpleQLineEdit + SimpleModernButton copy) em resources/new_widgets/
+[2.3.83.1][31/07/2026] Criado ComplexColorPicker (label + QgsColorButton + SimpleQLineEdit + SimpleModernButton copy) em resources/widgets/
 [2.3.83.2][31/07/2026] GridComplexSelector._generate_output() agora suporta folder mode com subfolder (ignora suffix/fixed_name/fixed_extension)
 [2.3.83.3][31/07/2026] VectorToSvgPlugin migrado para novo sistema de widgets:
    - GridComplexSelector (layer + file + pasta saída com subfolder "svgs" + parent linking)
@@ -566,5 +566,5 @@ for_each_feature = self.options_checkbox.is_checked("for_each_feature")
 
 | Widget | Tipo | Arquivo | Status |
 |--------|------|---------|--------|
-| `ComplexColorPicker` | Raiz | `resources/new_widgets/ComplexColorPicker.py` | ⬜ Criar |
-| `GridComplexSelector` folder mode | Grid | `resources/new_widgets/grid/GridComplexSelector.py` | ⬜ Ajustar `_generate_output()` |
+| `ComplexColorPicker` | Raiz | `resources/widgets/ComplexColorPicker.py` | ⬜ Criar |
+| `GridComplexSelector` folder mode | Grid | `resources/widgets/grid/GridComplexSelector.py` | ⬜ Ajustar `_generate_output()` |

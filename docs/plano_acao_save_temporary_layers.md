@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração SaveTemporaryLayersPlugin — Novo Sistema de Widgets
 
-**Objetivo:** Migrar `SaveTemporaryLayersPlugin` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`), eliminando dependências do sistema antigo.
+**Objetivo:** Migrar `SaveTemporaryLayersPlugin` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/widgets/`), eliminando dependências do sistema antigo.
 
 **Data:** 2026-07-27
 **Versão:** 1.1.0
@@ -23,7 +23,7 @@
 
 ## 1. Widgets Necessários
 
-| Widget Atual (WidgetFactory) | Novo Widget (new_widgets/) | Status |
+| Widget Atual (WidgetFactory) | Novo Widget (widgets/) | Status |
 |---|---|---|
 | `create_input_fields_widget()` — prefix + suffix | **`GridInputFields`** | ✅ Já existe |
 | `create_dropdown_selector()` x2 (vetor + raster) | **`GridComboBox`** 🆕 — **1 widget com 2 items** | ⬜ Criar |
@@ -89,7 +89,7 @@ As subpastas `vectors/` e `rasters/` continuam sendo criadas no `execute_tool()`
 ### 3.1 SimpleComboBox (Simple Widget — uso interno)
 
 ```python
-# resources/new_widgets/simple/SimpleComboBox.py (NOVO)
+# resources/widgets/simple/SimpleComboBox.py (NOVO)
 ```
 
 `QComboBox` com `AppStyles.input()`. **NUNCA importado por plugins.**
@@ -132,7 +132,7 @@ class SimpleComboBox(QComboBox):
 ### 3.2 GridComboBox (Grid Widget — plugin USA)
 
 ```python
-# resources/new_widgets/grid/GridComboBox.py (NOVO)
+# resources/widgets/grid/GridComboBox.py (NOVO)
 ```
 
 Container de combos com **1 config dict** contendo **N items**. Plugins configuram `onchange` por item.
@@ -209,15 +209,15 @@ layout.addWidget(self.ext_combo)
 ### Criar (1 Simple + 1 Grid = 2 arquivos)
 
 ```
-resources/new_widgets/simple/SimpleComboBox.py         🆕 NOVO
-resources/new_widgets/grid/GridComboBox.py             🆕 NOVO
+resources/widgets/simple/SimpleComboBox.py         🆕 NOVO
+resources/widgets/grid/GridComboBox.py             🆕 NOVO
 ```
 
 ### Modificar
 
 | Arquivo | Mudança |
 |---------|---------|
-| `plugins/SaveTemporaryLayersPlugin.py` | Substituir WidgetFactory por new_widgets |
+| `plugins/SaveTemporaryLayersPlugin.py` | Substituir WidgetFactory por widgets |
 | `docs/skills/SKILL_WIDGETS2.md` | Adicionar SimpleComboBox + GridComboBox |
 | `docs/plano_eliminacao_widgetfactory.md` | Marcar SaveTemporaryLayersPlugin como migrado |
 | `docs/ia/changelog.txt` | Registrar nova versão |
@@ -251,10 +251,10 @@ resources/new_widgets/grid/GridComboBox.py             🆕 NOVO
    from ..core.ui.WidgetFactory import WidgetFactory
    
    # ADICIONAR
-   from ..resources.new_widgets.grid.GridInputFields import GridInputFields
-   from ..resources.new_widgets.grid.GridComboBox import GridComboBox
-   from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-   from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+   from ..resources.widgets.grid.GridInputFields import GridInputFields
+   from ..resources.widgets.grid.GridComboBox import GridComboBox
+   from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+   from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
    ```
 
 4. **`_build_ui()` — estrutura:**
@@ -375,13 +375,13 @@ resources/new_widgets/grid/GridComboBox.py             🆕 NOVO
 
 ```
 [ ] FASE 1: SimpleComboBox
-  [ ] 1.1 Criar resources/new_widgets/simple/SimpleComboBox.py
+  [ ] 1.1 Criar resources/widgets/simple/SimpleComboBox.py
        [ ] QComboBox + AppStyles.input()
        [ ] set_options(), get_selected_key(), set_selected_key()
        [ ] _apply_styles() no __init__
 
 [ ] FASE 2: GridComboBox
-  [ ] 2.1 Criar resources/new_widgets/grid/GridComboBox.py
+  [ ] 2.1 Criar resources/widgets/grid/GridComboBox.py
        [ ] config dict com N items
        [ ] Cada item: QLabel + SimpleComboBox na mesma linha
        [ ] title opcional → QGroupBox

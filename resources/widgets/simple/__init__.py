@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Simple widgets — uso INTERNO apenas.
-Widgets aqui TEM versão grid (em resources/new_widgets/grid/).
+Widgets aqui TEM versão grid (em resources/widgets/grid/).
 NUNCA importados por plugins.
 """
 

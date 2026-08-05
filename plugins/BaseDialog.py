@@ -5,8 +5,8 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt
 import os
 from typing import Optional
-from ..resources.new_widgets.MainLayout import MainLayout
-from ..resources.widgets.system.MainLayout import MainLayout as MainLayoutOld
+from ..resources.widgets.MainLayout import MainLayout
+from ..resources.widgets.MainLayout import MainLayout as MainLayoutOld
 
 
 # Compatibilidade Qt5/Qt6: Qt5 usa Qt.{attr}, Qt6 usa Qt.WindowType.{attr}

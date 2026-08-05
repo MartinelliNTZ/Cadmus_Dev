@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração DividePointsByStripsPlugin
 
-**Objetivo:** Migrar `DividePointsByStripsPlugin` do sistema antigo (`WidgetFactory`) para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`).
+**Objetivo:** Migrar `DividePointsByStripsPlugin` do sistema antigo (`WidgetFactory`) para o novo sistema de widgets autoconfiguráveis (`resources/widgets/`).
 
 **Data:** 2026-07-31
 **Plugin:** `plugins/DividePointsByStripsPlugin.py`
@@ -249,7 +249,7 @@ self.operational_params.set_expanded(bool)
 self.operational_params.is_expanded()
 ```
 
-**✅ Compatível — API já existe em `resources/new_widgets/CollapsibleParametersWidget.py`.**
+**✅ Compatível — API já existe em `resources/widgets/CollapsibleParametersWidget.py`.**
 
 ### 2.8 Bottom Action Buttons (`create_bottom_action_buttons` → `GridExecutionButtons`)
 
@@ -287,7 +287,7 @@ self.layout.add_execution_buttons(self.action_buttons)
 
 ### 3.2 ComplexSelector — Adicionar método genérico `getitem()`
 
-**Arquivo:** `resources/new_widgets/simple/ComplexSelector.py`
+**Arquivo:** `resources/widgets/simple/ComplexSelector.py`
 
 Método **genérico** que retorna tupla `(path, layer)` — a forma canônica de acessar o estado do seletor:
 
@@ -309,7 +309,7 @@ def getitem(self) -> tuple[str, object]:
     return self.path(), self.current_layer
 ```
 
-**Arquivo:** `resources/new_widgets/grid/GridCheckbox.py`
+**Arquivo:** `resources/widgets/grid/GridCheckbox.py`
 
 ```python
 def get_checked_keys(self) -> list[str]:
@@ -394,15 +394,15 @@ from ..core.ui.WidgetFactory import WidgetFactory
 
 **Adicionar:**
 ```python
-from ..resources.new_widgets.simple.SimpleLabel import SimpleLabel
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
-from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
-from ..resources.new_widgets.grid.GridComboBox import GridComboBox
-from ..resources.new_widgets.grid.GridInputFields import GridInputFields
-from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.simple.SimpleLabel import SimpleLabel
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+from ..resources.widgets.grid.GridComboBox import GridComboBox
+from ..resources.widgets.grid.GridInputFields import GridInputFields
+from ..resources.widgets.grid.GridRadioButton import GridRadioButton
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 ```
 
 ### 5.2 `_build_ui()` Novo
@@ -973,7 +973,7 @@ def execute_tool(self):
 - [x] **1.2** `ComplexSelector.getitem()` → tupla `(path, layer)`
 
 ### FASE 2 — Migração ✅ (2.3.80.1)
-- [x] **2.1** Substituir imports (remover WidgetFactory, adicionar new_widgets)
+- [x] **2.1** Substituir imports (remover WidgetFactory, adicionar widgets)
 - [x] **2.2** Migrar `_build_ui()` completo
 - [x] **2.3** Migrar `_load_prefs()` com nova API
 - [x] **2.4** Migrar `_save_prefs()` com nova API

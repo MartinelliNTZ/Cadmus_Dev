@@ -12,14 +12,14 @@ from ..utils.mrk.MetadataFields import MetadataFields
 from ..utils.adapter.StringAdapter import StringAdapter
 
 # ── Novos Widgets ──────────────────────────────────────────────
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridInputFields import GridInputFields
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.CollapsibleParametersWidget import (
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridInputFields import GridInputFields
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.CollapsibleParametersWidget import (
     CollapsibleParametersWidget,
 )
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
 
 
 def _to_checkbox_config(items) -> dict:
@@ -168,7 +168,7 @@ class DroneCordinates(BasePluginMTL):
             config={
                 key: {"label": label} for key, label in checkbox_options.items()
             },
-            items_per_row=1,
+            items_per_row=2,
             separator_bottom=False,
             parent=self,
         )

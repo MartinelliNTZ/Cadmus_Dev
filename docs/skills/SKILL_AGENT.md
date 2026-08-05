@@ -35,7 +35,7 @@ Use esta tabela para decidir qual skill ler **além** dos contratos obrigatório
 | Logging, sinais entre componentes, mensagens ao usuário | `docs/skills/SKILL_COMUNICATION_SYSTEM.md` | Quando usar LogUtils vs SignalHub vs QgisMessageUtil, payloads, tool_key |
 | Strings, tradução, STR, InstructionsManager, HtmlInstructions | `docs/skills/SKILL_I18N.md` | STR, locale, InstructionsManager, HtmlInstructionsProvider — sempre ler ao adicionar nova string |
 | Preferências do usuário, configurações persistentes | `docs/skills/SKILL_PREFERENCES.md` | Preferences.load_tool_prefs, save_tool_prefs, operações em lote com filtro |
-| UI, Widgets, novo sistema de widgets autoconfiguráveis | `docs/skills/SKILL_WIDGETS2.md` | Contrato do novo sistema: widgets de new_widgets/, AppStyles + ThemeManager + BaseTheme, _specific_style(), config dict, callbacks |
+| UI, Widgets, novo sistema de widgets autoconfiguráveis | `docs/skills/SKILL_WIDGETS2.md` | Contrato do novo sistema: widgets de widgets/, AppStyles + ThemeManager + BaseTheme, _specific_style(), config dict, callbacks |
 | Algoritmo de processing (initAlgorithm, processAlgorithm) | `docs/skills/SKILL_PROCESSING.md` | BaseProcessingAlgorithm, load/save preferences, OPEN_OUTPUT_FOLDER, DISPLAY_HELP |
 | Registro de plugin no ToolRegistry (menu/toolbar) | `docs/skills/SKILL_TOOLREGISTRY_PLUGINS.md` | Tool → ToolRegistry → MenuManager, main_action, executor, ToolTypeEnum |
 | Manipulação de camadas vetoriais ou raster | `docs/skills/SKILL_VECTOR_RASTER_LAYER_UTILS.md` | VectorLayerAttributes, VectorLayerGeometry, RasterLayerRendering, RasterLayerProcessing |
@@ -55,7 +55,7 @@ Use esta tabela para decidir qual skill ler **além** dos contratos obrigatório
 
 Regras críticas do plugin que **nunca** podem ser violadas:
 
-- UI via `resources/new_widgets/` (nunca QtWidgets direto)
+- UI via `resources/widgets/` (nunca QtWidgets direto)
 - Logging via LogUtils com ToolKey (nunca print/stderr)
 - Strings via STR (nunca hardcoded)
 - ToolKey é enum (nunca string)
@@ -353,7 +353,7 @@ Se informação estiver faltando, responda com:
 | Erro silenciado com `except: pass` | Pipeline continua em estado inconsistente |
 | Não consultar skills complementares | Perde contexto, viola contratos |
 | Ignorar SKILL_FACTORY ao documentar sistema | Skill gerada sem profundidade ou sem ler código |
-| Plugin importando QtWidgets direto | Viola contrato #1 (UI via new_widgets/) |
+| Plugin importando QtWidgets direto | Viola contrato #1 (UI via widgets/) |
 | Plugin chamando setStyleSheet() | Viola contrato #5 (estilos via AppStyles/widgets) |
 
 ---

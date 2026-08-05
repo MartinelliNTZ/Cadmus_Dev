@@ -8,8 +8,8 @@ Organização:
 - (raiz)     → Widget SEM versão grid
 
 Uso em plugins:
-    from ..resources.new_widgets.grid.GridLabel import GridLabel
-    from ..resources.new_widgets.grid.GridButton import GridButton
-    from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
-    from ..resources.new_widgets.MainLayout import MainLayout
+    from ..resources.widgets.grid.GridLabel import GridLabel
+    from ..resources.widgets.grid.GridButton import GridButton
+    from ..resources.widgets.SeparatorWidget import SeparatorWidget
+    from ..resources.widgets.MainLayout import MainLayout
 """

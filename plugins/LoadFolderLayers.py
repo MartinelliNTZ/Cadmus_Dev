@@ -12,10 +12,10 @@ from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..i18n.TranslationManager import STR
 
 # ── Novos Widgets ────────────────────────────────────────────────
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
 
 
 # ============================================================

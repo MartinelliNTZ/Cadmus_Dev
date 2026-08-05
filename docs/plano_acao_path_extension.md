@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração PathExtensionPlugin para Novo Sistema de Widgets
 
-**Objetivo:** Migrar `PathExtensionPlugin` do sistema antigo (`WidgetFactory`) para o novo sistema (`resources/new_widgets/`), seguindo o contrato do plano de eliminação da WidgetFactory.
+**Objetivo:** Migrar `PathExtensionPlugin` do sistema antigo (`WidgetFactory`) para o novo sistema (`resources/widgets/`), seguindo o contrato do plano de eliminação da WidgetFactory.
 
 **Plugin:** `plugins/PathExtensionPlugin.py`
 **Data:** 2026-07-31
@@ -78,7 +78,7 @@ def get_current_item(self, key: str):
     return (path, layer)
 ```
 
-**Arquivo:** `resources/new_widgets/grid/GridComplexSelector.py`
+**Arquivo:** `resources/widgets/grid/GridComplexSelector.py`
 
 ### 2.2 GridComplexSelector — API `set_on_changed()` JÁ EXISTE
 
@@ -118,7 +118,7 @@ O `GridExecutionButtons` já possui:
 
 ### 3.1 Passo 1: Adicionar `get_current_item()` ao GridComplexSelector
 
-**Arquivo:** `resources/new_widgets/grid/GridComplexSelector.py`
+**Arquivo:** `resources/widgets/grid/GridComplexSelector.py`
 
 Adicionar método público após a seção de API Pública (após linha 600, antes de `get()`):
 
@@ -177,11 +177,11 @@ def get_current_item(self, key: str):
 
 ```python
 # NOVOS IMPORTS (substituem WidgetFactory)
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridComboBox import GridComboBox
-from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridComboBox import GridComboBox
+from ..resources.widgets.grid.GridRadioButton import GridRadioButton
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
 
 # IMPORTS ANTIGOS QUE PERMANECEM
 from qgis.core import QgsMapLayerProxyModel
@@ -542,7 +542,7 @@ Usuário clica "Executar"
 
 | Arquivo | Tipo de Mudança | Risco |
 |---------|----------------|-------|
-| `resources/new_widgets/grid/GridComplexSelector.py` | Adicionar método `get_current_item(key)` | Baixo |
+| `resources/widgets/grid/GridComplexSelector.py` | Adicionar método `get_current_item(key)` | Baixo |
 | `plugins/PathExtensionPlugin.py` | Reescrever `_build_ui()`, `_on_layer_changed()`, `execute_tool()`, `_load_prefs()`, `_save_prefs()` | Médio |
 | `docs/ia/changelog.txt` | Adicionar entrada de versão | Baixo |
 
@@ -634,7 +634,7 @@ Usuário clica "Executar"
 
 | Regra | Status | Verificação |
 |-------|--------|-------------|
-| #1 UI via WidgetFactory (ou new_widgets) | ✅ | Usa `resources/new_widgets/` |
+| #1 UI via WidgetFactory (ou widgets) | ✅ | Usa `resources/widgets/` |
 | #2 Logging via LogUtils com ToolKey | ✅ | Herda de `BasePluginMTL` |
 | #3 Strings via STR | ✅ | Já usa `STR.*` |
 | #4 ToolKey é enum | ✅ | `ToolKey.PATH_EXTENSION_TOOL` |

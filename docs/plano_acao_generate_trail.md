@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração GenerateTrailPlugin — Novo Sistema de Widgets
 
-**Objetivo:** Migrar `GenerateTrailPlugin` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/new_widgets/`), com modificações no `ComplexSelector` e `GridComplexSelector` para suportar checkbox de proteção (bloqueio) e sub-label "somente feições selecionadas".
+**Objetivo:** Migrar `GenerateTrailPlugin` da `WidgetFactory` para o novo sistema de widgets autoconfiguráveis (`resources/widgets/`), com modificações no `ComplexSelector` e `GridComplexSelector` para suportar checkbox de proteção (bloqueio) e sub-label "somente feições selecionadas".
 
 **Data:** 2026-07-27
 **Versão:** 2.0.0
@@ -24,9 +24,9 @@
 
 ## 1. Widgets Necessários
 
-### 1.1 Mapeamento WidgetFactory → new_widgets
+### 1.1 Mapeamento WidgetFactory → widgets
 
-| Widget Atual (WidgetFactory) | Novo Widget (new_widgets/) | Status |
+| Widget Atual (WidgetFactory) | Novo Widget (widgets/) | Status |
 |---|---|---|
 | `create_layer_input()` — camada linha | `GridComplexSelector` (input_layer com checkbox) | ⬜ Modificar |
 | `create_save_file_selector()` — saída | `GridComplexSelector` (output_trail com parent=input_layer) — **mesmo GridComplexSelector do input** | ⬜ Modificar |
@@ -337,15 +337,15 @@ def set_checked_state(self, label: str, checked: bool):
 
 | Arquivo | Mudança |
 |---------|---------|
-| `resources/new_widgets/simple/ComplexSelector.py` | Adicionar `allow_checked`, `checked_text`, `checked_default`; checkbox; sub-label; `get_checked_state()`; `set_checked_state()` |
-| `resources/new_widgets/grid/GridComplexSelector.py` | Propagar novos parâmetros; `get_checked_state(label)`; `set_checked_state(label, checked)` |
+| `resources/widgets/simple/ComplexSelector.py` | Adicionar `allow_checked`, `checked_text`, `checked_default`; checkbox; sub-label; `get_checked_state()`; `set_checked_state()` |
+| `resources/widgets/grid/GridComplexSelector.py` | Propagar novos parâmetros; `get_checked_state(label)`; `set_checked_state(label, checked)` |
 | `docs/skills/SKILL_WIDGETS2.md` | Documentar novos parâmetros e API |
 
 ### Reescrever (1 arquivo)
 
 | Arquivo | Mudança |
 |---------|---------|
-| `plugins/GenerateTrailPlugin.py` | Substituir WidgetFactory por new_widgets |
+| `plugins/GenerateTrailPlugin.py` | Substituir WidgetFactory por widgets |
 
 ### Atualizar (2 arquivos)
 
@@ -403,11 +403,11 @@ def set_checked_state(self, label: str, checked: bool):
    from ..core.engine_tasks.ExecutionContext import ExecutionContext
 
    # ADICIONAR
-   from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-   from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
-   from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-   from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
-   from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+   from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+   from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
+   from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+   from ..resources.widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+   from ..resources.widgets.SeparatorWidget import SeparatorWidget
    ```
 
 2. **`_build_ui()` — estrutura completa:**
@@ -629,9 +629,9 @@ def set_checked_state(self, label: str, checked: bool):
        [ ] GridDoubleSpin implement_size
        [ ] CollapsibleParametersWidget + GridComplexSelector qml_style
        [ ] GridExecutionButtons run/close/info
-  [ ] 3.4 Adaptar _load_prefs() para new_widgets API
-  [ ] 3.5 Adaptar _save_prefs() para new_widgets API
-  [ ] 3.6 Adaptar execute_tool() para new_widgets API
+  [ ] 3.4 Adaptar _load_prefs() para widgets API
+  [ ] 3.5 Adaptar _save_prefs() para widgets API
+  [ ] 3.6 Adaptar execute_tool() para widgets API
   [ ] 3.7 Manter lógica de negócio (pipeline sync/async) inalterada
 
 [ ] FASE 4: Pós-implementação

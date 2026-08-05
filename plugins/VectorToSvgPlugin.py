@@ -20,12 +20,12 @@ from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.vector.VectorLayerSource import VectorLayerSource
 
 # NOVOS WIDGETS (substituem WidgetFactory)
-from ..resources.new_widgets.ComplexColorPicker import ComplexColorPicker
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.ComplexColorPicker import ComplexColorPicker
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 
 
 class VectorToSvgPlugin(BasePluginMTL):

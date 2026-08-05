@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ReplaceInLayouts — Substitui texto em layouts do projeto.
-Plugin migrado para novo sistema de widgets (new_widgets/).
+Plugin migrado para novo sistema de widgets (widgets/).
 """
 
 from ..utils.Preferences import Preferences
@@ -10,10 +10,10 @@ from ..utils.LayoutsUtils import LayoutsUtils
 from ..utils.ProjectUtils import ProjectUtils
 from ..utils.ToolKeys import ToolKey
 from .BasePlugin import BasePluginMTL
-from ..resources.new_widgets.grid.GridInputFields import GridInputFields
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridInputFields import GridInputFields
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ..i18n.TranslationManager import STR
 
 

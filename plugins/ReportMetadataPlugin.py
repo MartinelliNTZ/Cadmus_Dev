@@ -17,10 +17,10 @@ from ..utils.vector.VectorLayerGeometry import VectorLayerGeometry
 from ..utils.mrk.MetadataFields import MetadataFields
 
 # ── Novos Widgets ──────────────────────────────────────────────
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridComboBox import GridComboBox
-from ..resources.new_widgets.grid.GridModernButtons import GridModernButtons
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridComboBox import GridComboBox
+from ..resources.widgets.grid.GridModernButtons import GridModernButtons
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 
 
 class ReportMetadataPlugin(BasePluginMTL):

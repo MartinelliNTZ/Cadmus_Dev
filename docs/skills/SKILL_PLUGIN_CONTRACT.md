@@ -9,7 +9,7 @@
 ❌ `from qgis.PyQt.QtWidgets import QLabel, QPushButton`
 ✅ `widget = GridLabel(config={"key": {"text": "Texto"}}, parent=self)`
 
-Plugins nunca importam QtWidgets direto. Toda UI usa widgets de `resources/new_widgets/` (grid/ para plugins, raiz para widgets sem versão grid). Widgets se autoconfiguram com `AppStyles` + `ThemeManager` + `BaseTheme`. Consulte `docs/skills/SKILL_WIDGETS2.md`.
+Plugins nunca importam QtWidgets direto. Toda UI usa widgets de `resources/widgets/` (grid/ para plugins, raiz para widgets sem versão grid). Widgets se autoconfiguram com `AppStyles` + `ThemeManager` + `BaseTheme`. Consulte `docs/skills/SKILL_WIDGETS2.md`.
 
 ---
 
@@ -43,7 +43,7 @@ ToolKey é enum, não string. Evita typos, facilita refatoração global e garan
 ## 5. Estilos
 
 ❌ `label.setStyleSheet("color: red; font-weight: bold")`
-✅ Usar widgets de `resources/new_widgets/` que aplicam `AppStyles` automaticamente
+✅ Usar widgets de `resources/widgets/` que aplicam `AppStyles` automaticamente
 
 Estilos customizados em plugins quebram consistência visual e dificultam mudanças globais. Todos os estilos em `AppStyles` + `BaseTheme`, aplicados via widgets autoconfiguráveis. Se precisa estilo novo, criar em `AppStyles` ou `_specific_style()` do widget.
 
@@ -79,9 +79,9 @@ Variáveis globais são compartilhadas (conflitos). Arquivos diretos são não-s
 ## 9. Widgets Customizados
 
 ❌ `class MyDialog(QDialog):` em `plugins/`
-✅ Criar em `resources/new_widgets/MyCustomWidget.py` + usar diretamente no plugin
+✅ Criar em `resources/widgets/MyCustomWidget.py` + usar diretamente no plugin
 
-Widgets em plugins criam acoplamento UI-lógica e violam contrato. Widgets compostos ficam em `resources/new_widgets/` com encapsulamento total (AppStyles + _specific_style), e o plugin apenas consome via construtor.
+Widgets em plugins criam acoplamento UI-lógica e violam contrato. Widgets compostos ficam em `resources/widgets/` com encapsulamento total (AppStyles + _specific_style), e o plugin apenas consome via construtor.
 
 ---
 

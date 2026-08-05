@@ -11,11 +11,11 @@ from ..utils.Preferences import Preferences
 from ..utils.StringManager import StringManager
 
 # NOVOS WIDGETS (substituem WidgetFactory)
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridComboBox import GridComboBox
-from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.SeparatorWidget import SeparatorWidget
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridComboBox import GridComboBox
+from ..resources.widgets.grid.GridRadioButton import GridRadioButton
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.SeparatorWidget import SeparatorWidget
 
 
 class PathExtensionPlugin(BasePluginMTL):

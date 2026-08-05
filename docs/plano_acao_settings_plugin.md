@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração do SettingsPlugin para o Novo Sistema de Widgets
 
-**Objetivo:** Migrar `plugins/SettingsPlugin.py` do `WidgetFactory` para os widgets de `resources/new_widgets/`, seguindo estritamente o contrato do plugin e o plano de eliminação da WidgetFactory.
+**Objetivo:** Migrar `plugins/SettingsPlugin.py` do `WidgetFactory` para os widgets de `resources/widgets/`, seguindo estritamente o contrato do plugin e o plano de eliminação da WidgetFactory.
 
 **Data:** 2026-08-04
 **Versão pretendida:** 2.3.85.x
@@ -10,7 +10,7 @@
 
 ## 1. Resumo da Migração
 
-| Widget Antigo (Factory) | Widget Novo (new_widgets) | Observação |
+| Widget Antigo (Factory) | Widget Novo (widgets) | Observação |
 |-------------------------|---------------------------|-----------|
 | `create_collapsible_parameters` (Geral) | `CollapsibleParametersWidget` | Colapsável "Geral" |
 | `create_path_selector` (folder) | `GridComplexSelector` (allow_folder) | Pasta de projetos |
@@ -29,20 +29,20 @@
 
 | Widget | Arquivo | API usada no plugin |
 |--------|---------|---------------------|
-| `CollapsibleParametersWidget` | `resources/new_widgets/CollapsibleParametersWidget.py` | `add_content_layout()`, `set_expanded()`, `is_expanded()` |
-| `GridComplexSelector` | `resources/new_widgets/grid/GridComplexSelector.py` | `set_path()`, `get_paths()`, `get_path()` |
-| `GridComboBox` | `resources/new_widgets/grid/GridComboBox.py` | `set_selected_key()`, `get_selected_key()` |
-| `GridDoubleSpin` | `resources/new_widgets/grid/GridDoubleSpin.py` | `set_value()`, `get_value()` |
-| `GridCheckbox` | `resources/new_widgets/grid/GridCheckbox.py` | `get_all_states()`, `set_checked()`, `get_checkbox()` |
-| `GridRadioButton` | `resources/new_widgets/grid/GridRadioButton.py` | `set_selected_index()`, `get_selected_key()` |
-| `GridInputFields` | `resources/new_widgets/grid/GridInputFields.py` | `set_values()`, `get_value()` |
-| `GridExecutionButtons` | `resources/new_widgets/grid/GridExecutionButtons.py` | `config` (callbacks por botão), `enable_close_button`, `enable_info`, `enable_config_button` |
+| `CollapsibleParametersWidget` | `resources/widgets/CollapsibleParametersWidget.py` | `add_content_layout()`, `set_expanded()`, `is_expanded()` |
+| `GridComplexSelector` | `resources/widgets/grid/GridComplexSelector.py` | `set_path()`, `get_paths()`, `get_path()` |
+| `GridComboBox` | `resources/widgets/grid/GridComboBox.py` | `set_selected_key()`, `get_selected_key()` |
+| `GridDoubleSpin` | `resources/widgets/grid/GridDoubleSpin.py` | `set_value()`, `get_value()` |
+| `GridCheckbox` | `resources/widgets/grid/GridCheckbox.py` | `get_all_states()`, `set_checked()`, `get_checkbox()` |
+| `GridRadioButton` | `resources/widgets/grid/GridRadioButton.py` | `set_selected_index()`, `get_selected_key()` |
+| `GridInputFields` | `resources/widgets/grid/GridInputFields.py` | `set_values()`, `get_value()` |
+| `GridExecutionButtons` | `resources/widgets/grid/GridExecutionButtons.py` | `config` (callbacks por botão), `enable_close_button`, `enable_info`, `enable_config_button` |
 
 ---
 
 ## 3. NOVO Widget Necessário: `ComplexCrsSelector` (Seleção de EPSG)
 
-Não existe seletor de CRS no novo sistema. **Precisa criar** `resources/new_widgets/ComplexCrsSelector.py` (raiz, SEM versão grid — é um widget composto específico, como `ComplexColorPicker`).
+Não existe seletor de CRS no novo sistema. **Precisa criar** `resources/widgets/ComplexCrsSelector.py` (raiz, SEM versão grid — é um widget composto específico, como `ComplexColorPicker`).
 
 ### Composição (layout horizontal)
 ```
@@ -324,15 +324,15 @@ from ..core.ui.WidgetFactory import WidgetFactory
 
 ### Adicionar
 ```python
-from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
-from ..resources.new_widgets.ComplexCrsSelector import ComplexCrsSelector      # NOVO
-from ..resources.new_widgets.grid.GridComboBox import GridComboBox
-from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
-from ..resources.new_widgets.grid.GridInputFields import GridInputFields
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+from ..resources.widgets.ComplexCrsSelector import ComplexCrsSelector      # NOVO
+from ..resources.widgets.grid.GridComboBox import GridComboBox
+from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridRadioButton import GridRadioButton
+from ..resources.widgets.grid.GridInputFields import GridInputFields
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 ```
 
 ### Manter
@@ -363,7 +363,7 @@ O plugin já usa `STR.*` para todos os labels. Verificar se `STR.REG_TITLE` e `S
 
 ## 8. Passos de Implementação
 
-1. **Criar** `resources/new_widgets/ComplexCrsSelector.py` (raiz, sem versão grid)
+1. **Criar** `resources/widgets/ComplexCrsSelector.py` (raiz, sem versão grid)
 2. **Atualizar** `docs/plano_eliminacao_widgetfactory.md` (seção 8.1, TODO 1.3, FASE 2 — SettingsPlugin)
 3. **Atualizar** `docs/skills/SKILL_WIDGETS2.md` (adicionar `ComplexCrsSelector` ao catálogo raiz)
 4. **Migrar** `plugins/SettingsPlugin.py`:
@@ -380,11 +380,11 @@ O plugin já usa `STR.*` para todos os labels. Verificar se `STR.REG_TITLE` e `S
 
 | Regra | Conformidade |
 |-------|-------------|
-| UI via WidgetFactory / new_widgets (nunca QtWidgets direto) | ✅ new_widgets |
+| UI via WidgetFactory / widgets (nunca QtWidgets direto) | ✅ widgets |
 | Logging via LogUtils (nunca print) | ✅ mantém |
 | Strings via STR (nunca hardcoded) | ✅ mantém |
 | ToolKey é enum | ✅ mantém |
-| Estilos via new_widgets (nunca setStyleSheet no plugin) | ✅ |
+| Estilos via widgets (nunca setStyleSheet no plugin) | ✅ |
 | Exceções logadas com logger.exception | ✅ |
 | Configurações via Preferences | ✅ mantém |
 | `GridExecutionButtons` SEM botão config | ✅ `enable_config_button=False` |
@@ -406,7 +406,7 @@ O plugin já usa `STR.*` para todos os labels. Verificar se `STR.REG_TITLE` e `S
 
 ## 11. Checklist Final
 
-- [ ] Criar `resources/new_widgets/ComplexCrsSelector.py`
+- [ ] Criar `resources/widgets/ComplexCrsSelector.py`
 - [ ] Migrar `plugins/SettingsPlugin.py` (remover WidgetFactory)
 - [ ] Ajustar `_load_prefs`/`_save_prefs` (APIs novas)
 - [ ] `GridExecutionButtons` com `enable_config_button=False`

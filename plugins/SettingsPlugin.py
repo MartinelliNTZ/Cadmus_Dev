@@ -9,17 +9,17 @@ from ..utils.ExplorerUtils import ExplorerUtils
 from ..i18n.TranslationManager import STR, TranslationManager
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..core.config.MenuManager import MenuManager
-from ..resources.new_widgets.CollapsibleParametersWidget import (
+from ..resources.widgets.CollapsibleParametersWidget import (
     CollapsibleParametersWidget,
 )
-from ..resources.new_widgets.ComplexCrsSelector import ComplexCrsSelector
-from ..resources.new_widgets.grid.GridComboBox import GridComboBox
-from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
-from ..resources.new_widgets.grid.GridCheckbox import GridCheckbox
-from ..resources.new_widgets.grid.GridRadioButton import GridRadioButton
-from ..resources.new_widgets.grid.GridInputFields import GridInputFields
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.ComplexCrsSelector import ComplexCrsSelector
+from ..resources.widgets.grid.GridComboBox import GridComboBox
+from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
+from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..resources.widgets.grid.GridRadioButton import GridRadioButton
+from ..resources.widgets.grid.GridInputFields import GridInputFields
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 
 
 class SettingsPlugin(BasePluginMTL):

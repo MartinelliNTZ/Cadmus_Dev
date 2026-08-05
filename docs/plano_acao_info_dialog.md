@@ -64,12 +64,12 @@ Preciso rastrear quem instancia `InfoDialog` para garantir que a migração não
 
 ## 2. Widgets Necessários
 
-### 2.1 TextBrowser (NOVO — raiz de `new_widgets/`)
+### 2.1 TextBrowser (NOVO — raiz de `widgets/`)
 
-Widget na raiz de `resources/new_widgets/` — **não tem versão grid** porque não precisa. Apenas widgets que precisam de múltiplas instâncias organizadas em grid têm versão `simple/` + `grid/`.
+Widget na raiz de `resources/widgets/` — **não tem versão grid** porque não precisa. Apenas widgets que precisam de múltiplas instâncias organizadas em grid têm versão `simple/` + `grid/`.
 
 ```python
-# resources/new_widgets/TextBrowser.py
+# resources/widgets/TextBrowser.py
 """
 TextBrowser — QTextBrowser com AppStyles.text_browser().
 Widget raiz (sem versão grid) — usado diretamente pelo InfoDialog.
@@ -93,8 +93,8 @@ Uso:
 
 | Widget | Local | Já existe? |
 |--------|-------|-----------|
-| `GridExecutionButtons` | `resources/new_widgets/grid/` | ✅ |
-| `MainLayout` | `resources/new_widgets/` | ✅ |
+| `GridExecutionButtons` | `resources/widgets/grid/` | ✅ |
+| `MainLayout` | `resources/widgets/` | ✅ |
 
 > **Nota:** O `GridExecutionButtons` gerencia internamente seus botões (fechar, info, config). O InfoDialog só precisa de um botão fechar, que é habilitado via `enable_close_button=True`. Não é necessário instanciar `SimpleModernButton` separadamente.
 
@@ -114,7 +114,7 @@ InfoDialog (MIGRADO)
 ```
 
 **Dependência mínima:** Apenas 1 widget novo + 1 método novo em AppStyles:
-1. `resources/new_widgets/TextBrowser.py` ← widget base (raiz, sem grid)
+1. `resources/widgets/TextBrowser.py` ← widget base (raiz, sem grid)
 2. `AppStyles.text_browser()` ← método de estilo
 
 ---
@@ -125,7 +125,7 @@ InfoDialog (MIGRADO)
 
 1. **Criar TextBrowser** primeiro — depende de AppStyles.text_browser()
 2. **Adicionar AppStyles.text_browser()** — estilo para QTextBrowser
-3. **Migrar InfoDialog** — substituir Factory → new_widgets
+3. **Migrar InfoDialog** — substituir Factory → widgets
 4. **Nunca modificar arquivos antigos** — manter `WidgetFactory.py`, `resources/widgets/`, etc.
 
 ### 4.2 Contratos Obrigatórios
@@ -145,7 +145,7 @@ InfoDialog (MIGRADO)
 browser = WidgetFactory.create_text_browser(parent=self)
 browser.document().setMarkdown(md_text)
 
-# NOVO (new_widgets) — plugin instancia widget direto
+# NOVO (widgets) — plugin instancia widget direto
 browser = TextBrowser(parent=self)
 browser.set_markdown(md_text)
 
@@ -208,7 +208,7 @@ def text_browser(cls) -> str:
 ### 5.2 TextBrowser
 
 ```python
-# resources/new_widgets/TextBrowser.py
+# resources/widgets/TextBrowser.py
 # -*- coding: utf-8 -*-
 """
 TextBrowser — QTextBrowser com AppStyles.text_browser().
@@ -318,8 +318,8 @@ from ..core.config.LogUtils import LogUtils
 from ..plugins.BaseDialog import BaseDialog
 from ..i18n.TranslationManager import STR
 from ..utils.ToolKeys import ToolKey
-from ..resources.new_widgets.TextBrowser import TextBrowser
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.TextBrowser import TextBrowser
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 
 
 class InfoDialog(BaseDialog):
@@ -380,8 +380,8 @@ class InfoDialog(BaseDialog):
 | Aspecto | Antigo | Novo |
 |---------|--------|------|
 | Import WidgetFactory | `from ...core.ui.WidgetFactory import WidgetFactory` | ❌ Removido |
-| Import TextBrowser | ❌ Não existia | `from ..resources.new_widgets.TextBrowser import TextBrowser` |
-| Import GridExecutionButtons | ❌ Não existia | `from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons` |
+| Import TextBrowser | ❌ Não existia | `from ..resources.widgets.TextBrowser import TextBrowser` |
+| Import GridExecutionButtons | ❌ Não existia | `from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons` |
 | Criar browser | `WidgetFactory.create_text_browser(parent=self)` | `TextBrowser(parent=self)` |
 | Renderizar markdown | `doc.setMarkdown(md_text)` ou `_markdown_to_html()` | `browser.set_markdown(md_text)` (encapsulado) |
 | Criar botão fechar | `WidgetFactory.create_simple_button(text=STR.CLOSE, ...)` | `GridExecutionButtons(config={}, enable_close_button=True, ...)` |
@@ -434,7 +434,7 @@ Preciso verificar no código quem importa `InfoDialog` para garantir que a migra
 ```
 [ ] FASE 0: Criar TextBrowser
   [ ] 0.1 Adicionar AppStyles.text_browser() em resources/styles/AppStyles.py
-  [ ] 0.2 Criar resources/new_widgets/TextBrowser.py (raiz, sem versão grid)
+  [ ] 0.2 Criar resources/widgets/TextBrowser.py (raiz, sem versão grid)
 
 [ ] FASE 1: Migrar InfoDialog
   [ ] 1.1 Substituir imports da WidgetFactory por TextBrowser + GridExecutionButtons

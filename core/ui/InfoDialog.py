@@ -4,8 +4,8 @@ from ..config.LogUtils import LogUtils
 from ...plugins.BaseDialog import BaseDialog
 from ...i18n.TranslationManager import STR
 from ...utils.ToolKeys import ToolKey
-from ...resources.new_widgets.TextBrowser import TextBrowser
-from ...resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ...resources.widgets.TextBrowser import TextBrowser
+from ...resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ...utils.ProjectUtils import ProjectUtils
 
 

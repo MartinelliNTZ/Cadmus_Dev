@@ -3,9 +3,9 @@ from ..core.config.LogUtils import LogUtils
 from .BaseDialog import BaseDialog
 from ..utils.ToolKeys import ToolKey
 from ..i18n.TranslationManager import STR
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.grid.GridIconButton import GridIconButton
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridIconButton import GridIconButton
 from ..resources.IconManager import IconManager
 import webbrowser
 

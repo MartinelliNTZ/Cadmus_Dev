@@ -20,7 +20,7 @@
 
 ```
 Plugin
-  └─ importa widget de resources/new_widgets/
+  └─ importa widget de resources/widgets/
       └─ widget.__init__(params, parent)
           ├─ Autoconfiguração total
           ├─ AppStyles (estilos globais)
@@ -42,7 +42,7 @@ resources/styles/ThemeManager.py
 resources/styles/BaseTheme.py
   └─ Classe de tema com todos os tokens visuais descritivos
 
-resources/new_widgets/
+resources/widgets/
   ├── (raiz)      → widget SEM versão grid (MainLayout, ScrollWidget, etc)
   ├── simple/     → widget TEM versão grid (uso INTERNO)
   └── grid/       → versão grid do widget (plugins USAM esta)
@@ -52,7 +52,7 @@ resources/new_widgets/
 
 ## 📦 CATÁLOGO DE WIDGETS SIMPLE (uso interno)
 
-Widgets em `resources/new_widgets/simple/` — NUNCA importados por plugins.
+Widgets em `resources/widgets/simple/` — NUNCA importados por plugins.
 
 ### SimpleLabel
 `QLabel` com estilo global `AppStyles.label()`.
@@ -330,7 +330,7 @@ readonly = SimpleReadOnly(text="valor", parent=self)
 
 ## 📦 CATÁLOGO DE WIDGETS GRID (uso em plugins)
 
-Widgets em `resources/new_widgets/grid/` — plugins USAM estes.
+Widgets em `resources/widgets/grid/` — plugins USAM estes.
 
 ### GridLabel
 Container de labels em layout vertical. Configuração via dict. Suporta `"color"` para cor dinâmica do texto.
@@ -819,7 +819,7 @@ QFrame HLine com gradiente horizontal.
 QTextBrowser com `AppStyles.text_browser()`, **sem versão grid**. Usado para exibir conteúdo Markdown/HTML com fallback Qt5/Qt6.
 
 ```python
-from ..resources.new_widgets.TextBrowser import TextBrowser
+from ..resources.widgets.TextBrowser import TextBrowser
 
 browser = TextBrowser(parent=self)
 browser.set_markdown(md_text)   # setMarkdown com fallback Qt < 5.14
@@ -852,7 +852,7 @@ browser.setPlainText(text)
 Seção colapsável com header clicável e gradiente via paintEvent. Suporta persistência de estado expandido/recolhido via `get_preferences()`/`set_preferences()`.
 
 ```python
-from ..resources.new_widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
+from ..resources.widgets.CollapsibleParametersWidget import CollapsibleParametersWidget
 
 coll = CollapsibleParametersWidget(
     title="Configurações Avançadas",
@@ -886,7 +886,7 @@ coll.set_preferences(Preferences.load_tool_prefs(self.TOOL_KEY).get("collapsible
 Botão dropdown para a toolbar do QGIS. Usado pela infraestrutura do sistema (`MenuManager`), **não por plugins**.
 
 ```python
-from ...resources.new_widgets.DropdownToolButton import DropdownToolButton
+from ...resources.widgets.DropdownToolButton import DropdownToolButton
 
 dropdown = DropdownToolButton(
     iface=self.iface,
@@ -915,7 +915,7 @@ self.toolbar.addWidget(dropdown)
 Seletor de CRS (EPSG) com label e `QgsProjectionSelectionWidget`.
 
 ```python
-from ..resources.new_widgets.ComplexCrsSelector import ComplexCrsSelector
+from ..resources.widgets.ComplexCrsSelector import ComplexCrsSelector
 
 crs_selector = ComplexCrsSelector(
     label_text=STR.DEFAULT_CRS,
@@ -949,7 +949,7 @@ authid = crs_selector.get_crs_authid()
 Seletor de cor com label, QgsColorButton, campo hex readonly e botão copiar.
 
 ```python
-from ..resources.new_widgets.ComplexColorPicker import ComplexColorPicker
+from ..resources.widgets.ComplexColorPicker import ComplexColorPicker
 
 color = ComplexColorPicker(
     label_text=STR.BACKGROUND_COLOR,
@@ -1093,7 +1093,7 @@ actions.btn_close.clicked.connect(self.close)
 ### 🧬 CONTRATO DO WIDGET (Template)
 
 ```python
-# resources/new_widgets/grid/GridExemplo.py
+# resources/widgets/grid/GridExemplo.py
 # -*- coding: utf-8 -*-
 
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout
@@ -1208,7 +1208,7 @@ border: 1px solid {theme.COLOR_BORDER};
 - [ ] 6. `_specific_style()` retorna CSS específico (ou `""`)
 - [ ] 7. Unidades sempre no tema, nunca `px` no CSS
 - [ ] 8. Se tem versão grid → `simple/` + `grid/`
-- [ ] 9. Se não tem versão grid → raiz de `new_widgets/`
+- [ ] 9. Se não tem versão grid → raiz de `widgets/`
 - [ ] 10. Plugin usa versão grid (nunca simple)
 - [ ] 11. Botão com gradiente/glow → `SimpleModernButton`
 - [ ] 12. Input com gradiente/glow → `SimpleQLineEdit`

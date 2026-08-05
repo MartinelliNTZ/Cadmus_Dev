@@ -84,7 +84,7 @@ ThemeManager
 
 ```
 Plugin
-  └─ importa widget de resources/new_widgets/
+  └─ importa widget de resources/widgets/
       └─ widget.__init__(params, parent)
           ├─ Autoconfiguração total
           ├─ AppStyles (estilos globais)
@@ -107,7 +107,7 @@ ThemeManager
 BaseTheme (NOVO — resources/styles/BaseTheme.py)
   └─ Classe ÚNICA de tema: rgba() + todos os tokens visuais descritivos
 
-Widgets (resources/new_widgets/)
+Widgets (resources/widgets/)
   ├── widget comum → raiz (não tem versão grid)
   ├── simple/      → widget TEM versão grid (plugins usam grid)
   └── grid/        → versão grid do widget (plugins USAM esta)
@@ -132,7 +132,7 @@ resources/
   │
   ├── widgets/             ← NÃO TOCAR (widgets antigos)
   │
-  └── new_widgets/         ← NOVO SISTEMA
+  └── widgets/         ← NOVO SISTEMA
       ├── MainLayout.py           ← Layout principal (appbar + scroll + content)
       ├── AppBarWidget.py         ← Barra superior com título, botões, drag
       ├── ScrollWidget.py         ← QScrollArea com estilo
@@ -173,7 +173,7 @@ Se um widget TEM uma versão grid:
   └── Plugins usam SEMPRE grid/
 
 Se um widget NÃO TEM versão grid:
-  └── Fica na raiz de new_widgets/ (ex: MainLayout, SeparatorWidget)
+  └── Fica na raiz de widgets/ (ex: MainLayout, SeparatorWidget)
 
 Se um widget é COMPLEXO (simple + funções):
   └── É nomenclatura, não pasta
@@ -197,7 +197,7 @@ Se um widget é COMPLEXO (simple + funções):
 ### 4.1 Regras de Organização — ESTADO ATUAL
 
 ```
-new_widgets/                          ← NOVO SISTEMA (criado)
+widgets/                          ← NOVO SISTEMA (criado)
 ├── MainLayout.py                     ← Layout principal (appbar + scroll + content)
 ├── AppBarWidget.py                   ← Barra superior
 ├── ScrollWidget.py                   ← QScrollArea
@@ -293,7 +293,7 @@ WIDGET INTERNO:
 O widget `SeparatorWidget` é um QFrame com estilo de gradiente horizontal.
 
 ```python
-# resources/new_widgets/SeparatorWidget.py
+# resources/widgets/SeparatorWidget.py
 class SeparatorWidget(QFrame):
     """
     Separador visual — QFrame com gradiente horizontal.
@@ -494,7 +494,7 @@ def _specific_style(self) -> str:
 
 ### 7.1 Widgets Simple (USO INTERNO APENAS) — COMPLETO ✅
 
-Criados em `resources/new_widgets/simple/`. Estes widgets TEM versão grid.  
+Criados em `resources/widgets/simple/`. Estes widgets TEM versão grid.  
 **NUNCA** importados por plugins. Usados APENAS internamente por Grid e widgets da raiz.
 
 | Arquivo | Classe | Status | Observação |
@@ -513,7 +513,7 @@ Criados em `resources/new_widgets/simple/`. Estes widgets TEM versão grid.
 
 ### 7.2 Widgets Grid (PLUGINS USAM ESTES) — COMPLETO ✅
 
-Criados em `resources/new_widgets/grid/`. Compostos de Simple + layout.
+Criados em `resources/widgets/grid/`. Compostos de Simple + layout.
 
 | Arquivo | Classe | Status | Descrição |
 |---------|--------|--------|-----------|
@@ -529,7 +529,7 @@ Criados em `resources/new_widgets/grid/`. Compostos de Simple + layout.
 
 ### 7.3 Widgets na Raiz (SEM versão grid) — PARCIAL
 
-Criados em `resources/new_widgets/`.
+Criados em `resources/widgets/`.
 
 | Arquivo | Classe | Status | Descrição |
 |---------|--------|--------|-----------|
@@ -546,7 +546,7 @@ Criados em `resources/new_widgets/`.
 
 ### 8.1 Ordem e Status
 
-| # | Plugin | Factory (antigo) | new_widgets (novo) | Status |
+| # | Plugin | Factory (antigo) | widgets (novo) | Status |
 |---|--------|-----------------|-------------------|--------|
 | 1 | `AboutDialog` | create_label, create_text_browser, create_image_widget | GridLabel + GridExecutionButtons + GridIconButton | ✅ Migrado (2.3.62.2) |
 | 2 | `CoorResultDialog` | create_label, create_readonly_field, create_bottom_action_buttons | GridReadOnly + GridLabel + GridExecutionButtons + SimpleLabel | ✅ Migrado (2.3.63.3) |
@@ -581,7 +581,7 @@ Criados em `resources/new_widgets/`.
 - [ ] TEM LOGGER? (sim, herda de BasePluginMTL)
 
 ### Migração
-- [ ] Substituir WidgetFactory.create_xxx() por widget de new_widgets/
+- [ ] Substituir WidgetFactory.create_xxx() por widget de widgets/
 - [ ] Remover imports da Factory
 - [ ] Adicionar SeparatorWidget() entre widgets no layout
 - [ ] Ajustar layout (addWidget)
@@ -598,10 +598,10 @@ Criados em `resources/new_widgets/`.
 ```python
 # plugins/CoorResultDialog.py
 
-from ..resources.new_widgets.grid.GridReadOnly import GridReadOnly
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.simple.SimpleLabel import SimpleLabel
+from ..resources.widgets.grid.GridReadOnly import GridReadOnly
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.simple.SimpleLabel import SimpleLabel
 
 
 class CoordResultDialog(BasePluginMTL):
@@ -694,9 +694,9 @@ class CoordResultDialog(BasePluginMTL):
 ```python
 # plugins/AboutDialog.py
 
-from ..resources.new_widgets.grid.GridLabel import GridLabel
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.grid.GridIconButton import GridIconButton
+from ..resources.widgets.grid.GridLabel import GridLabel
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridIconButton import GridIconButton
 
 
 class AboutDialog(BaseDialog):
@@ -759,7 +759,7 @@ class AboutDialog(BaseDialog):
 # core/ui/WidgetFactory.py — DEPRECATED
 import warnings
 warnings.warn(
-    "WidgetFactory obsoleto. Use widgets de resources/new_widgets/. "
+    "WidgetFactory obsoleto. Use widgets de resources/widgets/. "
     "Consulte docs/plano_eliminacao_widgetfactory.md",
     DeprecationWarning, stacklevel=2,
 )
@@ -866,7 +866,7 @@ def resolve_qt_window_modality(name: str):
 
 ### 11.2 Onde Aplicar
 
-- `new_widgets/` — todos os widgets
+- `widgets/` — todos os widgets
 - `AppStyles` — seguro (só strings CSS)
 - `SeparatorWidget` — precisa de compat QFrame.Shape e QFrame.Shadow
 - `BaseDialog.py` — já tem compat via `_qt_window_type()` e `_qt_widget_attr()`

@@ -3,9 +3,9 @@ from qgis.PyQt.QtCore import pyqtSignal
 
 from ....i18n.TranslationManager import STR
 from ....plugins.BaseDialog import BaseDialog
-from ....resources.new_widgets.grid.GridLabel import GridLabel
-from ....resources.new_widgets.grid.GridInputFields import GridInputFields
-from ....resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ....resources.widgets.grid.GridLabel import GridLabel
+from ....resources.widgets.grid.GridInputFields import GridInputFields
+from ....resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
 from ....core.config.LogUtils import LogUtils
 from ....utils.ToolKeys import ToolKey
 

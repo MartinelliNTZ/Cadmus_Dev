@@ -14,10 +14,10 @@ from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..core.engine_tasks.ExplodeStep import ExplodeStep
 from ..core.engine_tasks.SaveVectorStep import SaveVectorStep
 from ..i18n.TranslationManager import STR
-from ..resources.new_widgets.grid.GridComplexSelector import GridComplexSelector
-from ..resources.new_widgets.grid.GridDoubleSpin import GridDoubleSpin
-from ..resources.new_widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.new_widgets.CollapsibleParametersWidget import (
+from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
+from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
+from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.CollapsibleParametersWidget import (
     CollapsibleParametersWidget,
 )
 

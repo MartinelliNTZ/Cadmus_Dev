@@ -1,6 +1,6 @@
 # 🎯 PLANO DE AÇÃO: Migração do DroneCoordinates para Novo Sistema de Widgets
 
-**Objetivo:** Migrar o `DroneCoordinates` do `WidgetFactory` para o novo sistema `resources/new_widgets/`, eliminando dependência da Factory e de `resources/styles/`.
+**Objetivo:** Migrar o `DroneCoordinates` do `WidgetFactory` para o novo sistema `resources/widgets/`, eliminando dependência da Factory e de `resources/styles/`.
 
 **Data:** 2026-08-04
 **Versão:** 5.9.0
@@ -12,7 +12,7 @@
 
 O `DroneCoordinates` é a ferramenta #9 da FASE 2 do plano de eliminação da WidgetFactory. Atualmente usa:
 
-| Widget atual | Factory | Widget alvo (new_widgets) |
+| Widget atual | Factory | Widget alvo (widgets) |
 |-------------|---------|--------------------------|
 | Pasta MRK | `create_path_selector` (folder) | `GridComplexSelector` (folder input) |
 | Opções (checkboxes) | `create_checkbox_grid` | `GridCheckbox` (1 coluna) |
@@ -716,9 +716,9 @@ def execute_tool(self):
 
 | # | Ação | Arquivo |
 |---|------|---------|
-| 1 | Verificar/suportar parent cross-grid no `GridComplexSelector._resolve_parent_selector()` — já existe via `grid_id.selector_key` no registro global | `resources/new_widgets/grid/GridComplexSelector.py` |
-| 2 | Verificar `_generate_output()` no folder mode quando parent é **folder** (pasta MRK) — gerar subpasta quando aplicável | `resources/new_widgets/grid/GridComplexSelector.py` |
-| 3 | Substituir imports da Factory por new_widgets (remover `WidgetFactory`, `StringAdapter` se não usado após migração) | `plugins/DroneCoordinates.py` |
+| 1 | Verificar/suportar parent cross-grid no `GridComplexSelector._resolve_parent_selector()` — já existe via `grid_id.selector_key` no registro global | `resources/widgets/grid/GridComplexSelector.py` |
+| 2 | Verificar `_generate_output()` no folder mode quando parent é **folder** (pasta MRK) — gerar subpasta quando aplicável | `resources/widgets/grid/GridComplexSelector.py` |
+| 3 | Substituir imports da Factory por widgets (remover `WidgetFactory`, `StringAdapter` se não usado após migração) | `plugins/DroneCoordinates.py` |
 | 4 | Reescrever `_build_ui` (seções 3.1–3.6) | `plugins/DroneCoordinates.py` |
 | 5 | Adaptar `_load_prefs`/`_save_prefs` (seção 5) | `plugins/DroneCoordinates.py` |
 | 6 | Adaptar `execute_tool` e `_on_use_mrk_changed` (seção 6, 5.4) | `plugins/DroneCoordinates.py` |
@@ -742,7 +742,7 @@ def execute_tool(self):
 - [x] TEM LOGGER? SIM (herda de BasePluginMTL)
 
 ### Migração
-- [ ] Substituir WidgetFactory.create_xxx() por new_widgets
+- [ ] Substituir WidgetFactory.create_xxx() por widgets
 - [ ] Remover import WidgetFactory
 - [ ] GridComplexSelector folder input para pasta MRK
 - [ ] CollapsibleParametersWidget + GridCheckbox para metadados (EXIF, DJI, Custom, Initial, MRK)
@@ -804,12 +804,12 @@ def execute_tool(self):
 
 | Widget | Tipo | Arquivo | Status |
 |--------|------|---------|--------|
-| `GridComplexSelector` cross-grid parent validado | Grid | `resources/new_widgets/grid/GridComplexSelector.py` | ⬜ Validar `_resolve_parent_selector()` + `_grid_registry` |
-| `GridComplexSelector` `_generate_output` folder-mode com parent folder | Grid | `resources/new_widgets/grid/GridComplexSelector.py` | ⬜ Validar comportamento |
-| `GridCheckbox` `control_buttons_config` (Selecionar/Remover/Inverter) | Grid | `resources/new_widgets/grid/GridCheckbox.py` | ✅ Já existe |
-| `CollapsibleParametersWidget` | Raiz | `resources/new_widgets/CollapsibleParametersWidget.py` | ✅ Já existe |
-| `GridExecutionButtons` | Grid | `resources/new_widgets/grid/GridExecutionButtons.py` | ✅ Já existe |
-| `GridInputFields` | Grid | `resources/new_widgets/grid/GridInputFields.py` | ✅ Já existe |
+| `GridComplexSelector` cross-grid parent validado | Grid | `resources/widgets/grid/GridComplexSelector.py` | ⬜ Validar `_resolve_parent_selector()` + `_grid_registry` |
+| `GridComplexSelector` `_generate_output` folder-mode com parent folder | Grid | `resources/widgets/grid/GridComplexSelector.py` | ⬜ Validar comportamento |
+| `GridCheckbox` `control_buttons_config` (Selecionar/Remover/Inverter) | Grid | `resources/widgets/grid/GridCheckbox.py` | ✅ Já existe |
+| `CollapsibleParametersWidget` | Raiz | `resources/widgets/CollapsibleParametersWidget.py` | ✅ Já existe |
+| `GridExecutionButtons` | Grid | `resources/widgets/grid/GridExecutionButtons.py` | ✅ Já existe |
+| `GridInputFields` | Grid | `resources/widgets/grid/GridInputFields.py` | ✅ Já existe |
 
 ---
 

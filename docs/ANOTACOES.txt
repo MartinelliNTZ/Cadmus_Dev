@@ -54,7 +54,7 @@ atualizar o flush de drone corditates,
 colocar o 
 
  changelog=
-3.3.0 27/04/2026
+3.0.0 27/04/2026
     - Reestruturação completa da arquitetura de processamento:
       - ExecutionContext redesenhado com atributos canônicos
       - Steps parametrizados via __init__

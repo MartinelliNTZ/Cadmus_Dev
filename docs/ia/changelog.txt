@@ -568,4 +568,5 @@
    - execute_tool filtra layouts pela seleção; se nenhum selecionado, exporta todos (comportamento padrão)
    - Validação: se nenhum layout no projeto ou seleção vazia → modal NO_LAYOUTS_SELECTED
    - Novas strings: SELECT_LAYOUTS, SELECT_LAYOUTS_DESC, SELECT_LAYOUTS_TITLE, SELECT_LAYOUTS_HINT, INVERT_SELECTION, NO_LAYOUTS_SELECTED, LAYOUTS_SELECTED_COUNT (pt_BR, en; es/de herdam de pt_BR)
+   - Classe LayoutsSelectionDialog movida para core/ui/dialogs/LayoutsSelectionDialog.py (padrão DefaultProjectsFolderDialog/ProjectNameDialog)
    - Import de BaseDialog adicionado; sem imports não utilizados (F401)

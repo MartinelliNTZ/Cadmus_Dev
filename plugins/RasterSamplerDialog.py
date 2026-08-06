@@ -52,6 +52,8 @@ class RasterSamplerDialog(BasePluginMTL):
             parent=self,
         )
         self.layout.addWidget(self.values_label)
+        # Stretch para empurrar todos os itens do GridLabel para cima
+        self.layout.addStretch()
 
         # ── Botao de selecao de rasters ──
         self.action_buttons = GridExecutionButtons(
@@ -95,6 +97,19 @@ class RasterSamplerDialog(BasePluginMTL):
             "select_rasters",
             f"{STR.RASTER_SAMPLER_SELECT_RASTERS} ({count})",
         )
+
+    def _get_selected_layers_ordered(self) -> list:
+        """
+        Retorna as camadas selecionadas na ordem do projeto.
+
+        Usa a ordem natural de _get_raster_layers() filtrada pela
+        selecao atual, garantindo enumeracao estavel e consistente.
+        """
+        return [
+            layer
+            for layer in self._get_raster_layers()
+            if layer.id() in self._selected_raster_ids
+        ]
 
     # ------------------------------------------------------------------
     # Selecao de rasters via ListSelectionDialog
@@ -157,26 +172,41 @@ class RasterSamplerDialog(BasePluginMTL):
         """
         Atualiza os labels com os valores amostrados.
 
+        Exibe cada raster enumerado com seu valor e a diferenca
+        para os demais rasters selecionados. Formato:
+
+            1 - MDS_N: 188.2 (2: 0.21)(3: 0.24)(4: 0.25)
+            2 - MDS_x: 18.5 (1: 0.21)(3: 0.24)(4: 0.25)
+
         values: dict {layer_id: valor} — valor pode ser float ou None (NoData).
         """
         config = {}
-        for layer_id, value in values.items():
-            layer = ProjectUtils.get_project_instance().mapLayer(layer_id)
-            if layer is None:
-                continue
+        layers = self._get_selected_layers_ordered()
+        for i, layer in enumerate(layers, start=1):
+            value = values.get(layer.id())
             if value is None:
-                text = STR.UNAVAILABLE
-            else:
-                text = f"{value:.4f}"
-            config[layer_id] = {"text": f"{layer.name()}: {text}"}
+                config[layer.id()] = {
+                    "text": f"{i} - {layer.name()}: {STR.UNAVAILABLE}"
+                }
+                continue
+
+            text = f"{i} - {layer.name()}: {value:.4f}"
+            diffs = []
+            for j, other in enumerate(layers, start=1):
+                if j == i:
+                    continue
+                other_value = values.get(other.id())
+                if other_value is not None:
+                    diffs.append(f"({j}: {value - other_value:.2f})")
+            config[layer.id()] = {"text": text + "".join(diffs)}
         config["hint"] = {"text": ""}
         self.values_label.set_config(config)
 
     def clear_values(self):
-        """Limpa os valores exibidos."""
+        """Limpa os valores exibidos mantendo a enumeracao dos rasters."""
         config = {"hint": {"text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT}}
-        for layer_id in self._selected_raster_ids:
-            config[layer_id] = {"text": ""}
+        for i, layer in enumerate(self._get_selected_layers_ordered(), start=1):
+            config[layer.id()] = {"text": f"{i} - {layer.name()}: "}
         self.values_label.set_config(config)
 
     # ------------------------------------------------------------------

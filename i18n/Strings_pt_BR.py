@@ -75,6 +75,12 @@ class Strings_pt_BR:
     USE_ALL_ATTRIBUTES = "Usar todos os atributos"
     EXPORT_OPTIONS = "Opções de Exportação"
     MAX_WIDTH_PNG = "Max Width para PNG (px):"
+    DPI_OUTPUT = "DPI de saída:"
+    DPI_OUTPUT_DESC = (
+        "Resolução em pontos por polegada (dpi) para PNG e PDF.\n"
+        "Use 0 para manter o DPI configurado no layout.\n"
+        "Maximo de DPI é 1200"
+    )
     USE_PROJECT_FOLDER = "Usar pasta do projeto"
     EXPORT_PDF = "Exportar PDF"
     EXPORT_PNG = "Exportar PNG"

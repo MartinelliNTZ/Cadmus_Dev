@@ -124,6 +124,27 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
         self.layout.addWidget(self.max_width_input)
         self.logger.debug("Widget de Max Width criado")
 
+        # ── DPI ───────────────────────────────────────────────────
+        self.dpi_input = GridDoubleSpin(
+            config={
+                "dpi": {
+                    "label": STR.DPI_OUTPUT,
+                    "description": STR.DPI_OUTPUT_DESC,
+                    "value": 0,
+                    "min": 0,
+                    "max": 1200,
+                    "step": 10,
+                    "decimals": 0,
+                    "type": "int",
+                },
+            },
+            separator_top=False,
+            separator_bottom=True,
+            parent=self,
+        )
+        self.layout.addWidget(self.dpi_input)
+        self.logger.debug("Widget de DPI criado")
+
         # ── Output Folder ─────────────────────────────────────────
         default_path = os.path.join(QgsProject.instance().homePath(), "exports")
         self.folder_selector = GridComplexSelector(
@@ -281,6 +302,10 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
         self.max_width_input.set_value("max_width", max_width)
         self.logger.debug(f"Max width carregado: {max_width}px")
 
+        dpi = self.preferences.get("dpi", 0)
+        self.dpi_input.set_value("dpi", dpi)
+        self.logger.debug(f"DPI carregado: {dpi}")
+
         pasta_default = os.path.join(QgsProject.instance().homePath(), "exports")
         pasta_salva = self.preferences.get("output_folder", pasta_default)
         self.folder_selector.set_paths([pasta_salva])
@@ -307,6 +332,9 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
 
         all_values = self.max_width_input.get_all_values()
         self.preferences["max_width"] = int(all_values.get("max_width", 3500))
+
+        all_dpi_values = self.dpi_input.get_all_values()
+        self.preferences["dpi"] = int(all_dpi_values.get("dpi", 0))
 
         paths = self.folder_selector.get_paths()
         pasta = (
@@ -336,6 +364,9 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
 
         all_values = self.max_width_input.get_all_values()
         max_width = int(all_values.get("max_width", 3500))
+
+        all_dpi_values = self.dpi_input.get_all_values()
+        dpi = int(all_dpi_values.get("dpi", 0))
 
         paths = self.folder_selector.get_paths()
         output_folder = (
@@ -430,24 +461,30 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
                 if export_pdf:
                     pdf_settings = QgsLayoutExporter.PdfExportSettings()
                     pdf_settings.georeference = georeference_pdf
+                    if dpi > 0:
+                        pdf_settings.dpi = dpi
                     result = exporter.exportToPdf(pdf_path, pdf_settings)
                     ok_pdf = result == QgsLayoutExporter.Success
                     if ok_pdf:
                         pdf_list.append(pdf_path)
                         self.logger.debug(
-                            f"PDF exportado: {pdf_path} (georeference={georeference_pdf})"
+                            f"PDF exportado: {pdf_path} "
+                            f"(georeference={georeference_pdf}, dpi={pdf_settings.dpi})"
                         )
                     else:
                         erros.append(f"{STR.FAILED_EXPORT_PDF} {nome}")
 
                 if export_png:
-                    result = exporter.exportToImage(
-                        png_path, QgsLayoutExporter.ImageExportSettings()
-                    )
+                    image_settings = QgsLayoutExporter.ImageExportSettings()
+                    if dpi > 0:
+                        image_settings.dpi = dpi
+                    result = exporter.exportToImage(png_path, image_settings)
                     ok_png = result == QgsLayoutExporter.Success
                     if ok_png:
                         png_list.append(png_path)
-                        self.logger.debug(f"PNG exportado: {png_path}")
+                        self.logger.debug(
+                            f"PNG exportado: {png_path} (dpi={image_settings.dpi})"
+                        )
                     else:
                         erros.append(f"{STR.FAILED_EXPORT_PNG} {nome}")
 

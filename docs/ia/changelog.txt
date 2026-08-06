@@ -10,5 +10,13 @@
    - Novas strings: SELECT_LAYOUTS, SELECT_LAYOUTS_DESC, SELECT_LAYOUTS_TITLE, SELECT_LAYOUTS_HINT, INVERT_SELECTION, NO_LAYOUTS_SELECTED, LAYOUTS_SELECTED_COUNT (pt_BR, en; es/de herdam de pt_BR)
    - Classe LayoutsSelectionDialog movida para core/ui/dialogs/LayoutsSelectionDialog.py (padrão DefaultProjectsFolderDialog/ProjectNameDialog)
    - Import de BaseDialog adicionado; sem imports não utilizados (F401)
-3.2.0 06/08/2026 # comece aqui
+3.2.0 06/08/2026
+[3.2.0.1][06/08/2026] ExportAllLayouts: configuração de DPI de saída:
+   - Novo campo "DPI de saída" (GridDoubleSpin) entre Max Width e pasta de saída
+   - Valor 0 = usa o DPI configurado no layout (padrão); >0 define DPI manual para PNG e PDF
+   - Aplicado em PdfExportSettings.dpi e ImageExportSettings.dpi (somente se > 0)
+   - Persistência em Preferences via chave "dpi" (_load_prefs/_save_prefs)
+   - Logs incluem o DPI efetivo usado em PDF e PNG
+   - Novas strings: DPI_OUTPUT, DPI_OUTPUT_DESC (pt_BR apenas)
+3.3.0 06/08/2026 # comece aqui
 

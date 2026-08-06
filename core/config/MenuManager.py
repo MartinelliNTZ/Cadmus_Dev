@@ -6,7 +6,7 @@ from .LogUtils import LogUtils
 from ...utils.ToolKeys import ToolKey
 from ...utils.Preferences import Preferences
 from ...utils.StringManager import StringManager
-from ..enum import MenuCategory
+from ..enum.MenuCategory import MenuCategory
 
 
 class MenuManager:

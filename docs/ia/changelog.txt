@@ -37,12 +37,17 @@
      - _save_prefs usa checkbox_widget.get_preferences() → chave "checkbox_states"
      - Removidas chaves individuais (export_pdf/export_png/export_svg/georeference_pdf/merge_pdf/merge_png/replace_existing) em favor do dict único
      - Log de save simplificado (sem referência a chaves antigas)
-  [3.3.0.4][06/08/2026] DeveloperTestTool: nova ferramenta oficial de testes:
-     - Novo ToolKey DEVELOPER_TEST_TOOL em utils/ToolKeys.py
-     - Novas strings DEVELOPER_TEST_TOOL_TITLE, DEVELOPER_TEST_TOOL_TOOLTIP, MENU_DEVELOPER em Strings_pt_BR
-     - Categoria MenuCategory.DEVELOPER já existente em core/enum/MenuCategory.py
-     - Categoria DEVELOPER adicionada em StringManager.MENU_CATEGORIES e MenuManager.category_icons
-     - Novo plugin plugins/DeveloperTestTool.py (BasePluginMTL + GridComplexSelector + GridExecutionButtons)
-     - Registrado em ToolRegistry com registry_level=3 (developer), categoria DEVELOPER, tool_type=DIALOG
-     - Ícone reutilizado mtl_agro.ico via IconManager.DEVELOPER_TEST_TOOL
+   [3.3.0.4][06/08/2026] DeveloperTestTool: nova ferramenta oficial de testes:
+      - Novo ToolKey DEVELOPER_TEST_TOOL em utils/ToolKeys.py
+      - Novas strings DEVELOPER_TEST_TOOL_TITLE, DEVELOPER_TEST_TOOL_TOOLTIP, MENU_DEVELOPER em Strings_pt_BR
+      - Categoria MenuCategory.DEVELOPER já existente em core/enum/MenuCategory.py
+      - Categoria DEVELOPER adicionada em StringManager.MENU_CATEGORIES e MenuManager.category_icons
+      - Novo plugin plugins/DeveloperTestTool.py (BasePluginMTL + GridComplexSelector + GridExecutionButtons)
+      - Registrado em ToolRegistry com registry_level=3 (developer), categoria DEVELOPER, tool_type=DIALOG
+      - Ícone reutilizado mtl_agro.ico via IconManager.DEVELOPER_TEST_TOOL
+  [3.3.0.5][06/08/2026] InfoDialog: informações do plugin + redes sociais:
+     - GridLabel + GridIconButton na mesma linha (QHBoxLayout local no rodapé) exibem nome do plugin (STR.APP_NAME), versão (lida do metadata.txt via _get_plugin_version()), criador (STR.CREATOR) e todos os botões de rede social (GitHub, LinkedIn, Instagram, E-mail, Buy Me a Coffee) via webbrowser
+     - Sem alterações em widgets (GridIconButton/GridLabel intactos)
+     - Sem novas strings (reutiliza STR.APP_NAME, STR.VERSION, STR.CREATOR)
+     - Sem imports não utilizados (F401)
 

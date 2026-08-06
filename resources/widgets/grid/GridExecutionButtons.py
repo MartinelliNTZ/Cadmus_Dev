@@ -129,6 +129,7 @@ class GridExecutionButtons(QWidget):
         self._separator_bottom = separator_bottom
 
         self._run_button = None  # referência direta ao botão is_run_button
+        self._buttons = {}  # btn_id -> SimpleModernButton
 
         self._build_ui()
 
@@ -170,6 +171,7 @@ class GridExecutionButtons(QWidget):
             if is_run:
                 self._run_button = btn
 
+            self._buttons[btn_id] = btn
             layout.addWidget(btn)
 
         # 2. Botão Close
@@ -262,3 +264,18 @@ class GridExecutionButtons(QWidget):
         """Habilita/desabilita o botão marcado como is_run_button."""
         if self._run_button:
             self._run_button.setEnabled(enabled)
+
+    def update_button_label(self, key: str, text: str):
+        """
+        Atualiza o texto de um botão do config pelo identificador.
+
+        Parâmetros
+        ----------
+        key : str
+            Chave do botão no config dict.
+        text : str
+            Novo texto do botão.
+        """
+        btn = self._buttons.get(key)
+        if btn is not None:
+            btn.setText(text)

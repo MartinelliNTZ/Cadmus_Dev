@@ -58,6 +58,19 @@
       - Seleção de rasters persistida em Preferences via chave "selected_rasters" (_load_prefs/_save_prefs)
       - Registrado em ToolRegistry com tool_type=MAP_TOOL, categoria RASTER, order=30, executor run_raster_sampler (referência em self.raster_sampler_tool)
       - Ícone reutilizado raster_mass_sampler.ico via IconManager
-      - Amostragem no main thread (operação leve, manipula objetos C++ do QGIS)
-      - Sem imports não utilizados (F401)
+       - Amostragem no main thread (operação leve, manipula objetos C++ do QGIS)
+       - Sem imports não utilizados (F401)
+3.4.0 06/08/2026
+[3.4.0.1][06/08/2026] ListSelectionDialog genérico + migração ExportAllLayouts/RasterSampler:
+   - Nova classe core/ui/dialogs/ListSelectionDialog.py (BaseDialog) — diálogo genérico de seleção de itens com checkboxes
+   - Substitui o LayoutsSelectionDialog específico (que permanece no repositório, sem uso)
+   - Parâmetros: items (dict {key: {"label", "default"}}), title, hint, tool_key (obrigatório para logs), icon_path, parent
+   - API: get_selected_items() → list[str] (chaves dos itens marcados após exec() True)
+   - GridCheckbox com control_buttons_config (Selecionar Todos / Desselecionar / Inverter) + GridExecutionButtons (OK/Fechar)
+   - ExportAllLayoutsPlugin migrado: open_layouts_selection constrói dict de layouts e usa ListSelectionDialog
+   - RasterSamplerDialog migrado: botão "Rasters para amostragem (N)" no GridExecutionButtons abre ListSelectionDialog
+   - GridExecutionButtons ganhou update_button_label(key, text) — atualiza texto de botão do config pelo identificador
+   - RasterSamplerDialog: seleção continua persistida em Preferences via chave "selected_rasters" (_load_prefs/_save_prefs)
+   - RasterSamplerDialog: refresh_raster_list mantém apenas rasters ainda existentes no projeto
+   - Sem imports não utilizados (F401)
 

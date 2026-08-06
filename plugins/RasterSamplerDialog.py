@@ -4,7 +4,7 @@ RasterSamplerDialog — Dialog da ferramenta de amostragem de rasters.
 ====================================================================
 Herda BasePluginMTL (padrao CoordResultDialog).
 
-Permite selecionar multiplos rasters do projeto via GridCheckbox,
+Permite selecionar multiplos rasters do projeto via ListSelectionDialog,
 exibe os valores amostrados no ponto clicado via GridLabel
 e persiste a selecao via Preferences.
 """
@@ -14,9 +14,10 @@ from ..utils.Preferences import Preferences
 from ..utils.ProjectUtils import ProjectUtils
 from ..i18n.TranslationManager import STR
 from .BasePlugin import BasePluginMTL
-from ..resources.widgets.grid.GridCheckbox import GridCheckbox
+from ..core.ui.dialogs.ListSelectionDialog import ListSelectionDialog
 from ..resources.widgets.grid.GridLabel import GridLabel
 from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..utils.QgisMessageUtil import QgisMessageUtil
 
 
 class RasterSamplerDialog(BasePluginMTL):
@@ -28,6 +29,7 @@ class RasterSamplerDialog(BasePluginMTL):
         """Inicializa a dialog com a interface do QGIS."""
         super().__init__(iface.mainWindow())
         self.iface = iface
+        self._selected_raster_ids = set()
         self.init(
             tool_key=self.TOOL_KEY, class_name="RasterSamplerDialog", build_ui=True
         )
@@ -36,24 +38,14 @@ class RasterSamplerDialog(BasePluginMTL):
     # UI
     # ------------------------------------------------------------------
     def _build_ui(self, **kwargs):
-        """Constroi a interface com checkboxes de rasters e labels de valores."""
+        """Constroi a interface com botao de selecao e labels de valores."""
         super()._build_ui(
             title=STR.RASTER_SAMPLER_TITLE,
             icon_path="cadmus_icon.ico",
             enable_scroll=True,
         )
 
-        # ── Selecao de rasters (uma checkbox por raster do projeto) ──
-        self.raster_checkboxes = GridCheckbox(
-            config=self._build_raster_checkbox_config(),
-            title=STR.RASTER_SAMPLER_SELECT_RASTERS,
-            items_per_row=1,
-            separator_bottom=True,
-            parent=self,
-        )
-        self.layout.addWidget(self.raster_checkboxes)
-
-        # ── Labels de valores (um por raster do projeto) ──
+        # ── Labels de valores (um por raster selecionado) ──
         self.values_label = GridLabel(
             config=self._build_values_label_config(),
             separator_bottom=True,
@@ -61,9 +53,15 @@ class RasterSamplerDialog(BasePluginMTL):
         )
         self.layout.addWidget(self.values_label)
 
-        # ── Botoes (Fechar + Info) ──
+        # ── Botao de selecao de rasters ──
         self.action_buttons = GridExecutionButtons(
-            config={},
+            config={
+                "select_rasters": {
+                    "label": STR.RASTER_SAMPLER_SELECT_RASTERS,
+                    "description": "Seleciona quais rasters amostrar",
+                    "callback": self.open_raster_selection,
+                },
+            },
             enable_close_button=True,
             enable_info=True,
             tool_key=self.TOOL_KEY,
@@ -79,17 +77,6 @@ class RasterSamplerDialog(BasePluginMTL):
             logger=self.logger,
         )
 
-    def _build_raster_checkbox_config(self) -> dict:
-        """
-        Constroi o config dict do GridCheckbox com um item por raster.
-
-        Chave = layer.id(), label = nome da camada.
-        """
-        config = {}
-        for layer in self._get_raster_layers():
-            config[layer.id()] = {"label": layer.name()}
-        return config
-
     def _build_values_label_config(self) -> dict:
         """
         Constroi o config dict do GridLabel com um label por raster.
@@ -101,29 +88,70 @@ class RasterSamplerDialog(BasePluginMTL):
             config[layer.id()] = {"text": ""}
         return config
 
+    def _update_selection_button_label(self):
+        """Atualiza o texto do botao de selecao com a contagem de rasters."""
+        count = len(self._selected_raster_ids)
+        self.action_buttons.update_button_label(
+            "select_rasters",
+            f"{STR.RASTER_SAMPLER_SELECT_RASTERS} ({count})",
+        )
+
+    # ------------------------------------------------------------------
+    # Selecao de rasters via ListSelectionDialog
+    # ------------------------------------------------------------------
+    def open_raster_selection(self):
+        """Abre o dialogo de selecao de rasters."""
+        self.logger.debug("Abrindo dialogo de selecao de rasters")
+
+        layers = self._get_raster_layers()
+        if not layers:
+            QgisMessageUtil.modal_error(self.iface, STR.RASTER_SAMPLER_NO_RASTERS)
+            return
+
+        items = {}
+        for layer in layers:
+            items[layer.id()] = {
+                "label": layer.name(),
+                "default": layer.id() in self._selected_raster_ids,
+            }
+
+        dlg = ListSelectionDialog(
+            items=items,
+            title=STR.RASTER_SAMPLER_SELECT_RASTERS,
+            hint=STR.RASTER_SAMPLER_SELECT_RASTERS,
+            tool_key=self.TOOL_KEY,
+            icon_path="cadmus_icon.ico",
+            parent=self,
+        )
+        if dlg.exec():
+            self._selected_raster_ids = set(dlg.get_selected_items())
+            self._update_selection_button_label()
+            self.logger.info(
+                f"Rasters selecionados: {len(self._selected_raster_ids)}"
+            )
+
     # ------------------------------------------------------------------
     # API publica
     # ------------------------------------------------------------------
     def get_selected_raster_ids(self) -> list:
         """Retorna lista de layer.id() dos rasters selecionados."""
-        return self.raster_checkboxes.get_checked_keys()
+        return list(self._selected_raster_ids)
 
     def set_selected_raster_ids(self, ids: list):
-        """Marca os rasters informados e desmarca os demais."""
-        self.raster_checkboxes.set_checked_keys(ids)
+        """Define os rasters selecionados."""
+        self._selected_raster_ids = set(ids or [])
+        self._update_selection_button_label()
 
     def refresh_raster_list(self):
         """
         Recarrega a lista de rasters do projeto mantendo a selecao atual
         para camadas que ainda existem.
         """
-        previous = set(self.get_selected_raster_ids())
-        new_config = self._build_raster_checkbox_config()
-
-        # Restaura selecao apenas das camadas que ainda existem
-        self.raster_checkboxes.set_checked_keys(
-            [key for key in previous if key in new_config]
-        )
+        current_ids = {layer.id() for layer in self._get_raster_layers()}
+        self._selected_raster_ids = {
+            rid for rid in self._selected_raster_ids if rid in current_ids
+        }
+        self._update_selection_button_label()
 
     def set_raster_values(self, values: dict):
         """
@@ -147,7 +175,7 @@ class RasterSamplerDialog(BasePluginMTL):
     def clear_values(self):
         """Limpa os valores exibidos."""
         config = {"hint": {"text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT}}
-        for layer_id in self.get_selected_raster_ids():
+        for layer_id in self._selected_raster_ids:
             config[layer_id] = {"text": ""}
         self.values_label.set_config(config)
 
@@ -157,14 +185,15 @@ class RasterSamplerDialog(BasePluginMTL):
     def _load_prefs(self):
         """Carrega os rasters selecionados das preferencias."""
         saved_ids = self.preferences.get("selected_rasters", [])
-        self.set_selected_raster_ids([i for i in saved_ids if i])
+        self._selected_raster_ids = set(i for i in saved_ids if i)
+        self._update_selection_button_label()
         self.logger.debug(
-            f"_load_prefs: selecao restaurada: {self.get_selected_raster_ids()}"
+            f"_load_prefs: selecao restaurada: {list(self._selected_raster_ids)}"
         )
 
     def _save_prefs(self):
         """Salva os rasters selecionados nas preferencias."""
-        self.preferences["selected_rasters"] = self.get_selected_raster_ids()
+        self.preferences["selected_rasters"] = list(self._selected_raster_ids)
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.debug(
             f"_save_prefs: prefs salvas: {self.preferences.get('selected_rasters')}"

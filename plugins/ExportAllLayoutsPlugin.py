@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import QgsLayoutExporter, QgsProject
 
 from ..core.ui.ProgressDialog import ProgressDialog
-from ..core.ui.dialogs.LayoutsSelectionDialog import LayoutsSelectionDialog
+from ..core.ui.dialogs.ListSelectionDialog import ListSelectionDialog
 from ..i18n.TranslationManager import STR
 from .BasePlugin import BasePluginMTL
 from ..resources.widgets.grid.GridCheckbox import GridCheckbox
@@ -208,9 +208,24 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
             QgisMessageUtil.modal_error(self.iface, STR.NO_LAYOUTS_SELECTED)
             return
 
-        dlg = LayoutsSelectionDialog(selected=self._selected_layouts, parent=self)
+        items = {}
+        for layout in layouts:
+            name = layout.name()
+            items[name] = {
+                "label": name,
+                "default": name in self._selected_layouts,
+            }
+
+        dlg = ListSelectionDialog(
+            items=items,
+            title=STR.SELECT_LAYOUTS_TITLE,
+            hint=STR.SELECT_LAYOUTS_HINT,
+            tool_key=self.TOOL_KEY,
+            icon_path="export_icon.ico",
+            parent=self,
+        )
         if dlg.exec():
-            self._selected_layouts = set(dlg.get_selected_layouts())
+            self._selected_layouts = set(dlg.get_selected_items())
             self.logger.info(
                 f"Layouts selecionados: {len(self._selected_layouts)}"
             )

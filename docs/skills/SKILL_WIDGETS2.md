@@ -411,6 +411,12 @@ layout.add_execution_buttons(actions)  # via MainLayout
 - `enable_config_button` + `config_callback` — botão Config ⚙️
 - `separator_top/bottom` — separadores
 
+**API pública extra:**
+| Método | Descrição |
+|--------|-----------|
+| `set_run_enabled(enabled)` | Habilita/desabilita o botão `is_run_button` |
+| `update_button_label(key, text)` | Atualiza o texto de um botão do config pelo identificador (ex: contador de seleção) |
+
 ### GridIconButton
 Container de botões com ícone (`SimpleIconButton`). Configuração via dict.
 
@@ -848,6 +854,52 @@ browser.setPlainText(text)
 | `read_only` | bool | `True` | Read-only |
 | `parent` | QWidget | `None` | Widget pai |
 
+### ListSelectionDialog 🆕
+Diálogo modal **genérico** para seleção de itens com checkboxes. Substitui o antigo `LayoutsSelectionDialog` específico. Usa `GridCheckbox` com `control_buttons_config` (Selecionar Todos / Desselecionar / Inverter) e `GridExecutionButtons` (OK/Fechar).
+
+**O plugin constrói o dict de itens e passa ao construtor.** O diálogo retorna as chaves selecionadas via `get_selected_items()`.
+
+```python
+from ..core.ui.dialogs.ListSelectionDialog import ListSelectionDialog
+
+items = {}
+for layout in project.layoutManager().layouts():
+    name = layout.name()
+    items[name] = {
+        "label": name,
+        "default": name in self._selected_layouts,
+    }
+
+dlg = ListSelectionDialog(
+    items=items,
+    title=STR.SELECT_LAYOUTS_TITLE,
+    hint=STR.SELECT_LAYOUTS_HINT,
+    tool_key=self.TOOL_KEY,          # obrigatório para logs rastreáveis
+    icon_path="export_icon.ico",     # opcional
+    parent=self,
+)
+if dlg.exec():
+    selected = dlg.get_selected_items()  # list[str]
+```
+
+**Parâmetros:**
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|-----------|------|--------|-----------|
+| `items` | dict | `{}` | Dict de itens `{key: {"label": str, "default": bool}}`. `default=True` vem marcado |
+| `title` | str | `""` | Título do diálogo e da janela |
+| `hint` | str | `""` | Texto do grupo de checkboxes (QGroupBox) |
+| `tool_key` | ToolKey | `None` | **Obrigatório** — ToolKey do plugin (logs rastreáveis) |
+| `icon_path` | str | `"cadmus_icon.ico"` | Ícone relativo a `resources/icons/` |
+| `parent` | QWidget | `None` | Widget pai |
+
+**API pública:**
+| Método | Descrição |
+|--------|-----------|
+| `get_selected_items()` → `list[str]` | Retorna chaves dos itens marcados (após `exec()` True) |
+
+**Plugins que usam:** `ExportAllLayoutsPlugin` (seleção de layouts), `RasterSamplerDialog` (seleção de rasters).
+
 ### CollapsibleParametersWidget 🆕
 Seção colapsável com header clicável e gradiente via paintEvent. Suporta persistência de estado expandido/recolhido via `get_preferences()`/`set_preferences()`.
 
@@ -1262,3 +1314,8 @@ border: 1px solid {theme.COLOR_BORDER};
    - Logger via `LogUtils` com class_name como tool (widget de infraestrutura, não plugin)
    - Try/except com `logger.exception` + code `DROPDOWN_TOOL_BUTTON_BUILD_ERROR`
    - `WidgetFactory` e `resources/widgets/` removidos — nenhum arquivo do sistema antigo restante |
+| 2026-08-06 | 3.4.0 | **ListSelectionDialog genérico + GridExecutionButtons.update_button_label:**
+   - Criado `ListSelectionDialog` (`core/ui/dialogs/`) — diálogo genérico de seleção de itens com checkboxes. Substitui o `LayoutsSelectionDialog` específico. Parâmetros: `items` (dict), `title`, `hint`, `tool_key` (obrigatório), `icon_path`, `parent`. API: `get_selected_items()`.
+   - `GridExecutionButtons` ganhou `update_button_label(key, text)` — atualiza texto de um botão do config pelo identificador. Ex: contador de seleção no RasterSampler.
+   - `ExportAllLayoutsPlugin` migrado para `ListSelectionDialog` (seleção de layouts via dict de itens).
+   - `RasterSamplerDialog` migrado para `ListSelectionDialog` — botão "Rasters para amostragem (N)" abre a dialog genérica; seleção continua persistida via Preferences (`selected_rasters`) |</content>

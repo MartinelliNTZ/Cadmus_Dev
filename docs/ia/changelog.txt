@@ -18,5 +18,18 @@
    - Persistência em Preferences via chave "dpi" (_load_prefs/_save_prefs)
    - Logs incluem o DPI efetivo usado em PDF e PNG
    - Novas strings: DPI_OUTPUT, DPI_OUTPUT_DESC (pt_BR apenas)
-3.3.0 06/08/2026 # comece aqui
+ 3.3.0 06/08/2026
+ [3.3.0.1][06/08/2026] ExportAllLayouts: exportação em formato SVG:
+    - Novo checkbox "Exportar SVG" (F"{STR.EXPORT} SVG") no GridCheckbox de formatos
+    - Labels de PDF/PNG/SVG padronizados com F"{STR.EXPORT} FORMATO" (PDF/PNG/SVG não são traduzidos)
+    - Exportação via QgsLayoutExporter.exportToSvg com SvgExportSettings (dpi aplicado se > 0)
+    - Caminho de saída .svg com mesma lógica de nomenclatura/substituição de PDF/PNG
+    - Validação exige pelo menos um formato (PDF, PNG ou SVG)
+    - Persistência em Preferences via chave "export_svg" (_load_prefs/_save_prefs)
+    - Contagem de sucesso considera SVG (ok_pdf or ok_png or ok_svg)
+    - Sem novas strings de tradução (usa STR.EXPORT + sufixo do formato)
+ [3.3.0.2][06/08/2026] core/enum: correção de importação de MenuCategory:
+    - Adicionada re-exportação de MenuCategory em core/enum/__init__.py
+    - Corrige erro "module 'Cadmus.core.enum.MenuCategory' has no attribute 'LAYOUTS'"
+    - Causa: from ..enum import MenuCategory resolvia o módulo, não a classe
 

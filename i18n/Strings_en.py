@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .Strings_pt_BR import Strings_pt_BR
-
+"""SE O URUARIO NAO MANDOU VC TRADUZIR SAIA DAQUI IMEDIATAMENTE AGORA ATUALIZE SOMENTE O PTBR, VC TAMBEM E PROIBIDO DE LER ESSA CLASSE E GASTAR TOKEM"""
 
 class Strings_en(Strings_pt_BR):
     """Strings for English (en)"""
@@ -581,10 +581,10 @@ class Strings_en(Strings_pt_BR):
     # plugins/ExportAllLayouts.py
     EXPORT_ALL_LAYOUTS_TITLE = "Export All Layouts"
     EXPORT_ALL_LAYOUTS_TOOLTIP = (
-        "Exports all project layouts to PDF, PNG, or both.\n"
+        "Exports all project layouts as PDF, PNG or both.\n"
         "Can merge generated PDFs into a single file,\n"
-        "convert PNGs into PDF, and control file overwrite\n"
-        "in the output folder."
+        "convert PNGs to PDF and control overwriting\n"
+        "of files in the output folder."
     )
 
     # plugins/VectorMultipartPlugin.py

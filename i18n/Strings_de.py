@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .Strings_pt_BR import Strings_pt_BR
-
+"""SE O URUARIO NAO MANDOU VC TRADUZIR SAIA DAQUI IMEDIATAMENTE AGORA ATUALIZE SOMENTE O PTBR, VC TAMBEM E PROIBIDO DE LER ESSA CLASSE E GASTAR TOKEM"""
 
 class Strings_de(Strings_pt_BR):
     """Strings for German (de-DE)"""

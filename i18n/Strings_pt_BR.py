@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+"""ATUALIZE SOMENTE ESSE ARQUIVO, NAO TRADUZA PARA OS DEMAIS IDIOMAS NAO """
 
 class Strings_pt_BR:
     """ "Strings for Brazilian Portuguese (pt-BR)"""

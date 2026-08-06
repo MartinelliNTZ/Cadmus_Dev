@@ -22,7 +22,7 @@ from ..utils.ToolKeys import ToolKey
 
 class ExportAllLayoutsPlugin(BasePluginMTL):
     """
-    Plugin para exportar todos os layouts do projeto em PDF e/ou PNG.
+    Plugin para exportar todos os layouts do projeto em PDF, PNG e/ou SVG.
 
     Estende BasePluginMTL para:
     - Interface padronizada com MainLayout + AppBar
@@ -61,13 +61,18 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
         self.checkbox_widget = GridCheckbox(
             config={
                 "export_pdf": {
-                    "label": STR.EXPORT_PDF,
+                    "label": F"{STR.EXPORT} PDF",
                     "description": "Exporta layouts em formato PDF",
                     "default": True,
                 },
                 "export_png": {
-                    "label": STR.EXPORT_PNG,
+                    "label": F"{STR.EXPORT} PNG",
                     "description": "Exporta layouts em formato PNG",
+                    "default": False,
+                },
+                "export_svg": {
+                    "label": F"{STR.EXPORT} SVG",
+                    "description": "Exporta layouts em formato SVG (vetorial)",
                     "default": False,
                 },
                 "georeference_pdf": {
@@ -284,6 +289,9 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
                 "export_png", self.preferences.get("export_png", True)
             )
             self.checkbox_widget.set_checked(
+                "export_svg", self.preferences.get("export_svg", False)
+            )
+            self.checkbox_widget.set_checked(
                 "georeference_pdf", self.preferences.get("georeference_pdf", False)
             )
             self.checkbox_widget.set_checked(
@@ -323,6 +331,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
         all_states = self.checkbox_widget.get_all_states()
         self.preferences["export_pdf"] = all_states.get("export_pdf", True)
         self.preferences["export_png"] = all_states.get("export_png", False)
+        self.preferences["export_svg"] = all_states.get("export_svg", False)
         self.preferences["georeference_pdf"] = all_states.get(
             "georeference_pdf", False
         )
@@ -357,6 +366,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
         all_states = self.checkbox_widget.get_all_states()
         export_pdf = all_states.get("export_pdf", True)
         export_png = all_states.get("export_png", False)
+        export_svg = all_states.get("export_svg", False)
         georeference_pdf = all_states.get("georeference_pdf", False)
         merge_pdf = all_states.get("merge_pdf", False)
         merge_png = all_states.get("merge_png", False)
@@ -375,7 +385,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
             else os.path.join(QgsProject.instance().homePath(), "exports")
         )
 
-        if not export_pdf and not export_png:
+        if not export_pdf and not export_png and not export_svg:
             QgisMessageUtil.modal_error(
                 self.iface, STR.SELECT_AT_LEAST_ONE_EXPORT_FORMAT
             )
@@ -444,19 +454,25 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
             nome = re.sub(r'[<>:"/\\|?*]', "", layout.name().strip())
             pdf_path = os.path.join(output_folder, f"{nome}.pdf")
             png_path = os.path.join(output_folder, f"{nome}.png")
+            svg_path = os.path.join(output_folder, f"{nome}.svg")
 
             if not replace_existing:
                 base = nome
                 count = 1
-                while os.path.exists(pdf_path) or os.path.exists(png_path):
+                while (
+                    os.path.exists(pdf_path)
+                    or os.path.exists(png_path)
+                    or os.path.exists(svg_path)
+                ):
                     nome_novo = f"{base}_{count}"
                     pdf_path = os.path.join(output_folder, f"{nome_novo}.pdf")
                     png_path = os.path.join(output_folder, f"{nome_novo}.png")
+                    svg_path = os.path.join(output_folder, f"{nome_novo}.svg")
                     count += 1
 
             try:
                 exporter = QgsLayoutExporter(layout)
-                ok_pdf = ok_png = True
+                ok_pdf = ok_png = ok_svg = True
 
                 if export_pdf:
                     pdf_settings = QgsLayoutExporter.PdfExportSettings()
@@ -488,7 +504,20 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
                     else:
                         erros.append(f"{STR.FAILED_EXPORT_PNG} {nome}")
 
-                if ok_pdf or ok_png:
+                if export_svg:
+                    svg_settings = QgsLayoutExporter.SvgExportSettings()
+                    if dpi > 0:
+                        svg_settings.dpi = dpi
+                    result = exporter.exportToSvg(svg_path, svg_settings)
+                    ok_svg = result == QgsLayoutExporter.Success
+                    if ok_svg:
+                        self.logger.debug(
+                            f"SVG exportado: {svg_path} (dpi={svg_settings.dpi})"
+                        )
+                    else:
+                        erros.append(f"{STR.ERROR_EXPORTING} SVG: {nome}")
+
+                if ok_pdf or ok_png or ok_svg:
                     sucesso += 1
 
             except Exception as e:

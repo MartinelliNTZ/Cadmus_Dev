@@ -282,26 +282,8 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
     def _load_prefs(self):
         self._suppress_merge_dependency_check = True
         try:
-            self.checkbox_widget.set_checked(
-                "export_pdf", self.preferences.get("export_pdf", True)
-            )
-            self.checkbox_widget.set_checked(
-                "export_png", self.preferences.get("export_png", True)
-            )
-            self.checkbox_widget.set_checked(
-                "export_svg", self.preferences.get("export_svg", False)
-            )
-            self.checkbox_widget.set_checked(
-                "georeference_pdf", self.preferences.get("georeference_pdf", False)
-            )
-            self.checkbox_widget.set_checked(
-                "merge_pdf", self.preferences.get("merge_pdf", False)
-            )
-            self.checkbox_widget.set_checked(
-                "merge_png", self.preferences.get("merge_png", False)
-            )
-            self.checkbox_widget.set_checked(
-                "replace_existing", self.preferences.get("replace_existing", False)
+            self.checkbox_widget.set_preferences(
+                self.preferences.get("checkbox_states")
             )
         finally:
             self._suppress_merge_dependency_check = False
@@ -328,16 +310,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
     def _save_prefs(self):
         self.logger.debug("Salvando preferências de exportação")
 
-        all_states = self.checkbox_widget.get_all_states()
-        self.preferences["export_pdf"] = all_states.get("export_pdf", True)
-        self.preferences["export_png"] = all_states.get("export_png", False)
-        self.preferences["export_svg"] = all_states.get("export_svg", False)
-        self.preferences["georeference_pdf"] = all_states.get(
-            "georeference_pdf", False
-        )
-        self.preferences["merge_pdf"] = all_states.get("merge_pdf", False)
-        self.preferences["merge_png"] = all_states.get("merge_png", False)
-        self.preferences["replace_existing"] = all_states.get("replace_existing", False)
+        self.preferences["checkbox_states"] = self.checkbox_widget.get_preferences()
 
         all_values = self.max_width_input.get_all_values()
         self.preferences["max_width"] = int(all_values.get("max_width", 3500))
@@ -356,9 +329,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
         self.preferences["selected_layouts"] = list(self._selected_layouts)
 
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
-        self.logger.info(
-            f"Preferências salvas: PDF={self.preferences['export_pdf']}, PNG={self.preferences['export_png']}"
-        )
+        self.logger.info("Preferências de exportação salvas com sucesso")
 
     def execute_tool(self):
         self.logger.info("Iniciando exportação de layouts")

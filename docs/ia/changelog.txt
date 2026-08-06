@@ -32,4 +32,9 @@
     - Adicionada re-exportação de MenuCategory em core/enum/__init__.py
     - Corrige erro "module 'Cadmus.core.enum.MenuCategory' has no attribute 'LAYOUTS'"
     - Causa: from ..enum import MenuCategory resolvia o módulo, não a classe
+ [3.3.0.3][06/08/2026] ExportAllLayouts: refatoração de prefs via GridCheckbox:
+    - _load_prefs usa checkbox_widget.set_preferences(prefs.get("checkbox_states"))
+    - _save_prefs usa checkbox_widget.get_preferences() → chave "checkbox_states"
+    - Removidas chaves individuais (export_pdf/export_png/export_svg/georeference_pdf/merge_pdf/merge_png/replace_existing) em favor do dict único
+    - Log de save simplificado (sem referência a chaves antigas)
 

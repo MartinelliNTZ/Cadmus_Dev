@@ -501,6 +501,20 @@ class ToolRegistry:
         )
         tools.append(raster_mass_sampler)
 
+        raster_sampler = Tool(
+            tool_key=ToolKey.RASTER_SAMPLER,
+            name=STR.RASTER_SAMPLER_TITLE,
+            icon=im.icon(im.RASTER_MASS_SAMPLER),
+            category=MenuCategory.RASTER,
+            tool_type=ToolTypeEnum.MAP_TOOL,
+            main_action=self._main_action_prefs.get(ToolKey.RASTER_SAMPLER, False),
+            executor=self.run_raster_sampler,
+            tooltip=STR.RASTER_SAMPLER_TOOLTIP,
+            order=30,
+            show_in_toolbar=True,
+        )
+        tools.append(raster_sampler)
+
         # =====================================================
         # DEVELOPER (Ordem: Test Tool=10)
         # =====================================================
@@ -701,4 +715,21 @@ class ToolRegistry:
             self.logger.error(f"Erro ao ativar Capturar Coordenadas: {str(e)}")
             QgisMessageUtil.bar_critical(
                 self.iface, f"Erro na ferramenta Capturar Coordenadas:{str(e)}"
+            )
+
+    # =====================================================
+    # EXECUTAR: Amostrar Valores de Rasters
+    # =====================================================
+    def run_raster_sampler(self):
+        try:
+            from ...plugins.RasterSamplerTool import RasterSamplerTool
+
+            self.logger.info("Ativando ferramenta: Amostrar Valores de Rasters")
+            self.raster_sampler_tool = RasterSamplerTool(self.iface)
+            self.iface.mapCanvas().setMapTool(self.raster_sampler_tool)
+            self.logger.info("Ferramenta Amostrar Valores de Rasters ativada com sucesso")
+        except Exception as e:
+            self.logger.error(f"Erro ao ativar Amostrar Valores de Rasters: {str(e)}")
+            QgisMessageUtil.bar_critical(
+                self.iface, f"Erro na ferramenta Amostrar Valores de Rasters:{str(e)}"
             )

@@ -45,9 +45,19 @@
       - Novo plugin plugins/DeveloperTestTool.py (BasePluginMTL + GridComplexSelector + GridExecutionButtons)
       - Registrado em ToolRegistry com registry_level=3 (developer), categoria DEVELOPER, tool_type=DIALOG
       - Ícone reutilizado mtl_agro.ico via IconManager.DEVELOPER_TEST_TOOL
-  [3.3.0.5][06/08/2026] InfoDialog: informações do plugin + redes sociais:
-     - GridLabel + GridIconButton na mesma linha (QHBoxLayout local no rodapé) exibem nome do plugin (STR.APP_NAME), versão (lida do metadata.txt via _get_plugin_version()), criador (STR.CREATOR) e todos os botões de rede social (GitHub, LinkedIn, Instagram, E-mail, Buy Me a Coffee) via webbrowser
-     - Sem alterações em widgets (GridIconButton/GridLabel intactos)
-     - Sem novas strings (reutiliza STR.APP_NAME, STR.VERSION, STR.CREATOR)
-     - Sem imports não utilizados (F401)
+   [3.3.0.5][06/08/2026] InfoDialog: informações do plugin + redes sociais:
+      - GridLabel + GridIconButton na mesma linha (QHBoxLayout local no rodapé) exibem nome do plugin (STR.APP_NAME), versão (lida do metadata.txt via _get_plugin_version()), criador (STR.CREATOR) e todos os botões de rede social (GitHub, LinkedIn, Instagram, E-mail, Buy Me a Coffee) via webbrowser
+      - Sem alterações em widgets (GridIconButton/GridLabel intactos)
+      - Sem novas strings (reutiliza STR.APP_NAME, STR.VERSION, STR.CREATOR)
+      - Sem imports não utilizados (F401)
+   [3.3.0.6][06/08/2026] RasterSamplerTool: nova map tool de amostragem de rasters:
+      - Novo ToolKey RASTER_SAMPLER em utils/ToolKeys.py (com cor #16A085)
+      - Novas strings RASTER_SAMPLER_TITLE, RASTER_SAMPLER_TOOLTIP, RASTER_SAMPLER_SELECT_RASTERS, RASTER_SAMPLER_VALUES, RASTER_SAMPLER_NO_RASTERS, RASTER_SAMPLER_CLICK_CANVAS_HINT em Strings_pt_BR
+      - Novo plugin plugins/RasterSamplerTool.py (QgsMapTool, padrão CoordClickTool) — canvasReleaseEvent amostra rasters selecionados no ponto clicado via dataProvider().sample() com conversão de CRS
+      - Novo plugin plugins/RasterSamplerDialog.py (BasePluginMTL, padrão CoordResultDialog) — GridCheckbox para seleção múltipla de rasters + GridLabel para valores + GridExecutionButtons (Fechar/Info)
+      - Seleção de rasters persistida em Preferences via chave "selected_rasters" (_load_prefs/_save_prefs)
+      - Registrado em ToolRegistry com tool_type=MAP_TOOL, categoria RASTER, order=30, executor run_raster_sampler (referência em self.raster_sampler_tool)
+      - Ícone reutilizado raster_mass_sampler.ico via IconManager
+      - Amostragem no main thread (operação leve, manipula objetos C++ do QGIS)
+      - Sem imports não utilizados (F401)
 

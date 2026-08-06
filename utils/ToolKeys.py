@@ -29,6 +29,7 @@ class ToolKey:
     SAVE_TEMPORARY_LAYER = "save_temporary_layer"
     PATH_EXTENSION_TOOL = "path_extension_tool"
     DEVELOPER_TEST_TOOL = "developer_test_tool"
+    RASTER_SAMPLER = "raster_sampler"
 
     # model3 / panel tool
     # processing/
@@ -73,6 +74,7 @@ class ToolKey:
         PATH_EXTENSION_TOOL: "#E67E22",  # laranja -> path extension
         SAVE_TEMPORARY_LAYER: "#3498DB",  # azul -> salvar temporárias
         DEVELOPER_TEST_TOOL: "#9B59B6",  # roxo -> ferramenta de testes / dev
+        RASTER_SAMPLER: "#16A085",  # verde-água -> amostragem de rasters
         # === Processing / analises ===
         ATTRIBUTE_STATISTICS: "#F7DC6F",  # amarelo -> estatistica
         DIFFERENCE_FIELDS: "#BB8FCE",  # roxo -> comparacao

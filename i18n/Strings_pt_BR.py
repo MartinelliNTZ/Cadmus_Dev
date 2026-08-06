@@ -631,6 +631,22 @@ class Strings_pt_BR:
         "para a area de transferencia."
     )
 
+    # plugins/RasterSamplerTool.py
+    RASTER_SAMPLER_TITLE = "Amostrar Valores de Rasters"
+    RASTER_SAMPLER_TOOLTIP = (
+        "Seleciona camadas raster do projeto e permite clicar no mapa\n"
+        "para consultar o valor de cada raster no ponto clicado.\n"
+        "Os rasters selecionados sao lembrados entre sessoes\n"
+        "e os valores sao exibidos na dialog da ferramenta."
+    )
+    RASTER_SAMPLER_SELECT_RASTERS = "Rasters para amostragem"
+    RASTER_SAMPLER_VALUES = "Valores no ponto"
+    RASTER_SAMPLER_NO_RASTERS = "Nenhum raster selecionado"
+    RASTER_SAMPLER_CLICK_CANVAS_HINT = (
+        "Selecione ao menos um raster e clique no mapa\n"
+        "para consultar os valores no ponto."
+    )
+
     # core/ToolRegistry.py
     RESTART_QGIS_TITLE = "Salvar, Fechar e Reabrir Projeto"
     RESTART_QGIS_TOOLTIP = (

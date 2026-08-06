@@ -8,3 +8,4 @@ class MenuCategory(str, Enum):
     VECTOR = "VECTOR"
     AGRICULTURE = "AGRICULTURE"
     RASTER = "RASTER"
+    DEVELOPER = "DEVELOPER"

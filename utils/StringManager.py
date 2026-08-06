@@ -158,6 +158,7 @@ class StringManager(BaseUtil):
         MenuCategory.VECTOR: STR.MENU_VECTOR,
         MenuCategory.AGRICULTURE: STR.MENU_AGRICULTURE,
         MenuCategory.RASTER: STR.MENU_RASTER,
+        MenuCategory.DEVELOPER: STR.MENU_DEVELOPER,
     }
 
     KML_FIELDS = [

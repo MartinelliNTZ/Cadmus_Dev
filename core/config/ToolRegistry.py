@@ -501,6 +501,27 @@ class ToolRegistry:
         )
         tools.append(raster_mass_sampler)
 
+        # =====================================================
+        # DEVELOPER (Ordem: Test Tool=10)
+        # =====================================================
+
+        developer_test_tool = Tool(
+            tool_key=ToolKey.DEVELOPER_TEST_TOOL,
+            name=STR.DEVELOPER_TEST_TOOL_TITLE,
+            icon=im.icon(im.DEVELOPER_TEST_TOOL),
+            category=MenuCategory.DEVELOPER,
+            tool_type=ToolTypeEnum.DIALOG,
+            main_action=self._main_action_prefs.get(
+                ToolKey.DEVELOPER_TEST_TOOL, True
+            ),
+            executor=self._make_plugin_executor("...plugins.DeveloperTestTool"),
+            tooltip=STR.DEVELOPER_TEST_TOOL_TOOLTIP,
+            order=10,
+            show_in_toolbar=True,
+            registry_level=3,
+        )
+        tools.append(developer_test_tool)
+
         return tools
 
     def get_tools(self):

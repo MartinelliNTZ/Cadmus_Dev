@@ -68,6 +68,7 @@ class IconManager:
     PATH_EXTENSION = "path_extension_tool.ico"
     PATH_EXTENSION_DIALOG = "path_extension.ico"
     FILE_CONVERTER = "file_converter.ico"
+    DEVELOPER_TEST_TOOL = "mtl_agro.ico"
 
     # Social icons
     GITHUB = "GithubIcon.ico"

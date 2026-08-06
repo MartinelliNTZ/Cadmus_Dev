@@ -89,6 +89,7 @@ class MenuManager:
             MenuCategory.VECTOR: im.icon(im.VECTOR),
             MenuCategory.AGRICULTURE: im.icon(im.AGRICULTURE),
             MenuCategory.RASTER: im.icon(im.RASTER),
+            MenuCategory.DEVELOPER: im.icon(im.MTL_AGRO),
         }
         self.logger.debug(
             f"Criando submenus para cada categoria: {list(category_icons.keys())}"

@@ -48,6 +48,7 @@ class Strings_pt_BR:
     MENU_VECTOR = "Vetor"
     MENU_AGRICULTURE = "Agricultura"
     MENU_RASTER = "Raster"
+    MENU_DEVELOPER = "Developer"
     OPTIONS = "Opções"
     SAVING = "Salvamento"
     STYLES = "Estilos"
@@ -371,6 +372,14 @@ class Strings_pt_BR:
     FIELDS_USED_IN_CALCULATION = "Campos utilizados no cálculo"
     PREFIX = "Prefixo"
     PROCESS_FINISHED_SUCCESS = "Processo finalizado com sucesso."
+
+    # plugins/DeveloperTestTool.py
+    DEVELOPER_TEST_TOOL_TITLE = "Developer Test Tool"
+    DEVELOPER_TEST_TOOL_TOOLTIP = (
+        "Ferramenta oficial de testes do Cadmus.\n"
+        "Permite testar widgets, componentes e demais\n"
+        "recursos do sistema em um ambiente controlado."
+    )
 
     # plugins/DroneCoordinates.py
     DRONE_COORDINATES_TITLE = "DJI Coordenadas de Drone"

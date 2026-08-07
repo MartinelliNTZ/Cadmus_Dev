@@ -47,13 +47,15 @@ class GridLabel(QWidget):
 
         self._labels = []
         self._label_map = {}  # key → SimpleLabel
+        self._separator_top = separator_top
+        self._separator_bottom = separator_bottom
         theme = AppStyles._get_theme()
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(theme.LAYOUT_VERTICAL_SPACING)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(theme.LAYOUT_VERTICAL_SPACING)
 
         if separator_top:
-            layout.addWidget(SeparatorWidget())
+            self._layout.addWidget(SeparatorWidget())
 
         for key, cfg in config.items():
             text = cfg.get("text", "")
@@ -69,10 +71,10 @@ class GridLabel(QWidget):
 
             self._labels.append(label)
             self._label_map[key] = label
-            layout.addWidget(label)
+            self._layout.addWidget(label)
 
         if separator_bottom:
-            layout.addWidget(SeparatorWidget())
+            self._layout.addWidget(SeparatorWidget())
 
         self._apply_styles()
 
@@ -110,6 +112,42 @@ class GridLabel(QWidget):
                 self._label_map[key].setStyleSheet(
                     f"{AppStyles.label()} color: {color};"
                 )
+
+    def rebuild(self, config: dict) -> None:
+        """
+        Remove todos os labels existentes e reconstrói a partir do config dict.
+
+        Exemplo:
+            labels.rebuild({
+                "hint": {"text": "Clique no canvas"},
+                "layer1": {"text": "1 - MDS_N: 188.2"},
+            })
+        """
+        # Remove labels existentes do layout
+        for label in self._labels:
+            self._layout.removeWidget(label)
+            label.deleteLater()
+        self._labels.clear()
+        self._label_map.clear()
+
+        if not config:
+            config = {"label": {"text": ""}}
+
+        for key, cfg in config.items():
+            text = cfg.get("text", "")
+            label = SimpleLabel(text=text, parent=self)
+
+            description = cfg.get("description")
+            if description:
+                label.setToolTip(description)
+
+            color = cfg.get("color")
+            if color:
+                label.setStyleSheet(f"{AppStyles.label()} color: {color};")
+
+            self._labels.append(label)
+            self._label_map[key] = label
+            self._layout.addWidget(label)
 
     def _apply_styles(self):
         combined = self._specific_style()

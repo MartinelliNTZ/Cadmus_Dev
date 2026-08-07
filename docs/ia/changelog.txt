@@ -80,4 +80,12 @@
    - clear_values mantém a enumeração dos rasters selecionados ao limpar
    - Sem novas strings (reutiliza STR.UNAVAILABLE e STR.RASTER_SAMPLER_CLICK_CANVAS_HINT)
    - Sem imports não utilizados (F401)
+[3.4.0.3][06/08/2026] RasterSamplerDialog: paleta de cores + rebuild dinâmico + HTML:
+   - GridLabel ganhou método rebuild(config) — remove todos os labels existentes e reconstrói a partir do config dict (permite atualizar a quantidade de itens dinamicamente)
+   - RasterSamplerDialog: nova paleta RASTER_COLORS com 5 cores (verde, laranja, azul, vermelho, roxo) — cada raster enumerado recebe uma cor da paleta
+   - Labels agora usam HTML: nome do raster em negrito na cor da paleta dele; cada diferença "(N: X.XX)" na cor do raster N referenciado com &emsp; de espaçamento
+   - _rebuild_labels() reconstrói o grid com a quantidade atual de rasters selecionados — chamado ao alterar seleção (open_raster_selection, set_selected_raster_ids, refresh_raster_list, _load_prefs)
+   - clear_values mantém enumeração e cores ao limpar
+   - Sem novas strings (reutiliza STR.UNAVAILABLE e STR.RASTER_SAMPLER_CLICK_CANVAS_HINT)
+   - Sem imports não utilizados (F401)
 

@@ -25,6 +25,15 @@ class RasterSamplerDialog(BasePluginMTL):
 
     TOOL_KEY = ToolKey.RASTER_SAMPLER
 
+    # Paleta de 5 cores para enumeracao dos rasters (CSS hex)
+    RASTER_COLORS = [
+        "#16A085",  # 1 - verde
+        "#E67E22",  # 2 - laranja
+        "#2980B9",  # 3 - azul
+        "#C0392B",  # 4 - vermelho
+        "#8E44AD",  # 5 - roxo
+    ]
+
     def __init__(self, iface):
         """Inicializa a dialog com a interface do QGIS."""
         super().__init__(iface.mainWindow())
@@ -111,6 +120,14 @@ class RasterSamplerDialog(BasePluginMTL):
             if layer.id() in self._selected_raster_ids
         ]
 
+    def _raster_color(self, index: int) -> str:
+        """
+        Retorna a cor da paleta para o raster na posicao (1-based).
+
+        Reinicia o ciclo a cada 5 rasters.
+        """
+        return self.RASTER_COLORS[(index - 1) % len(self.RASTER_COLORS)]
+
     # ------------------------------------------------------------------
     # Selecao de rasters via ListSelectionDialog
     # ------------------------------------------------------------------
@@ -141,6 +158,7 @@ class RasterSamplerDialog(BasePluginMTL):
         if dlg.exec():
             self._selected_raster_ids = set(dlg.get_selected_items())
             self._update_selection_button_label()
+            self._rebuild_labels()
             self.logger.info(
                 f"Rasters selecionados: {len(self._selected_raster_ids)}"
             )
@@ -156,6 +174,7 @@ class RasterSamplerDialog(BasePluginMTL):
         """Define os rasters selecionados."""
         self._selected_raster_ids = set(ids or [])
         self._update_selection_button_label()
+        self._rebuild_labels()
 
     def refresh_raster_list(self):
         """
@@ -167,6 +186,29 @@ class RasterSamplerDialog(BasePluginMTL):
             rid for rid in self._selected_raster_ids if rid in current_ids
         }
         self._update_selection_button_label()
+        self._rebuild_labels()
+
+    def _rebuild_labels(self):
+        """
+        Reconstrói os labels com a quantidade atual de rasters selecionados.
+
+        Cada linha exibe a enumeração na cor do próprio raster e os diffs
+        na cor do raster referenciado. Formato HTML:
+
+            1 - <span color verde>MDS_N</span>: 188.2000
+                &emsp;<span color laranja>(2: 0.21)</span>
+                &emsp;<span color azul>(3: 0.24)</span>
+        """
+        config = {"hint": {"text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT}}
+        layers = self._get_selected_layers_ordered()
+        for i, layer in enumerate(layers, start=1):
+            color = self._raster_color(i)
+            config[layer.id()] = {
+                "text": (
+                    f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>:"
+                )
+            }
+        self.values_label.rebuild(config)
 
     def set_raster_values(self, values: dict):
         """
@@ -175,38 +217,63 @@ class RasterSamplerDialog(BasePluginMTL):
         Exibe cada raster enumerado com seu valor e a diferenca
         para os demais rasters selecionados. Formato:
 
-            1 - MDS_N: 188.2 (2: 0.21)(3: 0.24)(4: 0.25)
-            2 - MDS_x: 18.5 (1: 0.21)(3: 0.24)(4: 0.25)
+            1 - <span verde>MDS_N</span>: 188.20
+                &emsp;<span laranja>(2: 0.21)</span>
+                &emsp;<span azul>(3: 0.24)</span>
+            2 - <span laranja>MDS_x</span>: 18.50
+                &emsp;<span verde>(1: -0.21)</span>
+                &emsp;<span azul>(3: 0.24)</span>
+
+        O nome de cada raster aparece na cor da paleta dele, e cada
+        diferenca "(N: X.XX)" aparece na cor do raster N referenciado,
+        facilitando a associacao visual.
 
         values: dict {layer_id: valor} — valor pode ser float ou None (NoData).
         """
         config = {}
         layers = self._get_selected_layers_ordered()
         for i, layer in enumerate(layers, start=1):
+            color = self._raster_color(i)
             value = values.get(layer.id())
             if value is None:
                 config[layer.id()] = {
-                    "text": f"{i} - {layer.name()}: {STR.UNAVAILABLE}"
+                    "text": (
+                        f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>"
+                        f": {STR.UNAVAILABLE}"
+                    )
                 }
                 continue
 
-            text = f"{i} - {layer.name()}: {value:.4f}"
-            diffs = []
+            parts = []
             for j, other in enumerate(layers, start=1):
                 if j == i:
                     continue
                 other_value = values.get(other.id())
                 if other_value is not None:
-                    diffs.append(f"({j}: {value - other_value:.2f})")
-            config[layer.id()] = {"text": text + "".join(diffs)}
+                    other_color = self._raster_color(j)
+                    parts.append(
+                        f"&emsp;<span style='color:{other_color};'>"
+                        f"({j}: {value - other_value:.2f})</span>"
+                    )
+            config[layer.id()] = {
+                "text": (
+                    f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>"
+                    f": {value:.4f}{''.join(parts)}"
+                )
+            }
         config["hint"] = {"text": ""}
         self.values_label.set_config(config)
 
     def clear_values(self):
-        """Limpa os valores exibidos mantendo a enumeracao dos rasters."""
+        """Limpa os valores exibidos mantendo a enumeracao e as cores."""
         config = {"hint": {"text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT}}
         for i, layer in enumerate(self._get_selected_layers_ordered(), start=1):
-            config[layer.id()] = {"text": f"{i} - {layer.name()}: "}
+            color = self._raster_color(i)
+            config[layer.id()] = {
+                "text": (
+                    f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>:"
+                )
+            }
         self.values_label.set_config(config)
 
     # ------------------------------------------------------------------
@@ -217,6 +284,7 @@ class RasterSamplerDialog(BasePluginMTL):
         saved_ids = self.preferences.get("selected_rasters", [])
         self._selected_raster_ids = set(i for i in saved_ids if i)
         self._update_selection_button_label()
+        self._rebuild_labels()
         self.logger.debug(
             f"_load_prefs: selecao restaurada: {list(self._selected_raster_ids)}"
         )

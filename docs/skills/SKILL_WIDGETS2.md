@@ -347,6 +347,7 @@ info = GridLabel(config={
 - `set_text(key, text)` — atualiza texto
 - `get_text(key)` → str
 - `set_config(config)` — atualiza múltiplos labels (texto, description, color)
+- `rebuild(config)` — remove todos os labels existentes e reconstrói a partir do config dict (permite atualizar a quantidade de itens dinamicamente)
 
 **Suporte a cor (`"color"`):**
 - Cada item do config dict pode ter `"color"` (ex: `"green"`, `"red"`, `"gray"`)

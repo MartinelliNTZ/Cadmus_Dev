@@ -23,16 +23,21 @@ class Strings_de(Strings_pt_BR):
     LOAD_FILES = "Dateien laden"
     EXPORT = "Exportieren"
     CANCEL = "Abbrechen"
+    OK = "OK"
     EXECUTE = "Ausführen"
     COPIED = "Kopiert"
     COPY = "Kopieren"
     SELECT = "Auswählen"
     REMOVE = "Entfernen"
     INVERT = "Umkehren"
+    SELECT_ALL = "Alle auswählen"
+    DESELECT_ALL = "Alle abwählen"
     ENABLE = "Aktivieren"
     INFO = "Info"
     INSTRUCTIONS = "Anleitungen"
     AUTO_DETECT = "Automatisch erkennen"
+    PROJECTS_DEFAULT_FOLDER = "Standard-Projektordner"
+    OPEN_SETTINGS = "Einstellungen öffnen"
 
     # Common labels
     PRECISION = "Genauigkeit"
@@ -43,6 +48,7 @@ class Strings_de(Strings_pt_BR):
     MENU_VECTOR = "Vektor"
     MENU_AGRICULTURE = "Landwirtschaft"
     MENU_RASTER = "Raster"
+    MENU_DEVELOPER = "Entwickler"
     OPTIONS = "Optionen"
     SAVING = "Speichern"
     STYLES = "Stile"
@@ -57,6 +63,7 @@ class Strings_de(Strings_pt_BR):
     INPUT_LINE_LAYER = "Linienlayer (EINGABE):"
     SOURCE_LAYER = "Quelllayer:"
     TARGET_LAYER = "Ziellayer:"
+    RANGE = "Bereich"
     IMPLEMENT_SIZE = "Gerätegröße: (immer in Metern)"
     VECTOR_CALCULATION_METHOD = "Vektorberechnungsmethode"
     VECTOR_FIELDS_PRECISION = "Genauigkeit der Vektorfelder (Dezimalstellen):"
@@ -69,6 +76,12 @@ class Strings_de(Strings_pt_BR):
     USE_ALL_ATTRIBUTES = "Alle Attribute verwenden"
     EXPORT_OPTIONS = "Exportoptionen"
     MAX_WIDTH_PNG = "Max. Breite für PNG (px):"
+    DPI_OUTPUT = "Ausgabe-DPI:"
+    DPI_OUTPUT_DESC = (
+        "Auflösung in Punkten pro Zoll (dpi) für PNG und PDF.\n"
+        "Verwenden Sie 0, um das im Layout konfigurierte DPI beizubehalten.\n"
+        "Maximale DPI ist 1200"
+    )
     USE_PROJECT_FOLDER = "Projektordner verwenden"
     EXPORT_PDF = "PDF exportieren"
     EXPORT_PNG = "PNG exportieren"
@@ -229,7 +242,6 @@ class Strings_de(Strings_pt_BR):
     KML_FIELDS_REMOVED_SUCCESS = "KML-Felder erfolgreich entfernt"
     NO_KML_FIELDS_FOUND = "Keine KML-Felder zum Entfernen gefunden"
     ERROR_REMOVING_KML_FIELDS = "Fehler beim Entfernen der KML-Felder:"
-    RANGE = "Bereich"
     RASTERS = "Raster"
     INPUT_POINTS = "Eingabepunkte"
     REPROJECT_OUTPUT_LAYER_OPTIONAL = "Ausgabelayer umprojizieren (optional)"
@@ -253,27 +265,6 @@ class Strings_de(Strings_pt_BR):
         "mit Unterstützung für Zuschnitt pro Feature, Korrekturpuffer und Ausgabeordner."
     )
     RASTER_DIFFERENCE_STATISTICS_TITLE = "Rasterdifferenz verarbeiten"
-    VECTOR_TO_SVG_TITLE = "Vektor-zu-SVG-Konverter"
-    VECTOR_TO_SVG_TOOLTIP = (
-        "Exportiert einen Vektorlayer des Projekts nach SVG.\n"
-        "Erlaubt die Konfiguration von Hintergrund, Rand und Beschriftung\n"
-        "und kann entweder eine einzelne Datei oder ein separates SVG\n"
-        "pro Feature erzeugen."
-    )
-    VECTOR_LAYER_LABEL = "Vektorlayer"
-    BACKGROUND_COLOR = "Hintergrundfarbe"
-    BORDER_COLOR = "Randfarbe"
-    BORDER_WIDTH = "Randstärke"
-    LABEL_COLOR = "Beschriftungsfarbe"
-    LABEL_SIZE = "Beschriftungsgröße"
-    SELECT_FILL_COLOR = "Füllfarbe auswählen"
-    SELECT_BORDER_COLOR = "Randfarbe auswählen"
-    SELECT_LABEL_COLOR = "Beschriftungsfarbe auswählen"
-    TRANSPARENT_BACKGROUND = "Transparenter Hintergrund"
-    SHOW_BORDER = "Rand anzeigen"
-    SHOW_LABEL = "Beschriftung anzeigen"
-    GENERATE_SVG_FOR_EACH_FEATURE = "SVG für jedes Feature erzeugen"
-    SVGS_GENERATED_SUCCESS = "SVG(s) erfolgreich erzeugt."
     INPUT_MASK_POLYGON_LAYER = "Maskenlayer (Polygon)"
     CLIP_PER_EACH_POLYGON = "Pro Polygon zuschneiden"
     APPLY_CORRECTION_BUFFER_PIXEL_1_1 = "Korrekturpuffer anwenden (Pixel * 1,1)"
@@ -388,6 +379,14 @@ class Strings_de(Strings_pt_BR):
     FIELDS_USED_IN_CALCULATION = "In der Berechnung verwendete Felder"
     PREFIX = "Präfix"
     PROCESS_FINISHED_SUCCESS = "Vorgang erfolgreich abgeschlossen."
+
+    # plugins/DeveloperTestTool.py
+    DEVELOPER_TEST_TOOL_TITLE = "Developer-Testwerkzeug"
+    DEVELOPER_TEST_TOOL_TOOLTIP = (
+        "Offizielles Testwerkzeug von Cadmus.\n"
+        "Ermöglicht das Testen von Widgets, Komponenten und weiteren\n"
+        "Systemressourcen in einer kontrollierten Umgebung."
+    )
 
     # plugins/DroneCoordinates.py
     DRONE_COORDINATES_TITLE = "DJI Drohnenkoordinaten"
@@ -538,6 +537,7 @@ class Strings_de(Strings_pt_BR):
     # plugins/LoadFolderLayers.py
     LOAD_FOLDER_LAYERS_TITLE = "Ordner mit Dateien laden"
     CREATE_PROJECT_TITLE = "Neues Projekt"
+    CREATE_PROJECT = "Neues Projekt"
     CREATE_PROJECT_TOOLTIP = (
         "Erstellt eine neue Projektstruktur in einem dedizierten Ordner.\n"
         "Falls noch kein Standardordner festgelegt ist, wird dieser Pfad abgefragt,\n"
@@ -588,6 +588,8 @@ class Strings_de(Strings_pt_BR):
         "wendet einen Puffer mit der Hälfte dieses Werts an und erstellt\n"
         "einen neuen Layer mit der resultierenden Spur."
     )
+    QML_STYLE = "QML-Stil"
+    SAVE_TRAIL_IN = "Spur speichern in:"
 
     # plugins/CopyAttributesPlugin.py
     COPY_ATTRIBUTES_TITLE = "Vektorattribute kopieren"
@@ -606,6 +608,13 @@ class Strings_de(Strings_pt_BR):
         "PNGs in PDF konvertieren und das Überschreiben\n"
         "von Dateien im Ausgabeordner steuern."
     )
+    SELECT_LAYOUTS = "Layouts"
+    SELECT_LAYOUTS_DESC = "Wählen Sie aus, welche Projekt-Layouts exportiert werden"
+    SELECT_LAYOUTS_TITLE = "Layouts auswählen"
+    SELECT_LAYOUTS_HINT = "Markieren Sie die Layouts, die Sie exportieren möchten"
+    INVERT_SELECTION = "Umkehren"
+    NO_LAYOUTS_SELECTED = "Kein Layout zum Export ausgewählt."
+    LAYOUTS_SELECTED_COUNT = "{count} Layout(s) ausgewählt"
 
     # plugins/VectorMultipartPlugin.py
     CONVERTER_MULTIPART_TITLE = "Multipart konvertieren"
@@ -623,6 +632,23 @@ class Strings_de(Strings_pt_BR):
         "Öffnet einen Dialog mit WGS84, UTM, ungefährer Höhe\n"
         "und geschätzter Adresse sowie Optionen zum Kopieren\n"
         "in die Zwischenablage."
+    )
+
+    # plugins/RasterSamplerTool.py
+    RASTER_SAMPLER_TITLE = "Rasterwerte abtasten"
+    RASTER_SAMPLER_TOOLTIP = (
+        "Wählt Rasterlayer des Projekts aus und ermöglicht das Klicken auf die Karte,\n"
+        "um den Wert jedes Rasters am angeklickten Punkt abzufragen.\n"
+        "Die ausgewählten Raster werden zwischen Sitzungen gespeichert\n"
+        "und die Werte werden im Dialog des Werkzeugs angezeigt."
+    )
+    RASTER_SAMPLER_SELECT_RASTERS = "Raster zur Abtastung"
+    RASTER_SAMPLER_VALUES = "Werte am Punkt"
+    RASTER_SAMPLER_NO_RASTERS = "Kein Raster ausgewählt"
+    RASTER_SAMPLER_DECIMALS = "Dezimalstellen"
+    RASTER_SAMPLER_CLICK_CANVAS_HINT = (
+        "Wählen Sie mindestens ein Raster aus und klicken Sie auf die Karte,\n"
+        "um die Werte am Punkt abzufragen."
     )
 
     # core/ToolRegistry.py
@@ -658,45 +684,28 @@ class Strings_de(Strings_pt_BR):
         "und speichert nicht und beendet den Bearbeitungsmodus nicht."
     )
 
-    # plugins/PathExtensionPlugin.py
-    PATH = "Pfad"
-    PATH_EXTENSION_TITLE = "Erweiterung Entfernen/Wiederherstellen"
-    PATH_EXTENSION_TOOLTIP = "Entfernt oder stellt die Dateierweiterung in den Pfaden der Features wieder her"
-    MODE_REMOVE = "Erweiterung entfernen"
-    MODE_RESTORE = "Erweiterung wiederherstellen"
-    MODE_ZIP = "Dateien komprimieren"
-    MODE_UNZIP = "Dateien dekomprimieren"
-
-    # Registry
-    REG_TITLE = "Verwalten"
-    REGISTRY_SAVED_SUCCESS = "Gespeichert und validiert."
-    REGISTRY_DELETED_SUCCESS = "Erfolgreich entfernt."
-    REGISTRY_INVALID = "Ungültig."
-    REGISTRY_EMPTY = "Feld ausfüllen."
-    NO_KEY = "kein Schlüssel"
-    EXPIRATION_DATE = "Gültigkeit"
-    REMAINING_DAYS = "verbleibende Tage"
-    STATUS = "Status"
-    LEVEL = "Stufe"
-    ACTIVE = "Aktiv"
-    INACTIVE = "Inaktiv"
-    VALIDATE = "Validieren"
-
-    # plugins/SaveTemporaryLayersPlugin.py
-    SAVE_TEMPORARY_LAYER_TITLE = "Temporäre speichern"
-    SAVE_TEMPORARY_LAYER_TOOLTIP = "Speichert temporäre (Memory-)Layer des Projekts als dauerhafte Dateien auf der Festplatte"
-    EXTENSION_VECTOR = "Vektor-Erweiterung"
-    EXTENSION_RASTER = "Raster-Erweiterung"
-    VECTORS_FOLDER = "Vektorordner"
-    RASTERS_FOLDER = "Rasterordner"
-    SEPARATOR = "Trennzeichen"
-    VECTOR_EXTENSIONS = "Vektor-Erweiterungen"
-    RASTER_EXTENSIONS = "Raster-Erweiterungen"
-    OUTPUT_CONFIG = "Ausgangskonfiguration"
-    CONVERTER_FILE_TYPE = "Dateityp"
-    SELECT_OUTPUT_FOLDER = "Ausgabeordner auswählen"
-
-    # plugins/DividePointsByStripsPlugin.py
+    # plugins/VectorToSvgPlugin.py
+    VECTOR_TO_SVG_TITLE = "Vektor-zu-SVG-Konverter"
+    VECTOR_TO_SVG_TOOLTIP = (
+        "Exportiert einen Vektorlayer des Projekts nach SVG.\n"
+        "Erlaubt die Konfiguration von Hintergrund, Rand und Beschriftung\n"
+        "und kann entweder eine einzelne Datei oder ein separates SVG\n"
+        "pro Feature erzeugen."
+    )
+    VECTOR_LAYER_LABEL = "Vektorlayer"
+    BACKGROUND_COLOR = "Hintergrundfarbe"
+    BORDER_COLOR = "Randfarbe"
+    BORDER_WIDTH = "Randstärke"
+    LABEL_COLOR = "Beschriftungsfarbe"
+    LABEL_SIZE = "Beschriftungsgröße"
+    SELECT_FILL_COLOR = "Füllfarbe auswählen"
+    SELECT_BORDER_COLOR = "Randfarbe auswählen"
+    SELECT_LABEL_COLOR = "Beschriftungsfarbe auswählen"
+    TRANSPARENT_BACKGROUND = "Transparenter Hintergrund"
+    SHOW_BORDER = "Rand anzeigen"
+    SHOW_LABEL = "Beschriftung anzeigen"
+    GENERATE_SVG_FOR_EACH_FEATURE = "SVG für jedes Feature erzeugen"
+    SVGS_GENERATED_SUCCESS = "SVG(s) erfolgreich erzeugt."
     DIVIDE_POINTS_BY_STRIPS_TITLE = "Punktvektor in Streifen aufteilen"
     DIVIDE_POINTS_BY_STRIPS_TOOLTIP = (
         "Bereitet die Konfiguration zur Segmentierung eines Punktlayers in Streifen vor.\n"
@@ -797,3 +806,50 @@ class Strings_de(Strings_pt_BR):
     CURVE = "Kurve"
     STRAIGHT = "Gerade"
     BOTH_PATH = "Beide"
+
+    PATH = "Pfad"
+
+    # plugins/PathExtensionPlugin.py
+    PATH_EXTENSION_TITLE = "Erweiterung Entfernen/Wiederherstellen"
+    PATH_EXTENSION_TOOLTIP = "Entfernt oder stellt die Dateierweiterung in den Pfaden der Features wieder her"
+    MODE_REMOVE = "Erweiterung entfernen"
+    MODE_RESTORE = "Erweiterung wiederherstellen"
+    MODE_ZIP = "Dateien komprimieren"
+    MODE_UNZIP = "Dateien dekomprimieren"
+
+    # Registry
+    REG_TITLE = "Verwalten"
+    REGISTRY_SAVED_SUCCESS = "Gespeichert und validiert."
+    REGISTRY_DELETED_SUCCESS = "Erfolgreich entfernt."
+    REGISTRY_INVALID = "Ungültig."
+    REGISTRY_EMPTY = "Feld ausfüllen."
+    NO_KEY = "kein Schlüssel"
+    EXPIRATION_DATE = "Gültigkeit"
+    REMAINING_DAYS = "verbleibende Tage"
+    STATUS = "Status"
+    LEVEL = "Stufe"
+    ACTIVE = "Aktiv"
+    INACTIVE = "Inaktiv"
+    VALIDATE = "Validieren"
+    RESTORE_DISTRIBUTION = "Registrierung wiederherstellen"
+    SELECT_DIST_FILE = "Bitte zuerst eine .dist-Datei auswählen."
+    DIST_FILE_NOT_FOUND = "Registrierungsauswahl nicht gefunden."
+    LICENSE_KEY = "Schlüssel"
+
+    # plugins/SaveTemporaryLayersPlugin.py
+    SAVE_TEMPORARY_LAYER_TITLE = "Temporäre speichern"
+    SAVE_TEMPORARY_LAYER_TOOLTIP = "Speichert temporäre (Memory-)Layer des Projekts als dauerhafte Dateien auf der Festplatte"
+    PREFIX = "Präfix"
+    SUFFIX = "Suffix"
+    EXTENSION_VECTOR = "Vektor-Erweiterung"
+    EXTENSION_RASTER = "Raster-Erweiterung"
+    VECTORS_FOLDER = "Vektorordner"
+    RASTERS_FOLDER = "Rasterordner"
+    SEPARATOR = "Trennzeichen"
+    VECTOR_EXTENSIONS = "Vektor-Erweiterungen"
+    RASTER_EXTENSIONS = "Raster-Erweiterungen"
+    OUTPUT_CONFIG = "Ausgangskonfiguration"
+    CONVERTER_FILE_TYPE = "Dateityp"
+    SELECT_OUTPUT_FOLDER = "Ausgabeordner auswählen"
+    USE_PROJECT_FOLDER = "Projektordner verwenden"
+    OPEN_OUTPUT_FOLDER = "Ausgabeordner öffnen"

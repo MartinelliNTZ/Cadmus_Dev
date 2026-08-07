@@ -23,16 +23,21 @@ class Strings_en(Strings_pt_BR):
     LOAD_FILES = "Load Files"
     EXPORT = "Export"
     CANCEL = "Cancel"
+    OK = "OK"
     EXECUTE = "Run"
     COPIED = "Copied"
     COPY = "Copy"
     SELECT = "Select"
     REMOVE = "Remove"
     INVERT = "Invert"
+    SELECT_ALL = "Select All"
+    DESELECT_ALL = "Deselect All"
     ENABLE = "Enable"
     INFO = "Info"
     INSTRUCTIONS = "Instructions"
     AUTO_DETECT = "Auto-detect"
+    PROJECTS_DEFAULT_FOLDER = "Default projects folder"
+    OPEN_SETTINGS = "Open Settings"
 
     # Common labels
     PRECISION = "Precision"
@@ -43,6 +48,7 @@ class Strings_en(Strings_pt_BR):
     MENU_VECTOR = "Vector"
     MENU_AGRICULTURE = "Agriculture"
     MENU_RASTER = "Raster"
+    MENU_DEVELOPER = "Developer"
     OPTIONS = "Options"
     SAVING = "Saving"
     STYLES = "Styles"
@@ -57,6 +63,7 @@ class Strings_en(Strings_pt_BR):
     INPUT_LINE_LAYER = "Line Layer (INPUT):"
     SOURCE_LAYER = "Source Layer:"
     TARGET_LAYER = "Target Layer:"
+    RANGE = "Range"
     IMPLEMENT_SIZE = "Implement width (meters):"
     VECTOR_CALCULATION_METHOD = "Vector Calculation Method"
     VECTOR_FIELDS_PRECISION = "Vector field precision (decimal places):"
@@ -69,6 +76,12 @@ class Strings_en(Strings_pt_BR):
     USE_ALL_ATTRIBUTES = "Use all attributes"
     EXPORT_OPTIONS = "Export Options"
     MAX_WIDTH_PNG = "Max PNG width (px):"
+    DPI_OUTPUT = "Output DPI:"
+    DPI_OUTPUT_DESC = (
+        "Resolution in dots per inch (dpi) for PNG and PDF.\n"
+        "Use 0 to keep the DPI configured in the layout.\n"
+        "Maximum DPI is 1200"
+    )
     USE_PROJECT_FOLDER = "Use project folder"
     EXPORT_PDF = "Export as PDF"
     EXPORT_PNG = "Export as PNG"
@@ -217,7 +230,6 @@ class Strings_en(Strings_pt_BR):
     KML_FIELDS_REMOVED_SUCCESS = "KML fields removed successfully"
     NO_KML_FIELDS_FOUND = "No KML fields found to remove"
     ERROR_REMOVING_KML_FIELDS = "Error removing KML fields:"
-    RANGE = "Range"
     RASTERS = "Rasters"
     INPUT_POINTS = "Input points"
     REPROJECT_OUTPUT_LAYER_OPTIONAL = "Reproject output layer (optional)"
@@ -241,27 +253,6 @@ class Strings_en(Strings_pt_BR):
         "with support for per-feature clipping, correction buffer, and output folder."
     )
     RASTER_DIFFERENCE_STATISTICS_TITLE = "Process Raster Difference"
-    VECTOR_TO_SVG_TITLE = "Vector to SVG Converter"
-    VECTOR_TO_SVG_TOOLTIP = (
-        "Exports a project vector layer to SVG.\n"
-        "Lets you configure background, border, and label,\n"
-        "and can generate either a single file or one SVG\n"
-        "per feature."
-    )
-    VECTOR_LAYER_LABEL = "Vector Layer"
-    BACKGROUND_COLOR = "Background Color"
-    BORDER_COLOR = "Border Color"
-    BORDER_WIDTH = "Border Width"
-    LABEL_COLOR = "Label Color"
-    LABEL_SIZE = "Label Size"
-    SELECT_FILL_COLOR = "Select fill color"
-    SELECT_BORDER_COLOR = "Select border color"
-    SELECT_LABEL_COLOR = "Select label color"
-    TRANSPARENT_BACKGROUND = "Transparent background"
-    SHOW_BORDER = "Show border"
-    SHOW_LABEL = "Show label"
-    GENERATE_SVG_FOR_EACH_FEATURE = "Generate SVG for each feature"
-    SVGS_GENERATED_SUCCESS = "SVG(s) generated successfully."
     INPUT_MASK_POLYGON_LAYER = "Mask layer (polygon)"
     CLIP_PER_EACH_POLYGON = "Clip for each polygon"
     APPLY_CORRECTION_BUFFER_PIXEL_1_1 = "Apply correction buffer (pixel * 1.1)"
@@ -366,6 +357,14 @@ class Strings_en(Strings_pt_BR):
     FIELDS_USED_IN_CALCULATION = "Fields used in calculation"
     PREFIX = "Prefix"
     PROCESS_FINISHED_SUCCESS = "Process finished successfully."
+
+    # plugins/DeveloperTestTool.py
+    DEVELOPER_TEST_TOOL_TITLE = "Developer Test Tool"
+    DEVELOPER_TEST_TOOL_TOOLTIP = (
+        "Official Cadmus testing tool.\n"
+        "Allows testing widgets, components, and other\n"
+        "system features in a controlled environment."
+    )
 
     # plugins/DroneCoordinates.py
     DRONE_COORDINATES_TITLE = "DJI Drone Coordinates"
@@ -516,6 +515,7 @@ class Strings_en(Strings_pt_BR):
     # plugins/LoadFolderLayers.py
     LOAD_FOLDER_LAYERS_TITLE = "Load Folder Layers"
     CREATE_PROJECT_TITLE = "New Project"
+    CREATE_PROJECT = "New Project"
     CREATE_PROJECT_TOOLTIP = (
         "Creates a new project structure in a dedicated folder.\n"
         "If no default folder is set, prompts for that path,\n"
@@ -568,6 +568,8 @@ class Strings_en(Strings_pt_BR):
         "applies a buffer using half of the value,\n"
         "and creates a new layer with the resulting trail."
     )
+    QML_STYLE = "QML Style"
+    SAVE_TRAIL_IN = "Save trail in:"
 
     # plugins/CopyAttributesPlugin.py
     COPY_ATTRIBUTES_TITLE = "Copy Vector Attributes"
@@ -586,6 +588,13 @@ class Strings_en(Strings_pt_BR):
         "convert PNGs to PDF and control overwriting\n"
         "of files in the output folder."
     )
+    SELECT_LAYOUTS = "Layouts"
+    SELECT_LAYOUTS_DESC = "Choose which project layouts to export"
+    SELECT_LAYOUTS_TITLE = "Select Layouts"
+    SELECT_LAYOUTS_HINT = "Check the layouts you want to export"
+    INVERT_SELECTION = "Invert"
+    NO_LAYOUTS_SELECTED = "No layouts selected for export."
+    LAYOUTS_SELECTED_COUNT = "{count} layout(s) selected"
 
     # plugins/VectorMultipartPlugin.py
     CONVERTER_MULTIPART_TITLE = "Convert Multipart"
@@ -603,6 +612,23 @@ class Strings_en(Strings_pt_BR):
         "Opens a dialog with WGS84, UTM, approximate elevation,\n"
         "and estimated address, along with copy options\n"
         "to the clipboard."
+    )
+
+    # plugins/RasterSamplerTool.py
+    RASTER_SAMPLER_TITLE = "Sample Raster Values"
+    RASTER_SAMPLER_TOOLTIP = (
+        "Selects project raster layers and allows clicking on the map\n"
+        "to check the value of each raster at the clicked point.\n"
+        "The selected rasters are remembered between sessions\n"
+        "and the values are shown in the tool dialog."
+    )
+    RASTER_SAMPLER_SELECT_RASTERS = "Rasters for sampling"
+    RASTER_SAMPLER_VALUES = "Values at point"
+    RASTER_SAMPLER_NO_RASTERS = "No raster selected"
+    RASTER_SAMPLER_DECIMALS = "Decimal places"
+    RASTER_SAMPLER_CLICK_CANVAS_HINT = (
+        "Select at least one raster and click on the map\n"
+        "to check the values at the point."
     )
 
     # core/ToolRegistry.py
@@ -639,47 +665,28 @@ class Strings_en(Strings_pt_BR):
         "and never saves or leaves edit mode."
     )
 
-    # plugins/PathExtensionPlugin.py
-    PATH = "Path"
-    PATH_EXTENSION_TITLE = "Remove/Restore Extension"
-    PATH_EXTENSION_TOOLTIP = "Removes or restores file extensions in feature paths"
-    MODE_REMOVE = "Remove extension"
-    MODE_RESTORE = "Restore extension"
-    MODE_ZIP = "Zip files"
-    MODE_UNZIP = "Unzip files"
-
-    # Registry
-    REG_TITLE = "Manage"
-    REGISTRY_SAVED_SUCCESS = "Saved and validated successfully."
-    REGISTRY_DELETED_SUCCESS = "Removed successfully."
-    REGISTRY_INVALID = "Invalid."
-    REGISTRY_EMPTY = "Fill in the field."
-    NO_KEY = "no key"
-    EXPIRATION_DATE = "Expiration date"
-    REMAINING_DAYS = "remaining days"
-    STATUS = "Status"
-    LEVEL = "Level"
-    ACTIVE = "Active"
-    INACTIVE = "Inactive"
-    VALIDATE = "Validate"
-
-    # plugins/SaveTemporaryLayersPlugin.py
-    SAVE_TEMPORARY_LAYER_TITLE = "Save Temporary Layers"
-    SAVE_TEMPORARY_LAYER_TOOLTIP = (
-        "Saves temporary (memory) layers from the project to permanent files on disk"
+    # plugins/VectorToSvgPlugin.py
+    VECTOR_TO_SVG_TITLE = "Vector to SVG Converter"
+    VECTOR_TO_SVG_TOOLTIP = (
+        "Exports a project vector layer to SVG.\n"
+        "Lets you configure background, border, and label,\n"
+        "and can generate either a single file or one SVG\n"
+        "per feature."
     )
-    EXTENSION_VECTOR = "Vector extension"
-    EXTENSION_RASTER = "Raster extension"
-    VECTORS_FOLDER = "Vectors folder"
-    RASTERS_FOLDER = "Rasters folder"
-    SEPARATOR = "Separator"
-    VECTOR_EXTENSIONS = "Vector extensions"
-    RASTER_EXTENSIONS = "Raster extensions"
-    OUTPUT_CONFIG = "Output Configuration"
-    CONVERTER_FILE_TYPE = "File Type"
-    SELECT_OUTPUT_FOLDER = "Select Output Folder"
-
-    # plugins/DividePointsByStripsPlugin.py
+    VECTOR_LAYER_LABEL = "Vector Layer"
+    BACKGROUND_COLOR = "Background Color"
+    BORDER_COLOR = "Border Color"
+    BORDER_WIDTH = "Border Width"
+    LABEL_COLOR = "Label Color"
+    LABEL_SIZE = "Label Size"
+    SELECT_FILL_COLOR = "Select fill color"
+    SELECT_BORDER_COLOR = "Select border color"
+    SELECT_LABEL_COLOR = "Select label color"
+    TRANSPARENT_BACKGROUND = "Transparent background"
+    SHOW_BORDER = "Show border"
+    SHOW_LABEL = "Show label"
+    GENERATE_SVG_FOR_EACH_FEATURE = "Generate SVG for each feature"
+    SVGS_GENERATED_SUCCESS = "SVG(s) generated successfully."
     DIVIDE_POINTS_BY_STRIPS_TITLE = "Split Point Vector by Strips"
     DIVIDE_POINTS_BY_STRIPS_TOOLTIP = (
         "Prepares the configuration used to segment a point layer into strips.\n"
@@ -778,3 +785,52 @@ class Strings_en(Strings_pt_BR):
     CURVE = "Curve"
     STRAIGHT = "Straight"
     BOTH_PATH = "Both"
+
+    PATH = "Path"
+
+    # plugins/PathExtensionPlugin.py
+    PATH_EXTENSION_TITLE = "Remove/Restore Extension"
+    PATH_EXTENSION_TOOLTIP = "Removes or restores file extensions in feature paths"
+    MODE_REMOVE = "Remove extension"
+    MODE_RESTORE = "Restore extension"
+    MODE_ZIP = "Zip files"
+    MODE_UNZIP = "Unzip files"
+
+    # Registry
+    REG_TITLE = "Manage"
+    REGISTRY_SAVED_SUCCESS = "Saved and validated successfully."
+    REGISTRY_DELETED_SUCCESS = "Removed successfully."
+    REGISTRY_INVALID = "Invalid."
+    REGISTRY_EMPTY = "Fill in the field."
+    NO_KEY = "no key"
+    EXPIRATION_DATE = "Expiration date"
+    REMAINING_DAYS = "remaining days"
+    STATUS = "Status"
+    LEVEL = "Level"
+    ACTIVE = "Active"
+    INACTIVE = "Inactive"
+    VALIDATE = "Validate"
+    RESTORE_DISTRIBUTION = "Restore Registry"
+    SELECT_DIST_FILE = "Select a .dist file first."
+    DIST_FILE_NOT_FOUND = "Registry selector not found."
+    LICENSE_KEY = "Key"
+
+    # plugins/SaveTemporaryLayersPlugin.py
+    SAVE_TEMPORARY_LAYER_TITLE = "Save Temporary Layers"
+    SAVE_TEMPORARY_LAYER_TOOLTIP = (
+        "Saves temporary (memory) layers from the project to permanent files on disk"
+    )
+    PREFIX = "Prefix"
+    SUFFIX = "Suffix"
+    EXTENSION_VECTOR = "Vector extension"
+    EXTENSION_RASTER = "Raster extension"
+    VECTORS_FOLDER = "Vectors folder"
+    RASTERS_FOLDER = "Rasters folder"
+    SEPARATOR = "Separator"
+    VECTOR_EXTENSIONS = "Vector extensions"
+    RASTER_EXTENSIONS = "Raster extensions"
+    OUTPUT_CONFIG = "Output Configuration"
+    CONVERTER_FILE_TYPE = "File Type"
+    SELECT_OUTPUT_FOLDER = "Select Output Folder"
+    USE_PROJECT_FOLDER = "Use project folder"
+    OPEN_OUTPUT_FOLDER = "Open output folder"

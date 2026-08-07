@@ -25,9 +25,26 @@ O sistema de licença do Cadmus é composto por:
 
 ## 🧠 RegistryManager — API Pública
 
+### Constante `ENABLE_REGISTRY`
+
+```python
+ENABLE_REGISTRY: bool = False
+```
+
+- `True`: sistema de licença ativo — valida chaves no Supabase, filtra ferramentas por nível.
+- `False` (padrão atual): **sistema de licença desabilitado** — nenhuma requisição ao servidor é feita, todas as ferramentas ficam liberadas (modo free total).
+- Quando `False`:
+  - `is_registry_valid()` → sempre `True`
+  - `has_minimum_level(n)` → sempre `True`
+  - `save_lic_key()` → recusa salvar com aviso "Sistema de registro desabilitado no momento."
+  - `_query_server()` → retorna `None` sem fazer HTTP
+
+> ⚠️ Deixar `False` até o servidor Supabase ser restaurado (domínio `ynlameyuhvmesozcuanh.supabase.co` não existe mais).
+
 ### `is_license_valid() -> bool`
 Verifica se a licença é válida com cache e renovação automática.
 Consulta o Supabase para validar a chave quando necessário.
+Retorna `True` imediatamente se `ENABLE_REGISTRY=False`.
 
 ### `get_license_info() -> dict`
 Retorna informações completas da licença:
@@ -469,3 +486,4 @@ ReportMetadataPlugin.execute_tool()
 | 2026-07-11 | 4.0.0 | Adicionado atributo `license_level` em `Tool` e filtro `_filter_tools_by_license()` em `ToolRegistry`; ferramentas com `license_level` maior que o nível atual da licença são removidas da lista; `divide_points_by_strips` configurado com `license_level=1` |
 | 2026-07-13 | 5.0.0 | Adicionado método `get_level()` e `has_minimum_level()` no RegistryManager; constante `LICENSE_LEVEL=3` movida para cada ferramenta (DroneCoordinates, ReportMetadataPlugin e DronePipelineService); documentado build_distribution com proteção em runtime via import lazy |
 | 2026-07-13 | 5.1.0 | Adicionado `DividePointsByStripsPlugin.py` (license_level=1) e judges `SimpleSPBJudge.py`, `ScoreSPBJudge.py`, `SequentialPointBreakJudge.py` ao MODULES do build_distribution; documentado na skill |
+| 2026-08-07 | 5.2.0 | Adicionada constante `ENABLE_REGISTRY` no RegistryManager (padrão `False`); quando `False`, nenhuma requisição ao servidor é feita e todas as features ficam liberadas; documentado na skill |

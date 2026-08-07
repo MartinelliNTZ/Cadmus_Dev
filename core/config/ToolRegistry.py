@@ -600,9 +600,11 @@ class ToolRegistry:
 
     def _filter_tools_by_reg(self):
 
+        enable_registry = False
         try:
             from .RegistryManager import RegistryManager
 
+            enable_registry = RegistryManager.ENABLE_REGISTRY
             lic_mgr = RegistryManager(ToolKey.SYSTEM)
             is_valid = lic_mgr.is_registry_valid()
             lic_info = lic_mgr.get_registry_info()
@@ -614,6 +616,13 @@ class ToolRegistry:
             current_level = 0
 
         before = len(self.tools)
+
+        if not enable_registry:
+            # Registro desabilitado → todas as ferramentas liberadas
+            self.logger.info(
+                "Registro desabilitado (ENABLE_REGISTRY=False) — todas as ferramentas liberadas"
+            )
+            return
 
         if not is_valid:
             # Sem licença válida → só ferramentas gratuitas
@@ -629,7 +638,8 @@ class ToolRegistry:
         filtered = before - len(self.tools)
         if filtered > 0:
             self.logger.info(
-                f"{filtered} ferramentas  {is_valid}nível atual={current_level})"
+                f"{filtered} ferramentas filtradas "
+                f"(is_valid={is_valid}, nível atual={current_level})"
             )
         else:
             self.logger.info("Nenhuma ferramenta filtrada")

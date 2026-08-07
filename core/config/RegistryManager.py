@@ -36,8 +36,13 @@ class RegistryManager(BaseUtil):
     As chaves criptográficas são persistidas em Preferences.
 
     Constantes:
+        ENABLE_REGISTRY: bool — habilita/desabilita o sistema de licença.
+                          Quando False, nenhuma solicitação de registro é feita
+                          e a licença é considerada válida (modo free total).
         RENEWAL_WINDOW_DAYS: int — dias antes do vencimento para tentar renovar (7)
     """
+
+    ENABLE_REGISTRY: bool = False
 
     RENEWAL_WINDOW_DAYS: int = 7
 
@@ -67,6 +72,12 @@ class RegistryManager(BaseUtil):
         Returns:
             bool: True se a licença é válida, False caso contrário
         """
+        if not self.ENABLE_REGISTRY:
+            self.logger.debug(
+                "Registro desabilitado (ENABLE_REGISTRY=False) — licença considerada válida"
+            )
+            return True
+
         lic_data = self._file_mgr.load_lic()
         if lic_data is None:
             self.logger.debug("Nenhum cache de licença encontrado")
@@ -184,6 +195,15 @@ class RegistryManager(BaseUtil):
         Returns:
             dict: {"success": bool, "message": str}
         """
+        if not self.ENABLE_REGISTRY:
+            self.logger.debug(
+                "Registro desabilitado (ENABLE_REGISTRY=False) — chave não salva"
+            )
+            return {
+                "success": False,
+                "message": "Sistema de registro desabilitado no momento.",
+            }
+
         lic_key = lic_key.strip()
         if not lic_key:
             self.logger.warning("Tentativa de salvar chave vazia")
@@ -237,6 +257,9 @@ class RegistryManager(BaseUtil):
         Returns:
             bool: True se a licença é válida e tem nível >= min_level.
         """
+        if not self.ENABLE_REGISTRY:
+            return True
+
         if not self.is_registry_valid():
             return False
 
@@ -288,6 +311,9 @@ class RegistryManager(BaseUtil):
             Optional[dict]: Registro da chave (com 'nivel', 'ativo') ou None se
                             não encontrada ou erro de conexão.
         """
+        if not RegistryManager.ENABLE_REGISTRY:
+            return None
+
         try:
             url = f"{Security.SUPABASE_URL}/rest/v1/{Security.SUPABASE_LICENSE_TABLE}"
             params = {
@@ -309,8 +335,8 @@ class RegistryManager(BaseUtil):
             return None
 
         except requests.RequestException as e:
-            import logging
-            logging.getLogger(__name__).warning(
+            from .LogUtils import LogUtils
+            LogUtils(tool=ToolKey.SYSTEM, class_name="RegistryManager").warning(
                 f"Falha ao consultar servidor de licença: {e}"
             )
             return None

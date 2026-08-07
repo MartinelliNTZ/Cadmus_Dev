@@ -78,14 +78,23 @@
    - Novo helper _get_selected_layers_ordered() — camadas selecionadas na ordem do projeto para enumeração estável
    - set_raster_values agora enumera os rasters (1, 2, 3...) e exibe a diferença de cada um para os demais selecionados no formato "(N: ±X.XX)"
    - clear_values mantém a enumeração dos rasters selecionados ao limpar
-    - Sem novas strings (reutiliza STR.UNAVAILABLE e STR.RASTER_SAMPLER_CLICK_CANVAS_HINT)
-    - Sem imports não utilizados (F401)
-3.4.0.1 07/08/2026
-[3.4.0.1][07/08/2026] DeveloperTestTool: correção de visibilidade sem licença:
-   - ToolRegistry: registry_level alterado de 3 para None no developer_test_tool
-   - Causa: _filter_tools_by_reg() removia a ferramenta quando não havia licença válida (is_valid=False, nível=0), pois registry_level=3 > 0
-   - Efeito: DeveloperTestTool e toolbar developer agora aparecem para todos os usuários, sem exigir licença
-   - Ferramenta de desenvolvimento/teste não deve ser bloqueada por licença
+   - Sem novas strings (reutiliza STR.UNAVAILABLE e STR.RASTER_SAMPLER_CLICK_CANVAS_HINT)
+   - Sem imports não utilizados (F401)
+3.4.0.5 07/08/2026
+[3.4.0.5][07/08/2026] Licença/Supabase: diagnóstico + correção de logging:
+   - Confirmado via nslookup/DNS público (8.8.8.8) que o domínio ynlameyuhvmesozcuanh.supabase.co NÃO existe mais (Non-existent domain)
+   - Causa da falha de ativação de licença: projeto Supabase excluído/pausado — nenhuma chave pode ser validada
+   - RegistryManager._query_server: trocado logging.getLogger (padrão Python, invisível no log do plugin) por LogUtils com ToolKey.SYSTEM
+   - Effecto: falhas de conexão com o servidor agora aparecem no log estruturado do Cadmus
+   - ToolRegistry._filter_tools_by_reg: corrigida mensagem de log corrompida ("Falsenível" → "is_valid=..., nível atual=...")
+   - ToolRegistry: DeveloperTestTool com registry_level=None (correção 3.4.0.1)
+[3.4.0.6][07/08/2026] RegistryManager: constante ENABLE_REGISTRY para desabilitar servidor:
+   - Adicionada constante ENABLE_REGISTRY: bool = False no RegistryManager
+   - is_registry_valid() retorna True quando ENABLE_REGISTRY=False (modo livre)
+   - save_lic_key() recusa salvar quando ENABLE_REGISTRY=False (com aviso)
+   - has_minimum_level() retorna True quando ENABLE_REGISTRY=False (todas as features liberadas)
+   - _query_server() não faz requisição HTTP quando ENABLE_REGISTRY=False
+   - Efeito: plugin funciona completo sem depender do servidor Supabase (que está offline)
 [3.4.0.3][06/08/2026] RasterSamplerDialog: paleta de cores + rebuild dinâmico + HTML:
    - GridLabel ganhou método rebuild(config) — remove todos os labels existentes e reconstrói a partir do config dict (permite atualizar a quantidade de itens dinamicamente)
    - RasterSamplerDialog: nova paleta RASTER_COLORS com 5 cores (verde, laranja, azul, vermelho, roxo) — cada raster enumerado recebe uma cor da paleta
@@ -94,4 +103,10 @@
    - clear_values mantém enumeração e cores ao limpar
    - Sem novas strings (reutiliza STR.UNAVAILABLE e STR.RASTER_SAMPLER_CLICK_CANVAS_HINT)
    - Sem imports não utilizados (F401)
+3.4.0.4 07/08/2026
+[3.4.0.4][07/08/2026] DeveloperTestTool: correção de visibilidade sem licença:
+   - ToolRegistry: registry_level alterado de 3 para None no developer_test_tool
+   - Causa: _filter_tools_by_reg() removia a ferramenta quando não havia licença válida (is_valid=False, nível=0), pois registry_level=3 > 0
+   - Efeito: DeveloperTestTool e toolbar developer agora aparecem para todos os usuários, sem exigir licença
+   - Ferramenta de desenvolvimento/teste não deve ser bloqueada por licença
 

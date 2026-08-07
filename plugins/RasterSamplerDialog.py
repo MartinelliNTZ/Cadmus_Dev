@@ -17,6 +17,7 @@ from .BasePlugin import BasePluginMTL
 from ..core.ui.dialogs.ListSelectionDialog import ListSelectionDialog
 from ..resources.widgets.grid.GridLabel import GridLabel
 from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridDoubleSpin import GridDoubleSpin
 from ..utils.QgisMessageUtil import QgisMessageUtil
 
 
@@ -54,6 +55,26 @@ class RasterSamplerDialog(BasePluginMTL):
             enable_scroll=True,
         )
 
+        # ── Casas decimais dos valores ──
+        self.decimals_spin = GridDoubleSpin(
+            config={
+                "decimals": {
+                    "label": STR.RASTER_SAMPLER_DECIMALS,
+                    "description": "Numero de casas decimais dos valores amostrados",
+                    "value": 2,
+                    "min": 0,
+                    "max": 6,
+                    "step": 1,
+                    "decimals": 0,
+                    "type": "int",
+                    "onchange": self._on_decimals_changed,
+                },
+            },
+            separator_bottom=False,
+            parent=self,
+        )
+        self.layout.addWidget(self.decimals_spin)
+
         # ── Labels de valores (um por raster selecionado) ──
         self.values_label = GridLabel(
             config=self._build_values_label_config(),
@@ -79,6 +100,11 @@ class RasterSamplerDialog(BasePluginMTL):
             parent=self,
         )
         self.layout.add_execution_buttons(self.action_buttons)
+
+    def _on_decimals_changed(self, value):
+        """Atualiza a formatacao dos valores quando as casas decimais mudam."""
+        self._decimals = int(value)
+        self.logger.debug(f"Casas decimais alteradas para {self._decimals}")
 
     def _get_raster_layers(self) -> list:
         """Retorna as camadas raster do projeto via ProjectUtils."""
@@ -232,13 +258,14 @@ class RasterSamplerDialog(BasePluginMTL):
         """
         config = {}
         layers = self._get_selected_layers_ordered()
+        decimals = getattr(self, "_decimals", 2)
         for i, layer in enumerate(layers, start=1):
             color = self._raster_color(i)
             value = values.get(layer.id())
             if value is None:
                 config[layer.id()] = {
                     "text": (
-                        f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>"
+                        f"<span style='color:{color};'><b>{i} - {layer.name()}   </b></span>"
                         f": {STR.UNAVAILABLE}"
                     )
                 }
@@ -252,13 +279,14 @@ class RasterSamplerDialog(BasePluginMTL):
                 if other_value is not None:
                     other_color = self._raster_color(j)
                     parts.append(
-                        f"&emsp;<span style='color:{other_color};'>"
-                        f"({j}: {value - other_value:.2f})</span>"
+                        f"&emsp;&emsp;<span style='color:{other_color};'>"
+                        f"({j}: {value - other_value:.{decimals}f})</span>"
                     )
             config[layer.id()] = {
                 "text": (
                     f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>"
-                    f": {value:.4f}{''.join(parts)}"
+                    f": <span style='color:{color};'>{value:.{decimals}f}</span>"
+                    f"{''.join(parts)}"
                 )
             }
         config["hint"] = {"text": ""}
@@ -280,9 +308,12 @@ class RasterSamplerDialog(BasePluginMTL):
     # Preferencias
     # ------------------------------------------------------------------
     def _load_prefs(self):
-        """Carrega os rasters selecionados das preferencias."""
+        """Carrega os rasters selecionados e as casas decimais das preferencias."""
         saved_ids = self.preferences.get("selected_rasters", [])
         self._selected_raster_ids = set(i for i in saved_ids if i)
+        self._decimals = int(self.preferences.get("decimals", 2))
+        if self.decimals_spin is not None:
+            self.decimals_spin.set_value("decimals", self._decimals)
         self._update_selection_button_label()
         self._rebuild_labels()
         self.logger.debug(
@@ -290,8 +321,9 @@ class RasterSamplerDialog(BasePluginMTL):
         )
 
     def _save_prefs(self):
-        """Salva os rasters selecionados nas preferencias."""
+        """Salva os rasters selecionados e as casas decimais nas preferencias."""
         self.preferences["selected_rasters"] = list(self._selected_raster_ids)
+        self.preferences["decimals"] = self._decimals
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.debug(
             f"_save_prefs: prefs salvas: {self.preferences.get('selected_rasters')}"

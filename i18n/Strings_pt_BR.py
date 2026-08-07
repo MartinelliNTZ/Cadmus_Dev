@@ -642,6 +642,7 @@ class Strings_pt_BR:
     RASTER_SAMPLER_SELECT_RASTERS = "Rasters para amostragem"
     RASTER_SAMPLER_VALUES = "Valores no ponto"
     RASTER_SAMPLER_NO_RASTERS = "Nenhum raster selecionado"
+    RASTER_SAMPLER_DECIMALS = "Casas decimais"
     RASTER_SAMPLER_CLICK_CANVAS_HINT = (
         "Selecione ao menos um raster e clique no mapa\n"
         "para consultar os valores no ponto."

@@ -1,3 +1,9 @@
+<!--
+Versao: 1.0.0
+Data de criacao: 2026-08-07
+Data da ultima modificacao: 2026-08-10
+-->
+
 # Export All Layouts — Quick Guide
 
 Exports all layouts from the current project to PDF, PNG and/or SVG, with georeferencing, output DPI, final file merging and individual layout selection options.

@@ -25,10 +25,10 @@ Ambos os sistemas são orientados a locale e seguem o padrão: o desenvolvedor c
 Centralizar e padronizar a criação de conteúdo de ajuda para todas as ferramentas do Cadmus, garantindo:
 - Separação entre conteúdo (instruções) e apresentação (HTML vs Markdown)
 - Resolução automática por locale com fallback para pt_BR
-- Cache de resolução indexado por `tool_key + locale` (invalidação correta ao trocar idioma)
-- Normalização de locale regional (ex: `en_US` → `en`, `pt_PT` → `pt_BR`)
+- Cache de resolução para evitar leitura repetida de arquivos
 - Consistência visual nas instruções HTML (logo, cores, formatação)
 - Mecanismo único de resolução: `tool_key` → arquivo/método de instrução
+- **Rastreabilidade de cada arquivo .md** com versão, data de criação e data da última modificação
 
 ---
 
@@ -39,60 +39,26 @@ Centralizar e padronizar a criação de conteúdo de ajuda para todas as ferrame
 ```
 InstructionsManager (class methods)
 ├── BASE_DIR = resources/
-├── FALLBACK_LOCALE = "pt_BR"
-├── FALLBACK_FILE = "standard.md"
-├── SUPPORTED_LANGUAGES = {"en", "es", "de", "ja"}
-├── _cache = {}  # cache de tool_key|locale → path
-│
-├── _normalize_locale(locale) → str
-│   ├── en_US → en, de-DE → de, ja-JP → ja
-│   ├── pt_PT → pt_BR (português usa a pasta pt_BR)
-│   └── outro → locale limpo
+├── _cache = {}  # cache de tool_key → path
 │
 ├── _build_filename(tool_key) → f"{tool_key.lower()}_help.md"
-├── _candidates(tool_key, locale) → [Path, Path]
-│   ├── 1. resources/instructions/<locale>/<filename>
-│   └── 2. resources/instructions/pt_BR/<filename>
 │
-├── get(tool_key) → str (path absoluto do arquivo)
-│   ├── 1. Verifica cache (chave: tool_key|locale)
-│   ├── 2. Testa candidatos do locale normalizado
-│   ├── 3. Fallback: resources/instructions/pt_BR/<filename>
-│   └── 4. Fallback final: resources/instructions/pt_BR/standard.md
-│
-├── has_instructions(tool_key, locale=None) → bool
-│   └── Verifica se existe arquivo específico (locale ou pt_BR)
-│
-└── clear_cache() → None
-    └── Limpa o cache (útil após criar novos arquivos em runtime)
+└── get(tool_key) → str (path absoluto do arquivo)
+    ├── 1. Verifica cache
+    ├── 2. Constrói filename: <tool_key>_help.md
+    ├── 3. Obtém locale via TM.locale
+    ├── 4. Tenta: resources/instructions/<locale>/<filename>
+    ├── 5. Fallback: resources/instructions/pt_BR/<filename>
+    └── 6. Fallback final: resources/instructions/pt_BR/standard.md
 ```
 
 ### Regras de resolução de arquivo
 
 | Ordem | Caminho | Condição |
 |-------|---------|----------|
-| 1 | `resources/instructions/<TM.locale>/<tool_key>_help.md` | Locale atual do usuário (normalizado) |
+| 1 | `resources/instructions/<TM.locale>/<tool_key>_help.md` | Locale atual do usuário |
 | 2 | `resources/instructions/pt_BR/<tool_key>_help.md` | Fallback para pt_BR |
 | 3 | `resources/instructions/pt_BR/standard.md` | Fallback genérico |
-
-### Normalização de locale
-
-O locale é normalizado antes da busca:
-
-| Locale bruto (TM.locale) | Pasta usada | Motivo |
-|--------------------------|-------------|--------|
-| `pt_BR` / `pt_PT` / `pt-PT` | `pt_BR` | Português usa a pasta pt_BR |
-| `en` / `en_US` / `en-GB` | `en` | Usa apenas o idioma |
-| `es` / `es_ES` | `es` | Usa apenas o idioma |
-| `de` / `de_DE` | `de` | Usa apenas o idioma |
-| `ja` / `ja_JP` | `ja` | Usa apenas o idioma |
-| Outros (ex: `fr`) | locale limpo | Sem pasta dedicada → fallback pt_BR |
-
-### Cache indexado por tool_key + locale
-
-O cache usa a chave `f"{tool_key}|{locale}"`. Isso garante que, quando o usuário troca o idioma via `SettingsPlugin` (que chama `TranslationManager.reload_strings()`), a resolução da instrução reflita o novo locale sem exigir `clear_cache()`.
-
-Use `InstructionsManager.clear_cache()` apenas quando criar novos arquivos de instrução durante a sessão.
 
 ### Como criar um novo arquivo .md
 
@@ -103,7 +69,15 @@ Use `InstructionsManager.clear_cache()` apenas quando criar novos arquivos de in
 
 ### Padrão de conteúdo dos arquivos .md
 
+Todo arquivo .md de instrução **deve** conter o bloco de metadados no topo, com versão, data de criação e data da última modificação:
+
 ```markdown
+<!--
+Versao: 1.0.0
+Data de criacao: 2026-08-10
+Data da ultima modificacao: 2026-08-10
+-->
+
 # <Título da Ferramenta> — Guia Rapido
 
 <Descrição de uma linha sobre o que a ferramenta faz>
@@ -136,6 +110,16 @@ Use esta ferramenta quando quiser:
 - <Cuidado 1>
 - <Cuidado 2>
 ```
+
+### Regras de metadados
+
+| Campo | Formato | Obrigatório | Quando atualizar |
+|-------|---------|-------------|------------------|
+| `Versao` | `X.Y.Z` (semântico) | ✅ | A cada mudança de conteúdo |
+| `Data de criacao` | `AAAA-MM-DD` | ✅ | Somente na criação do arquivo (nunca alterar) |
+| `Data da ultima modificacao` | `AAAA-MM-DD` | ✅ | **SEMPRE** que o arquivo for editado |
+
+**Regra crítica:** ao editar qualquer arquivo .md de instrução, **sempre** atualizar a `Data da ultima modificacao` para a data atual. A `Data de criacao` nunca deve ser alterada após a criação.
 
 ### Arquivos existentes
 
@@ -297,10 +281,8 @@ def get_ndvi_calculator_help(self):
 Plugin chama show_info_dialog()
   └── BasePluginMTL._build_ui() já carregou:
         self.instructions_file = InstructionsManager.get(self.TOOL_KEY)
-        ├── Normaliza TM.locale (ex: en_US → en)
-        ├── Verifica cache (tool_key|locale)
         ├── Retorna path do .md → InfoDialog abre arquivo markdown
-        └── Se não encontrou → fallback pt_BR → standard.md
+        └── Se não encontrou → fallback standard.md
 
 Algoritmo de processing chama get_instructions()
   └── HtmlInstructionsProvider.get_instructions("ndvi_calculator")
@@ -315,14 +297,14 @@ Algoritmo de processing chama get_instructions()
 
 ### ✅ Sempre:
 - Criar arquivos .md em `resources/instructions/pt_BR/` seguindo o padrão `{tool_key}_help.md`
+- Incluir o bloco de metadados (`Versao`, `Data de criacao`, `Data da ultima modificacao`) no topo de todo arquivo .md
+- **Atualizar a `Data da ultima modificacao` sempre que editar um arquivo .md de instrução**
 - Usar `InstructionsManager.get(tool_key)` para resolver caminhos, nunca hardcoded
 - Usar `self.provider.transform_h()` e `self.provider.transform_alert()` nos métodos HTML
 - Incluir `self.provider.logo` e `self.provider.author_info` em toda instrução HTML
 - Nomear métodos HTML como `get_<algorithm_name>_help` (underscores, não hífens)
 - Manter o locale pt_BR como fallback universal
 - Usar acentos removidos nos arquivos .md (padrão do projeto)
-- Usar `InstructionsManager.has_instructions(tool_key)` para validar existência antes de depender do fallback
-- Chamar `InstructionsManager.clear_cache()` após criar novos arquivos de instrução em runtime
 
 ### ❌ Nunca:
 - Hardcodar caminhos de arquivos de instrução — sempre usar InstructionsManager
@@ -330,7 +312,8 @@ Algoritmo de processing chama get_instructions()
 - Usar HTML inline sem os helpers do provider (perde formatação padrão)
 - Ignorar o fallback — sempre criar pelo menos em pt_BR
 - Esquecer de registrar o tool_key em ToolKeys.py antes de criar instruções
-- Depender do cache global sem considerar troca de idioma em runtime (o cache agora é por tool_key + locale)
+- **Alterar a `Data de criacao` após a criação do arquivo**
+- **Editar um arquivo .md sem atualizar a `Data da ultima modificacao`**
 
 ---
 
@@ -344,7 +327,7 @@ class ToolKey:
     MINHA_FERRAMENTA = "minha_ferramenta"
 
 # 2. Criar resources/instructions/pt_BR/minha_ferramenta_help.md
-# Seguindo o template markdown padrão
+# Seguindo o template markdown padrão (com metadados no topo)
 
 # 3. O BasePluginMTL carrega automaticamente via:
 #    self.instructions_file = InstructionsManager.get(self.TOOL_KEY)
@@ -383,11 +366,11 @@ class HtmlInstructions:
 
 ## Casos de Uso
 
-- Quando um novo plugin é criado → criar `resources/instructions/pt_BR/<tool_key>_help.md` seguindo o padrão markdown
+- Quando um novo plugin é criado → criar `resources/instructions/pt_BR/<tool_key>_help.md` seguindo o padrão markdown (com metadados)
 - Quando um novo algoritmo de processing é criado → adicionar método `get_<algorithm_name>_help` em `HtmlInstructions_<locale>.py`
 - Quando um locale novo é adicionado → criar `HtmlInstructions_<locale>.py` com todos os métodos existentes
-- Quando o conteúdo de ajuda precisa ser atualizado → editar o arquivo .md ou o método HTML correspondente
-- Quando a ferramenta muda de comportamento → atualizar os arquivos .md em todos os locales existentes (`pt_BR`, `en`, `es`, `de`, `ja`)
+- Quando o conteúdo de ajuda precisa ser atualizado → editar o arquivo .md ou o método HTML correspondente, **atualizando a `Data da ultima modificacao`**
+- Quando a ferramenta muda de comportamento → atualizar os arquivos .md em todos os locales existentes (`pt_BR`, `en`, `es`, `de`, `ja`), **atualizando a `Data da ultima modificacao` de cada um**
 
 ---
 
@@ -408,10 +391,11 @@ class HtmlInstructions:
 
 ## Limitações
 
-- `InstructionsManager` só busca no locale normalizado e pt_BR — não há fallchain completa para todos os locales
+- `InstructionsManager` só busca no locale atual e pt_BR — não há fallchain completa para todos os locales
 - `HtmlInstructionsProvider` requer que o método `get_<name>_help` exista exatamente com o nome esperado — sem isso, retorna fallback genérico
-- Não há validação automática de que todo tool_key tem um arquivo .md correspondente (use `has_instructions()` para verificar)
-- O cache de `InstructionsManager` é indexado por `tool_key + locale`; se o arquivo for criado após o primeiro acesso, use `clear_cache()` para detectá-lo
+- Não há validação automática de que todo tool_key tem um arquivo .md correspondente
+- O cache de `InstructionsManager` não é invalidado durante a sessão — se o arquivo for criado após o primeiro acesso, não será detectado
+- Os metadados (versão, datas) são manuais — não há validação automática de que foram atualizados
 
 ---
 
@@ -431,4 +415,4 @@ class HtmlInstructions:
 |------|--------|-----------|
 | 2026-07-20 | 1.0.0 | Criação via SKILL_FACTORY — lidos: resources/InstructionsManager.py, resources/HtmlInstructionsProvider.py, resources/instructions/html/HtmlInstructions_pt_BR.py, plugins/BasePlugin.py |
 | 2026-08-07 | 1.1.0 | Instruções do ExportAllLayouts atualizadas (seleção de layouts, DPI, SVG) em pt_BR, en, es, de + novo arquivo ja/export_all_layouts_help.md. |
-| 2026-08-07 | 1.2.0 | InstructionsManager aprimorado: normalização de locale (en_US→en, pt_PT→pt_BR), cache indexado por tool_key+locale, novos métodos has_instructions() e clear_cache(), SUPPORTED_LANGUAGES documentado |
+| 2026-08-10 | 1.3.0 | Adicionada regra de metadados obrigatórios nos arquivos .md (Versao, Data de criacao, Data da ultima modificacao). Instruções do ExportAllLayouts atualizadas com metadados em todos os locales. |

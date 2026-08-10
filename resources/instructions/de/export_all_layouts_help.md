@@ -1,3 +1,9 @@
+<!--
+Versao: 1.0.0
+Data de criacao: 2026-08-07
+Data da ultima modificacao: 2026-08-10
+-->
+
 # Alle Layouts Exportieren - Kurzanleitung
 
 Exportiert alle Layouts des aktuellen Projekts als PDF, PNG und/oder SVG, mit Georeferenzierung, Ausgabe-DPI, Zusammenfuehrung der Enddateien und individueller Layout-Auswahl.

@@ -108,5 +108,15 @@
    - ToolRegistry: registry_level alterado de 3 para None no developer_test_tool
    - Causa: _filter_tools_by_reg() removia a ferramenta quando não havia licença válida (is_valid=False, nível=0), pois registry_level=3 > 0
    - Efeito: DeveloperTestTool e toolbar developer agora aparecem para todos os usuários, sem exigir licença
-   - Ferramenta de desenvolvimento/teste não deve ser bloqueada por licença
+    - Ferramenta de desenvolvimento/teste não deve ser bloqueada por licença
+[3.4.0.7][07/08/2026] ExportAllLayouts: instruções atualizadas + InstructionsManager aprimorado:
+   - Instruções do ExportAllLayouts reescritas refletindo o comportamento atual (seleção de layouts, DPI de saída, exportação SVG, georreferenciamento, união de arquivos)
+   - Arquivos atualizados: resources/instructions/pt_BR/export_all_layouts_help.md, en/, es/, de/
+   - Novo arquivo: resources/instructions/ja/export_all_layouts_help.md
+   - InstructionsManager aprimorado (resources/InstructionsManager.py):
+     - _normalize_locale(): normaliza locale regional (en_US→en, de-DE→de, ja-JP→ja, pt_PT→pt_BR)
+     - Cache indexado por tool_key + locale (invalidação correta ao trocar idioma via reload_strings)
+     - Novos métodos: has_instructions(tool_key, locale=None) e clear_cache()
+     - SUPPORTED_LANGUAGES = {"en", "es", "de", "ja"} documentado
+   - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.2.0 (normalização, cache, novos métodos, locales suportados)
 

@@ -1,51 +1,72 @@
 # Alle Layouts Exportieren - Kurzanleitung
 
-Dieses Werkzeug exportiert alle Layouts des aktuellen Projekts als PDF, PNG oder in beiden Formaten.
+Exportiert alle Layouts des aktuellen Projekts als PDF, PNG und/oder SVG, mit Georeferenzierung, Ausgabe-DPI, Zusammenfuehrung der Enddateien und individueller Layout-Auswahl.
 
-Es kann ausserdem:
+## Ausgabeformate
 
-- alle exportierten PDFs zu einer einzigen Datei zusammenfuegen;
-- exportierte PNGs in ein einzelnes PDF umwandeln;
-- Ueberschreiben vermeiden, indem Namen mit Suffixen erzeugt werden;
-- die in der Oberflaeche verwendeten Einstellungen speichern.
+Waehlen Sie mindestens ein Format:
+
+- `Export PDF` - erzeugt ein PDF pro Layout. Mit aktivierter Option `Georeference PDF` erhaelt das PDF eine Georeferenzierung.
+- `Export PNG` - erzeugt ein PNG-Bild pro Layout.
+- `Export SVG` - erzeugt ein Vektor-SVG pro Layout.
+
+Der Export wird blockiert, wenn kein Format markiert ist.
+
+## Allgemeine Optionen
+
+- `Ausgabe-DPI` - definiert die Aufloesung der exportierten Dateien. Der Wert `0` (Standard) verwendet das im Layout konfigurierte DPI. Hoehere Werte wenden ein festes DPI auf PDFs, PNGs und SVGs an.
+- `Max Width` - maximale Breite in Pixeln, die beim Zusammenfuehren von PNGs in ein endgueltiges PDF verwendet wird.
+- `Ausgabeordner` - Zielordner fuer die Dateien. Der Standard ist `exports` im Projektverzeichnis und wird automatisch erstellt, falls er nicht existiert.
+
+## Layout-Auswahl
+
+- Klicken Sie auf `Layouts`, um auszuwaehlen, welche Layouts exportiert werden sollen.
+- Die Auswahl wird fuer die naechsten Ausfuehrungen des Werkzeugs gespeichert.
+- Wenn kein Layout ausgewaehlt ist, werden alle Layouts des Projekts exportiert.
+- Wenn das Projekt keine Layouts hat, zeigt das Werkzeug einen Hinweis an.
+
+## Dateizusammenfuehrung
+
+- `Merge PDF` - fuegt alle exportierten PDFs in eine einzige `_PDF_UNICO_FINAL.pdf` zusammen.
+- `Merge PNG` - wandelt alle exportierten PNGs in eine einzige `_PNG_MERGED_FINAL.pdf` um, unter Beruecksichtigung von `Max Width`.
+
+Die Zusammenfuehrung haengt von optionalen Bibliotheken ab: `PyPDF2` (PDFs) und `Pillow` (PNGs). Wenn die Bibliothek fehlt, fragt das Werkzeug, ob sie installiert werden soll; bei Ablehnung wird die Zusammenfuehrung uebersprungen und der Export laeuft normal weiter.
+
+## Dateinamen
+
+- Ungueltige Dateisystemzeichen (`< > : " / \ | ? *`) werden aus jedem Layoutnamen entfernt.
+- Bei deaktivierter Option `Replace Existing` (Standard) erhalten Dateien mit vorhandenem Namen eine numerische Erweiterung (`Layout_1`, `Layout_2`...).
+- Bei aktivierter Option `Replace Existing` werden vorhandene Dateien ohne numerische Kopien ueberschrieben.
 
 ## Verwendung
 
 1. Oeffnen Sie `Cadmus > Export All Layouts`.
-2. Aktivieren Sie mindestens ein Ausgabeformat: `Export PDF` und/oder `Export PNG`.
-3. Passen Sie bei Bedarf die zusaetzlichen Optionen an:
-- `Merge PDF`: fuegt die exportierten PDFs in `_PDF_UNICO_FINAL.pdf` zusammen.
-- `Merge PNG`: wandelt die exportierten PNGs in ein finales PDF namens `_PNG_MERGED_FINAL.pdf` um.
-- `Replace Existing`: ueberschreibt vorhandene Dateien.
-- `Max Width`: definiert die maximale Breite im aus PNGs erzeugten PDF.
-4. Waehlen Sie den Ausgabeordner.
-5. Wenn Sie den Projektordner verwenden moechten, klicken Sie auf die Schaltflaeche, die auf `.../exports` verweist.
-6. Klicken Sie auf `Export`.
+2. Markieren Sie mindestens ein Format: PDF, PNG und/oder SVG.
+3. Passen Sie `DPI`, `Georeference PDF`, `Max Width` und die Zusammenfuehrungen nach Bedarf an.
+4. Waehlen Sie den Ausgabeordner (Standard `.../exports`).
+5. Optional: Klicken Sie auf `Layouts` und waehlen Sie die gewuenschten Layouts aus.
+6. Klicken Sie auf `Export` und verfolgen Sie die Fortschrittsleiste (Abbruch ist moeglich).
+7. Am Ende zeigt eine Zusammenfassung Erfolge, Fehler und Zielordner; zusammengefuehrte Dateien werden angegeben.
 
 ## Was das Plugin tatsaechlich macht
 
-- Liest alle Layouts des aktuellen Projekts ueber `layoutManager().layouts()`.
+- Liest die Projekt-Layouts ueber `layoutManager().layouts()` und filtert nach der in `Layouts` getroffenen Auswahl.
+- Prueft, dass vor dem Start mindestens ein Format markiert ist.
 - Erstellt den Ausgabeordner automatisch, falls er nicht existiert.
-- Bereinigt ungueltige Zeichen aus jedem Layoutnamen, bevor Dateien erzeugt werden.
-- Wenn `Replace Existing` deaktiviert ist, erstellt es Namen wie `Layout_1`, `Layout_2` usw., um Konflikte zu vermeiden.
-- Exportiert jedes Layout einzeln mit `QgsLayoutExporter`.
-- Zeigt waehrend der Verarbeitung ein Fortschrittsfenster an.
-- Erlaubt es, den Export waehrend des Vorgangs abzubrechen.
-- Zeigt am Ende eine Zusammenfassung mit Erfolgen, Fehlern und Zielordner an.
-
-## Optionale Abhaengigkeiten
-
-- `PyPDF2` wird nur verwendet, wenn Sie das Zusammenfuegen von PDFs aktivieren.
-- `Pillow` wird nur verwendet, wenn Sie das Zusammenfuegen von PNGs zu PDF aktivieren.
-- Wenn eine Abhaengigkeit fehlt, bittet das Plugin um Bestaetigung zur Installation.
-- Wenn Sie die Installation ablehnen, laeuft der Export ohne den entsprechenden Merge-Schritt weiter.
+- Exportiert jedes Layout mit `QgsLayoutExporter` in den markierten Formaten und wendet `dpi` an, wenn es groesser als null ist.
+- Wendet die Georeferenzierung nur auf das PDF an, wenn `Georeference PDF` markiert ist.
+- Erzeugt eindeutige Namen mit numerischer Erweiterung, wenn `Replace Existing` deaktiviert ist.
+- Zaehlt ein Layout als Erfolg, wenn mindestens ein Format erfolgreich exportiert wurde.
+- Zeigt einen `ProgressDialog`, unterstuetzt den Abbruch und stoppt die Schleife an der aktuellen Stelle.
+- Fuehrt am Ende die angeforderten Zusammenfuehrungen aus (`_PDF_UNICO_FINAL.pdf` und/oder `_PNG_MERGED_FINAL.pdf`).
+- Speichert die Einstellungen automatisch (Formate, DPI, Max Width, Ordner, ausgewaehlte Layouts) beim Schliessen des Fensters.
 
 ## Wichtiges Verhalten
 
-- Es muss mindestens ein Exportformat ausgewaehlt sein.
-- Das Plugin zaehlt ein Layout als Erfolg, wenn mindestens eines der gewaehlten Formate erfolgreich exportiert wurde.
-- Wenn ein Layout in einem Format fehlschlaegt und im anderen funktioniert, erscheint der Fehler in der Abschlusszusammenfassung.
-- Ein Abbruch stoppt die Schleife an der aktuellen Stelle; bereits exportierte Dateien bleiben im Ordner erhalten.
+- Es muss mindestens ein Format (PDF, PNG oder SVG) markiert sein.
+- Wenn ein Layout in einem Format fehlschlaegt, aber in einem anderen gelingt, wird es als Erfolg gezaehlt und der Fehler erscheint in der Zusammenfassung.
+- Ein Abbruch des Exports behaelt die bereits exportierten Dateien im Ordner.
+- Ein `DPI`-Wert von 0 delegiert an das Layout; positive Werte ueberschreiben das DPI der erzeugten Dateien.
 
 ## Wann man es verwenden sollte
 
@@ -54,11 +75,13 @@ Verwenden Sie dieses Werkzeug, wenn Sie schnell alle Layouts eines Projekts expo
 Es ist besonders nuetzlich, um:
 
 - einen vollstaendigen Satz Plaene zu liefern;
-- Serienexporte fuer Revisionen zu erzeugen;
-- PDF-Ausgaben in einer einzigen Enddatei zu konsolidieren.
+- Serienexports fuer Revisionen zu erzeugen;
+- PDF- oder PNG-Ausgaben in einer einzigen Enddatei zu konsolidieren;
+- Vektorversionen (SVG) der Layouts zu erzeugen.
 
 ## Hinweise
 
 - Pruefen Sie vor der Ausfuehrung den Ausgabeordner, besonders wenn `Replace Existing` aktiviert ist.
-- Wenn Layouts aehnliche Namen haben, kontrollieren Sie nach dem Export die erzeugten Dateien.
-- Bei grossen Projekten kann es sinnvoll sein, zuerst ohne Merge zu exportieren, um das Ergebnis zu validieren.
+- Kontrollieren Sie die erzeugten Dateien, wenn Layouts aehnliche Namen haben.
+- Bei grossen Projekten exportieren Sie zuerst ohne Zusammenfuehrung, um das Ergebnis zu validieren.
+- `Merge PNG` kann je nach Anzahl der Bilder und dem eingestellten `Max Width` grosse PDFs erzeugen.

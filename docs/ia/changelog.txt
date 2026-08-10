@@ -121,4 +121,9 @@
    - Conteúdo baseado no comportamento real: PathExtensionPlugin, PathExtensionStep, PathExtensionTask e plano_acao_path_extension
    - Documentados os 4 modos: Remover Extensao, Restaurar Extensao, Zipar, Deszipar (com detalhes do campo NewPath, agrupamento por pasta e remoção de originais/ZIP)
    - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.4.0 (arquivo listado + histórico)
+[3.4.0.9][10/08/2026] ReportMetadata: novas instruções em todos os locales:
+   - Novos arquivos de instrução report_metadata_help.md em pt_BR, en, es, de, ja (com metadados: Versao, Data de criacao, Data da ultima modificacao)
+   - Conteúdo baseado no comportamento real do plugins/ReportMetadataPlugin.py
+   - Documentados: gerar relatorio (licenca nivel 3), vetorizar voo (camadas pontos + rastro), refresh da lista de JSONs, abertura de pastas temporarias
+   - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.5.0 (arquivo listado + histórico)
 

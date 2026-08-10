@@ -135,6 +135,7 @@ resources/instructions/pt_BR/
 ├── generate_trail_help.md
 ├── load_folder_layers_help.md
 ├── path_extension_tool_help.md
+├── report_metadata_help.md
 ├── replace_in_layouts_help.md
 ├── restart_qgis_help.md
 ├── save_temporary_layer_help.md
@@ -418,3 +419,4 @@ class HtmlInstructions:
 | 2026-08-07 | 1.1.0 | Instruções do ExportAllLayouts atualizadas (seleção de layouts, DPI, SVG) em pt_BR, en, es, de + novo arquivo ja/export_all_layouts_help.md. |
 | 2026-08-10 | 1.3.0 | Adicionada regra de metadados obrigatórios nos arquivos .md (Versao, Data de criacao, Data da ultima modificacao). Instruções do ExportAllLayouts atualizadas com metadados em todos os locales. |
 | 2026-08-10 | 1.4.0 | Novas instruções do PathExtension (path_extension_tool_help.md) em pt_BR, en, es, de, ja — lidos: plugins/PathExtensionPlugin.py, core/engine_tasks/PathExtensionStep.py, core/task/PathExtensionTask.py, docs/plano_acao_path_extension.md |
+| 2026-08-10 | 1.5.0 | Novas instruções do ReportMetadata (report_metadata_help.md) em pt_BR, en, es, de, ja — lidos: plugins/ReportMetadataPlugin.py, utils/ToolKeys.py |

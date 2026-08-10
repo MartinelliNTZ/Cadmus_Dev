@@ -1,38 +1,65 @@
+<!--
+Versao: 1.0.0
+Data de criacao: 2026-08-10
+Data da ultima modificacao: 2026-08-10
+-->
+
 # Configuracoes Cadmus — Guia Rapido
 
 Esta ferramenta centraliza preferencias globais usadas por partes do plugin Cadmus.
 
 No estado atual do codigo, ela permite:
 
-- escolher o metodo padrao de calculo vetorial;
+- definir a pasta raiz de projetos Cadmus;
+- escolher o SRC (sistema de referencia de coordenadas) padrao;
+- definir o idioma da interface (ou auto-detectar o do QGIS);
+- escolher o metodo padrao de calculo vetorial (Elipsoidal, Cartesiano, Ambos);
+- definir os sufixos dos campos de area cartesiana e elipsoidal;
 - definir a precisao numerica de campos vetoriais;
 - definir o limiar de feicoes para processamento assincrono;
+- controlar quais categorias de ferramentas aparecem na toolbar;
 - abrir a pasta local de preferencias do Cadmus.
 
 ## Como usar
 
 1. Abra `Cadmus > Configuracoes Cadmus`.
-2. Escolha o metodo de calculo vetorial:
-- `Elipsoidal`
-- `Cartesiano`
-- `Ambos`
-3. Ajuste a precisao de campos vetoriais.
-4. Ajuste o limiar assincrono.
-5. Clique em `Salvar`.
+2. Em **Geral**:
+   - Defina a pasta de projetos (opcional).
+   - Escolha o SRC padrao (recomendado: EPSG:4326 WGS84).
+   - Escolha o idioma da interface ou `Auto-detectar`.
+   - Ajuste a precisao de campos vetoriais (0 a 10 casas).
+   - Ajuste o limiar assincrono (1 a 100000000 feicoes).
+   - Marque/desmarque as categorias visiveis na toolbar.
+3. Em **Calculos Vetoriais**:
+   - Escolha o metodo de calculo: `Elipsoidal`, `Cartesiano` ou `Ambos`.
+   - Defina os sufixos dos campos de area (cartesianos e elipsoidais).
+4. Clique em `Salvar`.
 
 ## O que o plugin faz de verdade
 
 - Carrega preferencias salvas com `load_tool_prefs()`.
-- Salva as configuracoes no conjunto de preferencias da chave `settings`.
+- Salva as configuracoes em tres conjuntos de preferencias:
+  - chave `SYSTEM` (preferencias globais do aplicativo);
+  - chave `VECTOR_FIELDS` (sufixos de area);
+  - chave `settings` (estado da janela e colapsaveis).
+- Valida que os sufixos cartesiano e elipsoidal nao sejam iguais; se forem, cancela o salvamento e exibe um aviso.
 - Mostra uma mensagem de confirmacao apos salvar.
+- Recarrega as strings de traducao com o novo idioma selecionado.
 - Fecha a janela logo depois de aplicar as preferencias.
 - Permite abrir a pasta local onde os arquivos de preferencias ficam armazenados.
+- Se a visibilidade das categorias da toolbar mudar, emite um sinal para atualizar a toolbar dinamicamente.
 
 ## Significado de cada opcao
 
-- `Metodo de calculo vetorial`: define o texto da preferencia `calculation_method`.
+- `Pasta de projetos`: salva o caminho em `projects_folder`.
+- `SRC padrao`: salva o authid (ex: `EPSG:4326`) em `default_crs_authid`.
+- `Idioma`: salva o locale (ex: `pt_BR`) em `plugin_language`; se `Auto-detectar`, remove a chave para o QGIS decidir.
+- `Metodo de calculo vetorial`: salva o texto em `calculation_method`.
+- `Sufixo cartesiano`: salva em `cartesian_suffix` (chave `VECTOR_FIELDS`).
+- `Sufixo elipsoidal`: salva em `ellipsoidal_suffix` (chave `VECTOR_FIELDS`).
 - `Precisao de campos vetoriais`: salva um valor inteiro em `vector_field_precision`.
 - `Limiar assincrono`: salva um valor inteiro em `async_threshold_features`.
+- `Toolbar - Categorias visiveis`: salva um dicionario de categorias em `toolbar_category_visibility`.
 
 ## Metodo de calculo vetorial (Elipsoidal vs Cartesiano)
 
@@ -79,6 +106,7 @@ Ao passar o mouse sobre qualquer campo das configuracoes, uma descricao detalhad
 - O codigo aceita valores de precisao entre 0 e 10.
 - O limiar assincrono aceita valores de 1 ate 100000000.
 - Ha retrocompatibilidade de leitura com a antiga chave `async_threshold_bytes`, mas ao carregar o plugin passa a usar o limite por feicoes.
+- Os sufixos cartesiano e elipsoidal nao podem ser iguais; o salvamento e bloqueado com um aviso.
 - Este plugin apenas salva preferencias; ele nao executa calculos vetoriais por conta propria.
 
 ## Pasta de preferencias

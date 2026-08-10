@@ -1,38 +1,65 @@
+<!--
+Versao: 1.0.0
+Data de criacao: 2026-08-10
+Data da ultima modificacao: 2026-08-10
+-->
+
 # Configuraciones de Cadmus — Guia Rapida
 
 Esta herramienta centraliza preferencias globales usadas por partes del plugin Cadmus.
 
 En el estado actual del codigo, permite:
 
-- elegir el metodo predeterminado de calculo vectorial;
+- definir la carpeta raiz de proyectos de Cadmus;
+- elegir el SRC (sistema de referencia de coordenadas) predeterminado;
+- definir el idioma de la interfaz (o auto-detectar el de QGIS);
+- elegir el metodo predeterminado de calculo vectorial (Elipsoidal, Cartesiano, Ambos);
+- definir los sufijos de los campos de area cartesiana y elipsoidal;
 - definir la precision numerica de campos vectoriales;
 - definir el umbral de entidades para procesamiento asincrono;
+- controlar que categorias de herramientas aparecen en la barra de herramientas;
 - abrir la carpeta local de preferencias de Cadmus.
 
 ## Como usar
 
 1. Abra `Cadmus > Configuracoes Cadmus`.
-2. Elija el metodo de calculo vectorial:
-- `Elipsoidal`
-- `Cartesiano`
-- `Ambos`
-3. Ajuste la precision de campos vectoriales.
-4. Ajuste el umbral asincrono.
-5. Haga clic en `Save`.
+2. En **General**:
+   - Defina la carpeta de proyectos (opcional).
+   - Elija el SRC predeterminado (recomendado: EPSG:4326 WGS84).
+   - Elija el idioma de la interfaz o `Auto-detectar`.
+   - Ajuste la precision de campos vectoriales (0 a 10 decimales).
+   - Ajuste el umbral asincrono (1 a 100000000 entidades).
+   - Marque/desmarque las categorias visibles en la barra de herramientas.
+3. En **Calculos Vectoriales**:
+   - Elija el metodo de calculo: `Elipsoidal`, `Cartesiano` o `Ambos`.
+   - Defina los sufijos de los campos de area (cartesianos y elipsoidales).
+4. Haga clic en `Save`.
 
 ## Lo que el plugin hace realmente
 
 - Carga las preferencias guardadas con `load_tool_prefs()`.
-- Guarda la configuracion bajo la clave de preferencias `settings`.
+- Guarda la configuracion en **tres** claves de preferencias:
+  - clave `SYSTEM` (preferencias globales de la aplicacion);
+  - clave `VECTOR_FIELDS` (sufijos de area);
+  - clave `settings` (estado de la ventana y secciones plegables).
+- Valida que los sufijos cartesiano y elipsoidal no sean iguales; si lo son, cancela el guardado y muestra una advertencia.
 - Muestra un mensaje de confirmacion despues de guardar.
+- Recarga las cadenas de traduccion con el nuevo idioma seleccionado.
 - Cierra la ventana justo despues de aplicar las preferencias.
 - Permite abrir la carpeta local donde se almacenan los archivos de preferencias.
+- Si cambia la visibilidad de las categorias de la barra de herramientas, emite una senal para actualizar la barra dinamicamente.
 
 ## Significado de cada opcion
 
-- `Metodo de calculo vectorial`: define el texto almacenado en `calculation_method`.
+- `Carpeta de proyectos`: guarda la ruta en `projects_folder`.
+- `SRC por defecto`: guarda el authid (ej: `EPSG:4326`) en `default_crs_authid`.
+- `Idioma`: guarda la locale (ej: `pt_BR`) en `plugin_language`; si es `Auto-detectar`, elimina la clave para que QGIS decida.
+- `Metodo de calculo vectorial`: guarda el texto en `calculation_method`.
+- `Sufijo cartesiano`: guarda en `cartesian_suffix` (clave `VECTOR_FIELDS`).
+- `Sufijo elipsoidal`: guarda en `ellipsoidal_suffix` (clave `VECTOR_FIELDS`).
 - `Precision de campos vectoriales`: guarda un valor entero en `vector_field_precision`.
 - `Umbral asincrono`: guarda un valor entero en `async_threshold_features`.
+- `Barra de herramientas - Categorias visibles`: guarda un diccionario de categorias en `toolbar_category_visibility`.
 
 ## Metodo de calculo vectorial (Elipsoidal vs Cartesiano)
 
@@ -79,6 +106,7 @@ Al pasar el mouse sobre cualquier campo de la configuracion, se muestra una desc
 - La precision acepta valores entre 0 y 10.
 - El umbral asincrono acepta valores entre 1 y 100000000.
 - El codigo aun lee la antigua clave `async_threshold_bytes` por compatibilidad, pero ahora usa el limite por entidades.
+- Los sufijos cartesiano y elipsoidal no pueden ser iguales; el guardado se bloquea con una advertencia.
 - Este plugin solo guarda preferencias; no ejecuta calculos vectoriales por si mismo.
 
 ## Carpeta de preferencias

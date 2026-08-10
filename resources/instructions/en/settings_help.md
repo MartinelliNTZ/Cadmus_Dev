@@ -1,38 +1,65 @@
+<!--
+Versao: 1.0.0
+Data de criacao: 2026-08-10
+Data da ultima modificacao: 2026-08-10
+-->
+
 # Cadmus Settings — Quick Guide
 
 This tool centralizes global preferences used by parts of the Cadmus plugin.
 
 In the current code, it lets you:
 
-- choose the default vector calculation method;
+- set the root folder for Cadmus projects;
+- choose the default CRS (coordinate reference system);
+- set the interface language (or auto-detect the QGIS one);
+- choose the default vector calculation method (Ellipsoidal, Cartesian, Both);
+- define the suffixes for cartesian and ellipsoidal area fields;
 - define numeric precision for vector fields;
 - define the feature threshold for asynchronous processing;
+- control which tool categories appear on the toolbar;
 - open the local Cadmus preferences folder.
 
 ## How to use
 
 1. Open `Cadmus > Configuracoes Cadmus`.
-2. Choose the vector calculation method:
-- `Ellipsoidal`
-- `Cartesian`
-- `Both`
-3. Adjust the vector field precision.
-4. Adjust the asynchronous threshold.
-5. Click `Save`.
+2. Under **General**:
+   - Set the projects folder (optional).
+   - Choose the default CRS (recommended: EPSG:4326 WGS84).
+   - Choose the interface language or `Auto-detect`.
+   - Adjust the vector field precision (0 to 10 decimal places).
+   - Adjust the async threshold (1 to 100000000 features).
+   - Check/uncheck the visible categories on the toolbar.
+3. Under **Vector Calculations**:
+   - Choose the calculation method: `Ellipsoidal`, `Cartesian` or `Both`.
+   - Set the area field suffixes (cartesian and ellipsoidal).
+4. Click `Save`.
 
 ## What the plugin actually does
 
 - Loads saved preferences with `load_tool_prefs()`.
-- Saves the settings under the `settings` preference key.
+- Saves the settings in **three** preference keys:
+  - `SYSTEM` key (global application preferences);
+  - `VECTOR_FIELDS` key (area suffixes);
+  - `settings` key (window state and collapsible sections).
+- Validates that the cartesian and ellipsoidal suffixes are not the same; if they are, cancels saving and shows a warning.
 - Shows a confirmation message after saving.
+- Reloads translation strings with the newly selected language.
 - Closes the window right after applying the preferences.
 - Lets you open the local folder where preference files are stored.
+- If toolbar category visibility changes, emits a signal to refresh the toolbar dynamically.
 
 ## What each option means
 
-- `Vector calculation method`: defines the text stored in `calculation_method`.
+- `Projects folder`: stores the path in `projects_folder`.
+- `Default CRS`: stores the authid (e.g., `EPSG:4326`) in `default_crs_authid`.
+- `Language`: stores the locale (e.g., `pt_BR`) in `plugin_language`; if `Auto-detect`, removes the key so QGIS decides.
+- `Vector calculation method`: stores the text in `calculation_method`.
+- `Cartesian suffix`: stores in `cartesian_suffix` (`VECTOR_FIELDS` key).
+- `Ellipsoidal suffix`: stores in `ellipsoidal_suffix` (`VECTOR_FIELDS` key).
 - `Vector fields precision`: stores an integer value in `vector_field_precision`.
 - `Async threshold`: stores an integer value in `async_threshold_features`.
+- `Toolbar - Visible categories`: stores a dictionary of categories in `toolbar_category_visibility`.
 
 ## Vector calculation method (Ellipsoidal vs Cartesian)
 
@@ -79,6 +106,7 @@ Hovering over any settings field shows a detailed description:
 - Precision accepts values from 0 to 10.
 - The asynchronous threshold accepts values from 1 to 100000000.
 - The code still reads the old `async_threshold_bytes` key for backward compatibility, but now uses the feature-based limit.
+- The cartesian and ellipsoidal suffixes cannot be the same; saving is blocked with a warning.
 - This plugin only saves preferences; it does not run vector calculations by itself.
 
 ## Preferences folder

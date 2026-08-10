@@ -126,4 +126,12 @@
    - Conteúdo baseado no comportamento real do plugins/ReportMetadataPlugin.py
    - Documentados: gerar relatorio (licenca nivel 3), vetorizar voo (camadas pontos + rastro), refresh da lista de JSONs, abertura de pastas temporarias
    - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.5.0 (arquivo listado + histórico)
+[3.4.0.10][10/08/2026] Settings: instruções atualizadas com metadados e conteúdo real:
+   - settings_help.md reescrito refletindo o comportamento atual do SettingsPlugin (pasta de projetos, SRC padrão, idioma, sufixos de área, categorias da toolbar)
+   - Adicionado bloco de metadados obrigatório (Versao, Data de criacao, Data da ultima modificacao)
+   - Corrigida a afirmação sobre a chave de preferências: salva em SYSTEM, VECTOR_FIELDS e settings
+   - Documentada a validação de sufixos duplicados e o sinal de atualização da toolbar
+   - Arquivos atualizados em todos os 4 idiomas: pt_BR, en, es, de
+   - Novo arquivo: resources/instructions/ja/settings_help.md
+   - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.7.0 (histórico)
 

@@ -1,38 +1,65 @@
+<!--
+Versao: 1.0.0
+Data de criacao: 2026-08-10
+Data da ultima modificacao: 2026-08-10
+-->
+
 # Cadmus Einstellungen - Kurzanleitung
 
 Dieses Werkzeug buendelt globale Einstellungen, die von Teilen des Cadmus-Plugins verwendet werden.
 
 Im aktuellen Stand des Codes erlaubt es:
 
-- die Standardmethode fuer Vektorberechnungen zu waehlen;
+- den Stammordner fuer Cadmus-Projekte festzulegen;
+- das Standard-KBS (Koordinatenreferenzsystem) zu waehlen;
+- die Oberflaechensprache festzulegen (oder die von QGIS automatisch zu erkennen);
+- die Standardmethode fuer Vektorberechnungen zu waehlen (Ellipsoidisch, Kartesisch, Beides);
+- die Suffixe fuer kartesische und ellipsoidische Flaechenfelder festzulegen;
 - die numerische Genauigkeit von Vektorfeldern festzulegen;
 - den Feature-Grenzwert fuer asynchrone Verarbeitung festzulegen;
+- zu steuern, welche Werkzeugkategorien in der Werkzeugleiste erscheinen;
 - den lokalen Cadmus-Einstellungsordner zu oeffnen.
 
 ## Verwendung
 
 1. Oeffnen Sie `Cadmus > Cadmus Einstellungen`.
-2. Waehlen Sie die Methode fuer Vektorberechnungen:
-- `Ellipsoidal`
-- `Cartesian`
-- `Both`
-3. Passen Sie die Genauigkeit der Vektorfelder an.
-4. Passen Sie den asynchronen Grenzwert an.
-5. Klicken Sie auf `Speichern`.
+2. Unter **Allgemein**:
+   - Legen Sie den Projektordner fest (optional).
+   - Waehlen Sie das Standard-KBS (empfohlen: EPSG:4326 WGS84).
+   - Waehlen Sie die Oberflaechensprache oder `Automatisch erkennen`.
+   - Passen Sie die Genauigkeit der Vektorfelder an (0 bis 10 Dezimalstellen).
+   - Passen Sie den asynchronen Grenzwert an (1 bis 100000000 Features).
+   - Aktivieren/deaktivieren Sie die sichtbaren Kategorien in der Werkzeugleiste.
+3. Unter **Vektorberechnungen**:
+   - Waehlen Sie die Berechnungsmethode: `Ellipsoidisch`, `Kartesisch` oder `Beides`.
+   - Legen Sie die Suffixe der Flaechenfelder fest (kartesisch und ellipsoidisch).
+4. Klicken Sie auf `Speichern`.
 
 ## Was das Plugin tatsaechlich macht
 
 - Laedt gespeicherte Einstellungen mit `load_tool_prefs()`.
-- Speichert die Konfiguration im Einstellungsbereich mit dem Schluessel `settings`.
+- Speichert die Konfiguration in **drei** Einstellungsschluesseln:
+  - Schluessel `SYSTEM` (globale Anwendungseinstellungen);
+  - Schluessel `VECTOR_FIELDS` (Flaechensuffixe);
+  - Schluessel `settings` (Fensterzustand und einklappbare Abschnitte).
+- Validiert, dass die kartesischen und ellipsoidischen Suffixe nicht gleich sind; wenn sie gleich sind, bricht es das Speichern ab und zeigt eine Warnung.
 - Zeigt nach dem Speichern eine Bestaetigungsmeldung an.
+- Laedt die Uebersetzungszeichenfolgen mit der neu gewaehlten Sprache neu.
 - Schliesst das Fenster kurz nach dem Anwenden der Einstellungen.
 - Ermoeglicht das Oeffnen des lokalen Ordners, in dem die Einstellungsdateien gespeichert werden.
+- Wenn sich die Sichtbarkeit der Werkzeugleisten-Kategorien aendert, sendet es ein Signal, um die Werkzeugleiste dynamisch zu aktualisieren.
 
 ## Bedeutung jeder Option
 
-- `Methode fuer Vektorberechnungen`: definiert den Textwert der Einstellung `calculation_method`.
+- `Projektordner`: speichert den Pfad in `projects_folder`.
+- `Standard-KBS`: speichert die AuthID (z. B. `EPSG:4326`) in `default_crs_authid`.
+- `Sprache`: speichert die Locale (z. B. `pt_BR`) in `plugin_language`; bei `Automatisch erkennen` wird der Schluessel entfernt, damit QGIS entscheidet.
+- `Methode fuer Vektorberechnungen`: speichert den Text in `calculation_method`.
+- `Kartesisches Suffix`: speichert in `cartesian_suffix` (Schluessel `VECTOR_FIELDS`).
+- `Ellipsoidisches Suffix`: speichert in `ellipsoidal_suffix` (Schluessel `VECTOR_FIELDS`).
 - `Genauigkeit von Vektorfeldern`: speichert einen ganzzahligen Wert in `vector_field_precision`.
 - `Asynchroner Grenzwert`: speichert einen ganzzahligen Wert in `async_threshold_features`.
+- `Werkzeugleiste - Sichtbare Kategorien`: speichert ein Woerterbuch der Kategorien in `toolbar_category_visibility`.
 
 ## Methode fuer Vektorberechnungen (Ellipsoidisch vs Kartesisch)
 
@@ -79,6 +106,7 @@ Beim Ueberfahren eines beliebigen Einstellungsfelds wird eine detaillierte Besch
 - Der Code akzeptiert Genauigkeitswerte zwischen 0 und 10.
 - Der asynchrone Grenzwert akzeptiert Werte von 1 bis 100000000.
 - Es gibt Rueckwaertskompatibilitaet beim Lesen des alten Schluessels `async_threshold_bytes`, aber nach dem Laden verwendet das Plugin den Grenzwert in Features.
+- Die kartesischen und ellipsoidischen Suffixe duerfen nicht gleich sein; das Speichern wird mit einer Warnung blockiert.
 - Dieses Werkzeug speichert nur Einstellungen; es fuehrt selbst keine Vektorberechnungen aus.
 
 ## Einstellungsordner

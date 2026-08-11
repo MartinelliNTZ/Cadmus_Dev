@@ -133,5 +133,22 @@
    - Documentada a validação de sufixos duplicados e o sinal de atualização da toolbar
    - Arquivos atualizados em todos os 4 idiomas: pt_BR, en, es, de
    - Novo arquivo: resources/instructions/ja/settings_help.md
-   - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.7.0 (histórico)
+    - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.7.0 (histórico)
+[3.4.0.11][10/08/2026] ReportGeneration (API 3): correção de métricas zeradas/ausentes no relatório:
+   - Causa raiz: o JSON v2.0 (API 1) pode não conter os campos custom derivados (3DSpeed, MotionBlurRisk, PredictedOverlap, RtkEffectivePrecision, XYDifference, ZDifference, GroundSampleDistanceCm, PhotogrammetryQualityIndex, etc.) quando o usuário não seleciona todos os campos custom no filtro. O relatório (API 3) dependia desses campos para classificar indicadores e calcular métricas, resultando em campos zerados/'-' e alertas disparando em 100% das fotos.
+   - utils/report/IMGMetadata.py: adicionadas derivações de indicadores a partir dos campos brutos EXIF/XMP/MRK presentes no JSON:
+     - speed_3d_ms/kmh (de FlightX/Y/ZSpeed ou Speed3dKmh), incidence_angle (de GimbalPitchDegree)
+     - gsd_cm (sensor_width * altitude / (focal * width)), motion_blur_risk (speed * exposure / pixel_size)
+     - gimbal_offset, yaw_alignment_error, yaw_relative_error (de GimbalYaw/FlightYaw)
+     - rtk_effective_precision (média RtkStdLat/Lon/Hgt), rtk_type (de RtkFlag), rtk_stability_score (de RtkDiffAge)
+     - xy_difference (Haversine MRK vs XMP), z_difference (Alt vs AbsoluteAltitude)
+     - ground_elevation, flight_altitude, coverage_width/height, predicted_overlap, f_overlap, is_ideal_overlap
+     - light_source_classification/light_consistency (de LightSource), ev, light_value, ev_classification
+     - focal_length_35efl, fov, circle_of_confusion, hyperfocal_distance, dof, nadir
+     - total_heat_index, shutter_life_pct, orthorectification_potential, photogrammetry_quality_index, linear_velocity_instant
+   - IMGMetadata.score(): valores derivados agora são populados em level5_values para que os agregadores (AggregateAnalyzer, JsonMetadataManager) encontrem os dados.
+   - IMGMetadata.compute_sequence_indicators(): novo método estático que calcula indicadores baseados em sequência (time_since_previous, geodesic_distance_previous, distance_3d_previous, avg_velocity_between_photos, displacement_direction, gimbal_angular_velocity, vertical_stability, trajectory_smoothness, speed_variation_index, capture_efficiency, abrupt_change_flag, strip_id, is_valid_sequence_prev/next).
+   - core/services/ReportGenerationService.py: chama IMGMetadata.compute_sequence_indicators(results) após o score para popular métricas de sequência (distância entre fotos, sobreposição, faixas) mesmo quando o JSON não contém os campos custom.
+   - Sem alterações em API 1 (geração JSON) nem API 2 (vetorização). Apenas API 3 (relatório) foi corrigida.
+   - Sem novas strings (logs em pt_BR).
 

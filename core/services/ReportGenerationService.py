@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 from datetime import datetime
 from typing import Dict, Any, List
 
@@ -56,6 +56,18 @@ class ReportGenerationService:
                     f"Erro ao processar record [{i}]: {e}"
                 )
                 raise
+
+        # Calcula indicadores baseados em sequencia (distancia entre fotos,
+        # tempo desde a anterior, sobreposicao prevista, faixas, etc.) para que
+        # o relatorio exiba metricas completas mesmo quando o JSON nao contem
+        # os campos custom derivados (API 1 filtrada pelo usuario).
+        self.logger.debug("Calculando indicadores de sequencia...")
+        try:
+            IMGMetadata.compute_sequence_indicators(results)
+        except Exception as e:
+            self.logger.warning(
+                f"Falha ao calcular indicadores de sequencia: {e}"
+            )
 
         # Carrega timestamps existentes do JSON
         timestamps = JsonMetadataManager.load_timestamps(

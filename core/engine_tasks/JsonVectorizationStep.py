@@ -20,6 +20,7 @@ class JsonVectorizationStep(BaseStep):
     Parâmetros opcionais:
       - source: Identificador da fonte ("mrk+photo", "photo", etc.)
       - layer_name: Nome da camada (se não for passado, usa context.get_result)
+      - selected_keys: Chaves de campos a incluir no vetor (None = todos os campos)
     """
 
     def __init__(
@@ -27,9 +28,11 @@ class JsonVectorizationStep(BaseStep):
         *,
         source: str = "",
         layer_name: str = "",
+        selected_keys: Optional[List[str]] = None,
     ):
         self._source = source
         self._layer_name = layer_name
+        self._selected_keys = selected_keys
 
     def name(self) -> str:
         return "JsonVectorizationStep"
@@ -72,7 +75,7 @@ class JsonVectorizationStep(BaseStep):
             layer = translator.translate(
                 json_path=json_path,
                 layer_name=layer_name,
-                selected_keys=None,
+                selected_keys=self._selected_keys,
                 source=source,
             )
         except Exception as e:

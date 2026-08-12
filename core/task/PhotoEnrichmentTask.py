@@ -20,9 +20,12 @@ class PhotoEnrichmentTask(BaseTask):
     - Retornar os records enriquecidos
 
     Após o pipeline, esta task:
-    - Aplica filtro de campos selecionados (selected_keys)
     - Converte records para PascalCase (formato JSON v2.0)
     - Delega a criação e salvamento do JSON ao PhotoMetadata.build_and_save_json()
+
+    O JSON é a fonte de verdade e contém TODOS os campos sempre. O filtro
+    por campos selecionados é exclusivo da vetorização (API2), aplicado no
+    JsonVectorizationStep via JsonToVectorTranslator.
 
     NÃO vetoriza (vetorização é do JsonVectorizationStep posterior)
     """
@@ -66,13 +69,6 @@ class PhotoEnrichmentTask(BaseTask):
         self.enable_exif = enable_exif
         self.enable_xmp = enable_xmp
         self.enable_custom_fields = enable_custom_fields
-
-    def _get_selected_keys(self) -> set:
-        """Constrói conjunto de chaves selecionadas pelo usuário."""
-        selected = set(self.selected_required_fields)
-        selected.update(self.selected_custom_fields)
-        selected.update(self.selected_mrk_fields)
-        return selected
 
     def _run(self) -> bool:
         if self.isCanceled():
@@ -139,30 +135,11 @@ class PhotoEnrichmentTask(BaseTask):
             self.exception = "Nenhuma imagem encontrada no diretório"
             return False
 
-        # Aplica filtro de campos selecionados
-        selected_keys = self._get_selected_keys()
-        if selected_keys:
-            filtered = []
-            skip_keys = {
-                MetadataFieldKey.COORD_SOURCE.value,
-                MetadataFieldKey.QUALITY_FLAG.value,
-                "HasXmp",
-                "HasExifGps",
-            }
-            for record in records:
-                filtered_record = {
-                    k: v
-                    for k, v in record.items()
-                    if k in selected_keys or k in skip_keys
-                }
-                if filtered_record:
-                    filtered.append(filtered_record)
-            records = filtered
-
+        # O JSON é a fonte de verdade e deve conter TODOS os campos sempre.
+        # O filtro por campos selecionados é exclusivo da vetorização (API2),
+        # aplicado no JsonVectorizationStep via JsonToVectorTranslator.
         if not records:
-            logger.warning(
-                "Todos os registros foram filtrados pelas chaves selecionadas"
-            )
+            logger.warning("Nenhum registro disponível após o enriquecimento")
             self.exception = "Nenhuma imagem encontrada no diretório"
             return False
 

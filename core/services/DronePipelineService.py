@@ -91,19 +91,27 @@ class DronePipelineService:
                           class_name="DronePipelineService")
         prefs = DronePipelineService._load_safe_prefs()
 
-        # ── Carregar campos selecionados ──────────────────────────
-        exif_selected = prefs.get("exif_fields_selected", [])
-        xmp_selected = prefs.get("xmp_fields_selected", [])
+        # ── Carregar campos selecionados (usados apenas na vetorização/API2) ──
+        exif_selected = DronePipelineService._resolve_selected_fields(
+            prefs, "exif_fields_selected", "exif_checkbox"
+        )
+        xmp_selected = DronePipelineService._resolve_selected_fields(
+            prefs, "xmp_fields_selected", "xmp_checkbox"
+        )
         selected_required = MetadataFields.normalize_selected_keys(
             exif_selected + xmp_selected,
             allowed_keys=MetadataFields.required_keys(),
         )
         selected_custom = MetadataFields.normalize_selected_keys(
-            prefs.get("custom_fields_selected", []),
+            DronePipelineService._resolve_selected_fields(
+                prefs, "custom_fields_selected", "custom_checkbox"
+            ),
             allowed_keys=MetadataFields.custom_keys(),
         )
         selected_mrk = MetadataFields.normalize_selected_keys(
-            prefs.get("mrk_fields_selected", []),
+            DronePipelineService._resolve_selected_fields(
+                prefs, "mrk_fields_selected", "mrk_checkbox"
+            ),
             allowed_keys=MetadataFields.mrk_keys(),
         )
 
@@ -123,7 +131,7 @@ class DronePipelineService:
         enable_exif = apply_photos
         enable_xmp = apply_photos
         # Custom fields SEMPRE calculados (sao dados derivados).
-        # O filtro por campos selecionados acontece depois no PhotoEnrichmentTask._run()
+        # O filtro por campos selecionados é exclusivo da vetorização (API2).
         enable_custom = apply_photos
         project_title = prefs.get("project_title", "")
         logo_path = prefs.get("logo_path", "") if prefs.get(
@@ -131,6 +139,15 @@ class DronePipelineService:
 
         resolve_paths = [file_path] if (
             enable_mrk and file_path) else (paths or [])
+
+        # Filtro de campos é EXCLUSIVO da vetorização (API2).
+        # O JSON (API1) sempre contém todos os campos (fonte de verdade).
+        # União dos três grupos (required + custom + mrk), preservando ordem.
+        selected_keys = list(
+            dict.fromkeys(
+                selected_required + selected_custom + selected_mrk
+            )
+        ) or None
 
         steps: list = [
             PhotoEnrichmentStep(
@@ -152,7 +169,7 @@ class DronePipelineService:
             # e persistem dados no JSON se context.json_path existir.
             ReverseGeocodeStep(),
             AltimetryStep(),
-            JsonVectorizationStep(source=source),
+            JsonVectorizationStep(source=source, selected_keys=selected_keys),
         ]
         should_generate_report = prefs.get("generate_report", True)
         if should_generate_report:
@@ -344,6 +361,36 @@ class DronePipelineService:
             })
 
     # ── MÉTODOS AUXILIARES ────────────────────────────────────────
+
+    @staticmethod
+    def _resolve_selected_fields(
+        prefs: Dict[str, Any],
+        legacy_key: str,
+        checkbox_key: str,
+    ) -> List[str]:
+        """
+        Resolve campos selecionados compatibilizando formatos de preferências.
+
+        A UI atual (GridCheckbox) persiste o estado no formato:
+            checkbox_key = {"checked": {key: bool}}
+
+        Versões anteriores persistiam listas diretas em legacy_key (ex:
+        "custom_fields_selected"). Esta resolução dá prioridade ao formato
+        novo e usa o legado como fallback.
+
+        Args:
+            prefs: Dicionário de preferências da ferramenta.
+            legacy_key: Chave legada (lista de chaves selecionadas).
+            checkbox_key: Chave do formato novo (GridCheckbox).
+
+        Returns:
+            Lista de chaves selecionadas.
+        """
+        checked = (prefs.get(checkbox_key) or {}).get("checked")
+        if isinstance(checked, dict):
+            return [key for key, state in checked.items() if state]
+        legacy = prefs.get(legacy_key)
+        return list(legacy) if isinstance(legacy, list) else []
 
     @staticmethod
     def _load_safe_prefs() -> dict:

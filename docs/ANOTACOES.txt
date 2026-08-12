@@ -39,6 +39,7 @@ ferramentas =                                   tool_key                        
     - 33: Salvar Camadas Temporárias            SAVE_TEMPORARY_LAYER             DIALOG                           SaveTemporaryLayersPlugin             FOLDER         Salva camadas temporárias (memória) para arquivos permanentes                                           3.0.0
     - 34: Calculadora NDRE                      NDRE_CALCULATOR                  PROCESSING                       NdreCalculator                        RASTER         Calcula índice NDRE (Red Edge) a partir de bandas NIR/Red Edge                                         3.0.0
     - 35: Calculadora GLI                       GLI_CALCULATOR                   PROCESSING                       GliCalculator                         RASTER         Calcula índice GLI (Green Leaf) a partir de bandas RGB                                                 3.0.0
+    - 36: Calcular CHM (MDS - MDT)              CALCULATE_CHM                    PROCESSING                       CalculateChm                          RASTER         Calcula CHM (Canopy Height Model) = max(MDS - MDT, 0) com alinhamento de grade e NoData -9999         3.4.0.12
 ======= REPLACE
 
 

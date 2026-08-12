@@ -150,5 +150,15 @@
    - IMGMetadata.compute_sequence_indicators(): novo método estático que calcula indicadores baseados em sequência (time_since_previous, geodesic_distance_previous, distance_3d_previous, avg_velocity_between_photos, displacement_direction, gimbal_angular_velocity, vertical_stability, trajectory_smoothness, speed_variation_index, capture_efficiency, abrupt_change_flag, strip_id, is_valid_sequence_prev/next).
    - core/services/ReportGenerationService.py: chama IMGMetadata.compute_sequence_indicators(results) após o score para popular métricas de sequência (distância entre fotos, sobreposição, faixas) mesmo quando o JSON não contém os campos custom.
    - Sem alterações em API 1 (geração JSON) nem API 2 (vetorização). Apenas API 3 (relatório) foi corrigida.
-   - Sem novas strings (logs em pt_BR).
+    - Sem novas strings (logs em pt_BR).
+[3.4.0.12][12/08/2026] CalculateChm: novo algoritmo de processamento CHM:
+   - Novo ToolKey CALCULATE_CHM em utils/ToolKeys.py (com cor #1ABC9C)
+   - Novas strings CALCULATE_CHM_TITLE, CALCULATE_CHM_INPUT_MDS ("Raster MDS (Modelo Digital de Superfície)"), CALCULATE_CHM_INPUT_MDT ("Raster MDT (Modelo Digital do Terreno)"), CALCULATE_CHM_OUTPUT ("Raster CHM (Modelo de Altura de Copas)") em Strings_pt_BR
+   - Novo processing/CalculateChm.py (BaseProcessingAlgorithm, grupo RASTER) — calcula CHM = max(MDS - MDT, 0)
+   - Alinhamento robusto: se MDS e MDT não tiverem a mesma grade, MDT é reamostrado com gdal.Warp forçando width/height exatos do MDS (elimina erro de 1 pixel)
+   - Cálculo em blocos via GDAL/numpy (sem gdal_calc/VRT intermediários)
+   - NoData de saída sempre -9999 (0 é valor válido de CHM); NoData de entrada de cada raster respeitado e propagado
+   - Checkboxes padrão OPEN_OUTPUT_FOLDER e DISPLAY_HELP com prefs
+   - Registrado em processing/provider.py (MTLProvider.loadAlgorithms)
+   - Sem imports não utilizados (F401)
 

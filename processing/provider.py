@@ -16,6 +16,7 @@ from .NdreCalculator import NdreCalculator
 from .RgbMosaicCreator import RgbMosaicCreator
 from .RgbStyleStandardizer import RgbStyleStandardizer
 from .GliCalculator import GliCalculator
+from .CalculateChm import CalculateChm
 from ..i18n.TranslationManager import STR
 
 
@@ -37,6 +38,7 @@ class MTLProvider(QgsProcessingProvider):
         self.addAlgorithm(RgbMosaicCreator())
         self.addAlgorithm(RgbStyleStandardizer())
         self.addAlgorithm(GliCalculator())
+        self.addAlgorithm(CalculateChm())
 
     def id(self):
         return "cadmus"

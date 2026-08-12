@@ -50,6 +50,7 @@ class ToolKey:
     RGB_STYLE_STANDARDIZER = "rgb_style_standardizer"
     GLI_CALCULATOR = "gli_calculator"
     NDRE_CALCULATOR = "ndre_calculator"
+    CALCULATE_CHM = "calculate_chm"
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {
@@ -88,4 +89,5 @@ class ToolKey:
         RGB_MOSAIC_CREATOR: "#E74C3C",  # vermelho -> rgb / cor
         RGB_STYLE_STANDARDIZER: "#8E44AD",  # roxo -> padronizacao de estilo
         GLI_CALCULATOR: "#2ECC71",  # verde claro -> gli / vegetacao verde
+        CALCULATE_CHM: "#1ABC9C",  # verde-água -> chm / altura de vegetação
     }

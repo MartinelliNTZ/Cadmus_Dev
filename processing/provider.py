@@ -4,6 +4,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProcessingProvider
 from .RasterMassSampler import RasterMassSampler
 from .RasterMassClipper import RasterMassClipper
+from .RasterMaskClipper import RasterMaskClipper
 from .RasterOptimizer import RasterOptimizer
 from .DifferenceFields import DifferenceFieldsAlgorithm
 from .AttributeStatistics import AttributeStatistics
@@ -26,6 +27,7 @@ class MTLProvider(QgsProcessingProvider):
         print("[DEBUG] Registrando algoritmos MTL…")
         self.addAlgorithm(RasterMassSampler())
         self.addAlgorithm(RasterMassClipper())
+        self.addAlgorithm(RasterMaskClipper())
         self.addAlgorithm(RasterOptimizer())
         self.addAlgorithm(DifferenceFieldsAlgorithm())
         self.addAlgorithm(AttributeStatistics())

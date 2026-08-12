@@ -243,6 +243,14 @@ class Strings_pt_BR:
     RASTER_MASS_SAMPLER_TITLE = "Amostragem Massiva de Rasters"
     RASTER_WEIGHTED_AVERAGE_TITLE = "Média Ponderada de Rasters"
     RASTER_MASS_CLIPPER_TITLE = "Recorte Massivo de Rasters"
+    RASTER_MASK_CLIPPER_TITLE = "Recortar Raster por Máscara de Feições"
+    SEPARATE_FEATURES = "Separar feições"
+    RASTER_MASK_CLIPPER_TOOLTIP = (
+        "Recorta um raster usando uma camada poligonal como máscara.\n"
+        "Quando 'Separar feições' está marcado, gera um raster por feição\n"
+        "usando o campo 'name' (quando existir) para nomear os arquivos,\n"
+        "com suporte a prefixo e sufixo personalizados."
+    )
     RASTER_MASS_SAMPLER_TOOLTIP = (
         "Executa amostragem em lote de varios rasters sobre uma camada vetorial.\n"
         "Abre o algoritmo do provider do Cadmus no Processing,\n"

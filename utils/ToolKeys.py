@@ -40,6 +40,7 @@ class ToolKey:
     RASTER_MASS_SAMPLER = "raster_mass_sampler"
     ELEVATION_ANALISYS = "elevation_analisys"
     RASTER_MASS_CLIPPER = "raster_mass_clipper"
+    RASTER_MASK_CLIPPER = "raster_mask_clipper"
     GEOMETRY_LINE_FROM_POINTS = "geometry_line_from_points"
     RASTER_DIFERENCE_STATISTICS = "raster_diference_statistics"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average"
@@ -82,6 +83,7 @@ class ToolKey:
         MY_ALGORITHM: "#98D8C8",  # verde agua -> generico
         PROVIDER: "#BFC9CA",  # cinza -> infraestrutura
         RASTER_MASS_SAMPLER: "#F1948A",  # coral -> raster pesado
+        RASTER_MASK_CLIPPER: "#E74C3C",  # vermelho -> recorte por máscara
         GRID_GENERATOR: "#F39C12",  # laranja forte -> gerador de grade
         ELEVATION_ANALISYS: "#5DADE2",  # azul medio -> relevo
         RASTER_OPTIMIZER: "#E67E22",  # laranja -> otimizacao raster

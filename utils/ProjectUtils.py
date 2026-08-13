@@ -82,6 +82,33 @@ class ProjectUtils(BaseUtil):
         return False
 
     @staticmethod
+    def is_snapping_enabled(canvas, tool_key: str = "untraceable") -> bool:
+        """Verifica se o snapping está habilitado no canvas.
+
+        Recebe: canvas (QgsMapCanvas), tool_key (str).
+        Retorna: bool (True se snapping habilitado, False caso contrário).
+        """
+        logger = LogUtils(tool=tool_key, class_name="ProjectUtils")
+        try:
+            if canvas is None:
+                logger.warning("Canvas ausente ao verificar snapping")
+                return False
+            snapping_utils = canvas.snappingUtils()
+            if snapping_utils is None:
+                logger.warning("SnappingUtils indisponível no canvas")
+                return False
+            config = snapping_utils.config()
+            if config is None:
+                logger.warning("SnappingConfig indisponível no canvas")
+                return False
+            enabled = bool(config.enabled())
+            logger.debug(f"Snapping habilitado: {enabled}")
+            return enabled
+        except Exception as e:
+            logger.error(f"Erro ao verificar snapping: {e}")
+            return False
+
+    @staticmethod
     def get_project_instance() -> QgsProject:
         """Retorna a instÃ¢ncia do projeto QGIS aberto."""
         return QgsProject.instance()
@@ -745,3 +772,6 @@ class ProjectUtils(BaseUtil):
         except Exception as e:
             logger.error(f"Erro ao centralizar canvas na extensao do arquivo: {e}")
             return False
+
+
+

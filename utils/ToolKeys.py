@@ -52,6 +52,7 @@ class ToolKey:
     GLI_CALCULATOR = "gli_calculator"
     NDRE_CALCULATOR = "ndre_calculator"
     CALCULATE_CHM = "calculate_chm"
+    RASTER_MEAN_ADJUST = "raster_mean_adjust"
 
     # Cores por tool_key (toolbar-first, semantica)
     TOOL_KEY_COLORS = {
@@ -92,4 +93,5 @@ class ToolKey:
         RGB_STYLE_STANDARDIZER: "#8E44AD",  # roxo -> padronizacao de estilo
         GLI_CALCULATOR: "#2ECC71",  # verde claro -> gli / vegetacao verde
         CALCULATE_CHM: "#1ABC9C",  # verde-água -> chm / altura de vegetação
+        RASTER_MEAN_ADJUST: "#F5B041",  # laranja -> ajuste de media raster
     }

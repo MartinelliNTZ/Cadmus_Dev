@@ -161,16 +161,28 @@
    - Checkboxes padrão OPEN_OUTPUT_FOLDER e DISPLAY_HELP com prefs
    - Registrado em processing/provider.py (MTLProvider.loadAlgorithms)
    - Sem imports não utilizados (F401)
-[3.4.0.13][12/08/2026] RasterMaskClipper: novo algoritmo de processamento de recorte por máscara:
-   - Novo ToolKey RASTER_MASK_CLIPPER em utils/ToolKeys.py (com cor #E74C3C)
-   - Novas strings RASTER_MASK_CLIPPER_TITLE ("Recortar Raster por Máscara de Feições"), SEPARATE_FEATURES ("Separar feições"), RASTER_MASK_CLIPPER_TOOLTIP em Strings_pt_BR
-   - Novo processing/RasterMaskClipper.py (BaseProcessingAlgorithm, grupo RASTER) — recorta um raster usando uma camada poligonal como máscara
-   - Modo 'Separar feições': gera um raster por feição usando o campo 'name' (quando existir) para nomear os arquivos
-   - Modo camada inteira: gera apenas um raster usando toda a camada
-   - Suporte a prefixo e sufixo personalizados na nomenclatura, com sanitização de caracteres inválidos e nomes únicos (evita colisão)
-   - Reprojeção automática do vetor para o CRS do raster quando necessário
-   - Validação de sobreposição entre raster e vetor antes do recorte
-   - Se nenhuma pasta de saída for informada, gera em pasta temporária e carrega no projeto
+   [3.4.0.13][12/08/2026] RasterMaskClipper: novo algoritmo de processamento de recorte por máscara:
+      - Novo ToolKey RASTER_MASK_CLIPPER em utils/ToolKeys.py (com cor #E74C3C)
+      - Novas strings RASTER_MASK_CLIPPER_TITLE ("Recortar Raster por Máscara de Feições"), SEPARATE_FEATURES ("Separar feições"), RASTER_MASK_CLIPPER_TOOLTIP em Strings_pt_BR
+      - Novo processing/RasterMaskClipper.py (BaseProcessingAlgorithm, grupo RASTER) — recorta um raster usando uma camada poligonal como máscara
+      - Modo 'Separar feições': gera um raster por feição usando o campo 'name' (quando existir) para nomear os arquivos
+      - Modo camada inteira: gera apenas um raster usando toda a camada
+      - Suporte a prefixo e sufixo personalizados na nomenclatura, com sanitização de caracteres inválidos e nomes únicos (evita colisão)
+      - Reprojeção automática do vetor para o CRS do raster quando necessário
+      - Validação de sobreposição entre raster e vetor antes do recorte
+      - Se nenhuma pasta de saída for informada, gera em pasta temporária e carrega no projeto
+      - Checkboxes padrão OPEN_OUTPUT_FOLDER e DISPLAY_HELP com prefs
+      - Registrado em processing/provider.py (MTLProvider.loadAlgorithms)
+      - Sem imports não utilizados (F401)
+[3.4.0.14][13/08/2026] RasterMeanAdjust: novo algoritmo de processamento de ajuste de média raster:
+   - Novo ToolKey RASTER_MEAN_ADJUST em utils/ToolKeys.py (com cor #F5B041)
+   - Novas strings RASTER_MEAN_ADJUST_TITLE ("Ajustar Média Raster"), RASTER_MEAN_ADJUST_INPUT ("Raster"), RASTER_MEAN_ADJUST_TARGET_MEAN ("Média desejada"), RASTER_MEAN_ADJUST_OUTPUT ("Saída") em Strings_pt_BR
+   - Novo processing/RasterMeanAdjust.py (BaseProcessingAlgorithm, grupo RASTER) — ajusta a média dos valores de um raster para um valor desejado
+   - Calcula fator = media_desejada / media_atual e multiplica todos os pixels válidos por esse fator (sem gdal_calc)
+   - Pixels NoData preservados; georreferenciamento, projeção e NoData do raster original mantidos na saída
+   - Processamento em blocos via GDAL/numpy com cancelamento cooperativo e progresso percentual
+   - Validação: erro se a média atual do raster for zero (impossível calcular o fator)
+   - Média desejada persistida em Preferences (chave target_mean) com valor padrão 100.0
    - Checkboxes padrão OPEN_OUTPUT_FOLDER e DISPLAY_HELP com prefs
    - Registrado em processing/provider.py (MTLProvider.loadAlgorithms)
    - Sem imports não utilizados (F401)

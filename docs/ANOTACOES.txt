@@ -40,6 +40,8 @@ ferramentas =                                   tool_key                        
     - 34: Calculadora NDRE                      NDRE_CALCULATOR                  PROCESSING                       NdreCalculator                        RASTER         Calcula índice NDRE (Red Edge) a partir de bandas NIR/Red Edge                                         3.0.0
     - 35: Calculadora GLI                       GLI_CALCULATOR                   PROCESSING                       GliCalculator                         RASTER         Calcula índice GLI (Green Leaf) a partir de bandas RGB                                                 3.0.0
     - 36: Calcular CHM (MDS - MDT)              CALCULATE_CHM                    PROCESSING                       CalculateChm                          RASTER         Calcula CHM (Canopy Height Model) = max(MDS - MDT, 0) com alinhamento de grade e NoData -9999         3.4.0.12
+    - 37: Recortar Raster por Máscara           RASTER_MASK_CLIPPER              PROCESSING                       RasterMaskClipper                     RASTER         Recorta um raster usando uma camada poligonal como máscara (por feição ou camada inteira)              3.4.0.13
+    - 38: Ajustar Média Raster                  RASTER_MEAN_ADJUST               PROCESSING                       RasterMeanAdjust                      RASTER         Ajusta a média dos valores de um raster para um valor desejado (fator = desejada/atual)                3.4.0.14
 ======= REPLACE
 
 

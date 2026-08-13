@@ -18,6 +18,7 @@ from .RgbMosaicCreator import RgbMosaicCreator
 from .RgbStyleStandardizer import RgbStyleStandardizer
 from .GliCalculator import GliCalculator
 from .CalculateChm import CalculateChm
+from .RasterMeanAdjust import RasterMeanAdjust
 from ..i18n.TranslationManager import STR
 
 
@@ -41,6 +42,7 @@ class MTLProvider(QgsProcessingProvider):
         self.addAlgorithm(RgbStyleStandardizer())
         self.addAlgorithm(GliCalculator())
         self.addAlgorithm(CalculateChm())
+        self.addAlgorithm(RasterMeanAdjust())
 
     def id(self):
         return "cadmus"

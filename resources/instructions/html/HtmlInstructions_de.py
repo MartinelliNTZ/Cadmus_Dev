@@ -157,3 +157,27 @@ class HtmlInstructions:
             Nullwerte werden ignoriert.
             {self.provider.author_info}
         """
+
+    def get_raster_mean_adjust_help(self):
+        return f"""
+            {self.provider.logo}
+            Cadmus-Werkzeug zum Anpassen des Mittelwerts der Werte eines Rasters an einen gewuenschten Zielwert.
+            {self.provider.transform_h('Ziel')}
+            Den aktuellen Mittelwert von Band 1 des Rasters berechnen.
+            Alle gueltigen Pixel mit dem Faktor Ziel/Aktuell multiplizieren.
+            NoData-Pixel, Georeferenzierung und Projektion beibehalten.
+            {self.provider.transform_h('Verwendung')}
+            1. Oeffnen Sie das Werkzeug in der Processing Toolbox (Cadmus > Raster).
+            2. Waehlen Sie das Eingabe-Raster.
+            3. Geben Sie den gewuenschten Mittelwert an (Standard: 100,0).
+            4. Definieren Sie den Ausgabepfad.
+            5. Ausfuehren.
+            {self.provider.transform_h('Ausgaben')}
+            GeoTIFF-Raster (Float32) mit angepasstem Mittelwert.
+            LZW-Kompression, TILED=YES, Statistiken und Overviews erzeugt.
+            {self.provider.transform_h('Hinweise')}
+            Wenn der aktuelle Mittelwert des Rasters null ist, kann der Faktor nicht berechnet werden (Fehler).
+            NoData-Pixel bleiben erhalten und nehmen nicht an der Anpassung teil.
+            Die Blockverarbeitung ermoeglicht kooperatives Abbrechen.
+            {self.provider.author_info}
+        """

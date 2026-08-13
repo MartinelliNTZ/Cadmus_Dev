@@ -793,7 +793,6 @@ class Strings_pt_BR:
     MDT = "Raster MDT (Modelo Digital do Terreno)"
     CHM = "Raster CHM (Modelo de Altura de Copas)"
     RASTER_MEAN_ADJUST_TITLE = "Ajustar Média Raster"
-    RASTER = "Raster"
     TARGET_MEAN = "Média desejada"
     OUTPUT = "Saída"
     GLI_CALCULATOR_TITLE = "Calculadora GLI (Green Leaf Index)"

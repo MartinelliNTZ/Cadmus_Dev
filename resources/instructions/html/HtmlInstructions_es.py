@@ -157,3 +157,27 @@ class HtmlInstructions:
             Los valores nulos se ignoran.
             {self.provider.author_info}
         """
+
+    def get_raster_mean_adjust_help(self):
+        return f"""
+            {self.provider.logo}
+            Herramienta del paquete Cadmus para ajustar la media de los valores de un raster a un valor deseado.
+            {self.provider.transform_h('Objetivo')}
+            Calcular la media actual de la banda 1 del raster.
+            Multiplicar todos los pixeles validos por el factor deseado/media_actual.
+            Preservar pixeles NoData, georreferenciacion y proyeccion.
+            {self.provider.transform_h('Como usar')}
+            1. Abra la herramienta en el Processing Toolbox (Cadmus > Raster).
+            2. Seleccione el raster de entrada.
+            3. Informe la media deseada (predeterminado: 100.0).
+            4. Defina la ruta de salida.
+            5. Ejecute.
+            {self.provider.transform_h('Salidas')}
+            Raster GeoTIFF (Float32) con la media ajustada.
+            Compresion LZW, TILED=YES, estadisticas y overviews generadas.
+            {self.provider.transform_h('Atencion')}
+            Si la media actual del raster es cero, el factor no puede calcularse (error).
+            Los pixeles NoData se conservan y no participan en el ajuste.
+            El procesamiento en bloques permite cancelacion cooperativa.
+            {self.provider.author_info}
+        """

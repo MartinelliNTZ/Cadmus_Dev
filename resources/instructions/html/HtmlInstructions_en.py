@@ -157,3 +157,27 @@ class HtmlInstructions:
             Null values are ignored.
             {self.provider.author_info}
         """
+
+    def get_raster_mean_adjust_help(self):
+        return f"""
+            {self.provider.logo}
+            Cadmus tool to adjust the mean value of a raster to a desired target.
+            {self.provider.transform_h('Objective')}
+            Calculate the current mean of band 1.
+            Multiply all valid pixels by the target/current ratio.
+            Preserve NoData pixels, georeferencing, and projection.
+            {self.provider.transform_h('How to use')}
+            1. Open the tool in the Processing Toolbox (Cadmus > Raster).
+            2. Select the input raster.
+            3. Set the desired mean (default: 100.0).
+            4. Define the output path.
+            5. Run.
+            {self.provider.transform_h('Outputs')}
+            GeoTIFF raster (Float32) with the adjusted mean.
+            LZW compression, TILED=YES, statistics and overviews generated.
+            {self.provider.transform_h('Warnings')}
+            If the current raster mean is zero, the factor cannot be calculated (error).
+            NoData pixels are preserved and do not participate in the adjustment.
+            Block processing allows cooperative cancellation.
+            {self.provider.author_info}
+        """

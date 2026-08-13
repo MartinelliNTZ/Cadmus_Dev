@@ -48,14 +48,14 @@ class RasterMeanAdjust(BaseProcessingAlgorithm):
 
         self.addParameter(
             QgsProcessingParameterRasterLayer(
-                self.INPUT, STR.RASTER_MEAN_ADJUST_INPUT
+                self.INPUT, STR.RASTER
             )
         )
 
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.TARGET_MEAN,
-                STR.RASTER_MEAN_ADJUST_TARGET_MEAN,
+                STR.TARGET_MEAN,
                 type=QgsProcessingParameterNumber.Double,
                 defaultValue=self.prefs.get("target_mean", 100.0),
             )
@@ -63,7 +63,7 @@ class RasterMeanAdjust(BaseProcessingAlgorithm):
 
         self.addParameter(
             QgsProcessingParameterRasterDestination(
-                self.OUTPUT, STR.RASTER_MEAN_ADJUST_OUTPUT
+                self.OUTPUT, STR.OUTPUT
             )
         )
 
@@ -250,5 +250,6 @@ class RasterMeanAdjust(BaseProcessingAlgorithm):
             msg = f"Erro não tratado em processAlgorithm: {e}"
             self.logger.error(msg)
             raise QgsProcessingException(msg)
+
 
 

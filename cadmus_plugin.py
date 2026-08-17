@@ -8,7 +8,7 @@ from .core.config.PluginBootstrap import PluginBootstrap
 from .core.config.ToolRegistry import ToolRegistry
 from .core.config.MenuManager import MenuManager
 
-from .core.services.MrkDropHandler import MrkDropHandler
+from .core.services.MrkDropHandler import MrkDropHandler#
 
 
 class CadmusPlugin:

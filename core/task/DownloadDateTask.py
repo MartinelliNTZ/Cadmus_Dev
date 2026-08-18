@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+
 from .BaseTask import BaseTask
 from ..api.ImageryApi import ImageryApi
 from ...utils.ExplorerUtils import ExplorerUtils
@@ -8,8 +10,9 @@ class DownloadDateTask(BaseTask):
     """Task de download/processamento das cenas de UMA data (worker thread).
 
     Lê do ExecutionContext: selected_scenes, bandas, options (clip/reproject/
-    convert/delete), epsg_out, polygon_path e bbox_wgs84. Para cada cena da
-    data, chama ``ImageryApi.process_item`` e agrega os arquivos gerados.
+    convert/delete), epsg_out, bbox_wgs84 e clip_data (do GridBBoxSelector).
+    Para cada cena da data, chama ``ImageryApi.process_item`` e agrega os
+    arquivos gerados.
     """
 
     def __init__(self, context, date: str):
@@ -45,23 +48,40 @@ class DownloadDateTask(BaseTask):
         bandas = self._context.get("bandas", []) or []
         options = self._context.get("options", {}) or {}
         clip = bool(options.get("clip", False))
-        polygon_path = self._context.get("polygon_path") or ""
         convert = bool(options.get("convert", False))
         delete_originals = bool(options.get("delete", False))
         epsg_out = self._context.get("epsg_out")
-
-        if clip and polygon_path:
-            clip_mode = "polygon"
-            clip_geom = {"polygon_path": polygon_path}
-        elif clip:
-            clip_mode = "extent"
-            clip_geom = {"extent_wgs84": self._context.get("bbox_wgs84") or []}
-        else:
-            clip_mode = None
-            clip_geom = None
-
         output_folder = self._context.get("output_folder") or \
             ExplorerUtils.get_temp_folder(self.tool_key, "imagery")
+
+        # Recorte vem do GridBBoxSelector via clip_data:
+        #   "polygon"  -> camada de polígono (polygon_path) ou polígono
+        #                 desenhado (polygon_wkt -> máscara GPKG temporária)
+        #   "extent"   -> boundary WGS84 (clip por extensão no CRS da cena)
+        clip_data = self._context.get("clip_data") or {}
+        clip_mode = None
+        clip_geom = None
+        if clip and clip_data:
+            if clip_data.get("mode") == "polygon":
+                polygon_path = clip_data.get("polygon_path") or ""
+                if polygon_path:
+                    clip_mode = "polygon"
+                    clip_geom = {"polygon_path": polygon_path}
+                elif clip_data.get("polygon_wkt"):
+                    mask_path = api.create_polygon_mask(
+                        clip_data["polygon_wkt"],
+                        os.path.join(
+                            output_folder,
+                            f"_recorte_desenhado_mask_{self._date}.gpkg",
+                        ),
+                    )
+                    clip_mode = "polygon"
+                    clip_geom = {"polygon_path": mask_path}
+            elif clip_data.get("mode") == "extent" and (
+                clip_data.get("extent_wgs84")
+            ):
+                clip_mode = "extent"
+                clip_geom = {"extent_wgs84": clip_data["extent_wgs84"]}
 
         self.logger.info(
             f"Download de {len(items)} cena(s) na data {self._date}",

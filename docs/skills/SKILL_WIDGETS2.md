@@ -1078,24 +1078,47 @@ cloud.get_value("max_cloud")  # → 50
 cloud.set_value("max_cloud", 80)
 ```
 
-### GridBBoxSelector 🆕
-Seletor de extensão para busca: **camada raster**, **camada vetorial** ou **tela (canvas)**. Canvas sempre disponível.
+### GridBBoxSelector 🆕 (reformulado — linha única)
+Seletor de extensão em **linha única**: **camada** (raster ou vetor), **tela atual** e **desenho no mapa** (polígono por cliques).
 
 ```python
-bbox = GridBBoxSelector(iface=self.iface, config={
-    "raster": {"label": STR.BBOX_RASTER},
-    "vector": {"label": STR.BBOX_VECTOR},
-    "canvas": {"label": STR.BBOX_CANVAS},
-}, title=STR.BBOX_SOURCE, parent=self)
+bbox = GridBBoxSelector(
+    iface=self.iface,
+    config={
+        "capture_label": STR.BBOX_CAPTURE_SCREEN,
+        "capture_description": STR.BBOX_CAPTURE_SCREEN_DESC,
+        "draw_label": STR.BBOX_DRAW_MAP,
+        "draw_description": STR.BBOX_DRAW_MAP_DESC,
+    },
+    title=STR.BBOX_SOURCE,
+    parent=self,
+)
 self.layout.addWidget(bbox)
 
-bbox.get_source()          # → "raster"|"vector"|"canvas"
-bbox.get_extent()          # → QgsRectangle
-bbox.get_crs()             # → QgsCoordinateReferenceSystem
-bbox.get_layer_path()      # → str (raster/vector)
-bbox.bbox_wgs84()          # → [xmin, ymin, xmax, ymax] em EPSG:4326 (p/ STAC)
-bbox.get_preferences()     # / set_preferences(prefs)
+bbox.get_input_type()          # → "drawn"|"layer"|"canvas"
+bbox.get_extent()              # → QgsRectangle (boundary)
+bbox.get_crs()                 # → QgsCoordinateReferenceSystem
+bbox.get_layer_path()          # → str (path da camada quando "layer")
+bbox.bbox_wgs84()              # → [xmin, ymin, xmax, ymax] em EPSG:4326 (p/ STAC)
+bbox.get_polygon_wkt()         # → WKT EPSG:4326 (polígono desenhado) | None
+bbox.is_polygon_clip()         # → bool (recorte por máscara aplicável)
+bbox.build_clip_data()         # → {"mode": "polygon"|"extent", ...}
+bbox.get_preferences()         # / set_preferences(prefs)
 ```
+
+**Armazenado pelo widget** (boundary + path + tipo de entrada):
+- `boundary` (QgsRectangle) + CRS da origem (canvas/camada/desenho)
+- `path` — source da camada quando origem = `"layer"`
+- `tipo` — `"drawn"` (desenhado), `"layer"` (camada), `"canvas"` (tela)
+- `geom_type` — `"raster"|"polygon"|"line"|"point"` (quando `"layer"`)
+- `polygon_wkt` — geometria do polígono desenhado em EPSG:4326 (recorte por máscara)
+
+**Regra de decisão de recorte (para a ferramenta):**
+- `tipo="drawn"` **ou** camada de polígono → clip **por polígono/máscara** (formato do polígono);
+- demais origens (ponto, linha, raster, tela) → clip **pelo boundary** (`extent_wgs84` no CRS da cena).
+  `build_clip_data()` já entrega `{"mode": "polygon", "polygon_path"|"polygon_wkt"}` ou `{"mode": "extent", "extent_wgs84": [...]}`.
+
+**Ferramenta de desenho:** item clicável no mapa adiciona vértices; botão direito ou duplo clique conclui. O widget restaura a ferramenta de mapa anterior ao finalizar/cancelar.
 
 ### SceneSelectionListWidget 🆕 (EXCEÇÃO DE GENERALISMO)
 Lista rolável de cenas com `SimpleCheckbox` + thumbnail (QPixmap) + tile · data · plataforma · % nuvens. É específico da seleção de cenas e **não** precisa ser genérico.
@@ -1387,3 +1410,11 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-08-18 | 3.5.1 | **Correção de compatibilidade Qt5/Qt6 no `SimpleSlider`:**
    - `QSlider(Qt.Horizontal)` quebrava no Qt6 (`type object 'Qt' has no attribute 'Horizontal'`)
    - Agora usa `resolve_qt_enum` de `utils/qt_compat.py` → `Qt.Orientation.Horizontal` (Qt6) com fallback `Qt.Horizontal` (Qt5)
+| 2026-08-18 | 3.6.0 | **GridBBoxSelector reformulado (linha única) + recorte pelo próprio widget:**
+   - `GridBBoxSelector` agora é de **linha única**: `QgsMapLayerComboBox` (todas as camadas) + botão **Tela** (captura canvas) + botão **Desenhar** (map tool de polígono: clique adiciona vértice; botão direito/duplo clique conclui)
+   - Armazena `boundary` (QgsRectangle + CRS), `path` (source da camada) e **tipo de entrada** (`drawn`/`layer`/`canvas`) + `geom_type` (`raster`/`polygon`/`line`/`point`) + `polygon_wkt` (EPSG:4326)
+   - API nova: `get_input_type`/`get_polygon_wkt`/`is_polygon_clip`/`is_clip_valid`/`build_clip_data` (`{"mode": "polygon"|"extent", ...}`); `get_source` mantida como compat
+   - Regra de decisão de recorte: polígono desenhado ou camada de polígono → recorte por máscara; demais origens → boundary
+   - `ImageryApi.create_polygon_mask` (GDAL/OGR sob `_GDAL_LOCK`) grava o polígono desenhado em GPKG temporário para `gdal:cliprasterbymasklayer`
+   - `DownloadDateTask` usa `clip_data` do contexto (substitui `polygon_path` + `bbox_wgs84` isolados)
+   - `ImageryDownloaderPlugin`: **removido** `GridComplexSelector` de polígono; recorte passa a vir do `GridBBoxSelector`; novas strings `BBOX_CAPTURE_SCREEN`/`BBOX_DRAW_MAP` e textos de validação atualizados |

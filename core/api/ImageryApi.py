@@ -11,6 +11,7 @@ Primeira fonte: Sentinel-2 L2A via Earth Search (Element 84).
 
 import json
 import os
+import threading
 from pathlib import Path
 from typing import Callable, Optional, Union
 
@@ -20,6 +21,10 @@ from ...utils.BaseUtil import BaseUtil
 from ...utils.ExplorerUtils import ExplorerUtils
 from ...utils.raster.RasterLayerProcessing import RasterLayerProcessing
 from ...utils.raster.RasterVectorBridge import RasterVectorBridge
+
+
+# Lock global para operações GDAL/OGR (worker-safe) — regra SKILL_UTILS 2.3.2
+_GDAL_LOCK = threading.Lock()
 
 
 class ImageryApi(BaseUtil):
@@ -434,7 +439,63 @@ class ImageryApi(BaseUtil):
             code="IMAGERY_CLIP_EXTENT_DONE",
         )
         return str(output_path)
-# ── Processamento de item (cena) ─────────────────────────────────
+
+    def create_polygon_mask(self, wkt: str, dest_path: str) -> str:
+        """Cria máscara vetorial temporária (GPKG) a partir de WKT de polígono.
+
+        O polígono é gravado em EPSG:4326 (padrão do widget GridBBoxSelector
+        quando `tipo="drawn"`). Worker-safe: usa apenas GDAL/OGR, sob o
+        `_GDAL_LOCK`, sem objetos QGIS.
+
+        Parâmetros
+        ----------
+        wkt : str
+            WKT do polígono em EPSG:4326.
+        dest_path : str
+            Caminho do GPKG de máscara a criar.
+
+        Retorna
+        -------
+        str
+            Caminho do GPKG criado.
+        """
+        from osgeo import ogr, osr
+
+        dest_path = str(dest_path)
+        parent = os.path.dirname(dest_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        if os.path.exists(dest_path):
+            ExplorerUtils.delete_file(dest_path, tool_key=self.tool_key)
+
+        with _GDAL_LOCK:
+            geometry = ogr.CreateGeometryFromWkt(wkt)
+            if geometry is None:
+                raise ValueError("WKT de polígono desenhado inválido")
+
+            driver = ogr.GetDriverByName("GPKG")
+            data_source = driver.CreateDataSource(dest_path)
+            if data_source is None:
+                raise RuntimeError(f"Falha ao criar GPKG de máscara: {dest_path}")
+            try:
+                srs = osr.SpatialReference()
+                srs.SetFromUserInput("EPSG:4326")
+                layer = data_source.CreateLayer("mask", srs, ogr.wkbPolygon)
+                feature = ogr.Feature(layer.GetLayerDefn())
+                feature.SetGeometry(geometry)
+                layer.CreateFeature(feature)
+                feature = None
+            finally:
+                data_source = None
+
+        self.logger.info(
+            "Máscara de polígono criada para recorte",
+            code="IMAGERY_MASK_CREATED",
+            path=dest_path,
+        )
+        return dest_path
+
+    # ── Processamento de item (cena) ─────────────────────────────────
 
     def process_item(
         self,

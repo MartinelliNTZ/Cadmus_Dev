@@ -423,3 +423,7 @@ if success:
    - `ParallelStep` (1 task por data) executava `gdal.Translate`/`gdal.Open`/`driver.Create` + numpy em múltiplas threads simultâneas → access violation (crash duro, sem exceção Python)
    - Novo `_GDAL_LOCK` (module-level `threading.Lock`) + método `ImageryApi._process_band_gdal()`: todo o processamento pesado de banda (clip, rename, ÷10000) roda sob o lock; downloads (rede) continuam paralelos
    - Regra: **nunca** rodar GDAL/numpy em 2 tasks paralelas do mesmo processo — serializar via lock ou centralizar no main thread
+| 2026-08-18 | 2.3.3 | **ImageryApi: máscara de polígono desenhado (`create_polygon_mask`):**
+   - Novo método `ImageryApi.create_polygon_mask(wkt, dest_path)` — grava polígono desenhado (WKT EPSG:4326 do `GridBBoxSelector`, tipo `"drawn"`) em GPKG temporário via GDAL/OGR; worker-safe, sob `_GDAL_LOCK`
+   - O GPKG gerado vira `MASK` no `gdal:cliprasterbymasklayer` (recorte pelo formato do polígono); sem objetos QGIS em thread
+   - Usado por `DownloadDateTask` quando `clip_data.mode == "polygon"` e há `polygon_wkt` (sem camada de polígono selecionada) |

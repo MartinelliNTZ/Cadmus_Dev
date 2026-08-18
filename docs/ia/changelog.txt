@@ -250,3 +250,12 @@
    - Downloads (rede/requests) continuam paralelos; apenas GDAL/numpy roda em fila — elimina a condição de corrida que derrubava o QGIS
    - SKILL_UTILS atualizada para 2.3.2; sem imports não utilizados (F401)
 
+[3.4.1.8][18/08/2026] ImageryDownloader: GridBBoxSelector reformulado (linha única) e recorte unificado:
+   - resources/widgets/grid/GridBBoxSelector.py reescrito em LINHA ÚNICA: QgsMapLayerComboBox (todas as camadas) + botão "Tela" (captura do canvas) + botão "Desenhar" (map tool de polígono no canvas; clique adiciona vértice, botão direito/duplo clique conclui; restaura a ferramenta anterior)
+   - Widget armazena boundary (QgsRectangle + CRS), path (source da camada) e TIPO DE ENTRADA: "drawn" (desenhado) | "layer" (camada: raster/polygon/line/point via geom_type) | "canvas" (tela), além de polygon_wkt (EPSG:4326) p/ recorte por máscara
+   - API nova: get_input_type/get_polygon_wkt/is_polygon_clip/is_clip_valid/build_clip_data ({"mode": "polygon"|"extent", ...}); get_source mantida como compat; get_preferences/set_preferences persistem boundary_wgs84 + path + tipo + polygon_wkt
+   - Plugin ImageryDownloaderPlugin (**removido** GridComplexSelector de polígono): recorte agora vem do próprio bbox (polígono desenhado ou camada de polígono -> clip por máscara; demais origens -> boundary)
+   - core/task/DownloadDateTask: usa clip_data do contexto — para polígono desenhado, gera máscara GPKG temporária via ImageryApi.create_polygon_mask (GDAL/OGR sob _GDAL_LOCK, worker-safe)
+   - core/api/ImageryApi: método novo create_polygon_mask(wkt, dest_path) + lock global _GDAL_LOCK (threading.Lock) para OGR
+   - Novas strings pt_BR: BBOX_CAPTURE_SCREEN, BBOX_CAPTURE_SCREEN_DESC, BBOX_DRAW_MAP, BBOX_DRAW_MAP_DESC; textos BBOX_SOURCE_DESC/CLIP_BY_POLYGON_DESC/IMAGERY_VALIDATION_EXTENT atualizados
+   - SKILL_WIDGETS2 atualizada para 3.6.0; sem imports não utilizados (F401)

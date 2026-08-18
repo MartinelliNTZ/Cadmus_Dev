@@ -323,6 +323,19 @@ class RasterLayerProcessing:
                 temp_dir = tempfile.mkdtemp(prefix="cadmus_refl_")
                 output_path = os.path.join(temp_dir, "OUTPUT_refl.tif")
 
+            output_path = str(output_path)
+            # Remove saída existente antes de criar (evita WinError 183 /
+            # "cannot create a file already exists" em re-execuções)
+            # quando o arquivo final já está no disco de um run anterior.
+            if output_path != str(raster_path) and os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except OSError as e:
+                    logger.warning(
+                        f"scale_raster_to_float32: nao foi possivel remover "
+                        f"saida existente '{output_path}': {e}"
+                    )
+
             num_bands = src_ds.RasterCount
             driver = gdal.GetDriverByName("GTiff")
             dst_ds = driver.Create(

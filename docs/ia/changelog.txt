@@ -218,3 +218,23 @@
    - Ícones renomeados para o padrão {tool_key}.ico: attribute_statistics, difference_fields, geometry_line_from_points, raster_difference_statistics, raster_optimizer
    - SKILL_PROCESSING 1.3.0; SKILL_INSTRUCTIONS_SYSTEM 1.9.0
 
+[3.4.1.4][18/08/2026] ImageryDownloader: nova ferramenta de download de imagens de satélite (Sentinel-2 L2A):
+   - plugins/ImageryDownloaderPlugin.py (BasePluginMTL, DIALOG): GridBBoxSelector (raster/vetor/tela) + GridDateSelector + GridSlider (% nuvens) + CollapsibleParametersWidget+GridCheckbox de bandas/composições pré-populado + GridComplexSelector (polígono + pasta de saída) + GridCheckbox de opções (clip/reproject/convert/delete) + GridComboBox EPSG + GridExecutionButtons
+   - core/ui/dialogs/SceneSelectionDialog.py: seleção de cenas com thumbnails assíncronas (QThread), Selecionar/Desselecionar todas, Baixar Selecionadas
+   - RF10: _can_use_parallel() → ParallelStep com 2+ datas independentes; execução sequencial com 1 data; bar_info + help documentando o modelo
+   - 2 engines: engine 1 (ImagerySearchStep/Task) busca STAC; engine 2 (DownloadDateStep/Task) baixa por data; on_success carrega camadas em grupo "Sentinel-2 {data}" via ProjectUtils/RasterLayerSource
+   - RF1: PySTACClient validada/instalada na abertura via DependenciesManager (modal confirm)
+   - RasterVectorBridge.clip_raster_by_vector implementado (gdal:cliprasterbymasklayer); RasterLayerProcessing.scale_raster_to_float32 novo (GDAL+numpy, SCL não convertida)
+   - core/api/ImageryApi.py: search_scenes/get_thumbnail/download_asset/resolve_bands/resolve_epsg/process_item (clip polígono/boundary, reprojeção condicional gdal.Warp, ÷10000, metadata.json por cena) — sem objetos QGIS
+   - Registrado no ToolRegistry (categoria RASTER, order=40, DIALOG, im.icon_by_tool_key)
+   - Instruções: resources/instructions/pt_BR/imagery_downloader_help.md (resolvido automaticamente por InstructionsManager.get(TOOL_KEY))
+   - Ícone: resolvido via im.icon_by_tool_key(ToolKey.IMAGERY_DOWNLOADER) → resources/icons/imagery_downloader.ico com fallback automático para cadmus_icon.ico
+   - SKILL_WIDGETS2 atualizada para 3.5.0 (SimpleDateEdit, GridDateSelector, SimpleSlider, GridSlider, GridBBoxSelector, SceneSelectionListWidget); SKILL_UTILS atualizada para 2.3.0 (ImageryApi + métodos raster)
+   - Sem imports não utilizados (F401)
+
+[3.4.1.5][18/08/2026] Correção de compatibilidade Qt6 no SimpleSlider:
+   - resources/widgets/simple/SimpleSlider.py usava QSlider(Qt.Horizontal) → erro "type object 'Qt' has no attribute 'Horizontal'" no Qt6 (QGIS 4)
+   - Corrigido com resolve_qt_enum(Qt, "Horizontal", "Orientation", "Horizontal") de utils/qt_compat.py (tenta Qt.Orientation.Horizontal no Qt6 e cai para Qt.Horizontal no Qt5)
+   - SKILL_WIDGETS2 atualizada para 3.5.1; sem imports não utilizados (F401)
+   - Impacto: ImageryDownloaderPlugin (GridSlider → SimpleSlider) volta a abrir no QGIS 4 / Qt6
+

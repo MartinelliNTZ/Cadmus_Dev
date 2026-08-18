@@ -108,6 +108,7 @@ Facilitar tarefas comuns e recorrentes do plugin, garantindo padronização, ras
 | 47 | **ScoreSPBJudge** | `utils/judge/ScoreSPBJudge.py` | **Julgador de pontuação SPB.** |
 | 48 | **SequentialPointBreakJudge** | `utils/judge/SequentialPointBreakJudge.py` | **Julgador Sequential Point Break.** |
 | 49 | **SimpleSPBJudge** | `utils/judge/SimpleSPBJudge.py` | **Julgador SPB simplificado.** |
+| 50 | **ImageryApi** ✨ NOVO | `core/api/ImageryApi.py` | **Cliente de catálogo STAC (Sentinel-2 L2A) e download de imagens de satélite.** Roda em thread de trabalho, **sem objetos QGIS** (apenas paths/geometrias). Métodos: `get_source_config`, `search_scenes` (bbox/datas/% nuvens), `get_thumbnail`, `download_asset`, `resolve_bands`, `resolve_epsg`, `process_item` (clip polígono/boundary, reprojeção condicional, ÷10000, metadata). Usado por `ImageryDownloaderPlugin`. |
 
 ---
 
@@ -409,3 +410,8 @@ if success:
 | 2026-06-08 | 2.0.0 | **Refatoração arquitetural**: removidos `os.rename` e `zipfile.ZipFile` de PathExtensionTask. Criado `FileCompressUtils` (compressão/extração). Adicionados `rename_file`, `remove_extension_dot`, `restore_extension_dot` ao `ExplorerUtils`. SKILL enriquecida com todas as 48 classes do diretório utils. |
 | 2026-07-11 | 2.1.0 | **Novo utilitário ImageUtils**: classe para conversão de imagens para base64 com data URI. Métodos: `photo_to_base64`, `base64_to_bytes`. Adicionada entrada #28 na tabela de classes. |
 | 2026-07-21 | 2.2.0 | **Novo módulo qt_compat**: compatibilidade Qt5/Qt6. Resolução de enums via try/except (WindowModality, WindowType, WidgetAttribute, AlignmentFlag, QFrame). Adicionado `resolve_qt_window_modality()` usado em ProgressDialog. Adicionada entrada #50 na tabela de classes. |
+| 2026-08-18 | 2.3.0 | **ImageryDownloader — ImageryApi + métodos raster implementados:**
+   - Adicionada entrada #50: `core/api/ImageryApi.py` — cliente STAC (Sentinel-2 L2A) e download; roda em thread sem objetos QGIS
+   - `RasterVectorBridge.clip_raster_by_vector` **implementado** (hoje stub) via `processing.run("gdal:cliprasterbymasklayer")` com paths (worker-safe)
+   - Novo `RasterLayerProcessing.scale_raster_to_float32` (GDAL + numpy) — converte uint16/uint8/uint32 → float32 ÷10000; banda SCL não convertida; float32 passa direto
+   - `ImageryApi.process_item` usa esses métodos para clip polígono/boundary, reprojeção condicional (`gdal.Warp`) e ÷10000 |

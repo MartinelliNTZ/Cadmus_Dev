@@ -1047,6 +1047,62 @@ Quando o output selector tem `allow_folder=True` e `allow_file=False`, o `_gener
 
 **Regra:** folder mode ignora `suffix`, `fixed_name` e `fixed_extension` — somente usa `subfolder`.
 
+### GridDateSelector 🆕
+Container de N datas (`SimpleDateEdit` + `SimpleLabel`), padrão dict. Reaproveitável em qualquer ferramenta com período.
+
+```python
+dates = GridDateSelector(config={
+    "start": {"label": STR.START_DATE, "date": "2026-01-01"},
+    "end":   {"label": STR.END_DATE,   "date": "2026-12-31"},
+}, title="Período", parent=self)
+self.layout.addWidget(dates)
+
+dates.get_date("start")      # → QDate
+dates.get_date_str("start")  # → "yyyy-MM-dd"
+dates.set_date("start", q)
+dates.get_dates()            # → {"start": QDate, "end": QDate}
+dates.get_dates_str()        # → {"start": "2026-01-01", ...}
+```
+
+### SimpleSlider 🆕
+`QSlider` horizontal com `SimpleLabel` exibindo o valor. Uso INTERNO por `GridSlider`.
+
+### GridSlider 🆕
+Container de N sliders configuráveis (padrão dict):
+```python
+cloud = GridSlider(config={
+    "max_cloud": {"label": STR.CLOUD_MAX, "value": 50, "min": 0, "max": 100,
+                  "suffix": "%", "onchange": self.on_cloud_changed},
+}, parent=self)
+cloud.get_value("max_cloud")  # → 50
+cloud.set_value("max_cloud", 80)
+```
+
+### GridBBoxSelector 🆕
+Seletor de extensão para busca: **camada raster**, **camada vetorial** ou **tela (canvas)**. Canvas sempre disponível.
+
+```python
+bbox = GridBBoxSelector(iface=self.iface, config={
+    "raster": {"label": STR.BBOX_RASTER},
+    "vector": {"label": STR.BBOX_VECTOR},
+    "canvas": {"label": STR.BBOX_CANVAS},
+}, title=STR.BBOX_SOURCE, parent=self)
+self.layout.addWidget(bbox)
+
+bbox.get_source()          # → "raster"|"vector"|"canvas"
+bbox.get_extent()          # → QgsRectangle
+bbox.get_crs()             # → QgsCoordinateReferenceSystem
+bbox.get_layer_path()      # → str (raster/vector)
+bbox.bbox_wgs84()          # → [xmin, ymin, xmax, ymax] em EPSG:4326 (p/ STAC)
+bbox.get_preferences()     # / set_preferences(prefs)
+```
+
+### SceneSelectionListWidget 🆕 (EXCEÇÃO DE GENERALISMO)
+Lista rolável de cenas com `SimpleCheckbox` + thumbnail (QPixmap) + tile · data · plataforma · % nuvens. É específico da seleção de cenas e **não** precisa ser genérico.
+
+- API: `set_scenes(list[dict])`, `set_thumbnail(scene_id, bytes)`, `get_selected_scenes() → list[dict]`, `select_all()`, `deselect_all()`.
+- Thumbnails carregadas assincronamente (placeholder "sem thumbnail" em falha). Usado por `SceneSelectionDialog` (ImageryDownloader).
+
 ## 📌 CONTRATO RÍGIDO
 
 ### ✅ FAZER:
@@ -1319,4 +1375,15 @@ border: 1px solid {theme.COLOR_BORDER};
    - Criado `ListSelectionDialog` (`core/ui/dialogs/`) — diálogo genérico de seleção de itens com checkboxes. Substitui o `LayoutsSelectionDialog` específico. Parâmetros: `items` (dict), `title`, `hint`, `tool_key` (obrigatório), `icon_path`, `parent`. API: `get_selected_items()`.
    - `GridExecutionButtons` ganhou `update_button_label(key, text)` — atualiza texto de um botão do config pelo identificador. Ex: contador de seleção no RasterSampler.
    - `ExportAllLayoutsPlugin` migrado para `ListSelectionDialog` (seleção de layouts via dict de itens).
-   - `RasterSamplerDialog` migrado para `ListSelectionDialog` — botão "Rasters para amostragem (N)" abre a dialog genérica; seleção continua persistida via Preferences (`selected_rasters`) |</content>
+   - `RasterSamplerDialog` migrado para `ListSelectionDialog` — botão "Rasters para amostragem (N)" abre a dialog genérica; seleção continua persistida via Preferences (`selected_rasters`) |
+| 2026-08-18 | 3.5.0 | **ImageryDownloader — novos widgets genéricos + 1 exceção:**
+   - `SimpleDateEdit` (simple) — QDateEdit + `AppStyles.input()` + calendar popup, formato `yyyy-MM-dd`
+   - `GridDateSelector` (grid) — container de N datas via dict; API `get_date`/`get_date_str`/`set_date`/`get_dates`/`get_dates_str`/`set_dates`
+   - `SimpleSlider` (simple) — QSlider horizontal + SimpleLabel com valor e sufixo
+   - `GridSlider` (grid) — container de N sliders via dict; API `get_value`/`set_value`/`get_all_values`/`set_values`
+   - `GridBBoxSelector` (grid) — extent raster/vetor/**tela** com `QgsMapLayerComboBox` + `QgsRubberBand`; API `get_source`/`get_extent`/`get_crs`/`get_layer_path`/`bbox_wgs84`/`get_preferences`/`set_preferences`
+   - `SceneSelectionListWidget` (raiz) — **exceção de generalismo**: lista de cenas com checkbox + thumbnail; API `set_scenes`/`set_thumbnail`/`get_selected_scenes`/`select_all`/`deselect_all`
+   - `ImageryDownloaderPlugin` (RASTER) usa todos: bbox + datas + slider + bandas/composições + polígono + opções + EPSG + pasta saída |</content>
+| 2026-08-18 | 3.5.1 | **Correção de compatibilidade Qt5/Qt6 no `SimpleSlider`:**
+   - `QSlider(Qt.Horizontal)` quebrava no Qt6 (`type object 'Qt' has no attribute 'Horizontal'`)
+   - Agora usa `resolve_qt_enum` de `utils/qt_compat.py` → `Qt.Orientation.Horizontal` (Qt6) com fallback `Qt.Horizontal` (Qt5)

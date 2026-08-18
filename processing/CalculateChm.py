@@ -43,10 +43,8 @@ class CalculateChm(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.CALCULATE_CHM
-    ALGORITHM_NAME = "calculate_chm"
     ALGORITHM_DISPLAY_NAME = STR.CALCULATE_CHM_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    INSTRUCTIONS_FILE = "calculate_chm.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="CalculateChm", level="DEBUG")
 
     INPUT_MDS = "INPUT_MDS"

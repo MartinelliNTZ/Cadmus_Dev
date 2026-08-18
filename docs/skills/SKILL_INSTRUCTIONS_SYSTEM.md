@@ -190,8 +190,8 @@ HtmlInstructionsProvider
 ├── _load_module(suffix) → módulo Python dinâmico
 ├── _load_instructions() → instância de HtmlInstructions
 │
-├── get_instructions(algorithm_name) → str HTML
-│   ├── Concatena: "get_<algorithm_name>_help"
+├── get_instructions(tool_key) → str HTML
+│   ├── Concatena: "get_<tool_key>_help"
 │   ├── Chama método no módulo carregado
 │   └── Fallback: "Instruções não disponíveis"
 │
@@ -244,8 +244,8 @@ class HtmlInstructions:
 ### Como criar instruções HTML para um novo algoritmo
 
 1. Abrir o módulo do locale desejado (ex: `HtmlInstructions_pt_BR.py`)
-2. Adicionar um método `get_<algorithm_name>_help(self)` seguindo o padrão
-3. O nome do método deve corresponder exatamente ao `algorithm_name` passado em `get_instructions(algorithm_name)`
+2. Adicionar um método `get_<tool_key>_help(self)` seguindo o padrão
+3. O nome do método deve corresponder exatamente ao `tool_key` passado em `get_instructions(tool_key)`
 4. Usar `self.provider.transform_h()`, `self.provider.transform_alert()`, `self.provider.logo` e `self.provider.author_info`
 
 ### Exemplo real de método de instrução HTML
@@ -304,7 +304,7 @@ Algoritmo de processing chama get_instructions()
 - Usar `InstructionsManager.get(tool_key)` para resolver caminhos, nunca hardcoded
 - Usar `self.provider.transform_h()` e `self.provider.transform_alert()` nos métodos HTML
 - Incluir `self.provider.logo` e `self.provider.author_info` em toda instrução HTML
-- Nomear métodos HTML como `get_<algorithm_name>_help` (underscores, não hífens)
+- Nomear métodos HTML como `get_<tool_key>_help` (underscores, não hífens)
 - Manter o locale pt_BR como fallback universal
 - Usar acentos removidos nos arquivos .md (padrão do projeto)
 
@@ -369,7 +369,7 @@ class HtmlInstructions:
 ## Casos de Uso
 
 - Quando um novo plugin é criado → criar `resources/instructions/pt_BR/<tool_key>_help.md` seguindo o padrão markdown (com metadados)
-- Quando um novo algoritmo de processing é criado → adicionar método `get_<algorithm_name>_help` em `HtmlInstructions_<locale>.py`
+- Quando um novo algoritmo de processing é criado → adicionar método `get_<tool_key>_help` em `HtmlInstructions_<locale>.py`
 - Quando um locale novo é adicionado → criar `HtmlInstructions_<locale>.py` com todos os métodos existentes
 - Quando o conteúdo de ajuda precisa ser atualizado → editar o arquivo .md ou o método HTML correspondente, **atualizando a `Data da ultima modificacao`**
 - Quando a ferramenta muda de comportamento → atualizar os arquivos .md em todos os locales existentes (`pt_BR`, `en`, `es`, `de`, `ja`), **atualizando a `Data da ultima modificacao` de cada um**
@@ -422,3 +422,5 @@ class HtmlInstructions:
 | 2026-08-10 | 1.5.0 | Novas instruções do ReportMetadata (report_metadata_help.md) em pt_BR, en, es, de, ja — lidos: plugins/ReportMetadataPlugin.py, utils/ToolKeys.py |
 | 2026-08-10 | 1.6.0 | Instruções do Settings (settings_help.md) atualizadas com metadados obrigatórios e conteúdo refletindo o comportamento real do SettingsPlugin (pasta de projetos, SRC padrão, idioma, sufixos de área, categorias da toolbar, salvamento em SYSTEM/VECTOR_FIELDS/settings) — lidos: plugins/SettingsPlugin.py, plugins/BasePlugin.py, resources/InstructionsManager.py, utils/ToolKeys.py |
 | 2026-08-10 | 1.7.0 | Instruções do Settings (settings_help.md) atualizadas em todos os 4 idiomas (en, es, de, ja) com metadados obrigatórios e conteúdo refletindo o comportamento real do SettingsPlugin — novo arquivo ja/settings_help.md criado |
+| 2026-08-18 | 1.8.0 | `HtmlInstructionsProvider.get_instructions` agora resolve por tool_key (`get_<tool_key>_help`) com fallback `LEGACY_METHOD_SUFFIX` para tool_keys legadas divergentes (difference_fields_algorithm, geometry_line_from_points, raster_diference_statistics). |
+| 2026-08-18 | 1.9.0 | Removido o fallback legado `LEGACY_METHOD_SUFFIX` do `HtmlInstructionsProvider`. Resolução 100% por tool_key: método `get_<tool_key>_help` deve existir em todos os locales; tool_keys padronizadas e métodos renomeados (`get_geometry_line_from_points_help`). |

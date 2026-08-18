@@ -35,10 +35,8 @@ class RasterMaskClipper(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.RASTER_MASK_CLIPPER
-    ALGORITHM_NAME = "raster_mask_clipper"
     ALGORITHM_DISPLAY_NAME = STR.RASTER_MASK_CLIPPER_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    INSTRUCTIONS_FILE = "raster_mask_clipper.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="RasterMaskClipper", level="DEBUG")
 
     INPUT_RASTER = "INPUT_RASTER"

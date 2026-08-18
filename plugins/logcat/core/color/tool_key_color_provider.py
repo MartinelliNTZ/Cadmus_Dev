@@ -30,7 +30,7 @@ class ToolKeyColorProvider:
         "copy_attributes": "#DDA0DD",
         # === Processing / análises ===
         "attribute_statistics": "#F7DC6F",
-        "difference_fields_algorithm": "#BB8FCE",
+        "difference_fields": "#BB8FCE",
         "my_algorithm": "#98D8C8",
         "provider": "#BFC9CA",
         "raster_mass_sampler": "#F1948A",

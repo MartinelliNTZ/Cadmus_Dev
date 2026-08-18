@@ -28,11 +28,8 @@ class NdviCalculator(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.NDVI_CALCULATOR
-    ALGORITHM_NAME = "ndvi_calculator"
     ALGORITHM_DISPLAY_NAME = STR.NDVI_CALCULATOR_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "cadmus_icon.ico"
-    INSTRUCTIONS_FILE = "ndvi_calculator.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="NdviCalculator", level="DEBUG")
 
     INPUT_NIR = "INPUT_NIR"

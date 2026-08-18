@@ -57,13 +57,21 @@ class HtmlInstructionsProvider:
             module = self._load_module("pt_BR")
             return module.HtmlInstructions(self)
 
-    def get_instructions(self, algorithm_name: str) -> str:
-        method_name = f"get_{algorithm_name}_help"
-        if hasattr(self.instructions, method_name):
-            method = getattr(self.instructions, method_name)
+    def get_instructions(self, tool_key: str) -> str:
+        """
+        Retorna as instruções HTML do algoritmo resolvido pela tool_key.
+
+        Busca o método `get_<tool_key>_help` no módulo do locale carregado.
+        Se nenhum método for encontrado, retorna mensagem genérica.
+        """
+        method_name = f"get_{tool_key}_help"
+        method = getattr(self.instructions, method_name, None)
+        if method is not None:
             self.logger.debug(f"Encontrado método de instruções: {method_name}")
             return method()
-        self.logger.warning(f"Método de instruções não encontrado: {method_name}")
+        self.logger.warning(
+            f"Método de instruções não encontrado para tool_key: {tool_key}"
+        )
         return "Instruções não disponíveis para este algoritmo."
 
     def transform_h(self, text="", level=2):

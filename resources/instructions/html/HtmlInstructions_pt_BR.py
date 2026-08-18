@@ -71,7 +71,7 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
-    def get_geometry_difference_line_help(self):
+    def get_geometry_line_from_points_help(self):
         return f"""
             {self.provider.logo}
             Ferramenta do pacote Cadmus para criação de linhas entre pontos com cálculo de distância.

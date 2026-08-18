@@ -20,11 +20,9 @@ from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
 class RasterDifferenceStatiscs(BaseProcessingAlgorithm):
-    TOOL_KEY = ToolKey.RASTER_MASS_CLIPPER
-    ALGORITHM_NAME = "raster_difference_statistics"
+    TOOL_KEY = ToolKey.RASTER_DIFERENCE_STATISTICS
     ALGORITHM_DISPLAY_NAME = STR.RASTER_DIFFERENCE_STATISTICS_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "raster_diference_statistics.ico"
     logger = LogUtils(
         tool="raster_diff_task", class_name="RasterDiffTask", level="DEBUG"
     )

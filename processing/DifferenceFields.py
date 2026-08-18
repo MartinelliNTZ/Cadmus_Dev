@@ -16,18 +16,14 @@ from qgis.core import (
 
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
-from ..resources.IconManager import IconManager as im
 from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
 class DifferenceFieldsAlgorithm(BaseProcessingAlgorithm):
     TOOL_KEY = ToolKey.DIFFERENCE_FIELDS
-    ALGORITHM_NAME = "difference_fields"
     ALGORITHM_DISPLAY_NAME = STR.DIFFERENCE_FIELDS_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_ESTATISTICA
-    ICON = im.FIELD_DIFFERENCE
-    INSTRUCTIONS_FILE = "difference_fields.html"
     logger = LogUtils(
         tool=TOOL_KEY, class_name="DifferenceFieldsAlgorithm", level="DEBUG"
     )

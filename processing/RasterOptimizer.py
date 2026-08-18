@@ -17,7 +17,6 @@ from qgis.core import (
 
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
-from ..resources.IconManager import IconManager as im
 from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
@@ -141,12 +140,9 @@ def _run_gdaladdo(cmd, raster_path, feedback_queue):
 class RasterOptimizer(BaseProcessingAlgorithm):
 
     TOOL_KEY = ToolKey.RASTER_OPTIMIZER
-    ALGORITHM_NAME = "raster_optimizer"
     ALGORITHM_DISPLAY_NAME = STR.RASTER_OPTIMIZER_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    INSTRUCTIONS_FILE = "raster_optimizer.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="RasterOptimizer", level="DEBUG")
-    ICON = im.RASTER_OPTIMIZER
 
     # Parameter names
     INPUT_RASTERS = "INPUT_RASTERS"

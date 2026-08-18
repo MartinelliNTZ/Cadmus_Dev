@@ -28,10 +28,8 @@ class RasterMeanAdjust(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.RASTER_MEAN_ADJUST
-    ALGORITHM_NAME = "raster_mean_adjust"
     ALGORITHM_DISPLAY_NAME = STR.RASTER_MEAN_ADJUST_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    INSTRUCTIONS_FILE = "raster_mean_adjust.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="RasterMeanAdjust", level="DEBUG")
 
     INPUT = "INPUT"

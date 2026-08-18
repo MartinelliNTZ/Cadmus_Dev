@@ -70,7 +70,7 @@ class HtmlInstructions:
             {self.provider.author_info}
         """
 
-    def get_geometry_difference_line_help(self):
+    def get_geometry_line_from_points_help(self):
         return f"""
             {self.provider.logo}
             Cadmus tool for creating lines between points and calculating distances.

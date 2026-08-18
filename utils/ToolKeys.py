@@ -34,7 +34,7 @@ class ToolKey:
     # model3 / panel tool
     # processing/
     ATTRIBUTE_STATISTICS = "attribute_statistics"
-    DIFFERENCE_FIELDS = "difference_fields_algorithm"
+    DIFFERENCE_FIELDS = "difference_fields"
     MY_ALGORITHM = "my_algorithm"
     PROVIDER = "provider"
     RASTER_MASS_SAMPLER = "raster_mass_sampler"
@@ -42,7 +42,7 @@ class ToolKey:
     RASTER_MASS_CLIPPER = "raster_mass_clipper"
     RASTER_MASK_CLIPPER = "raster_mask_clipper"
     GEOMETRY_LINE_FROM_POINTS = "geometry_line_from_points"
-    RASTER_DIFERENCE_STATISTICS = "raster_diference_statistics"
+    RASTER_DIFERENCE_STATISTICS = "raster_difference_statistics"
     RASTER_WEIGHTED_AVERAGE = "raster_weighted_average"
     GRID_GENERATOR = "grid_generator"
     NDVI_CALCULATOR = "ndvi_calculator"

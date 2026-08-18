@@ -12,17 +12,14 @@ import processing
 
 from ..core.config.LogUtils import LogUtils
 from ..i18n.TranslationManager import STR
-from ..resources.IconManager import IconManager as im
 from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 
 
 class GridGenerator(BaseProcessingAlgorithm):
     TOOL_KEY = ToolKey.GRID_GENERATOR
-    ALGORITHM_NAME = "grid_generator"
     ALGORITHM_DISPLAY_NAME = STR.GRID_GENERATOR_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_VETORIAL
-    ICON = im.GRID_GENERATOR
     INPUT_LAYER = "INPUT_LAYER"
     HORIZONTAL_SPACING = "HORIZONTAL_SPACING"
     VERTICAL_SPACING = "VERTICAL_SPACING"

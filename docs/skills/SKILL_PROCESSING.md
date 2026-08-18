@@ -47,21 +47,19 @@ Permitir que qualquer nova ferramenta de processamento siga um padrão robusto, 
 ### Fase 1 — Definição de Metadados e Classe Base
 
 - Definir `TOOL_KEY` único em ToolKeys.py
-- Definir `ALGORITHM_NAME`, `ALGORITHM_DISPLAY_NAME`, `ALGORITHM_GROUP`, `ICON`, `INSTRUCTIONS_FILE`
+- Definir `ALGORITHM_DISPLAY_NAME` e `ALGORITHM_GROUP` — `name()`, ícone e instruções são resolvidos pela `TOOL_KEY`
 - Sempre usar STR para labels, mas adicionar variáveis apenas em Strings_pt_BR
-- Configurar ícone com `cadmus_icon.ico` ou específico
 - Herdar de `BaseProcessingAlgorithm`, que provê:
   - Métodos para carregar/salvar preferências (`load_preferences`, `save_preferences`)
-  - Configuração automática de ícone e instruções
+  - Resolução automática de nome, ícone e instruções via `TOOL_KEY`
   - Métodos utilitários para abrir pasta de saída, criar instância, etc.
 
 ```python
 class MyAlgorithm(BaseProcessingAlgorithm):
     TOOL_KEY = ToolKey.MY_ALGORITHM
-    ALGORITHM_NAME = "my_algorithm"
     ALGORITHM_DISPLAY_NAME = STR.MY_ALGORITHM_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "cadmus_icon.ico"
+    # name(), ícone e instruções são resolvidos automaticamente pela TOOL_KEY
 
 ```
 
@@ -166,11 +164,8 @@ from ..i18n.TranslationManager import STR
 
 class MyAlgorithm(BaseProcessingAlgorithm):
     TOOL_KEY = ToolKey.MY_ALGORITHM
-    ALGORITHM_NAME = "my_algorithm"
     ALGORITHM_DISPLAY_NAME = STR.MY_ALGORITHM_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "cadmus_icon.ico"
-    INSTRUCTIONS_FILE = "my_algorithm.html"
 
     def initAlgorithm(self, config=None):
         self.load_preferences()
@@ -197,11 +192,12 @@ class MyAlgorithm(BaseProcessingAlgorithm):
 
 | Módulo | Caminho | Responsabilidade |
 |--------|---------|-----------------|
-| BaseProcessingAlgorithm | processing/BaseProcessingAlgorithm.py | Classe base, carrega/salva prefs, configura ícone/instruções |
+| BaseProcessingAlgorithm | processing/BaseProcessingAlgorithm.py | Classe base, carrega/salva prefs, resolve nome/ícone/instruções por tool_key |
+| HtmlInstructionsProvider | resources/HtmlInstructionsProvider.py | Resolve instruções HTML por tool_key (`get_<tool_key>_help` + `LEGACY_METHOD_SUFFIX`) |
 | Preferences | utils/Preferences.py | Gerencia prefs por tool_key |
 | ToolKeys | utils/ToolKeys.py | Enum de tool_keys únicos |
 | STR | i18n/TranslationManager.py | Centraliza labels, usa Strings_pt_BR |
-| IconManager | resources/IconManager.py | Resolve caminho do ícone |
+| IconManager | resources/IconManager.py | Resolve caminho do ícone por tool_key |
 
 ---
 
@@ -216,11 +212,8 @@ from ..i18n.TranslationManager import STR
 
 class MyAlgorithm(BaseProcessingAlgorithm):
     TOOL_KEY = ToolKey.MY_ALGORITHM
-    ALGORITHM_NAME = "my_algorithm"
     ALGORITHM_DISPLAY_NAME = STR.MY_ALGORITHM_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "cadmus_icon.ico"
-    INSTRUCTIONS_FILE = "my_algorithm.html"
 
     def initAlgorithm(self, config=None):
         self.load_preferences()
@@ -267,39 +260,31 @@ class MyAlgorithm(BaseProcessingAlgorithm):
 
 ---
 
-## Sistema de Ícones — Novo Padrão (tool_key)
+## Sistema de Resolução por tool_key — Nome, Instruções e Ícone
 
-A partir desta versão, o ícone de um algoritmo **não precisa mais ser declarado** pelo filho.
+Um algoritmo declara **apenas** `TOOL_KEY` (além de `ALGORITHM_DISPLAY_NAME`
+e `ALGORITHM_GROUP`) e a base resolve automaticamente `name()`, instruções
+HTML e ícone. Não há modo legado: tudo é resolvido pela tool_key.
 
 ### Como funciona
 
-1. O filho define apenas `TOOL_KEY` (ex: `ToolKey.GLI_CALCULATOR`).
-2. `BaseProcessingAlgorithm.icon()` chama `IconManager.icon_by_tool_key(TOOL_KEY)`.
-3. O `IconManager` procura por `{tool_key}.ico` na pasta `resources/icons/`.
-4. Se o arquivo existir, retorna o ícone; se não, retorna `cadmus_icon.ico` como fallback.
+1. O filho define `TOOL_KEY` (ex: `ToolKey.GLI_CALCULATOR`).
+2. `BaseProcessingAlgorithm._resolve_name()` retorna o valor da `TOOL_KEY`.
+3. `name()` e `shortHelpString()` usam essa resolução.
+4. `HtmlInstructionsProvider.get_instructions(tool_key)` busca o método
+   `get_<tool_key>_help` no módulo `HtmlInstructions_<locale>.py`.
+5. `BaseProcessingAlgorithm.icon()` chama `IconManager.icon_by_tool_key(TOOL_KEY)`:
+   procura `{tool_key}.ico` em `resources/icons/`; se não existir, usa
+   `cadmus_icon.ico` como fallback.
 
-### Compatibilidade (modo legado)
-
-- Se o filho declarar `ICON` com valor **diferente** de `DEFAULT_ICON` (`"cadmus_icon.ico"`), o `ICON` declarado tem prioridade.
-- Remover `ICON` (ou deixar igual a `DEFAULT_ICON`) ativa o novo modo automático por tool_key.
-
-### Exemplo — Novo modo (recomendado)
+### Exemplo
 
 ```python
 class MyAlgorithm(BaseProcessingAlgorithm):
     TOOL_KEY = ToolKey.MY_ALGORITHM
-    ALGORITHM_NAME = "my_algorithm"
     ALGORITHM_DISPLAY_NAME = STR.MY_ALGORITHM_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    # ICON não precisa ser declarado — resolvedor por tool_key
-```
-
-### Exemplo — Modo legado (compatibilidade)
-
-```python
-class MyAlgorithm(BaseProcessingAlgorithm):
-    TOOL_KEY = ToolKey.MY_ALGORITHM
-    ICON = "icone_especial.ico"  # tem prioridade sobre tool_key
+    # name(), instruções e ícone resolvidos automaticamente pela TOOL_KEY
 ```
 
 ---
@@ -310,3 +295,5 @@ class MyAlgorithm(BaseProcessingAlgorithm):
 |------|--------|-----------|
 | 2026-04-20 | 1.0.0 | Criação via SKILL_FACTORY — lidos: provider.py, RasterMassClipper.py, RasterMassSampler.py, BaseProcessingAlgorithm.py, Preferences.py, ToolKeys.py, Strings_pt_BR.py, IconManager.py |
 | 2026-07-31 | 1.1.0 | Novo padrão de ícone via tool_key: `BaseProcessingAlgorithm.icon()` resolve por `IconManager.icon_by_tool_key(TOOL_KEY)` com fallback para `cadmus_icon.ico`; `ICON` declarado com valor diferente de `DEFAULT_ICON` mantém prioridade (compatibilidade). Adicionados `icon_by_tool_key` e `icon_path_by_tool_key` ao `IconManager`. |
+| 2026-08-18 | 1.2.0 | Resolução completa por tool_key: `_resolve_name()` deriva `name()` do valor da `TOOL_KEY` (com `ALGORITHM_NAME` legado com prioridade); `shortHelpString()` resolve instruções via `HtmlInstructionsProvider.get_instructions(tool_key)`; adicionado `LEGACY_METHOD_SUFFIX` no provider para tool_keys legadas divergentes; `RasterDifferenceStatiscs` corrigido para `ToolKey.RASTER_DIFERENCE_STATISTICS`. |
+| 2026-08-18 | 1.3.0 | Removido todo o modo legado: eliminado `LEGACY_METHOD_SUFFIX` do `HtmlInstructionsProvider`; `ALGORITHM_NAME`/`ICON`/`INSTRUCTIONS_FILE` removidos de todos os filhos e da base; tool_keys padronizadas (`DIFFERENCE_FIELDS` → `difference_fields`, `RASTER_DIFERENCE_STATISTICS` → `raster_difference_statistics`); método HTML de GeometryLineFromPoints renomeado para `get_geometry_line_from_points_help`; ícones renomeados para `{tool_key}.ico`. |

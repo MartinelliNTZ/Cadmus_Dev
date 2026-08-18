@@ -29,11 +29,8 @@ class NdreCalculator(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.NDRE_CALCULATOR
-    ALGORITHM_NAME = "ndre_calculator"
     ALGORITHM_DISPLAY_NAME = STR.NDRE_CALCULATOR_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "cadmus_icon.ico"
-    INSTRUCTIONS_FILE = "ndre_calculator.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="NdreCalculator", level="DEBUG")
 
     INPUT_NIR = "INPUT_NIR"

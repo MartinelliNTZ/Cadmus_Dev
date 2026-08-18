@@ -18,9 +18,9 @@ Desenvolvido pela **[MTL Agro]**, reúne soluções profissionais para **exporta
 | ![Load](resources/icons/load_folder.ico) | **Carregar Pasta de Arquivos** | Carregamento recursivo de vetores/rasters com preservação de grupos |
 | ![Trail](resources/icons/gerar_rastro.ico) | **Gerar Rastro de Implemento** | Gera faixas de cobertura agrícola a partir de linhas |
 | ![Coord](resources/icons/coord.ico) | **Consulta de Coordenadas** | Clique no mapa: WGS84 (dec/DMS), UTM SIRGAS2000 + altimetria SRTM |
-| ![Stats](resources/icons/attribute_stats.ico) | **Estatísticas de Atributos** | Estatísticas descritivas de campos numéricos → CSV |
-| ![Fields](resources/icons/field_diference.ico) | **Gerador de Diferenças** | Campos com diferenças numéricas automáticas |
-| ![Raster](resources/icons/raster_mass.ico) | **Amostragem Massiva de Rasters** | Extrai valores de múltiplos rasters em pontos |
+| ![Stats](resources/icons/attribute_statistics.ico) | **Estatísticas de Atributos** | Estatísticas descritivas de campos numéricos → CSV |
+| ![Fields](resources/icons/difference_fields.ico) | **Gerador de Diferenças** | Campos com diferenças numéricas automáticas |
+| ![Raster](resources/icons/raster_mass_sampler.ico) | **Amostragem Massiva de Rasters** | Extrai valores de múltiplos rasters em pontos |
 | ![Drone](resources/icons/drone_cordinates.ico) | **Coordenadas de Drone** | Processa arquivos MRK → camada vetorial |
 | ![Copy](resources/icons/copy_attributes.ico) | **Copiar Atributos** | Transferência seletiva de atributos entre camadas |
 | ![Multipart](resources/icons/vector_multpart.ico) | **Converter Multipart** | Separa geometrias multipart em singlepart |

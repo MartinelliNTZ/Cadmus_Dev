@@ -2,7 +2,7 @@
 import os
 
 from qgis.PyQt.QtCore import QUrl
-from qgis.PyQt.QtGui import QDesktopServices, QIcon
+from qgis.PyQt.QtGui import QDesktopServices
 from qgis.core import QgsProcessingAlgorithm
 
 import processing
@@ -32,13 +32,9 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     GROUP_RASTER = GroupProcessing(id="raster", name=STR.RASTER)
     GROUP_VETORIAL = GroupProcessing(id="vetorial", name=STR.VECTOR)
     prefs = {}  # para armazenar preferências carregadas
-    INSTRUCTIONS_FILE = None
     TOOL_KEY = None
-    ALGORITHM_NAME = None
     ALGORITHM_DISPLAY_NAME = None
     ALGORITHM_GROUP = GROUP_VETORIAL
-    DEFAULT_ICON = "cadmus_icon.ico"
-    ICON = DEFAULT_ICON
 
     # Constantes comuns de parâmetros booleano (reutilizáveis entre algoritmos)
     PARAM_OPEN_OUTPUT_FOLDER = "OPEN_OUTPUT_FOLDER"
@@ -46,39 +42,44 @@ class BaseProcessingAlgorithm(QgsProcessingAlgorithm):
     PARAM_OPEN_OUTPUT_FOLDER_LABEL = STR.OPEN_OUTPUT_FOLDER
     PARAM_DISPLAY_HELP_LABEL = STR.DISPLAY_HELP_FIELD
 
+    def _resolve_name(self):
+        """
+        Resolve o nome do algoritmo a partir da TOOL_KEY.
+
+        O filho declara apenas TOOL_KEY e o nome é o próprio valor da
+        tool_key (single source of truth).
+        """
+        if self.TOOL_KEY:
+            return self.TOOL_KEY
+        raise NotImplementedError("Algoritmo precisa definir TOOL_KEY.")
+
     def shortHelpString(self):
-        if self.prefs.get("display_help", True):  # self.INSTRUCTIONS_FILE:
+        """
+        Retorna as instruções HTML resolvidas pela TOOL_KEY.
+
+        Se `display_help` estiver ativo nas preferências, resolve o método
+        `get_<tool_key>_help` via HtmlInstructionsProvider; caso contrário
+        retorna None (sem instruções).
+        """
+        if self.prefs.get("display_help", True):
             html = HtmlInstructionsProvider(self.TOOL_KEY)
-            return html.get_instructions(self.ALGORITHM_NAME)  # valor padrão genérico
-        else:
-            return
+            return html.get_instructions(self.TOOL_KEY)
+        return None
 
     def icon(self):
         """
-        Retorna o ícone do algoritmo.
+        Retorna o ícone do algoritmo resolvido pela TOOL_KEY.
 
-        Novo modo (padrão): resolve automaticamente pela tool_key —
-        se existir '{tool_key}.ico' na pasta de ícones, usa esse ícone;
-        caso contrário usa cadmus_icon.ico como fallback.
-
-        Modo legado (compatibilidade): se o filho declarar ICON com um
-        valor diferente do default, o ICON declarado tem prioridade.
+        Procura '{tool_key}.ico' na pasta de ícones; se não existir,
+        usa cadmus_icon.ico como fallback.
         """
-        if self.ICON and self.ICON != self.DEFAULT_ICON:
-            icon_path = im.icon_path(self.ICON)
-            if os.path.exists(icon_path):
-                return QIcon(icon_path)
         return im.icon_by_tool_key(self.TOOL_KEY)
 
     def createInstance(self):
         return self.__class__()
 
     def name(self):
-        if self.ALGORITHM_NAME:
-            return self.ALGORITHM_NAME
-        raise NotImplementedError(
-            "Algoritmo precisa definir ALGORITHM_NAME ou override name()."
-        )
+        return self._resolve_name()
 
     def displayName(self):
         if self.ALGORITHM_DISPLAY_NAME:

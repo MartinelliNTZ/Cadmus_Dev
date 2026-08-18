@@ -151,7 +151,7 @@ from utils.ToolKeys import ToolKey
 provider = HtmlInstructionsProvider(tool_key=ToolKey.VECTOR_FIELD)
 
 # Obter HTML de um algoritmo (usa ToolKey para algoritmo, não string hardcoded)
-html_content = provider.get_instructions(algorithm_name=ToolKey.GRID_GENERATOR)
+html_content = provider.get_instructions(tool_key=ToolKey.GRID_GENERATOR)
 ```
 
 **HtmlInstructionsProvider é extensão do TranslationManager para instruções HTML.**
@@ -524,7 +524,7 @@ MSG_GRID_FEATURES = "Total de feições criadas: {count}"
 
 1. **Strings** → `STR.KEY` em código Python
 2. **Markdown** → `InstructionsManager.get(tool_key=ToolKey.X)`
-3. **HTML** → `HtmlInstructionsProvider(tool_key=ToolKey.X).get_instructions(algorithm)`
+3. **HTML** → `HtmlInstructionsProvider(tool_key=ToolKey.X).get_instructions(tool_key)`
 
 **Processo de desenvolvimento:**
 

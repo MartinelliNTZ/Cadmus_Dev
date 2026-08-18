@@ -38,10 +38,8 @@ class GliCalculator(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.GLI_CALCULATOR
-    ALGORITHM_NAME = "gli_calculator"
     ALGORITHM_DISPLAY_NAME = STR.GLI_CALCULATOR_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    INSTRUCTIONS_FILE = "gli_calculator.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="GliCalculator", level="DEBUG")
 
     INPUT_RASTER = "INPUT_RASTER"

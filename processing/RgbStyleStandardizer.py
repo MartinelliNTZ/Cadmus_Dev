@@ -22,11 +22,8 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.RGB_STYLE_STANDARDIZER
-    ALGORITHM_NAME = "rgb_style_standardizer"
     ALGORITHM_DISPLAY_NAME = STR.RGB_STYLE_STANDARDIZER_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "cadmus_icon.ico"
-    INSTRUCTIONS_FILE = "rgb_style_standardizer.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="RgbStyleStandardizer", level="DEBUG")
 
     INPUT_RASTER = "INPUT_RASTER"

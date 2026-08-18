@@ -200,3 +200,21 @@
    - Novas strings: THEME, THEME_DESC (pt_BR apenas)
    - Sem imports não utilizados (F401)
 
+[3.4.1.2][18/08/2026] Padronização de resolução por tool_key nos algoritmos de processing:
+   - BaseProcessingAlgorithm._resolve_name(): name() derivado do valor da TOOL_KEY; ALGORITHM_NAME declarado mantém prioridade (modo legado)
+   - shortHelpString() resolve instruções via HtmlInstructionsProvider.get_instructions(TOOL_KEY) em vez de ALGORITHM_NAME
+   - HtmlInstructionsProvider.get_instructions(tool_key): busca get_<tool_key>_help com fallback LEGACY_METHOD_SUFFIX para tool_keys legadas divergentes
+   - RasterDifferenceStatiscs: corrigido TOOL_KEY (era RASTER_MASS_CLIPPER) para ToolKey.RASTER_DIFERENCE_STATISTICS; ICON redundante removido (resolvido por tool_key)
+   - Filhos agora declaram apenas TOOL_KEY + ALGORITHM_DISPLAY_NAME + ALGORITHM_GROUP; INSTRUCTIONS_FILE/ICON/ALGORITHM_NAME tornaram-se opcionais
+   - SKILL_PROCESSING atualizada para 1.2.0; SKILL_INSTRUCTIONS_SYSTEM para 1.8.0; referências em SKILL_I18N atualizadas
+   - Sem imports não utilizados (F401)
+
+[3.4.1.3][18/08/2026] Remoção total do modo legado nos algoritmos de processing:
+   - HtmlInstructionsProvider: removido LEGACY_METHOD_SUFFIX — get_instructions(tool_key) resolve somente get_<tool_key>_help
+   - ToolKeys: DIFFERENCE_FIELDS = "difference_fields" e RASTER_DIFERENCE_STATISTICS = "raster_difference_statistics" (padronização/ortografia)
+   - BaseProcessingAlgorithm: removidos INSTRUCTIONS_FILE/DEFAULT_ICON/ICON/ALGORITHM_NAME e branches legados; _resolve_name() e icon() 100% via TOOL_KEY
+   - Todos os filhos: removidos ALGORITHM_NAME, ICON e INSTRUCTIONS_FILE (declaram apenas TOOL_KEY + ALGORITHM_DISPLAY_NAME + ALGORITHM_GROUP); imports de IconManager sem uso removidos (F401)
+   - HtmlInstructions_<locale>: método de GeometryLineFromPoints renomeado para get_geometry_line_from_points_help (4 locales)
+   - Ícones renomeados para o padrão {tool_key}.ico: attribute_statistics, difference_fields, geometry_line_from_points, raster_difference_statistics, raster_optimizer
+   - SKILL_PROCESSING 1.3.0; SKILL_INSTRUCTIONS_SYSTEM 1.9.0
+

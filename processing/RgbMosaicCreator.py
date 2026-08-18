@@ -27,11 +27,8 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.RGB_MOSAIC_CREATOR
-    ALGORITHM_NAME = "rgb_mosaic_creator"
     ALGORITHM_DISPLAY_NAME = STR.RGB_MOSAIC_CREATOR_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = "cadmus_icon.ico"
-    INSTRUCTIONS_FILE = "rgb_mosaic_creator.html"
     logger = LogUtils(tool=TOOL_KEY, class_name="RgbMosaicCreator", level="DEBUG")
 
     INPUT_R = "INPUT_R"

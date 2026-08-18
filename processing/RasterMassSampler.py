@@ -18,7 +18,6 @@ from qgis.core import (
 )
 
 from ..i18n.TranslationManager import STR
-from ..resources.IconManager import IconManager as im
 from ..utils.ToolKeys import ToolKey
 from ..utils.vector.VectorLayerProjection import VectorLayerProjection
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
@@ -30,11 +29,8 @@ class RasterMassSampler(BaseProcessingAlgorithm):
     """
 
     TOOL_KEY = ToolKey.RASTER_MASS_SAMPLER
-    ALGORITHM_NAME = "raster_mass_sampler"
     ALGORITHM_DISPLAY_NAME = STR.RASTER_MASS_SAMPLER_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_RASTER
-    ICON = im.RASTER_MASS_SAMPLER
-    INSTRUCTIONS_FILE = "raster_mass_sampler.html"
 
     INPUT_POINTS = "INPUT_POINTS"
     INPUT_RASTERS = "INPUT_RASTERS"

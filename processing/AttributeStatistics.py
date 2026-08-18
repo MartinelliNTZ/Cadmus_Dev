@@ -16,7 +16,6 @@ from qgis.core import (
 )
 
 from ..i18n.TranslationManager import STR
-from ..resources.IconManager import IconManager as im
 from ..utils.ToolKeys import ToolKey
 from .BaseProcessingAlgorithm import BaseProcessingAlgorithm
 from .model.attribute_statistics_model import AttributeStatisticsModel
@@ -24,10 +23,8 @@ from .model.attribute_statistics_model import AttributeStatisticsModel
 
 class AttributeStatistics(BaseProcessingAlgorithm):
     TOOL_KEY = ToolKey.ATTRIBUTE_STATISTICS
-    ALGORITHM_NAME = "attribute_statistics"
     ALGORITHM_DISPLAY_NAME = STR.ATTRIBUTE_STATISTICS_TITLE
     ALGORITHM_GROUP = BaseProcessingAlgorithm.GROUP_ESTATISTICA
-    ICON = im.ATTRIBUTE_STATS
     INPUT_LAYER = "INPUT_LAYER"
     EXCLUDE_FIELDS = "EXCLUDE_FIELDS"
     PRECISION = "PRECISION"

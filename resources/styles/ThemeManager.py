@@ -37,12 +37,17 @@ from __future__ import annotations
 from typing import Any
 
 from .BaseTheme import BaseTheme
-from .CoffeTheme import CoffeTheme
+from .CitizienTheme import CitizienTheme
+from .BlackGoldTheme import BlackGoldTheme
 
 
 # ═══════════════════════════════════════════════════════════════
-# REGISTRO DE TEMAS
+# REGISTRO DE TEMAS — LISTA DE SINGLETONS
 # ═══════════════════════════════════════════════════════════════
+# O Cadmus possui 2 temas. Cada tema é registrado UMA ÚNICA VEZ e a
+# instância concreta é criada sob demanda e reutilizada (singleton por
+# tema) via _THEME_INSTANCES.
+#
 # Para adicionar um novo tema:
 #   1. Crie a classe em resources/styles/ herdando de BaseTheme
 #   2. Importe a classe neste arquivo
@@ -51,17 +56,34 @@ from .CoffeTheme import CoffeTheme
 # ═══════════════════════════════════════════════════════════════
 
 THEMES: dict[str, dict[str, Any]] = {
-    "base": {
-        "class":       BaseTheme,
-        "label":       "Base Theme",
-        "description": "Tema padrão base do Cadmus.",
+    "citizien": {
+        "class":       CitizienTheme,
+        "label":       "Citizen",
+        "description": "Tema padrão do Cadmus.",
+        "author":      "Cadmus",
+        "version":     "1.0.0",
+    },
+    "black_gold": {
+        "class":       BlackGoldTheme,
+        "label":       "Black Gold",
+        "description": "Tema preto e dourado.",
         "author":      "Cadmus",
         "version":     "1.0.0",
     },
 }
 
-_DEFAULT_THEME_KEY: str = "base"
+_DEFAULT_THEME_KEY: str = "citizien"
 __CURRENT_THEME_KEY: str | None = None
+_THEME_INSTANCES: dict[str, BaseTheme] = {}
+
+
+def _get_theme_instance(key: str) -> BaseTheme:
+    """Retorna a instância singleton do tema para a chave (cria se necessário)."""
+    if key not in _THEME_INSTANCES:
+        entry = THEMES[key]
+        theme_class: type[BaseTheme] = entry["class"]
+        _THEME_INSTANCES[key] = theme_class()
+    return _THEME_INSTANCES[key]
 
 
 def _resolve_current_theme_key() -> str:
@@ -76,7 +98,11 @@ def _resolve_current_theme_key() -> str:
         from ...utils.Preferences import Preferences
         from ...utils.ToolKeys import ToolKey
         sys_prefs = Preferences.load_tool_prefs(ToolKey.SYSTEM)
-        __CURRENT_THEME_KEY = sys_prefs.get("theme", _DEFAULT_THEME_KEY)
+        saved_key = sys_prefs.get("theme")
+        if saved_key in THEMES:
+            __CURRENT_THEME_KEY = saved_key
+        else:
+            __CURRENT_THEME_KEY = _DEFAULT_THEME_KEY
     except Exception:
         __CURRENT_THEME_KEY = _DEFAULT_THEME_KEY
     return __CURRENT_THEME_KEY
@@ -85,15 +111,9 @@ def _resolve_current_theme_key() -> str:
 def _build_theme_instance() -> BaseTheme:
     """Constrói e retorna a instância do tema definido nas preferências."""
     key = _resolve_current_theme_key()
-    entry = THEMES.get(key)
-    if entry is None:
-        raise KeyError(
-            f"[ThemeManager] Chave de tema '{key}' "
-            f"não encontrada em THEMES. "
-            f"Disponíveis: {list(THEMES.keys())}"
-        )
-    theme_class: type[BaseTheme] = entry["class"]
-    return theme_class()
+    if key not in THEMES:
+        key = _DEFAULT_THEME_KEY
+    return _get_theme_instance(key)
 
 
 class ThemeManager:
@@ -130,6 +150,11 @@ class ThemeManager:
     def available_themes(cls) -> dict[str, dict[str, Any]]:
         """Retorna o dicionário completo de temas registrados (apenas metadados)."""
         return {key: dict(meta) for key, meta in THEMES.items()}
+
+    @classmethod
+    def all_themes(cls) -> dict[str, BaseTheme]:
+        """Retorna dict {chave: instância singleton} de todos os temas registrados."""
+        return {key: _get_theme_instance(key) for key in THEMES}
 
     @property
     def theme(self) -> BaseTheme:

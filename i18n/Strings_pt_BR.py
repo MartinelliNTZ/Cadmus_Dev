@@ -8,6 +8,10 @@ class Strings_pt_BR:
     APP_NAME = "Cadmus"
     PLUGIN_LANGUAGE = "Idioma do Plugin"
 
+    # Theme
+    THEME = "Tema"
+    THEME_DESC = "Tema visual do Cadmus. Deixe em branco para usar o tema padrão"
+
     # About
     ABOUT_CADMUS = "Sobre o Cadmus"
     VERSION = "Versão"

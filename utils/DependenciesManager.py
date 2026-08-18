@@ -36,6 +36,21 @@ class DependenciesManager(BaseUtil):
             "description": "Processar e converter imagens (PNG)",
             "pip": "Pillow",
         },
+        "PySTACClient": {
+            "import": "pystac_client",
+            "description": "Cliente STAC para busca de cenas de satélite",
+            "pip": "pystac-client",
+        },
+        "Rasterio": {  # opcional — fallback se GDAL/nativo não atender
+            "import": "rasterio",
+            "description": "Fallback opcional de processamento raster",
+            "pip": "rasterio",
+        },
+        "GeoPandas": {  # opcional
+            "import": "geopandas",
+            "description": "Fallback opcional de geometrias",
+            "pip": "geopandas",
+        },
     }
 
     @staticmethod

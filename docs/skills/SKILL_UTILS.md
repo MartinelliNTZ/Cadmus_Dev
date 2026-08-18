@@ -415,3 +415,11 @@ if success:
    - `RasterVectorBridge.clip_raster_by_vector` **implementado** (hoje stub) via `processing.run("gdal:cliprasterbymasklayer")` com paths (worker-safe)
    - Novo `RasterLayerProcessing.scale_raster_to_float32` (GDAL + numpy) — converte uint16/uint8/uint32 → float32 ÷10000; banda SCL não convertida; float32 passa direto
    - `ImageryApi.process_item` usa esses métodos para clip polígono/boundary, reprojeção condicional (`gdal.Warp`) e ÷10000 |
+| 2026-08-18 | 2.3.1 | **ImageryApi: re-run seguro (skip de bandas já existentes):**
+   - `ImageryApi.process_item`: antes de baixar, verifica se o produto final já existe na pasta (`{prefixo}_{banda}.tif` ou `{prefixo}_{banda}_refl.tif` quando convert) e, se existir, **pula download e processamento** e apenas reutiliza o arquivo (code `IMAGERY_SKIP_EXISTING`)
+   - `RasterLayerProcessing.scale_raster_to_float32`: remove saída existente antes de `driver.Create()` (evita WinError 183 / arquivo já existente em re-execuções)
+   - Motivo: evita `[WinError 183] Cannot create a file already exists` ao rodar de novo sobre produtos já baixados
+| 2026-08-18 | 2.3.2 | **ImageryApi: crash do QGIS por GDAL/numpy concorrente — serializado com lock:**
+   - `ParallelStep` (1 task por data) executava `gdal.Translate`/`gdal.Open`/`driver.Create` + numpy em múltiplas threads simultâneas → access violation (crash duro, sem exceção Python)
+   - Novo `_GDAL_LOCK` (module-level `threading.Lock`) + método `ImageryApi._process_band_gdal()`: todo o processamento pesado de banda (clip, rename, ÷10000) roda sob o lock; downloads (rede) continuam paralelos
+   - Regra: **nunca** rodar GDAL/numpy em 2 tasks paralelas do mesmo processo — serializar via lock ou centralizar no main thread

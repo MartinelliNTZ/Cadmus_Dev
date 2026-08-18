@@ -251,6 +251,125 @@ class RasterLayerProcessing:
     # Métodos pré-existentes (stubs)
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def scale_raster_to_float32(
+        raster_path,
+        output_path=None,
+        scale_factor=10000.0,
+        band_name=None,
+        tool_key=ToolKey.UNTRACEABLE,
+    ):
+        """
+        Divide raster inteiro (uint16/uint8/uint32) por fator de escala e salva como float32.
+
+        - Só age sobre tipos inteiros (uint8/uint16/uint32); float32 passa direto.
+        - Banda SCL (Scene Classification) NÃO é convertida (band_name="SCL").
+        - Worker-safe: usa apenas osgeo/gdal + numpy (sem objetos QGIS).
+
+        Args:
+            raster_path (str): Path do raster de entrada.
+            output_path (str): Path do raster float32 de saída. Se None, cria em temp.
+            scale_factor (float): Fator de escala (default 10000.0).
+            band_name (str, optional): Nome da banda (ex: "B02", "SCL").
+            tool_key (str): Chave da ferramenta para logging.
+
+        Returns:
+            str: Path do raster float32 gerado (ou o path de entrada se pulado).
+
+        Raises:
+            ValueError: Se raster_path for inválido.
+            RuntimeError: Se falhar ao abrir/processar com GDAL.
+        """
+        logger = RasterLayerProcessing._get_logger(tool_key)
+        logger.debug(
+            f"scale_raster_to_float32: inicio raster={raster_path}, "
+            f"scale_factor={scale_factor}, band_name={band_name}"
+        )
+
+        if not raster_path or not os.path.exists(raster_path):
+            raise ValueError("raster_path invalido ou inexistente")
+
+        if band_name and str(band_name).upper() == "SCL":
+            logger.info(
+                "scale_raster_to_float32: banda SCL ignorada (nao converte)"
+            )
+            return raster_path
+
+        from osgeo import gdal
+        import numpy as np
+
+        src_ds = gdal.Open(raster_path, gdal.GA_ReadOnly)
+        if src_ds is None:
+            raise RuntimeError(
+                f"Nao foi possivel abrir o raster: {raster_path}"
+            )
+
+        try:
+            src_dtype = src_ds.GetRasterBand(1).DataType
+            integer_types = {
+                gdal.GDT_Byte,
+                gdal.GDT_UInt16,
+                gdal.GDT_Int16,
+                gdal.GDT_UInt32,
+                gdal.GDT_Int32,
+            }
+            if src_dtype not in integer_types:
+                logger.info(
+                    "scale_raster_to_float32: tipo nao inteiro, mantendo arquivo original"
+                )
+                return raster_path
+
+            if output_path is None:
+                temp_dir = tempfile.mkdtemp(prefix="cadmus_refl_")
+                output_path = os.path.join(temp_dir, "OUTPUT_refl.tif")
+
+            num_bands = src_ds.RasterCount
+            driver = gdal.GetDriverByName("GTiff")
+            dst_ds = driver.Create(
+                output_path,
+                src_ds.RasterXSize,
+                src_ds.RasterYSize,
+                num_bands,
+                gdal.GDT_Float32,
+            )
+            if dst_ds is None:
+                raise RuntimeError(
+                    f"Falha ao criar raster de saida: {output_path}"
+                )
+
+            dst_ds.SetGeoTransform(src_ds.GetGeoTransform())
+            dst_ds.SetProjection(src_ds.GetProjection())
+            dst_ds.SetMetadata(src_ds.GetMetadata())
+
+            for band_index in range(1, num_bands + 1):
+                band = src_ds.GetRasterBand(band_index)
+                nodata = band.GetNoDataValue()
+                data = band.ReadAsArray()
+                if data is None:
+                    raise RuntimeError(f"Falha ao ler banda {band_index}")
+
+                scaled = np.asarray(data, dtype=np.float32) / float(scale_factor)
+                dst_band = dst_ds.GetRasterBand(band_index)
+                if nodata is not None:
+                    scaled[np.asarray(data) == nodata] = nodata
+                    dst_band.SetNoDataValue(float(nodata))
+                dst_band.WriteArray(scaled)
+                dst_band.FlushCache()
+
+            dst_ds.FlushCache()
+            dst_ds = None
+            src_ds = None
+
+            logger.info(
+                f"scale_raster_to_float32: convertido -> {output_path}"
+            )
+            return output_path
+        except Exception as e:
+            src_ds = None
+            raise RuntimeError(
+                f"Falha ao converter raster para float32: {e}"
+            ) from e
+
     def apply_raster_algebra(
         self, raster1, raster2, operation, external_tool_key="untraceable"
     ):

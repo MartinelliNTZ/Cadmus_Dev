@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+
+from ...core.config.LogUtils import LogUtils
+from ..ToolKeys import ToolKey
+
+
 class RasterVectorBridge:
     """
     Responsável pela integração entre rasters e vetores.
@@ -46,10 +52,89 @@ class RasterVectorBridge:
         pass
 
     def clip_raster_by_vector(
-        self, raster, vector_layer, output_raster_path, external_tool_key="untraceable"
+        self,
+        raster,
+        vector_layer,
+        output_raster_path,
+        external_tool_key="untraceable",
     ):
-        """Recorta raster usando geometrias da camada vetorial como máscara."""
-        pass
+        """
+        Recorta raster usando geometrias da camada vetorial como máscara.
+
+        Worker-safe: recebe apenas paths (raster de entrada, camada vetorial
+        de máscara e path de saída) e executa `gdal:cliprasterbymasklayer`
+        com QgsProcessingContext próprio.
+
+        Args:
+            raster (str): Path do raster de entrada.
+            vector_layer (str): Path da camada vetorial (gpkg/shp) usada como máscara.
+            output_raster_path (str): Path do raster recortado de saída.
+            external_tool_key (str): ToolKey para logs rastreáveis.
+
+        Returns:
+            str: Path do raster recortado gerado.
+
+        Raises:
+            ValueError: Se algum path de entrada for inválido.
+            RuntimeError: Se o algoritmo falhar ou a saída não for gerada.
+        """
+        logger = LogUtils(tool=external_tool_key, class_name="RasterVectorBridge")
+        logger.debug(
+            f"clip_raster_by_vector: raster={raster}, mask={vector_layer}, "
+            f"output={output_raster_path}"
+        )
+
+        if not raster or not os.path.exists(raster):
+            raise ValueError(f"raster inválido ou inexistente: {raster}")
+        if not vector_layer or not os.path.exists(vector_layer):
+            raise ValueError(f"camada vetorial inválida ou inexistente: {vector_layer}")
+        if not output_raster_path:
+            raise ValueError("output_raster_path vazio")
+
+        try:
+            import processing
+            from qgis.core import QgsProcessingContext, QgsProcessingFeedback
+        except Exception as exc:
+            logger.exception(exc, code="CLIP_PROCESSING_UNAVAILABLE")
+            raise RuntimeError("processing do QGIS indisponível para recorte") from exc
+
+        parent_dir = os.path.dirname(output_raster_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+
+        params = {
+            "INPUT": raster,
+            "MASK": vector_layer,
+            "OUTPUT": output_raster_path,
+            "CROP_TO_CUTLINE": True,
+        }
+        context = QgsProcessingContext()
+        feedback = QgsProcessingFeedback()
+
+        try:
+            result = processing.run(
+                "gdal:cliprasterbymasklayer",
+                params,
+                context=context,
+                feedback=feedback,
+            )
+        except Exception as exc:
+            logger.exception(exc, code="CLIP_BY_VECTOR_FAILED")
+            raise RuntimeError(
+                f"Falha ao recortar raster pela máscara: {exc}"
+            ) from exc
+
+        output = result.get("OUTPUT") if result else None
+        if not output or not os.path.exists(output):
+            logger.critical(
+                "clip_raster_by_vector: saída não foi gerada",
+                code="CLIP_BY_VECTOR_NO_OUTPUT",
+            )
+            raise RuntimeError("Falha ao recortar raster: saída não gerada")
+
+        logger.info(f"clip_raster_by_vector: recortado -> {output}")
+        return output
+
 
     def sample_raster_at_points(
         self, raster, point_layer, output_field_name, external_tool_key="untraceable"

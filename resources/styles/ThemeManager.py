@@ -167,6 +167,9 @@ class ThemeManager:
         __CURRENT_THEME_KEY = None   # força releitura da preferência
         self._theme = _build_theme_instance()
         self._sync_attributes()
+        # Invalida o cache de AppStyles para que novos widgets usem o tema atual
+        from .AppStyles import AppStyles  # pylint: disable=import-outside-toplevel
+        AppStyles.invalidate_cache()
 
     # ── Atributos dinâmicos (tokens do tema) ─────────────────────
 

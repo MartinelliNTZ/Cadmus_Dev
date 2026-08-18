@@ -9,6 +9,7 @@ from ..utils.ExplorerUtils import ExplorerUtils
 from ..i18n.TranslationManager import STR, TranslationManager
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..core.config.MenuManager import MenuManager
+from ..resources.styles.ThemeManager import ThemeManager, theme_manager
 from ..resources.widgets.CollapsibleParametersWidget import (
     CollapsibleParametersWidget,
 )
@@ -95,9 +96,13 @@ class SettingsPlugin(BasePluginMTL):
         self.geral_collapsable.add_content_widget(self.crs_selector)
         self.logger.debug("Widget de selecao de SRC adicionado")
 
-        # ── Idioma (GridComboBox) ─────────────────────────────────
+        # ── Idioma + Tema (GridComboBox — 1 widget, N items) ──────
         langs = StringManager.AVAILABLE_LANGUAGES
         selected_lang = self.system_preferences.get("plugin_language", "none")
+        theme_options = {
+            key: meta.get("label", key)
+            for key, meta in ThemeManager.available_themes().items()
+        }
         self.lang_selector = GridComboBox(
             config={
                 "language": {
@@ -106,11 +111,18 @@ class SettingsPlugin(BasePluginMTL):
                     "options": langs,
                     "selected_key": selected_lang,
                 },
+                "theme": {
+                    "label": STR.THEME,
+                    "description": STR.THEME_DESC,
+                    "options": theme_options,
+                    "allow_empty": True,
+                    "selected_key": self.system_preferences.get("theme"),
+                },
             },
             parent=self,
         )
         self.geral_collapsable.add_content_widget(self.lang_selector)
-        self.logger.debug("Seletor de idioma adicionado")
+        self.logger.debug("Seletores de idioma e tema adicionados")
 
         # ── Precisão de campos vetoriais (GridDoubleSpin) ─────────
         self.spin_precision = GridDoubleSpin(
@@ -272,6 +284,13 @@ class SettingsPlugin(BasePluginMTL):
             self.logger.warning(f"Idioma inválido: {selected_language}, usando padrão")
             self.lang_selector.set_selected_key("language", "pt_BR")
 
+        selected_theme = self.system_preferences.get("theme")
+        self.lang_selector.set_selected_key("theme", selected_theme)
+        if selected_theme:
+            self.logger.debug(f"Tema carregado das preferências: {selected_theme}")
+        else:
+            self.logger.debug("Nenhum tema salvo nas preferências — usando padrão")
+
         selected_crs_authid = self.system_preferences.get(
             "default_crs_authid", self.DEFAULT_CRS_AUTHID
         )
@@ -367,6 +386,14 @@ class SettingsPlugin(BasePluginMTL):
                 del self.system_preferences["plugin_language"]
                 self.logger.debug("Idioma selecionado removido para auto-detectar")
 
+        selected_theme = self.lang_selector.get_selected_key("theme")
+        if selected_theme:
+            self.system_preferences["theme"] = selected_theme
+            self.logger.debug(f"Tema selecionado salvo: {selected_theme}")
+        else:
+            self.system_preferences.pop("theme", None)
+            self.logger.debug("Tema em branco — nenhum tema salvo nas preferências")
+
         toolbar_visibility = self.toolbar_category_checks.get_all_states()
 
         # Detecta se houve alteração na visibilidade para disparar refresh dinâmico
@@ -410,6 +437,13 @@ class SettingsPlugin(BasePluginMTL):
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.info(
             f"Preferências salvas:{self.system_preferences}==={self.preferences}"
+        )
+
+        # Recarrega o tema ativo (ThemeManager + AppStyles) para aplicar a seleção
+        theme_manager.reload_theme()
+        self.logger.debug(
+            "Tema ativo recarregado: "
+            f"{self.system_preferences.get('theme', 'padrão')}"
         )
 
         # Se a visibilidade mudou, emite um evento abstrato para ajustes de toolbar

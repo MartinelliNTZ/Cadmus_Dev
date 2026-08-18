@@ -44,6 +44,11 @@ class AppStyles:
         cls._theme = theme_manager.theme
 
     @classmethod
+    def invalidate_cache(cls):
+        """Invalida o cache do tema — próximo acesso recarrega do ThemeManager."""
+        cls._theme = None
+
+    @classmethod
     def button(cls) -> str:
         """Estilo global para QPushButton."""
         theme = cls._get_theme()

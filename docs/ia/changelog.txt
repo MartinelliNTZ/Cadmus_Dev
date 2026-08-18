@@ -189,3 +189,14 @@
    - Instruções HTML get_raster_mean_adjust_help adicionadas em HtmlInstructions_pt_BR, _en, _es e _de
    - Sem imports não utilizados (F401)
 
+3.4.1 17/08/2026
+[3.4.1.1][17/08/2026] Sistema de temas com seletor no SettingsPlugin:
+   - ThemeManager: registro dos 2 temas oficiais como singletons — "citizien" (CitizienTheme, PADRÃO) e "black_gold" (BlackGoldTheme); removido registro "base"
+   - ThemeManager: cache de instâncias únicas por tema (_THEME_INSTANCES) + classmethod all_themes() — lista de singletons de todos os temas
+   - ThemeManager: ao ser inicializado/carregado valida a chave salva em System > "theme"; se ausente ou inválida, habilita o tema padrão (citizien) em vez de levantar KeyError
+   - ThemeManager.reload_theme() agora invalida o cache de AppStyles (AppStyles.invalidate_cache()) — novos widgets usam o tema recarregado
+   - BlackGoldTheme: corrigido import de BaseTheme (from base_theme → from .BaseTheme)
+   - SettingsPlugin: seletor de tema no mesmo GridComboBox do idioma (1 widget, item "theme" com allow_empty + STR.THEME/STR.THEME_DESC); _load_prefs carrega a chave salva; _save_prefs salva em System > "theme" ou remove a chave se em branco; theme_manager.reload_theme() após salvar aplica o tema
+   - Novas strings: THEME, THEME_DESC (pt_BR apenas)
+   - Sem imports não utilizados (F401)
+

@@ -515,6 +515,24 @@ class ToolRegistry:
         )
         tools.append(raster_sampler)
 
+        imagery_downloader = Tool(
+            tool_key=ToolKey.IMAGERY_DOWNLOADER,
+            name=STR.IMAGERY_DOWNLOADER_TITLE,
+            icon=im.icon_by_tool_key(ToolKey.IMAGERY_DOWNLOADER),
+            category=MenuCategory.RASTER,
+            tool_type=ToolTypeEnum.DIALOG,
+            main_action=self._main_action_prefs.get(
+                ToolKey.IMAGERY_DOWNLOADER, False
+            ),
+            executor=self._make_plugin_executor(
+                "...plugins.ImageryDownloaderPlugin"
+            ),
+            tooltip=STR.IMAGERY_DOWNLOADER_TOOLTIP,
+            order=40,
+            show_in_toolbar=True,
+        )
+        tools.append(imagery_downloader)
+
         # =====================================================
         # DEVELOPER (Ordem: Test Tool=10)
         # =====================================================

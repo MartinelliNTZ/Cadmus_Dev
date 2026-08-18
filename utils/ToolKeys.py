@@ -30,6 +30,7 @@ class ToolKey:
     PATH_EXTENSION_TOOL = "path_extension_tool"
     DEVELOPER_TEST_TOOL = "developer_test_tool"
     RASTER_SAMPLER = "raster_sampler"
+    IMAGERY_DOWNLOADER = "imagery_downloader"
 
     # model3 / panel tool
     # processing/
@@ -78,6 +79,7 @@ class ToolKey:
         SAVE_TEMPORARY_LAYER: "#3498DB",  # azul -> salvar temporárias
         DEVELOPER_TEST_TOOL: "#9B59B6",  # roxo -> ferramenta de testes / dev
         RASTER_SAMPLER: "#16A085",  # verde-água -> amostragem de rasters
+        IMAGERY_DOWNLOADER: "#2E86C1",  # azul satélite -> download de imagens
         # === Processing / analises ===
         ATTRIBUTE_STATISTICS: "#F7DC6F",  # amarelo -> estatistica
         DIFFERENCE_FIELDS: "#BB8FCE",  # roxo -> comparacao

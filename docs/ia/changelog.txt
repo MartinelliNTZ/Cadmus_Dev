@@ -238,3 +238,15 @@
    - SKILL_WIDGETS2 atualizada para 3.5.1; sem imports não utilizados (F401)
    - Impacto: ImageryDownloaderPlugin (GridSlider → SimpleSlider) volta a abrir no QGIS 4 / Qt6
 
+[3.4.1.6][18/08/2026] ImageryDownloader: re-run seguro — skip de bandas já existentes:
+   - core/api/ImageryApi.py process_item: antes de cada download, verifica se o produto final já existe na pasta (`{prefixo}_{banda}.tif`, ou `{prefixo}_{banda}_refl.tif` quando convert_uint16 e banda != SCL); se existir, pula download e processamento e apenas reutiliza o arquivo (novo código IMAGERY_SKIP_EXISTING + progresso da banda avançado)
+   - utils/raster/RasterLayerProcessing.py scale_raster_to_float32: remove a saída existente antes de driver.Create() (evita WinError 183 "cannot create a file already exists" em re-execuções)
+   - Resultado: ao rodar de novo sobre uma pasta já com rasters, o plugin não re-baixa nem reconflita; apenas carrega as camadas existentes no final (on_success)
+   - SKILL_UTILS atualizada para 2.3.1; sem imports não utilizados (F401)
+
+[3.4.1.7][18/08/2026] ImageryDownloader: crash do QGIS por GDAL/numpy concorrente — serializado com lock:
+   - Causa: ParallelStep roda 1 DownloadDateTask por data (4+ threads); cada task executava gdal.Translate/gdal.Open/driver.Create + numpy simultaneamente → access violation (crash duro, sem exceção Python)
+   - core/api/ImageryApi.py: novo lock global _GDAL_LOCK (threading.Lock) e método _process_band_gdal() que executa todo o processamento pesado (clip polígono/boundary, rename do final, conversão ÷10000) sob o lock
+   - Downloads (rede/requests) continuam paralelos; apenas GDAL/numpy roda em fila — elimina a condição de corrida que derrubava o QGIS
+   - SKILL_UTILS atualizada para 2.3.2; sem imports não utilizados (F401)
+

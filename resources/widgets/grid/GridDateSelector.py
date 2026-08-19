@@ -32,6 +32,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QGroupBox,
+    QSizePolicy,
 )
 from qgis.PyQt.QtCore import QDate
 from qgis.PyQt.QtWidgets import QLabel
@@ -40,6 +41,15 @@ from ..simple.SimpleLabel import SimpleLabel
 from ..simple.SimpleDateEdit import SimpleDateEdit
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
+
+
+# ── Compatibilidade Qt5 / Qt6 — size policy ─────────────────────────
+try:  # Qt6
+    _SIZE_POLICY_PREFERRED = QSizePolicy.Policy.Preferred
+    _SIZE_POLICY_FIXED = QSizePolicy.Policy.Fixed
+except AttributeError:  # Qt5
+    _SIZE_POLICY_PREFERRED = QSizePolicy.Preferred
+    _SIZE_POLICY_FIXED = QSizePolicy.Fixed
 
 
 class GridDateSelector(QWidget):
@@ -177,3 +187,8 @@ class GridDateSelector(QWidget):
 
         if self._separator_bottom:
             outer.addWidget(SeparatorWidget())
+
+        # Tamanho mínimo do conteúdo — evita "encavalamento" no collapsible
+        self.setMinimumHeight(self.minimumSizeHint().height())
+        # Sem stretch vertical: o widget usa a altura do próprio conteúdo
+        self.setSizePolicy(_SIZE_POLICY_PREFERRED, _SIZE_POLICY_FIXED)

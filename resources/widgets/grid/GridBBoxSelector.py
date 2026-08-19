@@ -48,7 +48,13 @@ Uso em plugins:
     clip = bbox.build_clip_data()
 """
 
-from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QGroupBox
+from qgis.PyQt.QtWidgets import (
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QGroupBox,
+    QSizePolicy,
+)
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtCore import Qt
 from qgis.core import (
@@ -67,6 +73,15 @@ from ....core.config.LogUtils import LogUtils
 from qgis.PyQt import sip
 
 from ..simple.SimpleModernButton import SimpleModernButton
+
+
+# ── Compatibilidade Qt5 / Qt6 — size policy ─────────────────────────
+try:  # Qt6
+    _SIZE_POLICY_PREFERRED = QSizePolicy.Policy.Preferred
+    _SIZE_POLICY_FIXED = QSizePolicy.Policy.Fixed
+except AttributeError:  # Qt5
+    _SIZE_POLICY_PREFERRED = QSizePolicy.Preferred
+    _SIZE_POLICY_FIXED = QSizePolicy.Fixed
 
 
 # ── Compatibilidade Qt5 / Qt6 ─────────────────────────────────────────
@@ -430,6 +445,11 @@ class GridBBoxSelector(QWidget):
         has_canvas = self._canvas() is not None
         self._btn_capture.setEnabled(has_canvas)
         self._btn_draw.setEnabled(has_canvas)
+
+        # Tamanho mínimo do conteúdo — evita "encavalamento" no collapsible
+        self.setMinimumHeight(self.minimumSizeHint().height())
+        # Sem stretch vertical: o widget usa a altura do próprio conteúdo
+        self.setSizePolicy(_SIZE_POLICY_PREFERRED, _SIZE_POLICY_FIXED)
 
     # ── Estado ──────────────────────────────────────────────────────
 

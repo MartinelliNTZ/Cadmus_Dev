@@ -259,3 +259,17 @@
    - core/api/ImageryApi: método novo create_polygon_mask(wkt, dest_path) + lock global _GDAL_LOCK (threading.Lock) para OGR
    - Novas strings pt_BR: BBOX_CAPTURE_SCREEN, BBOX_CAPTURE_SCREEN_DESC, BBOX_DRAW_MAP, BBOX_DRAW_MAP_DESC; textos BBOX_SOURCE_DESC/CLIP_BY_POLYGON_DESC/IMAGERY_VALIDATION_EXTENT atualizados
    - SKILL_WIDGETS2 atualizada para 3.6.0; sem imports não utilizados (F401)
+
+[3.4.1.9][18/08/2026] ImageryDownloader: UI reorganizada em 2 collapsables (Configurações + Bandas):
+   - Novo CollapsibleParametersWidget "Configurações" (STR.IMAGERY_SETTINGS) como PRIMEIRO bloco do diálogo, agrupando tudo que estava solto: GridBBoxSelector (extensão), GridDateSelector (período), GridSlider (% nuvens), GridCheckbox de opções, GridComboBox EPSG e GridComplexSelector de pasta de saída
+   - CollapsibleParametersWidget de "Bandas e Composições" (GridCheckbox de bandas/composições) agora é o SEGUNDO bloco, sem alteração de lógica
+   - Estado expandido/recolhido de ambos os collapsables persistido via get_preferences/set_preferences (chaves "settings_collapse" e "bands_collapse" em _load_prefs/_save_prefs)
+   - Nova string pt_BR: IMAGERY_SETTINGS = "Configurações"
+   - SKILL_WIDGETS2 atualizada para 3.6.1; sem imports não utilizados (F401)
+
+[3.4.1.10][19/08/2026] GridBBoxSelector/GridDateSelector: correção de "encavalamento" dentro de collapsibles:
+   - resources/widgets/grid/GridBBoxSelector.py e resources/widgets/grid/GridDateSelector.py não definiam altura mínima nem size policy — dentro do CollapsibleParametersWidget o layout esticava/achatava o conteúdo e as linhas sobrepunham ("encavalado")
+   - Adicionado setMinimumHeight(self.minimumSizeHint().height()) + setSizePolicy(Preferred, Fixed) no fim do _build_ui dos dois widgets (padrão já usado por ComplexSelector)
+   - Compat Qt5/Qt6 via try/except (QSizePolicy.Policy.Preferred/Fixed vs QSizePolicy.Preferred/Fixed)
+   - SKILL_WIDGETS2 atualizada para 3.6.2; sem imports não utilizados (F401)
+

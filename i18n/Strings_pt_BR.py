@@ -911,6 +911,7 @@ class Strings_pt_BR:
     DOWNLOAD_SELECTED = "Baixar Selecionadas"
     NO_SCENE_SELECTED = "Selecione pelo menos uma cena"
     CLOUD_COVER = "nuvens"
+    NO_THUMBNAIL = "sem thumbnail"
     DOWNLOAD_FINISHED = "Download concluído"
     PARALLEL_INFO = "Download de {n} datas em paralelo (ParallelStep)"
     PARALLEL_NOT_POSSIBLE = (

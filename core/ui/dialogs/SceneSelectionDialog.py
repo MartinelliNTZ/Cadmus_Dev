@@ -85,7 +85,7 @@ class SceneSelectionDialog(BaseDialog):
         self._source_combo = GridComboBox(
             config={
                 "source": {
-                    "label": STR.SOURCE_SAT,
+                    "label": STR.SOURCE,
                     "options": self._api.source_labels(),
                     "selected_key": ImageryApi.DEFAULT_SOURCE,
                 },

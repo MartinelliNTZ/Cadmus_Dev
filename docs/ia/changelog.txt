@@ -294,3 +294,15 @@
    - Metadados/log: novo campo `pulados_existentes` e linha de log IMAGERY_ITEM_DONE com contagem de pulados
    - Resultado: ao rodar de novo sobre pasta já com rasters, não re-baixa/não reconflita; carrega as camadas existentes no final (on_success) e não trava o QGIS
    - SKILL_UTILS atualizada para 2.3.4; sem imports não utilizados (F401)
+
+[3.4.1.14][19/08/2026] ImageryDownloader: SceneSelectionListWidget recriado (arquivo .py faltava no repo):
+   - resources/widgets/SceneSelectionListWidget.py: módulo era importado por SceneSelectionDialog (core/ui/dialogs) mas o .py estava ausente — restava apenas o .pyc no __pycache__, causando "No module named 'Cadmus.resources.widgets.SceneSelectionListWidget'" ao exibir a seleção de cenas
+   - Widget recriado do zero seguindo SKILL_WIDGETS2 (contrato de widgets raiz): QWidget + QScrollArea interna + cartões por cena (SimpleCheckbox + QLabel thumbnail com QPixmap + QLabel texto com wrap)
+   - API documentada em 3.5.0 preservada: set_scenes(list[dict]) / set_thumbnail(scene_id, bytes) / get_selected_scenes() -> list[dict] / select_all() / deselect_all()
+   - Thumbnails: carregadas via QPixmap.loadFromData com fallback para STR.NO_THUMBNAIL; escala com resolução Qt5/Qt6 via resolve_qt_enum (AspectRatioMode/TransformationMode)
+   - i18n/Strings_pt_BR.py: nova string NO_THUMBNAIL = "sem thumbnail"
+   - SKILL_WIDGETS2 atualizada para 3.6.3; sem imports não utilizados (F401)
+
+[3.4.1.15][19/08/2026] ImageryDownloader: SceneSelectionDialog pendente do rename SOURCE_SAT -> SOURCE:
+   - core/ui/dialogs/SceneSelectionDialog.py:88: label da GridComboBox de fonte (config "source") ainda usava STR.SOURCE_SAT — token removido em 3.4.1.12 (renomeado para STR.SOURCE); causava AttributeError "'Strings_pt_BR' object has no attribute 'SOURCE_SAT'" no callback on_finished da engine 1, impedindo o diálogo de seleção de abrir (a busca STAC funcionava — 119 cenas)
+   - Corrigido para STR.SOURCE ("Fonte", já presente em Strings_pt_BR); sem imports não utilizados (F401)

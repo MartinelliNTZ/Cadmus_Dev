@@ -1410,6 +1410,11 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-08-18 | 3.5.1 | **Correção de compatibilidade Qt5/Qt6 no `SimpleSlider`:**
    - `QSlider(Qt.Horizontal)` quebrava no Qt6 (`type object 'Qt' has no attribute 'Horizontal'`)
    - Agora usa `resolve_qt_enum` de `utils/qt_compat.py` → `Qt.Orientation.Horizontal` (Qt6) com fallback `Qt.Horizontal` (Qt5)
+| 2026-08-19 | 3.6.3 | **SceneSelectionListWidget recriado (arquivo .py faltava no repo — só restava .pyc):**
+   - `resources/widgets/SceneSelectionListWidget.py` recriado do zero seguindo o contrato WIDGETS2: QWidget + SimpleCheckbox + QLabel thumbnail (QPixmap) + QLabel texto + QScrollArea interna
+   - API documentada: `set_scenes`/`set_thumbnail`/`get_selected_scenes`/`select_all`/`deselect_all` (3.5.0)
+   - Placeholder de thumbnail via `STR.NO_THUMBNAIL` (nova string pt_BR)
+   - Fixa altura máxima do scroll interno (`_SCROLL_MAX_HEIGHT`) e usa `resolve_qt_enum` para Qt.AspectRatioMode/TransformationMode (Qt5/Qt6) |
 | 2026-08-18 | 3.6.0 | **GridBBoxSelector reformulado (linha única) + recorte pelo próprio widget:**
    - `GridBBoxSelector` agora é de **linha única**: `QgsMapLayerComboBox` (todas as camadas) + botão **Tela** (captura canvas) + botão **Desenhar** (map tool de polígono: clique adiciona vértice; botão direito/duplo clique conclui)
    - Armazena `boundary` (QgsRectangle + CRS), `path` (source da camada) e **tipo de entrada** (`drawn`/`layer`/`canvas`) + `geom_type` (`raster`/`polygon`/`line`/`point`) + `polygon_wkt` (EPSG:4326)

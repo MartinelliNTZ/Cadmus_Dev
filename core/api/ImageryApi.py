@@ -428,6 +428,11 @@ class ImageryApi(BaseUtil):
         if parent:
             os.makedirs(parent, exist_ok=True)
 
+        # Remove saída existente antes do gdal.Translate (evita WinError 183 /
+        # "cannot create a file already exists" em re-execuções no Windows).
+        if os.path.exists(str(output_path)):
+            ExplorerUtils.delete_file(str(output_path), tool_key=self.tool_key)
+
         try:
             result = gdal.Translate(str(output_path), src_ds, projWin=proj_win)
         finally:
@@ -552,10 +557,41 @@ class ImageryApi(BaseUtil):
         files = []
         originals_to_delete = []
         convertidos = 0
+        pulados = 0
 
         for idx, banda in enumerate(bandas, start=1):
             if progress_cb is not None:
                 progress_cb(((idx - 1) / total_bandas) * 100.0)
+
+            eh_scl = str(banda).upper() == "SCL"
+
+            # Produto final esperado desta banda (`_refl.tif` quando convertido).
+            final_produto = pasta_item / f"{prefixo}_{banda}.tif"
+            if convert_uint16 and not eh_scl:
+                final_produto = pasta_item / f"{prefixo}_{banda}_refl.tif"
+
+            # Re-run seguro: se o produto final já existe na pasta, pula o
+            # download/processamento e apenas reutiliza o arquivo (será
+            # carregado no on_success). Evita WinError 183 / re-baixar tudo.
+            if os.path.exists(str(final_produto)):
+                try:
+                    existe_valido = os.path.getsize(str(final_produto)) > 0
+                except OSError:
+                    existe_valido = True
+                if existe_valido:
+                    self.logger.info(
+                        f"Produto já existe na pasta, pulando {banda}: "
+                        f"{final_produto.name}",
+                        code="IMAGERY_SKIP_EXISTING",
+                        item=item.get("id"),
+                        banda=banda,
+                        path=str(final_produto),
+                    )
+                    files.append(str(final_produto))
+                    pulados += 1
+                    if progress_cb is not None:
+                        progress_cb((idx / total_bandas) * 100.0)
+                    continue
 
             asset_key = self.resolve_asset_key(item, cfg, banda)
             caminho_temp = pasta_item / f"_tmp_{banda}.tif"
@@ -564,62 +600,73 @@ class ImageryApi(BaseUtil):
                 if cb is not None:
                     cb((base / total) * 100.0 + (part / total))
 
+            # Download (rede/requests) — paralelizável, FORA do lock GDAL.
             self.download_asset(item, asset_key, caminho_temp, progress_cb=_band_progress)
 
-            start_path = caminho_temp
+            # Processamento pesado de banda (clip, rename do final, ÷10000) —
+            # GDAL/numpy. Sempre SERIALIZADO via _GDAL_LOCK (regra SKILL_UTILS
+            # 2.3.2): nunca rodar GDAL/numpy em 2 tasks paralelas do mesmo
+            # processo (access violation → crash duro do QGIS sem exceção).
+            with _GDAL_LOCK:
+                start_path = caminho_temp
 
-            # 1. Clip por polígono (RasterVectorBridge, worker-safe paths)
-            if clip_mode == "polygon" and clip_geom and clip_geom.get("polygon_path"):
-                out_clip = pasta_item / f"{prefixo}_{banda}_clip.tif"
-                RasterVectorBridge().clip_raster_by_vector(
-                    str(start_path),
-                    str(clip_geom["polygon_path"]),
-                    str(out_clip),
-                    external_tool_key=self.tool_key,
-                )
-                start_path = out_clip
-            # 2. Clip por boundary (sem polígono — bbox de raster/vetor/tela)
-            elif clip_mode == "extent" and clip_geom and clip_geom.get("extent_wgs84"):
-                out_clip = pasta_item / f"{prefixo}_{banda}_clip.tif"
-                start_path = self._clip_by_extent(
-                    str(start_path),
-                    clip_geom["extent_wgs84"],
-                    scene_epsg,
-                    str(out_clip),
-                )
-
-            # 3. Arquivo final base (sem conversão)
-            final_path = pasta_item / f"{prefixo}_{banda}.tif"
-            if start_path != final_path:
-                if os.path.exists(str(final_path)):
-                    ExplorerUtils.delete_file(str(final_path), tool_key=self.tool_key)
-                try:
-                    os.replace(str(start_path), str(final_path))
-                except OSError as e:
-                    self.logger.warning(
-                        f"Falha ao mover '{start_path}': {e}",
-                        code="IMAGERY_MOVE_RENAME",
+                # 1. Clip por polígono (RasterVectorBridge, worker-safe paths)
+                if clip_mode == "polygon" and clip_geom and clip_geom.get("polygon_path"):
+                    out_clip = pasta_item / f"{prefixo}_{banda}_clip.tif"
+                    if os.path.exists(str(out_clip)):
+                        ExplorerUtils.delete_file(str(out_clip), tool_key=self.tool_key)
+                    RasterVectorBridge().clip_raster_by_vector(
+                        str(start_path),
+                        str(clip_geom["polygon_path"]),
+                        str(out_clip),
+                        external_tool_key=self.tool_key,
                     )
-                    ExplorerUtils.rename_file(
-                        str(start_path), str(final_path), tool_key=self.tool_key
+                    start_path = out_clip
+                # 2. Clip por boundary (sem polígono — bbox de raster/vetor/tela)
+                elif clip_mode == "extent" and clip_geom and clip_geom.get("extent_wgs84"):
+                    out_clip = pasta_item / f"{prefixo}_{banda}_clip.tif"
+                    if os.path.exists(str(out_clip)):
+                        ExplorerUtils.delete_file(str(out_clip), tool_key=self.tool_key)
+                    start_path = self._clip_by_extent(
+                        str(start_path),
+                        clip_geom["extent_wgs84"],
+                        scene_epsg,
+                        str(out_clip),
                     )
-# 4. Conversão uint16 → float32 (÷10000); SCL passa direto
-            if convert_uint16:
-                refl_path = pasta_item / f"{prefixo}_{banda}_refl.tif"
-                result_path = RasterLayerProcessing.scale_raster_to_float32(
-                    str(final_path),
-                    str(refl_path),
-                    band_name=banda,
-                    tool_key=self.tool_key,
-                )
-                if os.path.exists(str(refl_path)):
-                    files.append(str(refl_path))
-                    convertidos += 1
-                    if delete_originals and os.path.exists(str(final_path)):
-                        originals_to_delete.append(str(final_path))
-                    continue
 
-            files.append(str(final_path))
+                # 3. Arquivo final base (sem conversão)
+                final_path = pasta_item / f"{prefixo}_{banda}.tif"
+                if start_path != final_path:
+                    if os.path.exists(str(final_path)):
+                        ExplorerUtils.delete_file(str(final_path), tool_key=self.tool_key)
+                    try:
+                        os.replace(str(start_path), str(final_path))
+                    except OSError as e:
+                        self.logger.warning(
+                            f"Falha ao mover '{start_path}': {e}",
+                            code="IMAGERY_MOVE_RENAME",
+                        )
+                        ExplorerUtils.rename_file(
+                            str(start_path), str(final_path), tool_key=self.tool_key
+                        )
+
+                # 4. Conversão uint16 → float32 (÷10000); SCL passa direto
+                if convert_uint16:
+                    refl_path = pasta_item / f"{prefixo}_{banda}_refl.tif"
+                    RasterLayerProcessing.scale_raster_to_float32(
+                        str(final_path),
+                        str(refl_path),
+                        band_name=banda,
+                        tool_key=self.tool_key,
+                    )
+                    if os.path.exists(str(refl_path)):
+                        files.append(str(refl_path))
+                        convertidos += 1
+                        if delete_originals and os.path.exists(str(final_path)):
+                            originals_to_delete.append(str(final_path))
+                        continue
+
+                files.append(str(final_path))
 
         if progress_cb is not None:
             progress_cb(100.0)
@@ -636,6 +683,7 @@ class ImageryApi(BaseUtil):
             "clip_mode": clip_mode,
             "bandas_baixadas": [Path(f).name for f in files],
             "convertidos_/10000": convertidos,
+            "pulados_existentes": pulados,
             "apagar_originais": delete_originals,
         }
         meta_path = pasta_item / f"{prefixo}_metadata.json"
@@ -643,10 +691,12 @@ class ImageryApi(BaseUtil):
             json.dump(meta, fh, ensure_ascii=False, indent=2, default=str)
 
         self.logger.info(
-            f"process_item: {len(files)} arquivos ({pasta_item})",
+            f"process_item: {len(files)} arquivos ({pulados} já existentes pulados) "
+            f"({pasta_item})",
             code="IMAGERY_ITEM_DONE",
             item=item.get("id"),
             bandas=len(bandas),
+            pulados=pulados,
         )
         return {
             "item_id": item.get("id"),

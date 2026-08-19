@@ -95,6 +95,7 @@ class DownloadDateTask(BaseTask):
 
         all_files = []
         all_delete = []
+        falhas = 0
         total = len(items)
         for idx, item in enumerate(items):
             if self.isCanceled() or self._context.is_cancelled():
@@ -110,17 +111,32 @@ class DownloadDateTask(BaseTask):
                 except Exception as e:
                     self.logger.warning(f"setProgress falhou: {e}")
 
-            result = api.process_item(
-                item,
-                bandas,
-                clip_mode,
-                clip_geom,
-                epsg_out,
-                output_folder,
-                convert_uint16=convert,
-                delete_originals=delete_originals,
-                progress_cb=_cb,
-            )
+            try:
+                result = api.process_item(
+                    item,
+                    bandas,
+                    clip_mode,
+                    clip_geom,
+                    epsg_out,
+                    output_folder,
+                    convert_uint16=convert,
+                    delete_originals=delete_originals,
+                    progress_cb=_cb,
+                )
+            except Exception as exc:  # noqa: BLE001 - 1 cena não pode derrubar a data
+                import traceback
+
+                falhas += 1
+                self.logger.error(
+                    f"Falha ao processar cena, pulando: {exc}",
+                    code="IMAGERY_ITEM_FAILED",
+                    item=item.get("id"),
+                    date=self._date,
+                    traceback=traceback.format_exc(),
+                )
+                self.setProgress(int(((idx + 1) / total) * 100))
+                continue
+
             all_files.extend(result.get("files", []) or [])
             all_delete.extend(result.get("originals_to_delete", []) or [])
             self.setProgress(int(((idx + 1) / total) * 100))

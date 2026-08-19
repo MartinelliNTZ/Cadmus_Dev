@@ -866,3 +866,68 @@ class Strings_pt_BR:
     SELECT_OUTPUT_FOLDER = "Selecionar Pasta de Saída"
     USE_PROJECT_FOLDER = "Usar Pasta do Projeto"
     OPEN_OUTPUT_FOLDER = "Abrir Pasta de Saída"
+
+    # plugins/ImageryDownloaderPlugin.py
+    IMAGERY_DOWNLOADER_TITLE = "Downloader de Imagens de Satélite"
+    IMAGERY_DOWNLOADER_TOOLTIP = (
+        "Busca e baixa cenas (Sentinel-2) por bbox, datas e % de nuvens"
+    )
+    START_DATE = "Data inicial"
+    END_DATE = "Data final"
+    DATE_PERIOD = "Período"
+    CLOUD_MAX = "% Máximo de Nuvens"
+    BANDS_ASSETS = "Bandas e Composições"
+    BANDS_ASSETS_DESC = "Selecione bandas e composições a baixar"
+    SETTINGS = "Configurações"
+    OPTIONS = "Opções de Processamento"
+    CLIP_BY_POLYGON = "Recortar pelo polígono"
+    CLIP_BY_POLYGON_DESC = (
+        "Recorta pelo polígono desenhado ou pela camada de polígono; "
+        "sem polígono, recorta pelo boundary da extensão"
+    )
+    REPROJECT_OUTPUT = "Reprojetar saída"
+    REPROJECT_OUTPUT_DESC = (
+        "Reprojeção apenas se o CRS de origem diferir do CRS de saída"
+    )
+    CONVERT_UINT16 = "Converter uint16 (÷10000 → float32)"
+    CONVERT_UINT16_DESC = "Divide por 10000 e salva como float32 (_refl.tif)"
+    DELETE_ORIGINALS = "Apagar originais"
+    DELETE_ORIGINALS_DESC = "Remove os arquivos uint16 após conversão"
+    EPSG_OUTPUT = "EPSG de saída"
+    SOURCE = "Fonte"
+    BBOX_SOURCE = "Extensão da Busca"
+    BBOX_SOURCE_DESC = "Define a área de busca (camada, tela ou desenho no mapa)"
+    BBOX_CAPTURE_SCREEN = "Tela"
+    BBOX_CAPTURE_SCREEN_DESC = "Usa a extensão do mapa atual (canvas)"
+    BBOX_DRAW_MAP = "Desenhar"
+    BBOX_DRAW_MAP_DESC = (
+        "Desenha a área no mapa (clique para os vértices; "
+        "botão direito ou duplo clique conclui)"
+    )
+    SEARCH_SCENES = "Buscar Cenas"
+    SCENES_FOUND = "cenas encontradas"
+    NO_SCENES_FOUND = "Nenhuma cena encontrada para os filtros informados"
+    SELECT_SCENES = "Selecionar cenas para download"
+    DOWNLOAD_SELECTED = "Baixar Selecionadas"
+    NO_SCENE_SELECTED = "Selecione pelo menos uma cena"
+    CLOUD_COVER = "nuvens"
+    DOWNLOAD_FINISHED = "Download concluído"
+    PARALLEL_INFO = "Download de {n} datas em paralelo (ParallelStep)"
+    PARALLEL_NOT_POSSIBLE = (
+        "Execução sequencial (paralelismo exige 2+ datas independentes)"
+    )
+    DEPENDENCY_MISSING_IMAGERY = (
+        "A biblioteca PySTACClient é necessária. Deseja instalá-la agora?"
+    )
+    VALIDATION_EXTENT = (
+        "Defina a extensão da busca (camada, tela ou desenho no mapa)."
+    )
+    VALIDATION_DATES = "A data inicial deve ser menor ou igual à data final."
+    VALIDATION_BANDS = "Selecione pelo menos uma banda ou composição."
+    VALIDATION_CLIP = (
+        "A opção de recorte exige uma camada de polígono ou uma extensão válida."
+    )
+    TEMP_FOLDER_HINT = (
+        "Os arquivos foram salvos na pasta temporária do Cadmus."
+    )
+

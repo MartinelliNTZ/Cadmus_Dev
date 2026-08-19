@@ -273,3 +273,24 @@
    - Compat Qt5/Qt6 via try/except (QSizePolicy.Policy.Preferred/Fixed vs QSizePolicy.Preferred/Fixed)
    - SKILL_WIDGETS2 atualizada para 3.6.2; sem imports não utilizados (F401)
 
+[3.4.1.11][19/08/2026] ImageryDownloader: EPSG de saída migrado de GridComboBox para ComplexCrsSelector:
+   - plugins/ImageryDownloaderPlugin.py: removido o GridComboBox de EPSG (opções utm/4326/31983/31984/31985) e criado ComplexCrsSelector (label + QgsProjectionSelectionWidget) — widget já existente e documentado em SKILL_WIDGETS2 (3.1.0), sem mudança de padrão
+   - Default do CRS agora é EPSG:4326 (antes era "utm" = CRS nativo da cena) via default_auth_id
+   - _load_prefs: normaliza preferências antigas ("utm"/"native"/código sem prefixo -> "EPSG:4326" ou "EPSG:{código}") e aplica via set_crs_authid; fallback para EPSG:4326 com warning IMAGERY_EPSG_INVALID se o SRC salvo for inválido
+   - _save_prefs persiste get_crs_authid() (ex: "EPSG:4326"); _build_context usa epsg_out = get_crs_authid() — ImageryApi.resolve_epsg já converte "EPSG:xxxx" para int do EPSG
+   - Import de GridComboBox removido do plugin (F401); sem imports não utilizados
+
+[3.4.1.12][19/08/2026] ImageryDownloader: tokens STR renomeados para genéricos e removidos não utilizados (pt_BR apenas):
+   - i18n/Strings_pt_BR.py: removidos SEM uso no código — BBOX_RASTER, BBOX_VECTOR, BBOX_CANVAS, BBOX_NO_LAYERS, POLYGON_LAYER, POLYGON_LAYER_DESC, SELECT_SCENES_HINT, DOWNLOAD_STARTED, DOWNLOAD_ERROR, IMAGERY_LOADED_LAYERS, IMAGERY_ORIGINALS_DELETED
+   - Renomes genéricos (nome sem prefixo de ferramenta, princípio de tokens reutilizáveis): IMAGERY_SETTINGS -> SETTINGS, SOURCE_SAT -> SOURCE, IMAGERY_VALIDATION_EXTENT/DATES/BANDS/CLIP -> VALIDATION_*, IMAGERY_TEMP_FOLDER_HINT -> TEMP_FOLDER_HINT
+   - plugins/ImageryDownloaderPlugin.py e core/ui/dialogs/SceneSelectionDialog.py atualizados para os novos nomes
+   - Sem imports não utilizados (F401)
+
+
+[3.4.1.13][19/08/2026] ImageryDownloader: skip de bandas já existentes + serialização GDAL efetivamente implementados:
+   - core/api/ImageryApi.py process_item: implementado o re-run seguro que constava apenas na doc (3.4.1.6/2.3.1) — antes de baixar, verifica se o produto final já existe na pasta (`{prefixo}_{banda}.tif`, ou `{prefixo}_{banda}_refl.tif` quando convert_uint16 e banda != SCL) e, se existir (não-vazio), pula download e processamento, reutiliza o arquivo e apenas o adiciona ao resultado (code IMAGERY_SKIP_EXISTING + progresso da banda avançado)
+   - core/api/ImageryApi.py process_item: implementada a serialização GDAL/numpy que constava apenas na doc (3.4.1.7/2.3.2) — todo o processamento pesado de banda (clip polígono via RasterVectorBridge, clip por boundary via gdal.Translate, rename do final, conversão ÷10000) agora roda sob `_GDAL_LOCK`; downloads (rede) continuam paralelos. Elimina access violation (crash duro sem exceção) ao rodar ParallelStep com 2+ datas
+   - core/api/ImageryApi.py _clip_by_extent: remove saída existente antes de gdal.Translate (evita [WinError 183] cannot create a file already exists no Windows); clip total também usa pre-delete em out_clip
+   - Metadados/log: novo campo `pulados_existentes` e linha de log IMAGERY_ITEM_DONE com contagem de pulados
+   - Resultado: ao rodar de novo sobre pasta já com rasters, não re-baixa/não reconflita; carrega as camadas existentes no final (on_success) e não trava o QGIS
+   - SKILL_UTILS atualizada para 2.3.4; sem imports não utilizados (F401)

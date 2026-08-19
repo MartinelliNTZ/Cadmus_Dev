@@ -306,3 +306,9 @@
 [3.4.1.15][19/08/2026] ImageryDownloader: SceneSelectionDialog pendente do rename SOURCE_SAT -> SOURCE:
    - core/ui/dialogs/SceneSelectionDialog.py:88: label da GridComboBox de fonte (config "source") ainda usava STR.SOURCE_SAT — token removido em 3.4.1.12 (renomeado para STR.SOURCE); causava AttributeError "'Strings_pt_BR' object has no attribute 'SOURCE_SAT'" no callback on_finished da engine 1, impedindo o diálogo de seleção de abrir (a busca STAC funcionava — 119 cenas)
    - Corrigido para STR.SOURCE ("Fonte", já presente em Strings_pt_BR); sem imports não utilizados (F401)
+
+[3.4.1.16][19/08/2026] ImageryDownloader: SceneSelectionListWidget com thumbnail 2x maior + grid de 2 colunas:
+   - resources/widgets/SceneSelectionListWidget.py: _THUMB_WIDTH 64->128 e _THUMB_HEIGHT 56->112 (altura dobrada) para melhor visualização da thumbnail
+   - Container interno trocado de QVBoxLayout para QGridLayout com 2 colunas — cartões posicionados por índice (linha = index // 2, coluna = index % 2); colunas com stretch igual e linha flexível no rodapé substituindo addStretch
+   - _add_scene_row recebe o índice (index) e posiciona o cartão no grid; API pública (set_scenes/set_thumbnail/get_selected_scenes/select_all/deselect_all) e SceneSelectionDialog inalterados
+   - SKILL_WIDGETS2 atualizada para 3.6.4; sem imports não utilizados (F401)

@@ -4,9 +4,10 @@ SceneSelectionListWidget — Lista rolável de cenas com thumbnail + checkbox.
 =======================================================================
 Widget específico (exceção de generalismo) para o ImageryDownloader.
 
-Cada linha exibe um SimpleCheckbox + thumbnail (QPixmap) + texto
-(tile · data · plataforma · % nuvens). As thumbnails chegam de forma
-assíncrona via `set_thumbnail` (bytes) e, em falha, exibem placeholder.
+Cada cartão exibe um SimpleCheckbox + thumbnail (QPixmap) + texto
+(tile · data · plataforma · % nuvens), organizados em grid de 2 colunas.
+As thumbnails chegam de forma assíncrona via `set_thumbnail` (bytes) e,
+em falha, exibem placeholder.
 
 Uso por SceneSelectionDialog:
     scene_list = SceneSelectionListWidget(parent=self)
@@ -20,6 +21,7 @@ from qgis.PyQt.QtCore import QSize, Qt
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import (
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QScrollArea,
@@ -61,8 +63,8 @@ class SceneSelectionListWidget(QWidget):
     - _specific_style(): cartões das cenas com tokens do tema
     """
 
-    _THUMB_WIDTH = 64
-    _THUMB_HEIGHT = 56
+    _THUMB_WIDTH = 192
+    _THUMB_HEIGHT = 168
     _SCROLL_MAX_HEIGHT = 420
 
     def __init__(self, parent=None):
@@ -95,9 +97,12 @@ class SceneSelectionListWidget(QWidget):
         self._scroll_area.setFrameShadow(QScrollArea.Shadow.Plain)
 
         self._container = QWidget()
-        self._container_layout = QVBoxLayout(self._container)
+        self._container_layout = QGridLayout(self._container)
         self._container_layout.setContentsMargins(4, 4, 4, 4)
-        self._container_layout.setSpacing(
+        self._container_layout.setHorizontalSpacing(
+            AppStyles._get_theme().LAYOUT_HORIZONTAL_SPACING
+        )
+        self._container_layout.setVerticalSpacing(
             AppStyles._get_theme().LAYOUT_VERTICAL_SPACING
         )
 
@@ -129,9 +134,14 @@ class SceneSelectionListWidget(QWidget):
         for index, item in enumerate(scenes or []):
             scene_id = str(item.get("id") or f"scene_{index}")
             self._scenes[scene_id] = item
-            self._add_scene_row(scene_id, item)
+            self._add_scene_row(scene_id, item, index)
 
-        self._container_layout.addStretch()
+        # Grid de 2 colunas com largura igual + linha flexível no rodapé
+        self._container_layout.setColumnStretch(0, 1)
+        self._container_layout.setColumnStretch(1, 1)
+        self._container_layout.setRowStretch(
+            self._container_layout.rowCount(), 1
+        )
 
     def set_thumbnail(self, scene_id: str, data):
         """Define a thumbnail (bytes) de uma cena já adicionada.
@@ -180,8 +190,10 @@ class SceneSelectionListWidget(QWidget):
 
     # ── Construção interna ────────────────────────────────────────
 
-    def _add_scene_row(self, scene_id: str, item: dict):
-        """Cria a linha de cartão com checkbox + thumbnail + texto."""
+    def _add_scene_row(self, scene_id: str, item: dict, index: int):
+        """Cria o cartão com checkbox + thumbnail + texto no grid 2 colunas."""
+        row = index // 2
+        col = index % 2
         card = QFrame()
         card.setObjectName("scene_card")
         row_layout = QHBoxLayout(card)
@@ -211,7 +223,7 @@ class SceneSelectionListWidget(QWidget):
 
         self._checkboxes[scene_id] = checkbox
         self._thumb_labels[scene_id] = thumb_label
-        self._container_layout.addWidget(card)
+        self._container_layout.addWidget(card, row, col)
 
     def _build_label_text(self, item: dict) -> str:
         """Retorna o texto da cena; prioriza ``label`` do dict."""

@@ -312,3 +312,10 @@
    - Container interno trocado de QVBoxLayout para QGridLayout com 2 colunas — cartões posicionados por índice (linha = index // 2, coluna = index % 2); colunas com stretch igual e linha flexível no rodapé substituindo addStretch
    - _add_scene_row recebe o índice (index) e posiciona o cartão no grid; API pública (set_scenes/set_thumbnail/get_selected_scenes/select_all/deselect_all) e SceneSelectionDialog inalterados
    - SKILL_WIDGETS2 atualizada para 3.6.4; sem imports não utilizados (F401)
+
+[3.4.1.17][20/08/2026] GridBBoxSelector: prévia vermelha agora some sozinha (auto-clear):
+   - resources/widgets/grid/GridBBoxSelector.py: o retângulo vermelho (QgsRubberBand) desenhado após selecionar a extensão (tela/camada/desenho) ficava permanentemente no canvas, sem nunca sumir — comportamento não fiel ao QGIS
+   - Adicionado auto-clear via QTimer de disparo único: novos métodos _schedule_preview_clear + _clear_preview; a prévia some sozinha após _PREVIEW_CLEAR_MS (3000 ms)
+   - _schedule_preview_clear reutiliza um único QTimer (reiniciado a cada redraw); _clear_preview reseta/oculta a banda sem apagar o estado (boundary/tipo/path preservados)
+   - SKILL_WIDGETS2 atualizada para 3.6.5; sem imports não utilizados (F401)
+

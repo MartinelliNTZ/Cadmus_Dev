@@ -56,7 +56,7 @@ from qgis.PyQt.QtWidgets import (
     QSizePolicy,
 )
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -231,7 +231,16 @@ class GridBBoxSelector(QWidget):
     ----------------
     - AppStyles.map_layer_combobox() no QgsMapLayerComboBox
     - SimpleModernButton nos botões
+
+    Pré-visualização
+    ----------------
+    Após selecionar a extensão, uma borda vermelha é desenhada no canvas
+    apenas como feedback breve e some sozinha após ``_PREVIEW_CLEAR_MS`` ms
+    (comportamento fiel ao QGIS, sem deixar marca permanente na tela).
     """
+
+    # Tempo (ms) até a prévia vermelha sumir sozinha do canvas.
+    _PREVIEW_CLEAR_MS = 3000
 
     def __init__(
         self,
@@ -268,6 +277,7 @@ class GridBBoxSelector(QWidget):
         self._rubber_preview = None
         self._draw_tool = None
         self._previous_tool = None
+        self._preview_timer = None  # QTimer p/ limpar a prévia automaticamente
 
         self._build_ui()
 
@@ -614,6 +624,7 @@ class GridBBoxSelector(QWidget):
                     self._rubber_preview.setWidth(2)
                 self._rubber_preview.setToGeometry(polygon, target_crs)
                 self._rubber_preview.show()
+                self._schedule_preview_clear()
                 return
             except Exception as e:  # noqa: BLE001 - preview é opcional
                 self._logger.warning(
@@ -643,6 +654,30 @@ class GridBBoxSelector(QWidget):
             self._rubber_preview.setWidth(2)
         self._rubber_preview.setToGeometry(rectangle, target_crs)
         self._rubber_preview.show()
+        self._schedule_preview_clear()
+
+    def _schedule_preview_clear(self, delay_ms: int = None):
+        """Agenda a limpeza da prévia (a borda some sozinha, como no QGIS)."""
+        try:
+            if self._preview_timer is None:
+                self._preview_timer = QTimer(self)
+                self._preview_timer.setSingleShot(True)
+                self._preview_timer.timeout.connect(self._clear_preview)
+            if delay_ms is None:
+                delay_ms = self._PREVIEW_CLEAR_MS
+            self._preview_timer.start(delay_ms)
+        except RuntimeError:
+            self._preview_timer = None
+
+    def _clear_preview(self):
+        """Remove a prévia (QgsRubberBand) do canvas sem apagar o estado."""
+        if self._rubber_preview is None:
+            return
+        try:
+            self._rubber_preview.reset()
+            self._rubber_preview.hide()
+        except RuntimeError:
+            self._rubber_preview = None
 
     # ── Preferências ────────────────────────────────────────────────
 

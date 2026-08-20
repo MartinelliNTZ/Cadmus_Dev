@@ -1120,6 +1120,8 @@ bbox.get_preferences()         # / set_preferences(prefs)
 
 **Ferramenta de desenho:** item clicável no mapa adiciona vértices; botão direito ou duplo clique conclui. O widget restaura a ferramenta de mapa anterior ao finalizar/cancelar.
 
+**Pré-visualização (auto-clear):** ao selecionar a extensão (tela, camada ou desenho), uma borda vermelha (`QgsRubberBand`) é exibida no canvas apenas como feedback breve e **some sozinha** após `_PREVIEW_CLEAR_MS` (3000 ms) via `QTimer` de disparo único (`_schedule_preview_clear`/`_clear_preview`) — fiel ao QGIS, sem deixar marca permanente na tela.
+
 ### SceneSelectionListWidget 🆕 (EXCEÇÃO DE GENERALISMO)
 Lista rolável de cenas com `SimpleCheckbox` + thumbnail (QPixmap) + tile · data · plataforma · % nuvens. É específico da seleção de cenas e **não** precisa ser genérico.
 
@@ -1423,3 +1425,7 @@ border: 1px solid {theme.COLOR_BORDER};
    - `ImageryApi.create_polygon_mask` (GDAL/OGR sob `_GDAL_LOCK`) grava o polígono desenhado em GPKG temporário para `gdal:cliprasterbymasklayer`
    - `DownloadDateTask` usa `clip_data` do contexto (substitui `polygon_path` + `bbox_wgs84` isolados)
    - `ImageryDownloaderPlugin`: **removido** `GridComplexSelector` de polígono; recorte passa a vir do `GridBBoxSelector`; novas strings `BBOX_CAPTURE_SCREEN`/`BBOX_DRAW_MAP` e textos de validação atualizados |
+| 2026-08-20 | 3.6.5 | **GridBBoxSelector — prévia vermelha some sozinha (auto-clear):**
+   - O `QgsRubberBand` vermelho desenhado após selecionar a extensão (tela/camada/desenho) ficava permanentemente no canvas; agora é limpo sozinho após `_PREVIEW_CLEAR_MS` (3000 ms) via `QTimer` de disparo único
+   - Novos métodos `_schedule_preview_clear()`/`_clear_preview()` (o timer é reutilizado e reiniciado a cada redraw; a limpeza não apaga o estado boundary/tipo/path) — feedback breve e fiel ao QGIS
+

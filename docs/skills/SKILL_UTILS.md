@@ -427,3 +427,9 @@ if success:
    - Novo método `ImageryApi.create_polygon_mask(wkt, dest_path)` — grava polígono desenhado (WKT EPSG:4326 do `GridBBoxSelector`, tipo `"drawn"`) em GPKG temporário via GDAL/OGR; worker-safe, sob `_GDAL_LOCK`
    - O GPKG gerado vira `MASK` no `gdal:cliprasterbymasklayer` (recorte pelo formato do polígono); sem objetos QGIS em thread
    - Usado por `DownloadDateTask` quando `clip_data.mode == "polygon"` e há `polygon_wkt` (sem camada de polígono selecionada) |
+| 2026-08-20 | 2.3.4 | **ImageryApi: etapa 2 das composições — estilo RGB + resolução mista:**
+   - Novo `ImageryApi._resample_raster(src, out, target_res)` — reamostra via `gdal.Warp` (xRes/yRes + bilinear) para unificar grid de bandas com resolução mista; worker-safe, sob `_GDAL_LOCK`
+   - Novo estático `ImageryApi._band_resolucion_m("20m")` → `20.0` (parse do sufixo de resolução da fonte)
+   - `process_item`: composições de resolução mista (SWIR/AGRICULTURA/URBANO) agora geradas — resolução alvo = banda mais fina; bandas grossas reamostradas para temporário `{prefixo}_{banda}_{comp}_res{N}m.tif` antes do `compose_multiband_raster`; removida a parada `IMAGERY_COMP_MIXED_RES`
+   - `process_item`: retorna `composite_files` (paths dos compostos gerados)
+   - `DownloadDateStep.on_success`: aplica estilo percentil RGB (2-98%, bandas 1-3, `RasterLayerRendering.generate_percentil_multiband_style`) nos compostos ao carregá-los no grupo — mesmo padrão do RgbStyleStandardizer; falha de estilo logada e não bloqueia (code `IMAGERY_COMP_STYLE_FAILED`)

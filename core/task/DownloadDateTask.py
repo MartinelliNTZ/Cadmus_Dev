@@ -39,6 +39,7 @@ class DownloadDateTask(BaseTask):
                 "date": self._date,
                 "folder": "",
                 "files": [],
+                "composite_files": [],
                 "originals_to_delete": [],
                 "delete_originals": False,
                 "bandas": [],
@@ -96,6 +97,7 @@ class DownloadDateTask(BaseTask):
 
         all_files = []
         all_delete = []
+        all_composites = []
         falhas = 0
         total = len(items)
         for idx, item in enumerate(items):
@@ -140,6 +142,7 @@ class DownloadDateTask(BaseTask):
                 continue
 
             all_files.extend(result.get("files", []) or [])
+            all_composites.extend(result.get("composite_files", []) or [])
             all_delete.extend(result.get("originals_to_delete", []) or [])
             self.setProgress(int(((idx + 1) / total) * 100))
 
@@ -147,6 +150,7 @@ class DownloadDateTask(BaseTask):
             "date": self._date,
             "folder": output_folder,
             "files": all_files,
+            "composite_files": all_composites,
             "originals_to_delete": all_delete,
             "delete_originals": delete_originals,
             "bandas": bandas,

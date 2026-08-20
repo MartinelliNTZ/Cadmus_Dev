@@ -4,6 +4,7 @@ from .BaseStep import BaseStep
 from ..task.DownloadDateTask import DownloadDateTask
 from ...utils.ExplorerUtils import ExplorerUtils
 from ...utils.ProjectUtils import ProjectUtils
+from ...utils.raster.RasterLayerRendering import RasterLayerRendering
 from ...utils.raster.RasterLayerSource import RasterLayerSource
 
 
@@ -51,6 +52,7 @@ class DownloadDateStep(BaseStep):
 
         # 2. Carregar camadas no grupo por data (ProjectUtils/RasterLayerSource)
         files = result.get("files", []) or []
+        composite_files = set(result.get("composite_files", []) or [])
         group = ProjectUtils.ensure_group(f"{self._source_label} {date}")
         rsource = RasterLayerSource()
         carregadas = 0
@@ -61,6 +63,29 @@ class DownloadDateStep(BaseStep):
                 tif, external_tool_key=context.tool_key
             )
             if layer is not None:
+                if tif in composite_files:
+                    # Estilo percentil RGB (padrão RgbStyleStandardizer: 2-98%)
+                    try:
+                        RasterLayerRendering.generate_percentil_multiband_style(
+                            raster_path=tif,
+                            band_indices=[1, 2, 3],
+                            lower_pct=2.0,
+                            upper_pct=98.0,
+                            layer=layer,
+                            feedback=None,
+                            tool_key=context.tool_key,
+                        )
+                        logger.info(
+                            f"Estilo percentil RGB aplicado em {tif}",
+                            code="IMAGERY_COMP_STYLED",
+                            tif=tif,
+                        )
+                    except Exception as e:  # noqa: BLE001 - estilo não pode quebrar a carga
+                        logger.error(
+                            f"Falha ao aplicar estilo RGB em {tif}: {e}",
+                            code="IMAGERY_COMP_STYLE_FAILED",
+                            tif=tif,
+                        )
                 ProjectUtils.add_layer_to_group(layer, group)
                 carregadas += 1
 

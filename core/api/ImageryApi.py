@@ -399,6 +399,51 @@ class ImageryApi(BaseUtil):
         )
         return str(output_path)
 
+    def _resample_raster(self, src_path, output_path, target_res: float) -> str:
+        """Reamostra o raster a uma resolução alvo via ``gdal.Warp``.
+
+        Unifica o grid de bandas com resolução mista (ex.: 20m -> 10m) antes
+        de compor uma composição colorida. Worker-safe, usa só paths (sem QGIS).
+        """
+        from osgeo import gdal
+
+        src_ds = gdal.Open(str(src_path), gdal.GA_ReadOnly)
+        if src_ds is None:
+            raise RuntimeError(f"Nao foi possivel abrir raster: {src_path}")
+
+        parent = os.path.dirname(str(output_path))
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+
+        options = gdal.WarpOptions(
+            format="GTiff",
+            xRes=target_res,
+            yRes=target_res,
+            resampleAlg="bilinear",
+        )
+        try:
+            result = gdal.Warp(str(output_path), src_ds, options=options)
+        finally:
+            src_ds = None
+        if result is None:
+            raise RuntimeError(f"Falha ao reamostrar raster a {target_res}")
+        self.logger.info(
+            f"Banda reamostrada a {target_res} -> {output_path}",
+            code="IMAGERY_RESAMPLE_DONE",
+            target_res=target_res,
+        )
+        return str(output_path)
+
+    @staticmethod
+    def _band_resolucion_m(res_str) -> Optional[float]:
+        """Converte o sufixo de resolução (``"10m"``) a float (``10.0``)."""
+        if not res_str:
+            return None
+        try:
+            return float(str(res_str).strip().lower().replace("m", ""))
+        except (TypeError, ValueError):
+            return None
+
     def _clip_by_extent(
         self,
         src_path,
@@ -554,8 +599,8 @@ class ImageryApi(BaseUtil):
             Se True, lista os originais uint16 para remoção (feita no main thread).
         compositions : list[str], optional
             Chaves lógicas de composições pré-populadas a gerar após baixar
-            as bandas (ex.: ``["RGB"]``). Só compostas quando todas as bandas
-            têm resolução uniforme (evita resample implícito).
+            as bandas (ex.: ``["RGB"]``). Resolução mista (20m+10m) é unificada
+            re-amostrando as bandas grossas para a banda mais fina da composição.
         progress_cb : callable, optional
             Callback de progresso 0-100.
 
@@ -713,10 +758,11 @@ class ImageryApi(BaseUtil):
 
         # ── Composições selecionadas (ex.: RGB → B04+B03+B02) ─────────
         # Gera o raster multibanda composto a partir das bandas já baixadas.
-        # Somente quando todas as bandas da composição têm resolução uniforme
-        # e os produtos finais existem; composições com resolução mista (20m+
-        # 10m) exigiriam resample e ficam para etapa dedicada.
+        # Resolução mista (20m+10m) é unificada re-amostrando as bandas grossas
+        # para a resolução da banda mais fina da composição (evita empilhamento
+        # inválido de grids diferentes no BuildVRT).
         composicoes_geradas = 0
+        composite_files = []
         for comp_key in (compositions or []):
             comp = cfg["compositions"].get(comp_key)
             if not comp:
@@ -737,20 +783,16 @@ class ImageryApi(BaseUtil):
                 )
                 continue
 
-            # Resolução uniforme? (10m/20m/60m) — senão precisaria resample.
+            # Resolução objetivo = a mais fina entre as bandas da composição.
             ress = {
                 cfg["assets"].get(b, ("", ""))[1]
                 for b in bandas_comp if b in cfg["assets"]
             }
-            if len(ress) != 1:
-                self.logger.warning(
-                    f"Composição {comp_key} com resolução mista ({sorted(ress)}) "
-                    "— requer resample, pulando",
-                    code="IMAGERY_COMP_MIXED_RES",
-                    comp=comp_key,
-                    ress=sorted(ress),
-                )
-                continue
+            target_res = None
+            for r_str in ress:
+                r = self._band_resolucion_m(r_str)
+                if r is not None and (target_res is None or r < target_res):
+                    target_res = r
 
             band_files = []
             faltando = False
@@ -761,7 +803,36 @@ class ImageryApi(BaseUtil):
                 if not os.path.exists(str(p)) or os.path.getsize(str(p)) <= 0:
                     faltando = True
                     break
-                band_files.append(str(p))
+
+                b_res = self._band_resolucion_m(
+                    cfg["assets"].get(b, ("", ""))[1]
+                )
+                # Banda mais grossa que o alvo -> reamostrar antes de empilhar
+                if target_res and b_res and b_res > target_res:
+                    resampled = pasta_item / (
+                        f"{prefixo}_{b}_{comp_key}_res{int(target_res)}m.tif"
+                    )
+                    if (
+                        not os.path.exists(str(resampled))
+                        or os.path.getsize(str(resampled)) <= 0
+                    ):
+                        with _GDAL_LOCK:
+                            try:
+                                self._resample_raster(
+                                    str(p), str(resampled), target_res
+                                )
+                            except Exception as e:  # noqa: BLE001
+                                self.logger.warning(
+                                    f"Falha ao reamostrar {b} para {comp_key}: {e}",
+                                    code="IMAGERY_COMP_RESAMPLE_FAILED",
+                                    comp=comp_key,
+                                    banda=b,
+                                )
+                                faltando = True
+                                break
+                    band_files.append(str(resampled))
+                else:
+                    band_files.append(str(p))
 
             if faltando:
                 self.logger.warning(
@@ -788,6 +859,7 @@ class ImageryApi(BaseUtil):
                     )
                     continue
             files.append(str(comp_path))
+            composite_files.append(str(comp_path))
             composicoes_geradas += 1
             self.logger.info(
                 f"Composição {comp_key} gerada: {comp_path.name}",
@@ -832,6 +904,7 @@ class ImageryApi(BaseUtil):
             "prefix": prefixo,
             "folder": str(pasta_item),
             "files": files,
+            "composite_files": composite_files,
             "originals_to_delete": originals_to_delete,
             "metadata": str(meta_path),
         }

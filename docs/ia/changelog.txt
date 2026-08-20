@@ -339,3 +339,11 @@
    - O resultado cargase el compuesto como capa en el grupo por fecha (RGB ahora é capaz em el grupo)
    - Sem imports em desuso; arquivos com newline final
 
+[3.4.1.21][20/08/2026] ImageryDownloader: etapa 2 das composições — estilização RGB automática + composições de resolução mista (resample):
+   - core/api/ImageryApi.py: novo `_resample_raster()` (gdal.Warp com xRes/yRes + bilinear) e `_band_resolucion_m()` (parse "20m" -> 20.0); tudo sob `_GDAL_LOCK`
+   - core/api/ImageryApi.py process_item: composições com resolução mista (SWIR/AGRICULTURA/URBANO: B8A/B11/B12 20m + B04/B08 10m) agora geradas — resolução alvo = banda mais fina da composição, bandas grossas reamostradas (temporário `{prefixo}_{banda}_{comp}_res{N}m.tif`) antes do BuildVRT; removida a parada IMAGERY_COMP_MIXED_RES
+   - core/api/ImageryApi.py process_item: retorna `composite_files` (paths dos compostos gerados); metadata mantém `composicoes_geradas`
+   - core/task/DownloadDateTask.py: agrega `composite_files` no resultado da data (incluindo empty result)
+   - core/engine_tasks/DownloadDateStep.py on_success: aplica estilo percentil RGB (2-98%, bandas 1-3, StretchToMinimumMaximum — mesmo padrão do RgbStyleStandardizer) nos compostos ao carregá-los no grupo; falha de estilo não quebra a carga (log IMAGERY_COMP_STYLE_FAILED)
+   - Correção ortográfica da entrada 3.4.1.20 (pt_BR)
+   - Sem imports em desuso; arquivos com newline final

@@ -8,12 +8,14 @@ em tasks (engine 2 com ParallelStep quando 2+ datas), aplica processamento
 opcional (clip polígono/boundary, reprojeção condicional, ÷10000) e carrega
 as camadas no QGIS agrupadas por data.
 """
+import os
 
 from ..plugins.BasePlugin import BasePluginMTL
 from ..utils.ToolKeys import ToolKey
 from ..utils.Preferences import Preferences
 from ..utils.DependenciesManager import DependenciesManager
 from ..utils.QgisMessageUtil import QgisMessageUtil
+from ..utils.ExplorerUtils import ExplorerUtils
 from ..i18n.TranslationManager import STR
 from ..core.engine_tasks.ExecutionContext import ExecutionContext
 from ..core.engine_tasks.AsyncPipelineEngine import AsyncPipelineEngine
@@ -238,16 +240,31 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         self.layout.add_execution_buttons(self.buttons)
 
     def _build_bands_config(self) -> dict:
-        """Monta o config de bandas + composições pré-populado (RF5)."""
+        """Monta o config de bandas + composições pré-populado (RF5).
+
+        Filtra bandas/composições cujas bandas não existam na fonte
+        (assets/asset_map), evitando checkboxes a assets inexistentes.
+        """
         cfg = ImageryApi(tool_key=self.TOOL_KEY).get_source_config("sentinel2")
+        available = set(cfg.get("assets", {}).keys()).union(
+            set(cfg.get("asset_map", {}).keys())
+        )
         config = {}
         for band, (nome, res) in cfg["assets"].items():
+            if band not in available:
+                continue
             config[band] = {
                 "label": f"{band} · {nome} ({res})",
                 "description": f"{nome} ({res})",
                 "default": band in self.DEFAULT_BANDS,
             }
         for comp_key, comp in cfg["compositions"].items():
+            bandas = comp.get("bandas")
+            if isinstance(bandas, (list, tuple)) and not any(
+                b in available for b in bandas
+            ):
+                # composição sem bandas válidas na fonte -> não criar checkbox
+                continue
             config[f"comp_{comp_key}"] = {
                 "label": f"⭐ {comp['nome']}",
                 "description": "Composição pronta — marca as bandas ao selecionar",
@@ -384,8 +401,41 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         )
         context.set("clip_data", self.bbox.build_clip_data())
         context.set("epsg_out", self.epsg_output.get_crs_authid())
-        context.set("output_folder", self.output.get_path("output") or "")
+        context.set("output_folder", self._resolve_output_folder())
         return context
+
+    def _resolve_output_folder(self) -> str:
+        """Resolve a pasta de saída ou a pasta temporária do Cadmus.
+
+        O GridComplexSelector pode devolver a URI de uma camada XYZ/raster
+        (ex: url=https...crs=EPSG:3857) em vez de um diretório local. Nesse
+        caso, ou quando o caminho é inválido, usa a pasta temporária para não
+        gravar os rasters fora do lugar esperado.
+        """
+        caminho = self.output.get_path("output") or ""
+        if not caminho:
+            return ""
+
+        # Rejeita URIs de camada (não são diretórios) e caminhos não absolutos.
+        if not os.path.isabs(caminho) or any(
+            marcador in caminho.lower() for marcador in ("://", "?type=", "crs=")
+        ):
+            self.logger.warning(
+                "Pasta de saída inválida (URI de camada), usando temp",
+                code="IMAGERY_OUTPUT_INVALID",
+                valor=caminho,
+            )
+            return ExplorerUtils.get_temp_folder(self.TOOL_KEY, "imagery")
+
+        if os.path.isfile(caminho):
+            self.logger.warning(
+                "Pasta de saída aponta para um arquivo, usando temp",
+                code="IMAGERY_OUTPUT_INVALID_FILE",
+                valor=caminho,
+            )
+            return ExplorerUtils.get_temp_folder(self.TOOL_KEY, "imagery")
+
+        return caminho
 
     def execute_tool(self):
         """Engine 1: busca as cenas no STAC e abre a seleção."""

@@ -319,3 +319,15 @@
    - _schedule_preview_clear reutiliza um único QTimer (reiniciado a cada redraw); _clear_preview reseta/oculta a banda sem apagar o estado (boundary/tipo/path preservados)
    - SKILL_WIDGETS2 atualizada para 3.6.5; sem imports não utilizados (F401)
 
+[3.4.1.18][20/08/2026] ImageryDownloader: nova composición NDVI + limpieza de checkboxes sen asset:
+   - core/api/ImageryApi.py: en SOURCES["sentinel2"]["compositions"] agregado "NDVI" (Nome "NDVI (Vegetación)", bandas [B08, B04]) — permite marcar con un clic NIR+RED para xerar NDVI co NdviCalculator
+   - plugins/ImageryDownloaderPlugin.py: _build_bands_config agora filtra bandas que non existan na fonte (assets/asset_map) e omite composiciones sen bandas válidas; evita checkboxes a assets inexistentes
+   - Workflow recomendado: marcar composición NDVI -> baixa B08 (NIR) + B04 (Red) -> process/ndvi_calculator xera o NDVI final
+   - Sen imports non utilizados (F401); arquivos con newline final (W292)
+
+[3.4.1.19][20/08/2026] ImageryDownloader: correção de download "parcial" (descarga em pasta errada + sem recorte/reprojeção):
+   - core/api/ImageryApi.py process_item: fallback de proj_epsg — se a cena não trouxer proj_epsg (alguns catálogos STAC não incluem), lê o CRS real do raster acabado de baixar com _get_raster_epsg() dentro de _GDAL_LOCK; assim o recorte por boundary e a reprojeção condicional funcionam sempre (elimina os avisos IMAGERY_CLIP_NO_EPSG do log)
+   - core/api/ImageryApi.py process_item: reprojeção IMPLEMENTADA (bloco 2.5) — resolve_epsg/_reproject_raster já existiam mas nunca eram chamadas, então o EPSG de saída (ex: EPSG:4674) era ignorado; agora, após o clip, resolve ``EPSG:xxxx`` e aplica gdal.Warp quando o CRS da cena difere do EPSG de saída
+   - plugins/ImageryDownloaderPlugin.py: novo método _resolve_output_folder() que valida a pasta de saída. O GridComplexSelector podia devolver a URI de uma camada XYZ (type=xyz url= crs=), salvando os rasters em rotas não esperadas; agora rejeita URIs/caminhos não absolutos e cai na pasta temporária (ExplorerUtils.get_temp_folder)
+   - Sem imports em desuso; arquivos com newline final
+

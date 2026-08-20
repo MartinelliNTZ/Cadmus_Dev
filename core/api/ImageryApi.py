@@ -83,6 +83,7 @@ class ImageryApi(BaseUtil):
                 "SWIR": {"nome": "SWIR (Vegetação)", "bandas": ["B12", "B8A", "B04"]},
                 "AGRICULTURA": {"nome": "Agricultura", "bandas": ["B11", "B08", "B02"]},
                 "URBANO": {"nome": "Índice Urbano", "bandas": ["B12", "B11", "B04"]},
+                "NDVI": {"nome": "NDVI (Vegetação)", "bandas": ["B08", "B04"]},
                 "TODAS": {"nome": "Todas as bandas", "bandas": None},
             },
         },
@@ -608,6 +609,18 @@ class ImageryApi(BaseUtil):
             # 2.3.2): nunca rodar GDAL/numpy em 2 tasks paralelas do mesmo
             # processo (access violation → crash duro do QGIS sem exceção).
             with _GDAL_LOCK:
+                # Fallback: se a cena não traz proj_epsg (certos casos STAC),
+                # leemos o CRS real do raster recém baixado para poder recortar
+                # pelo boundary e reprojetar corretamente.
+                if not scene_epsg:
+                    scene_epsg = self._get_raster_epsg(str(caminho_temp))
+                    if scene_epsg:
+                        self.logger.info(
+                            f"proj_epsg recuperado do raster: EPSG:{scene_epsg}",
+                            code="IMAGERY_EPSG_DERIVED",
+                            item=item.get("id"),
+                        )
+
                 start_path = caminho_temp
 
                 # 1. Clip por polígono (RasterVectorBridge, worker-safe paths)
@@ -632,6 +645,17 @@ class ImageryApi(BaseUtil):
                         clip_geom["extent_wgs84"],
                         scene_epsg,
                         str(out_clip),
+                    )
+
+                # 2.5 Reprojeção condicional (só se o EPSG de saída diferir do
+                #     CRS da cena). Resolve "EPSG:xxxx" -> int e aplica gdal.Warp.
+                epsg_out_int = self.resolve_epsg(epsg_out, scene_epsg)
+                if epsg_out_int and scene_epsg and epsg_out_int != scene_epsg:
+                    reproj_path = pasta_item / f"{prefixo}_{banda}_reproj.tif"
+                    if os.path.exists(str(reproj_path)):
+                        ExplorerUtils.delete_file(str(reproj_path), tool_key=self.tool_key)
+                    start_path = self._reproject_raster(
+                        str(start_path), epsg_out_int, str(reproj_path)
                     )
 
                 # 3. Arquivo final base (sem conversão)

@@ -317,6 +317,20 @@ class ImageryApi(BaseUtil):
         return unique
 
     @staticmethod
+    def _composicao_banda_path(pasta_item, prefixo: str, banda: str, convert_uint16: bool):
+        """Resolve o path do produto final de uma banda para composição.
+
+        Replica a regra de naming do `process_item`: ``{prefixo}_{banda}.tif``
+        ou ``{prefixo}_{banda}_refl.tif`` quando convertido (÷10000). SCL nunca
+        é convertido.
+        """
+        eh_scl = str(banda).upper() == "SCL"
+        nome = f"{prefixo}_{banda}.tif"
+        if convert_uint16 and not eh_scl:
+            nome = f"{prefixo}_{banda}_refl.tif"
+        return Path(pasta_item) / nome
+
+    @staticmethod
     def resolve_epsg(epsg_cfg, source_epsg: Optional[int]) -> Optional[int]:
         """Resolve o EPSG de saída.
 
@@ -513,6 +527,7 @@ class ImageryApi(BaseUtil):
         output_folder: str,
         convert_uint16: bool = True,
         delete_originals: bool = False,
+        compositions: Optional[list] = None,
         progress_cb: Optional[Callable[[float], None]] = None,
     ) -> dict:
         """Baixa e processa as bandas de uma cena.
@@ -537,6 +552,10 @@ class ImageryApi(BaseUtil):
             Se True, divide por 10000 e salva float32 ``_refl.tif``.
         delete_originals : bool
             Se True, lista os originais uint16 para remoção (feita no main thread).
+        compositions : list[str], optional
+            Chaves lógicas de composições pré-populadas a gerar após baixar
+            as bandas (ex.: ``["RGB"]``). Só compostas quando todas as bandas
+            têm resolução uniforme (evita resample implícito).
         progress_cb : callable, optional
             Callback de progresso 0-100.
 
@@ -692,6 +711,91 @@ class ImageryApi(BaseUtil):
 
                 files.append(str(final_path))
 
+        # ── Composições selecionadas (ex.: RGB → B04+B03+B02) ─────────
+        # Gera o raster multibanda composto a partir das bandas já baixadas.
+        # Somente quando todas as bandas da composição têm resolução uniforme
+        # e os produtos finais existem; composições com resolução mista (20m+
+        # 10m) exigiriam resample e ficam para etapa dedicada.
+        composicoes_geradas = 0
+        for comp_key in (compositions or []):
+            comp = cfg["compositions"].get(comp_key)
+            if not comp:
+                self.logger.warning(
+                    f"Composição desconhecida {comp_key} — ignorada",
+                    code="IMAGERY_COMP_UNKNOWN",
+                    comp=comp_key,
+                )
+                continue
+
+            bandas_comp = comp.get("bandas") or []
+            if len(bandas_comp) < 3:
+                self.logger.info(
+                    f"Composição {comp_key} exige <3 bandas — pulando",
+                    code="IMAGERY_COMP_MIN_BANDS",
+                    comp=comp_key,
+                    bandas=bandas_comp,
+                )
+                continue
+
+            # Resolução uniforme? (10m/20m/60m) — senão precisaria resample.
+            ress = {
+                cfg["assets"].get(b, ("", ""))[1]
+                for b in bandas_comp if b in cfg["assets"]
+            }
+            if len(ress) != 1:
+                self.logger.warning(
+                    f"Composição {comp_key} com resolução mista ({sorted(ress)}) "
+                    "— requer resample, pulando",
+                    code="IMAGERY_COMP_MIXED_RES",
+                    comp=comp_key,
+                    ress=sorted(ress),
+                )
+                continue
+
+            band_files = []
+            faltando = False
+            for b in bandas_comp:
+                p = self._composicao_banda_path(
+                    pasta_item, prefixo, b, convert_uint16
+                )
+                if not os.path.exists(str(p)) or os.path.getsize(str(p)) <= 0:
+                    faltando = True
+                    break
+                band_files.append(str(p))
+
+            if faltando:
+                self.logger.warning(
+                    f"Uma ou mais bandas da composição {comp_key} não baixadas — pulando",
+                    code="IMAGERY_COMP_MISSING_BAND",
+                    comp=comp_key,
+                    bandas_comp=bandas_comp,
+                )
+                continue
+
+            comp_path = pasta_item / f"{prefixo}_{comp_key}.tif"
+            with _GDAL_LOCK:
+                try:
+                    RasterLayerProcessing.compose_multiband_raster(
+                        band_files,
+                        str(comp_path),
+                        tool_key=self.tool_key,
+                    )
+                except Exception as e:  # noqa: BLE001 - 1 comp. não derruba a cena
+                    self.logger.error(
+                        f"Falha ao compor {comp_key}: {e}",
+                        code="IMAGERY_COMP_FAILED",
+                        comp=comp_key,
+                    )
+                    continue
+            files.append(str(comp_path))
+            composicoes_geradas += 1
+            self.logger.info(
+                f"Composição {comp_key} gerada: {comp_path.name}",
+                code="IMAGERY_COMP_DONE",
+                comp=comp_key,
+                path=str(comp_path),
+            )
+
         if progress_cb is not None:
             progress_cb(100.0)
 
@@ -708,6 +812,7 @@ class ImageryApi(BaseUtil):
             "bandas_baixadas": [Path(f).name for f in files],
             "convertidos_/10000": convertidos,
             "pulados_existentes": pulados,
+            "composicoes_geradas": composicoes_geradas,
             "apagar_originais": delete_originals,
         }
         meta_path = pasta_item / f"{prefixo}_metadata.json"

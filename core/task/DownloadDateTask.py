@@ -46,6 +46,7 @@ class DownloadDateTask(BaseTask):
             return True
 
         bandas = self._context.get("bandas", []) or []
+        compositions = self._context.get("compositions", []) or []
         options = self._context.get("options", {}) or {}
         clip = bool(options.get("clip", False))
         convert = bool(options.get("convert", False))
@@ -121,6 +122,7 @@ class DownloadDateTask(BaseTask):
                     output_folder,
                     convert_uint16=convert,
                     delete_originals=delete_originals,
+                    compositions=compositions,
                     progress_cb=_cb,
                 )
             except Exception as exc:  # noqa: BLE001 - 1 cena não pode derrubar a data

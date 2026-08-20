@@ -331,3 +331,11 @@
    - plugins/ImageryDownloaderPlugin.py: novo método _resolve_output_folder() que valida a pasta de saída. O GridComplexSelector podia devolver a URI de uma camada XYZ (type=xyz url= crs=), salvando os rasters em rotas não esperadas; agora rejeita URIs/caminhos não absolutos e cai na pasta temporária (ExplorerUtils.get_temp_folder)
    - Sem imports em desuso; arquivos com newline final
 
+[3.4.1.20][20/08/2026] ImageryDownloader: composições prontas agora geram o raster composto (etapa 1 — RGB):
+   - core/api/ImageryApi.py process_item: novo paràmetro `compositions` (list[str]) + geração do multibanda composto após baixar bandas. Para cada composición seleccionada de 3+ bandas e resolución uniforme (RGB, FALSA_COR), compõe via `RasterLayerProcessing.compose_multiband_raster` sob `_GDAL_LOCK` → `{prefixo}_{COMPOSICION}.tif`, adicionado a `files` e a metadata (`composiciones_geradas`). Composición sin resolución uniforme (20m+10m) requerira resample -> se pula (IMAGERY_COMP_MIXED_RES); <3 bandas (NDVI) pula (IMAGERY_COMP_MIN_BANDS)
+   - core/api/ImageryApi.py: nuevo helper `_composicion_banda_path` — resuelve el path final de una banda (`_refl` si convertido) idéntico a `process_item`
+   - core/task/DownloadDateTask.py: lee `compositions` del ExecutionContext y lo propaga a `process_item`
+   - plugins/ImageryDownloaderPlugin.py: nuevo `_resolve_compositions()` que extrae del GridCheckbox las claves `comp_*` marcadas y las inyecta en `context.set("compositions", ...)` em `_build_context`
+   - O resultado cargase el compuesto como capa en el grupo por fecha (RGB ahora é capaz em el grupo)
+   - Sem imports em desuso; arquivos com newline final
+

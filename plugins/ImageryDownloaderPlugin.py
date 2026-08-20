@@ -356,6 +356,20 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             translated, "sentinel2"
         )
 
+    def _resolve_compositions(self) -> list:
+        """Retorna as chaves das composições selecionadas no GridCheckbox.
+
+        O GridCheckbox usa a chave prefixada ``comp_<COMPOSICAO>`` para as
+        composições prontas (ex.: ``comp_RGB``). Aqui devolvemos apenas a chave
+        lógica (ex.: ``["RGB"]``) para o processamento gerar o raster composto.
+        """
+        states = self.bands.get_preferences().get("checked", {})
+        return [
+            key[5:]
+            for key, enabled in states.items()
+            if enabled and key.startswith("comp_")
+        ]
+
     def _validate_inputs(self) -> bool:
         """Valida extensão, datas e bandas antes da busca."""
         if not self.bbox.bbox_wgs84():
@@ -396,6 +410,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         context.set("date_to", self.dates.get_date_str("end"))
         context.set("max_cloud", self.cloud_slider.get_value("max_cloud"))
         context.set("bandas", self._resolve_bandas())
+        context.set("compositions", self._resolve_compositions())
         context.set(
             "options", self.options.get_preferences().get("checked", {})
         )

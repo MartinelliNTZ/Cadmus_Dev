@@ -1,0 +1,9 @@
+﻿python : C:\Users\MatheusMartinelli\AppData\Local\Programs\Python\Python312\python.exe: No 
+module named flake8
+No linha:1 caractere:1
++ python -m flake8 --select=F401,F841,W292 'c:\Users\MatheusMartinelli\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\Matheu...le named flake8:String) [], 
+    RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

@@ -27,6 +27,44 @@ from ...utils.raster.RasterVectorBridge import RasterVectorBridge
 _GDAL_LOCK = threading.Lock()
 
 
+# ── Downloads HTTP compartilhados ──────────────────────────────────────
+# Session única com keep-alive: as bandas da mesma cena vêm do mesmo host S3,
+# então reutilizar conexões elimina handshake TLS/TCP a cada banda baixada.
+_HTTP_SESSION = None
+_HTTP_SESSION_LOCK = threading.Lock()
+
+# Downloads de banda simultâneos dentro de uma cena. A rede é o gargalo
+# dominante; o GDAL continua serializado via _GDAL_LOCK (regra SKILL_UTILS
+# 2.3.2). 4 fluxos é um bom equilíbrio entre ganho e saturação de banda.
+MAX_BAND_DOWNLOADS = 4
+
+# 1 MiB por chunk reduz drasticamente o overhead de syscall no iter_content.
+DOWNLOAD_CHUNK_SIZE = 1024 * 1024
+
+
+def _get_http_session() -> "requests.Session":
+    """Retorna a Session HTTP global (lazy e thread-safe, keep-alive + retry)."""
+    global _HTTP_SESSION
+    if _HTTP_SESSION is None:
+        with _HTTP_SESSION_LOCK:
+            if _HTTP_SESSION is None:
+                from requests.adapters import HTTPAdapter, Retry
+
+                session = requests.Session()
+                retry = Retry(
+                    total=3,
+                    backoff_factor=0.5,
+                    status_forcelist=(429, 500, 502, 503, 504),
+                )
+                adapter = HTTPAdapter(
+                    pool_connections=8, pool_maxsize=16, max_retries=retry
+                )
+                session.mount("https://", adapter)
+                session.mount("http://", adapter)
+                _HTTP_SESSION = session
+    return _HTTP_SESSION
+
+
 class ImageryApi(BaseUtil):
     """Cliente de catálogo STAC e download de imagens de satélite.
 
@@ -212,7 +250,7 @@ class ImageryApi(BaseUtil):
             if not url:
                 continue
             try:
-                resp = requests.get(url, timeout=30)
+                resp = _get_http_session().get(url, timeout=30)
                 resp.raise_for_status()
                 return resp.content
             except Exception as e:  # noqa: BLE001 - thumbnail é opcional
@@ -250,12 +288,12 @@ class ImageryApi(BaseUtil):
             url=url,
         )
 
-        resp = requests.get(url, stream=True, timeout=120)
+        resp = _get_http_session().get(url, stream=True, timeout=(15, 300))
         resp.raise_for_status()
         total = int(resp.headers.get("content-length") or 0)
         written = 0
         with open(dest_path, "wb") as fh:
-            for chunk in resp.iter_content(chunk_size=8192):
+            for chunk in resp.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
                 if not chunk:
                     continue
                 fh.write(chunk)
@@ -562,6 +600,20 @@ class ImageryApi(BaseUtil):
 
     # ── Processamento de item (cena) ─────────────────────────────────
 
+    @staticmethod
+    def compute_prefixo(item: dict) -> str:
+        """Calcula o prefixo (subpasta) de uma cena: data_tile_plataforma.
+
+        Usado também por DownloadDateTask para detectar colisão de pastas
+        entre cenas da mesma data antes de paralelizar o download.
+        """
+        return (
+            ExplorerUtils.sanitize_path_component(
+                f"{item.get('date', '')}_{item.get('tile', '')}_{item.get('plataforma', '')}"
+            )
+            or item.get("id", "item")
+        )
+
     def process_item(
         self,
         item: dict,
@@ -574,6 +626,7 @@ class ImageryApi(BaseUtil):
         delete_originals: bool = False,
         compositions: Optional[list] = None,
         progress_cb: Optional[Callable[[float], None]] = None,
+        unique_by_item: bool = False,
     ) -> dict:
         """Baixa e processa as bandas de uma cena.
 
@@ -603,6 +656,10 @@ class ImageryApi(BaseUtil):
             re-amostrando as bandas grossas para a banda mais fina da composição.
         progress_cb : callable, optional
             Callback de progresso 0-100.
+        unique_by_item : bool, optional
+            Se True, inclui o id único da cena no prefixo/pasta (necessário
+            quando várias cenas da mesma data compartilham data+tile grid+
+            plataforma e rodam em paralelo — evita corromper os `_tmp_*.tif`).
 
         Returns
         -------
@@ -611,9 +668,16 @@ class ImageryApi(BaseUtil):
             ``originals_to_delete`` e ``metadata`` (path do JSON).
         """
         cfg = self.get_source_config(None)
-        prefixo = ExplorerUtils.sanitize_path_component(
-            f"{item.get('date', '')}_{item.get('tile', '')}_{item.get('plataforma', '')}"
-        ) or item.get("id", "item")
+        prefixo = self.compute_prefixo(item)
+        if unique_by_item:
+            # Mosaico da mesma data: cenas podem compartilhar data+tile grid+
+            # plataforma (ex: 22LDJ vs 22LCJ). Com paralelismo, pastas iguais
+            # corromperiam os _tmp_*.tif; adiciona o id único da cena à pasta.
+            slug_id = (
+                ExplorerUtils.sanitize_path_component(item.get("id", ""))
+                or "item"
+            )
+            prefixo = f"{prefixo}_{slug_id}"
         pasta_item = Path(output_folder) / prefixo
         pasta_item.mkdir(parents=True, exist_ok=True)
 
@@ -623,6 +687,9 @@ class ImageryApi(BaseUtil):
         originals_to_delete = []
         convertidos = 0
         pulados = 0
+
+        # ── Fase 1 — pré-varredura: pula produtos prontos e agenda downloads ──
+        pendentes: dict = {}
 
         for idx, banda in enumerate(bandas, start=1):
             if progress_cb is not None:
@@ -665,13 +732,66 @@ class ImageryApi(BaseUtil):
                 if cb is not None:
                     cb((base / total) * 100.0 + (part / total))
 
-            # Download (rede/requests) — paralelizável, FORA do lock GDAL.
-            self.download_asset(item, asset_key, caminho_temp, progress_cb=_band_progress)
+            pendentes[banda] = {
+                "idx": idx,
+                "ok": True,
+                "asset_key": asset_key,
+                "caminho_temp": caminho_temp,
+                "progress": _band_progress,
+            }
 
-            # Processamento pesado de banda (clip, rename do final, ÷10000) —
-            # GDAL/numpy. Sempre SERIALIZADO via _GDAL_LOCK (regra SKILL_UTILS
-            # 2.3.2): nunca rodar GDAL/numpy em 2 tasks paralelas do mesmo
-            # processo (access violation → crash duro do QGIS sem exceção).
+        # ── Fase 2 — downloads em paralelo (rede pura, FORA do lock GDAL) ──
+        # A rede é o gargalo dominante; threads de I/O paralelas aumentam a
+        # vazão agregada. O processamento pesado continua SERIALIZADO pelo
+        # _GDAL_LOCK (regra SKILL_UTILS 2.3.2) — sem risco de crash.
+        if pendentes:
+            from concurrent.futures import ThreadPoolExecutor
+
+            n_workers = max(1, min(MAX_BAND_DOWNLOADS, len(pendentes)))
+
+            def _download_one(item_info: dict) -> None:
+                """Baixa UMA banda (thread do pool), fora do lock GDAL."""
+                self.download_asset(
+                    item,
+                    item_info["asset_key"],
+                    item_info["caminho_temp"],
+                    progress_cb=item_info["progress"],
+                )
+
+            with ThreadPoolExecutor(
+                max_workers=n_workers, thread_name_prefix="imagery_dl"
+            ) as _pool:
+                _futures = {
+                    banda: _pool.submit(_download_one, info)
+                    for banda, info in pendentes.items()
+                }
+
+                # Re-lança erros de rede/HTTP por banda — 1 banda não derruba a cena.
+                for banda, info in pendentes.items():
+                    try:
+                        _futures[banda].result()
+                    except Exception as exc:  # noqa: BLE001
+                        info["ok"] = False
+                        self.logger.error(
+                            f"Falha ao baixar banda {banda}, pulando: {exc}",
+                            code="IMAGERY_BAND_DOWNLOAD_FAILED",
+                            item=item.get("id"),
+                            banda=banda,
+                        )
+                        if progress_cb is not None:
+                            progress_cb((info["idx"] / total_bandas) * 100.0)
+
+        # ── Fase 3 — processamento pesado de banda (clip, rename, ÷10000) ──
+        # GDAL/numpy. Sempre SERIALIZADO via _GDAL_LOCK (regra SKILL_UTILS
+        # 2.3.2): nunca rodar GDAL/numpy em 2 tasks paralelas do mesmo
+        # processo (access violation → crash duro do QGIS sem exceção).
+        for banda in bandas:
+            info = pendentes.get(banda)
+            if info is None or not info.get("ok", True):
+                continue
+
+            caminho_temp = info["caminho_temp"]
+
             with _GDAL_LOCK:
                 # Fallback: se a cena não traz proj_epsg (certos casos STAC),
                 # leemos o CRS real do raster recém baixado para poder recortar

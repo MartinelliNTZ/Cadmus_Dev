@@ -100,22 +100,32 @@ class DownloadDateTask(BaseTask):
         all_composites = []
         falhas = 0
         total = len(items)
-        for idx, item in enumerate(items):
-            if self.isCanceled() or self._context.is_cancelled():
-                self.logger.warning(
-                    "Download cancelado pelo usuário",
-                    code="IMAGERY_TASK_CANCELLED_RUN",
-                )
-                return False
 
-            def _cb(part, base=(idx / total) * 100.0 if total else 0.0):
+        # Mosaico da mesma data: cenas podem compartilhar o prefixo
+        # (data_tile_plataforma, ex: 22LDJ vs 22LCJ no mesmo grid 22). Se
+        # colidirem, cada cena grava em subpasta própria (`unique_by_item`) para
+        # não corromper os _tmp_*.tif com downloads paralelos.
+        unique_by_item = total > 1 and len(
+            {ImageryApi.compute_prefixo(s) for s in items}
+        ) < total
+
+        def _process_cena(idx, item, base):
+            """Baixa/processa UMA cena (thread do pool) com progresso local.
+
+            Usa instância própria de ImageryApi por thread (evita compartilhar
+            estado) e retorna o dict de resultado, ou None em falha (1 cena
+            não pode derrubar a data).
+            """
+            api_local = ImageryApi(tool_key=self.tool_key)
+
+            def _cb(part, base=base, total=total):
                 try:
                     self.setProgress(int(base + (part / total) if total else 100))
                 except Exception as e:
                     self.logger.warning(f"setProgress falhou: {e}")
 
             try:
-                result = api.process_item(
+                return api_local.process_item(
                     item,
                     bandas,
                     clip_mode,
@@ -126,11 +136,11 @@ class DownloadDateTask(BaseTask):
                     delete_originals=delete_originals,
                     compositions=compositions,
                     progress_cb=_cb,
+                    unique_by_item=unique_by_item,
                 )
             except Exception as exc:  # noqa: BLE001 - 1 cena não pode derrubar a data
                 import traceback
 
-                falhas += 1
                 self.logger.error(
                     f"Falha ao processar cena, pulando: {exc}",
                     code="IMAGERY_ITEM_FAILED",
@@ -138,13 +148,64 @@ class DownloadDateTask(BaseTask):
                     date=self._date,
                     traceback=traceback.format_exc(),
                 )
-                self.setProgress(int(((idx + 1) / total) * 100))
-                continue
+                return None
 
-            all_files.extend(result.get("files", []) or [])
-            all_composites.extend(result.get("composite_files", []) or [])
-            all_delete.extend(result.get("originals_to_delete", []) or [])
-            self.setProgress(int(((idx + 1) / total) * 100))
+        # Cenas independentes da MESMA data (mosaico) são processadas em
+        # paralelo: o GDAL continua serializado pelo _GDAL_LOCK do process_item,
+        # então o ganho vem da REDE (download da cena seguinte adianta enquanto
+        # outra cena processa no lock).
+        if total > 1:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            n_cenas = max(1, min(2, total))
+            with ThreadPoolExecutor(
+                max_workers=n_cenas, thread_name_prefix="imagery_scene"
+            ) as _pool:
+                futures = {}
+                for idx, item in enumerate(items):
+                    if self.isCanceled() or self._context.is_cancelled():
+                        self.logger.warning(
+                            "Download cancelado pelo usuário",
+                            code="IMAGERY_TASK_CANCELLED_RUN",
+                        )
+                        for f in futures:
+                            f.cancel()
+                        return False
+                    base = (idx / total) * 100.0 if total else 0.0
+                    futures[_pool.submit(_process_cena, idx, item, base)] = item
+
+                for future in as_completed(futures):
+                    if self.isCanceled() or self._context.is_cancelled():
+                        self.logger.warning(
+                            "Download cancelado pelo usuário",
+                            code="IMAGERY_TASK_CANCELLED_RUN",
+                        )
+                        for f in futures:
+                            f.cancel()
+                        return False
+                    result = future.result()
+                    if result is None:
+                        falhas += 1
+                        continue
+                    all_files.extend(result.get("files", []) or [])
+                    all_composites.extend(result.get("composite_files", []) or [])
+                    all_delete.extend(result.get("originals_to_delete", []) or [])
+        else:
+            for idx, item in enumerate(items):
+                if self.isCanceled() or self._context.is_cancelled():
+                    self.logger.warning(
+                        "Download cancelado pelo usuário",
+                        code="IMAGERY_TASK_CANCELLED_RUN",
+                    )
+                    return False
+                base = (idx / total) * 100.0 if total else 0.0
+                result = _process_cena(idx, item, base)
+                if result is None:
+                    falhas += 1
+                    continue
+                all_files.extend(result.get("files", []) or [])
+                all_composites.extend(result.get("composite_files", []) or [])
+                all_delete.extend(result.get("originals_to_delete", []) or [])
 
         self.result = {
             "date": self._date,

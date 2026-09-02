@@ -241,8 +241,19 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
         return requested_mode, False
 
     def _resolve_field_name(self, layer, base_name):
-        """Resolve conflito de nomes de campo."""
+        """Resolve conflito de nomes de campo.
+
+        Se a preferência de perguntar antes de substituir estiver desativada,
+        o campo existente é substituído automaticamente sem consultar o usuário.
+        """
         if layer.fields().lookupField(base_name) == -1:
+            return base_name
+
+        if not self.system_preferences.get("ask_before_replacing_fields", True):
+            self.logger.debug(
+                f"Pergunta de substituição desativada nas configurações; "
+                f"substituindo campo existente '{base_name}' automaticamente"
+            )
             return base_name
 
         action = QgisMessageUtil.ask_field_conflict(self.iface, base_name)

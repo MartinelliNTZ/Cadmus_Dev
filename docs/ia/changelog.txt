@@ -358,3 +358,9 @@
    - core/task/DownloadDateTask.py: detecta colisão de prefixo entre cenas da mesma data antes de paralelizar; se colidem, cada cena grava em subpasta própria via `unique_by_item` (paralelismo seguro); corrigido o loop `as_completed` — desempacotava um Future individual (`for future, item in as_completed(dict)` gerava "cannot unpack non-iterable Future object" e derrubava a task), agora `for future in as_completed(...)`
    - Caixa (causa raiz do bug relatado após 3.4.1.22): cenas do mesmo grid + mesma data compartilhavam a pasta `data_tile_plataforma`; com downloads em paralelo (Patch C), os `_tmp_*.tif` eram sobrescritos concorrentemente → `TIFFReadEncodedTile()/ZIPDecode` error (banda B02 lida como corrompida pelo gdal.Warp) e crash final da task
    - SKILL_UTILS atualizada para 2.3.6; sem imports não utilizados (F401); arquivos com newline final (W292)
+[3.4.1.24][02/09/2026] VectorFieldsCalculationPlugin + SettingsPlugin: pergunta de substituição de campos opcional:
+   - Novo checkbox "Perguntar ao substituir campos existentes" (STR.ASK_BEFORE_REPLACING_FIELDS / STR.ASK_BEFORE_REPLACING_FIELDS_DESC) na seção "Cálculos Vetoriais" do SettingsPlugin
+   - Padrão = marcado (sempre pergunta, preserva comportamento atual)
+   - Quando desmarcado, campos com nome já existente são substituídos automaticamente (sem diálogo) no VectorFieldsCalculationPlugin
+   - Persistência via chave "ask_before_replacing_fields" em ToolKey.SYSTEM (_load_prefs/_save_prefs do SettingsPlugin)
+   - Novas strings apenas em Strings_pt_BR; sem imports não utilizados (F401); arquivos com newline final (W292)

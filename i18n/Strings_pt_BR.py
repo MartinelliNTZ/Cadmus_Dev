@@ -495,6 +495,12 @@ class Strings_pt_BR:
         "Define o método de cálculo (elipsoidal/cartesiano), os sufixos\n"
         "dos campos de área e comprimento."
     )
+    ASK_BEFORE_REPLACING_FIELDS = "Perguntar ao substituir campos existentes"
+    ASK_BEFORE_REPLACING_FIELDS_DESC = (
+        "Quando marcado, o Cadmus pergunta antes de substituir campos com nome\n"
+        "já existente na camada durante o cálculo de campos vetoriais.\n"
+        "Desmarque para substituir automaticamente sem perguntar."
+    )
     ELLIPSOIDAL_DESC = (
         "Calcula áreas e comprimentos sobre a superfície curva do elipsoide\n"
         "da Terra (ex: WGS84). Ideal para camadas em SRC geográfico (lat/lon)\n"

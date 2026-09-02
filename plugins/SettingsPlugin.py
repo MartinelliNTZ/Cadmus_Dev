@@ -226,6 +226,22 @@ class SettingsPlugin(BasePluginMTL):
         self.calc_collapsable.add_content_widget(self.area_fields_inputs)
         self.logger.debug("Widget de sufixos de área adicionado")
 
+        # ── Pergunta ao substituir campos (GridCheckbox) ──────────
+        self.ask_replace_check = GridCheckbox(
+            config={
+                "ask_before_replacing_fields": {
+                    "label": STR.ASK_BEFORE_REPLACING_FIELDS,
+                    "description": STR.ASK_BEFORE_REPLACING_FIELDS_DESC,
+                    "default": True,
+                },
+            },
+            parent=self,
+        )
+        self.calc_collapsable.add_content_widget(self.ask_replace_check)
+        self.logger.debug(
+            "Widget de pergunta ao substituir campos vetoriais adicionado"
+        )
+
         # ── Botões de Ação (GridExecutionButtons) ─────────────────
         self.action_buttons = GridExecutionButtons(
             config={
@@ -337,6 +353,15 @@ class SettingsPlugin(BasePluginMTL):
             }
         )
 
+        self.ask_replace_check.set_checked(
+            "ask_before_replacing_fields",
+            self.system_preferences.get("ask_before_replacing_fields", True),
+        )
+        self.logger.debug(
+            "Pergunta ao substituir campos vetoriais carregada: "
+            f"{self.system_preferences.get('ask_before_replacing_fields', True)}"
+        )
+
         toolbar_visibility = MenuManager.normalize_toolbar_category_visibility(
             self.system_preferences.get(MenuManager.TOOLBAR_VISIBILITY_PREF_KEY)
         )
@@ -376,6 +401,16 @@ class SettingsPlugin(BasePluginMTL):
         precision_val = int(self.spin_precision.get_value("precision"))
         self.system_preferences["vector_field_precision"] = precision_val
         self.logger.debug(f"Precisão de campos vetoriais salva: {precision_val} casas")
+
+        self.system_preferences["ask_before_replacing_fields"] = (
+            self.ask_replace_check.get_all_states().get(
+                "ask_before_replacing_fields", True
+            )
+        )
+        self.logger.debug(
+            "Pergunta ao substituir campos vetoriais salva: "
+            f"{self.system_preferences['ask_before_replacing_fields']}"
+        )
 
         selected_language = self.lang_selector.get_selected_key("language")
         if selected_language != "none":

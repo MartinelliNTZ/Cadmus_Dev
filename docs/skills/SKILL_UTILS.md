@@ -6,7 +6,7 @@ description: >
 
 # Utils
 
-## Resumo Executivo
+## Resumo Executivo.
 
 **Utils** é o núcleo de utilitários do Cadmus, responsável por:
 - Navegação, manipulação e validação de arquivos e pastas

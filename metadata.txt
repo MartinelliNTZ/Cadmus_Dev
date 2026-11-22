@@ -23,7 +23,11 @@ tracker=https://github.com/MartinelliNTZ/Cadmus/issues
 changelog=
     3.1.0.0
         - Refactored the processing architecture with a unified execution context, standardized tasks and steps, cooperative cancellation, improved error handling, and clearer progress feedback
-        - Added a new image processing tool for TIFF conversion to JPG/PNG, cropping by extent, resizing, and image blending
+        - New tool: ImageryDownloaderPlugin - Downloads Sentinel-2 satellite imagery using spatial, date, and cloud-cover filters, with band/composition selection, clipping, reprojection, and automatic loading into QGIS
+        - New tool: RasterSamplerTool - Samples values from selected rasters at map locations
+        - New tool: CalculateChm - Calculates a Canopy Height Model from surface and terrain elevation rasters
+        - New tool: RasterMaskClipper - Clips rasters using vector masks, with support for separate outputs by feature
+        - New tool: RasterMeanAdjust - Adjusts raster values to a desired mean while preserving NoData values and georeferencing
         - Added individual layout selection in Export All Layouts, with selection preferences saved between sessions
         - Added support for exporting georeferenced PDFs from layouts
         - Modernized dialogs and settings with a new widget system, responsive controls, collapsible parameters, and more informative tooltips

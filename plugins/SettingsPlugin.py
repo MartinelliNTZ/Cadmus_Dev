@@ -213,11 +213,13 @@ class SettingsPlugin(BasePluginMTL):
                 "cartesian_suffix": {
                     "label": STR.CARTESIAN_SUFFIX,
                     "description": STR.CARTESIAN_SUFFIX_DESC,
+                    "placeholder": STR.CARTESIAN_SUFFIX_PLACEHOLDER,
                     "default": "",
                 },
                 "ellipsoidal_suffix": {
                     "label": STR.ELLIPSOIDAL_SUFFIX,
                     "description": STR.ELLIPSOIDAL_SUFFIX_DESC,
+                    "placeholder": STR.ELLIPSOIDAL_SUFFIX_PLACEHOLDER,
                     "default": "_eli",
                 },
             },

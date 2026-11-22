@@ -106,6 +106,7 @@ class Strings_pt_BR:
     MENU_RASTER = "Raster"
     MENU_DEVELOPER = "Developer"
     OPTIONS = "Opções"
+    OPTIONS_SECTION_TITLE = "Opções"
     SAVING = "Salvamento"
     STYLES = "Estilos"
     WARNING = "Aviso"
@@ -494,10 +495,9 @@ class Strings_pt_BR:
     # plugins/SettingsPlugin.py
     SETTINGS_TITLE = "Configurações Cadmus"
     SETTINGS_TOOLTIP = (
-        "Abre as configurações globais do Cadmus.\n"
-        "Permite definir o método padrão de cálculo vetorial,\n"
-        "a precisão dos campos vetoriais e o limiar de feições\n"
-        "usado para processamento assíncrono."
+        "Abre as configurações do Cadmus.\n"
+        "Aqui você define pasta de projetos, SRC padrão, idioma, tema,\n"
+        "categorias visíveis e parâmetros dos cálculos vetoriais."
     )
     GENERAL = "Geral"
     DEFAULT_CRS = "SRC padrao"
@@ -576,11 +576,13 @@ class Strings_pt_BR:
         "Ex: campo 'area' com sufixo '' vira 'area'.\n"
         "Deixe vazio para não adicionar sufixo."
     )
+    CARTESIAN_SUFFIX_PLACEHOLDER = "Ex.: _cart"
     ELLIPSOIDAL_SUFFIX_DESC = (
         "Sufixo adicionado ao nome dos campos calculados em modo elipsoidal.\n"
         "Ex: campo 'area' com sufixo '_eli' vira 'area_eli'.\n"
         "O padrão é '_eli' para diferenciar dos campos cartesianos."
     )
+    ELLIPSOIDAL_SUFFIX_PLACEHOLDER = "Ex.: _eli"
     SAVE_DESC = "Salva todas as configurações e fecha a janela."
     OPEN_PREFERENCES_FOLDER_DESC = (
         "Abre a pasta onde as preferências do Cadmus são armazenadas."
@@ -594,6 +596,32 @@ class Strings_pt_BR:
         "e substitui pelo novo valor informado.\n"
         "Pode fazer substituição parcial ou trocar o conteúdo\n"
         "inteiro do label quando houver correspondência."
+    )
+    ORIGINAL_TEXT_TO_REPLACE = (
+        "Informe o texto que deve ser encontrado nos labels dos layouts."
+    )
+    SEARCH_TEXT_PLACEHOLDER = "Ex.: texto atual do layout"
+    NEW_TEXT_TO_USE = (
+        "Informe o texto que substituirá o conteúdo encontrado. "
+        "Deixe vazio para apagar o texto encontrado."
+    )
+    REPLACEMENT_TEXT_PLACEHOLDER = "Ex.: texto novo do layout"
+    CASE_SENSITIVE_SEARCH = (
+        "Diferencia letras maiúsculas de minúsculas durante a busca. "
+        "Exemplo: 'Mapa' e 'mapa' serão tratados como textos diferentes."
+    )
+    REPLACE_ENTIRE_LABEL = (
+        "Substitui o label inteiro quando o texto for encontrado. "
+        "Se desmarcado, substitui somente o trecho correspondente."
+    )
+    BACKUP_BEFORE_REPLACEMENT = (
+        "Antes da alteração, cria uma cópia do projeto salvo na pasta de backup."
+    )
+    SWAP_TEXT_FIELDS = (
+        "Troca o texto de busca pelo texto de substituição e vice-versa."
+    )
+    START_LAYOUT_REPLACEMENT = (
+        "Procura o texto nos layouts e aplica a substituição conforme as opções escolhidas."
     )
     REPLACE_IN_LAYOUTS_SWAP = "Inverter"
     REPLACE_IN_LAYOUTS_RUN = "Executar"
@@ -758,9 +786,9 @@ class Strings_pt_BR:
     # core/ToolRegistry.py
     RESTART_QGIS_TITLE = "Salvar, Fechar e Reabrir Projeto"
     RESTART_QGIS_TOOLTIP = (
-        "Salva o projeto atual, fecha o QGIS e reabre o mesmo projeto.\n"
-        "E util para recuperar a sessao apos travamentos\n"
-        "ou problemas visuais sem perder o trabalho."
+        "Salva o projeto atual, fecha o QGIS e reabre o mesmo arquivo.\n"
+        "Use esta ação para recuperar a sessão ou corrigir problemas visuais.\n"
+        "Se o projeto ainda não estiver salvo, a ferramenta pedirá um local para salvá-lo."
     )
     LOGCAT_TITLE = "Logcat Viewer"
     LOGCAT_TOOLTIP = (
@@ -770,8 +798,8 @@ class Strings_pt_BR:
     )
     ABOUT_DIALOG_TOOLTIP = (
         f"Abre a janela {ABOUT_CADMUS} do {APP_NAME}.\n"
-        "Mostra informacoes gerais sobre o plugin,\n"
-        "como versao, autoria e contexto do projeto."
+        "Mostra a versão instalada, autoria, links do projeto\n"
+        "e informações gerais sobre a distribuição do plugin."
     )
     LAYER_NOT_EDITABLE_ASK = "A camada '{layer_name}' não está no modo de edição.\n\nDeseja torná-la editável agora?"
     LAYER_NOW_EDITABLE = "Camada colocada em modo de edição automaticamente."

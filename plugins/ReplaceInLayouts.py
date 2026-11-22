@@ -21,12 +21,12 @@ class ReplaceInLayoutsDialog(BasePluginMTL):
     CHECKBOX_OPTIONS = {
         "case_sensitive": {
             "label": STR.CASE_SENSITIVE,
-            "description": "Diferenciar maiusculas de minusculas na busca",
+            "description": STR.CASE_SENSITIVE_SEARCH,
             "default": True,
         },
         "full_replace": {
             "label": STR.FULL_LABEL_REPLACE,
-            "description": "Substituir o label inteiro em vez de apenas o texto",
+            "description": STR.REPLACE_ENTIRE_LABEL,
             "default": False,
         },
     }
@@ -56,12 +56,14 @@ class ReplaceInLayoutsDialog(BasePluginMTL):
             config={
                 "old_text": {
                     "label": STR.SEARCH_TEXT,
-                    "description": "Texto original a ser substituido nos layouts",
+                    "description": STR.ORIGINAL_TEXT_TO_REPLACE,
+                    "placeholder": STR.SEARCH_TEXT_PLACEHOLDER,
                     "default": "",
                 },
                 "new_text": {
                     "label": STR.REPLACE_WITH_NEW_TEXT,
-                    "description": "Novo texto que substituira o original",
+                    "description": STR.NEW_TEXT_TO_USE,
+                    "placeholder": STR.REPLACEMENT_TEXT_PLACEHOLDER,
                     "default": "",
                 },
             },
@@ -73,7 +75,7 @@ class ReplaceInLayoutsDialog(BasePluginMTL):
         # ====== OPCOES (checkboxes) ======
         self.checkbox_widget = GridCheckbox(
             config=self.CHECKBOX_OPTIONS,
-            title="Opcoes",
+            title=STR.OPTIONS_SECTION_TITLE,
             items_per_row=1,
             separator_bottom=True,
             parent=self,
@@ -85,7 +87,7 @@ class ReplaceInLayoutsDialog(BasePluginMTL):
             config={
                 "backup": {
                     "text": STR.PROJECT_BACKUP_INFO,
-                    "description": "Backup automatico do projeto antes da substituicao",
+                    "description": STR.BACKUP_BEFORE_REPLACEMENT,
                 },
             },
             parent=self,
@@ -96,14 +98,14 @@ class ReplaceInLayoutsDialog(BasePluginMTL):
         self.action_buttons = GridExecutionButtons(
             config={
                 "run": {
-                    "label": STR.REPLACE_IN_LAYOUTS_RUN,
-                    "description": "Inicia a substituicao nos layouts do projeto",
+                    "label": STR.EXECUTE,
+                    "description": STR.START_LAYOUT_REPLACEMENT,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },
                 "swap": {
-                    "label": "\u21c4 Inverter",
-                    "description": "Inverte old_text com new_text",
+                    "label": STR.INVERT,
+                    "description": STR.SWAP_TEXT_FIELDS,
                     "callback": self._swap_fields,
                     "is_run_button": False,
                 },

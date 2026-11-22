@@ -13,6 +13,7 @@ Cada item do config dict:
     key (identificador unico):
         "label" (obrigatorio): texto do label do campo
         "description" (opcional): tooltip do campo
+            "placeholder" (opcional): exemplo ou orientacao exibido no fundo do campo
         "default" (opcional): str, valor inicial
 
 Uso em plugins:
@@ -62,6 +63,7 @@ class GridInputFields(QWidget):
         Valor = dict com:
             - "label" (obrigatorio): texto do label do campo
             - "description" (opcional): tooltip do campo
+            - "placeholder" (opcional): exemplo ou orientacao exibido no fundo do campo
             - "default" (opcional): str, valor inicial
     title : str or None, optional
         Titulo do grupo (QGroupBox). None = sem grupo, sem espaco.
@@ -183,6 +185,7 @@ class GridInputFields(QWidget):
         for key, field_config in self._config.items():
             label_text = field_config.get("label", key)
             description = field_config.get("description", "")
+            placeholder = field_config.get("placeholder", "")
             default = field_config.get("default", "")
 
             # Linha horizontal: label + input
@@ -194,11 +197,13 @@ class GridInputFields(QWidget):
             lbl = QLabel(label_text)
             lbl.setMinimumWidth(theme.LABEL_FIELD_MIN_WIDTH)
             lbl.setWordWrap(False)
+            if description:
+                lbl.setToolTip(description)
 
             # Input com glow/gradiente (SimpleQLineEdit usa tokens do tema)
             input_field = SimpleQLineEdit(
                 text=default,
-                placeholder=description or label_text,
+                placeholder=placeholder,
                 read_only=False,
                 primary=True,
                 parent=self,
@@ -206,11 +211,6 @@ class GridInputFields(QWidget):
 
             if description:
                 input_field.setToolTip(description)
-
-            # Suporte a placeholder explicito (suggest ao fundo)
-            placeholder = field_config.get("placeholder")
-            if placeholder:
-                input_field.setPlaceholderText(placeholder)
 
             row_layout.addWidget(lbl)
             row_layout.addWidget(input_field, 1)  # stretch=1 para ocupar resto

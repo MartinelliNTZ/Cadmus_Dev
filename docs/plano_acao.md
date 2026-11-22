@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.6`  
+**Versão de referência:** `3.1.0.8`<br>
 **Data:** 22/11/2026  
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -89,10 +89,19 @@ Também foram ajustados os widgets usados pela ferramenta:
 
 O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebidos pela ferramenta.
 
+### Lote atual — ferramentas 02, 03, 05 e 06
+
+- **02 — Substituir Texto em Layouts:** concluída a revisão da tooltip da ferramenta e das descrições dos campos, opções, backup, inversão e execução.
+- **03 — Salvar, Fechar e Reabrir Projeto:** concluída a revisão da tooltip geral da ferramenta instantânea.
+- **04 — Logcat Viewer:** não fazer agora; a revisão foi adiada por ser uma ferramenta mais complexa.
+- **05 — Configurações Cadmus:** concluída a revisão da tooltip geral; as descrições dos campos já estavam tokenizadas e foram auditadas.
+- **06 — Sobre o Cadmus:** concluída a revisão da tooltip de entrada. `plugins/AboutDialog.py` não foi editado, conforme a regra de proteção.
+- **Validação extra de `GridInputFields`:** corrigida a separação entre `description` (tooltip) e `placeholder` (exemplo no fundo do campo); os campos de Substituir e os sufixos das Configurações agora usam placeholders explícitos.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.6`.
-- Changelog correspondente: `[3.1.0.6][22/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.8`.
+- Changelog correspondente: `[3.1.0.8][22/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -117,11 +126,11 @@ Para cada ferramenta, seguir esta ordem:
 | Nº | Ferramenta | Identificador | Situação |
 |---:|---|---|---|
 | 01 | Exportar Todos os Layouts | `export_all_layouts` | **Concluída** |
-| 02 | Substituir Texto em Layouts | `replace_in_layouts` | A fazer |
-| 03 | Salvar, Fechar e Reabrir Projeto | `restart_qgis` | A fazer |
-| 04 | Logcat Viewer | `logcat` | NÃO FAZER |
-| 05 | Configurações Cadmus | `settings` | A fazer |
-| 06 | Sobre o Cadmus | `about_dialog` | A fazer |
+| 02 | Substituir Texto em Layouts | `replace_in_layouts` | **Concluída** |
+| 03 | Salvar, Fechar e Reabrir Projeto | `restart_qgis` | **Concluída** |
+| 04 | Logcat Viewer | `logcat` | Não fazer agora — ferramenta complexa |
+| 05 | Configurações Cadmus | `settings` | **Concluída** |
+| 06 | Sobre o Cadmus | `about_dialog` | **Concluída — arquivo protegido** |
 | 07 | Carregar Pasta de Arquivos | `load_folder_layers` | A fazer |
 | 08 | Novo Projeto | `create_project` | A fazer |
 | 09 | Conversor de Vetor para SVG | `vector_to_svg` | A fazer |

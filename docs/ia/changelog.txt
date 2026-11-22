@@ -1,3 +1,18 @@
+[3.1.0.8][22/11/2026] Correção da separação entre tooltip e placeholder em GridInputFields:
+   - `description` deixou de ser usado automaticamente como texto de fundo do `QLineEdit`.
+   - `placeholder` passou a ser o único texto de exemplo exibido no fundo do campo.
+   - Substituir Texto em Layouts e os sufixos de Configurações receberam placeholders explícitos e separados das tooltips.
+   - A tooltip também é aplicada à label do campo, seguindo o comportamento do ComplexSelector.
+   - Versão de distribuição incrementada de `3.1.0.7` para `3.1.0.8` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
+[3.1.0.7][22/11/2026] Tooltips do lote de ferramentas simples:
+   - Revisadas as tooltips e descrições tokenizadas de Substituir Texto em Layouts.
+   - Revisada a tooltip geral de Salvar, Fechar e Reabrir Projeto.
+   - Revisada a tooltip geral de Configurações Cadmus e auditados seus campos já tokenizados.
+   - Revisada a tooltip de entrada de Sobre o Cadmus sem editar manualmente `plugins/AboutDialog.py`.
+   - Logcat Viewer não foi alterado; ficou explicitamente adiado por ser uma ferramenta complexa.
+   - Versão de distribuição incrementada de `3.1.0.6` para `3.1.0.7` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.6][22/11/2026] Padronização semântica dos nomes de tokens:
    - Tokens reutilizáveis de widgets e seleções deixaram de carregar o nome da implementação, usando nomes como `SELECT_ALL_LIST`, `OPEN_LOCATION` e `COPY_PATH`.
    - Mantido o nome da ferramenta apenas nas mensagens realmente exclusivas, como `EXPORT_ALL_LAYOUTS_TOOLTIP`.

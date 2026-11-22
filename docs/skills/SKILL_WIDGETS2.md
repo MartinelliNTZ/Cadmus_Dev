@@ -490,11 +490,13 @@ input_fields = GridInputFields(
         "old_text": {
             "label": "Texto a buscar",
             "description": "Texto original a ser substituido",
+            "placeholder": "Ex.: texto atual do layout",
             "default": "",
         },
         "new_text": {
             "label": "Substituir por",
             "description": "Novo texto",
+            "placeholder": "Ex.: texto novo do layout",
             "default": "",
         },
     },
@@ -527,11 +529,17 @@ input_fields.widget("old_text")             # → SimpleQLineEdit (acesso direto
 
 | Parâmetro | Tipo | Padrão | Descrição |
 |-----------|------|--------|-----------|
-| `config` | dict | `{}` | Dict de campos (chave → `label`, `description`, `default`) |
+| `config` | dict | `{}` | Dict de campos (chave → `label`, `description`, `placeholder`, `default`) |
 | `title` | str | `""` | Título do grupo (QGroupBox) |
 | `separator_top` | bool | `False` | Separador antes |
 | `separator_bottom` | bool | `False` | Separador depois |
 | `parent` | QWidget | `None` | Widget pai |
+
+**Separação obrigatória entre tooltip e placeholder:**
+
+- `description` é a tooltip: explica o que o campo representa, o que deve ser informado e qual será o efeito do valor.
+- `placeholder` é o texto de fundo do `QLineEdit`: mostra apenas um exemplo ou formato esperado e desaparece quando o usuário digita.
+- O widget nunca deve copiar `description` para `placeholder` automaticamente. Se não houver exemplo útil, o fundo do campo deve permanecer vazio.
 
 ### GridComboBox 🆕
 Container de N combos (QComboBox) configurável via dict. Usa `SimpleComboBox` internamente. Cada item tem `onchange` callback (sem pyqtSignal).

@@ -114,6 +114,14 @@ Consulte a seção **MAPEAMENTO SITUAÇÃO → SKILL** acima para identificar qu
 
 # DIRETIVAS CENTRAIS
 
+## VERSIONAMENTO OBRIGATÓRIO DA DISTRIBUIÇÃO
+
+- Antes de concluir qualquer alteração no plugin, leia `build_distribution.py` e incremente o último componente numérico de `VERSION`.
+- `VERSION` é a fonte da versão do pacote de distribuição; não deixe essa constante inalterada após uma modificação de código, skill ou estrutura do plugin.
+- Preserve o formato existente da versão. Exemplo: `3.0.0.3` → `3.0.0.4`.
+- Registre a versão alterada no `docs/ia/changelog.txt` e informe no resumo final quais arquivos foram atualizados.
+- Não execute um segundo incremento para a própria alteração de versionamento.
+
 - ✅ Você **SEMPRE** lê e aplica as skills mais recentes em `docs/skills/*.md` e os contratos `PLUGIN_CONTRACT.md` + `SKILL_ASYNC_PAPELINE.md` antes de fazer qualquer alteração.
 - ✅ Você **SEMPRE** usa o **MAPEAMENTO SITUAÇÃO → SKILL** para identificar qual skill complementar ler com base no contexto da tarefa.
 - ✅ Você **NUNCA** quebra o contrato do plugin ou da pipeline. Se uma mudança violaria, você **PARA E REPORTA**.

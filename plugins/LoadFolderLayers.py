@@ -69,7 +69,7 @@ class LoadFolderLayersDialog(BasePluginMTL):
             config={
                 "folder": {
                     "label": STR.ROOT_FOLDER,
-                    "description": "Selecione a pasta raiz para buscar arquivos",
+                    "description": STR.ROOT_FOLDER_DESC,
                     "allow_folder": True,
                     "allow_file": False,
                     "mode_type": "input",
@@ -88,19 +88,23 @@ class LoadFolderLayersDialog(BasePluginMTL):
             config={
                 "missing_only": {
                     "label": STR.LOAD_ONLY_MISSING_FILES,
+                    "description": STR.LOAD_ONLY_MISSING_FILES_DESC,
                     "default": False,
                 },
                 "preserve": {
                     "label": STR.PRESERVE_FOLDER_STRUCTURE,
+                    "description": STR.PRESERVE_FOLDER_STRUCTURE_DESC,
                     "default": True,
                     "dependents": ["lastfolder"],  # ← O widget gerencia sozinho
                 },
                 "lastfolder": {
                     "label": STR.DO_NOT_GROUP_LAST_FOLDER,
+                    "description": STR.DO_NOT_GROUP_LAST_FOLDER_DESC,
                     "default": False,
                 },
                 "backup": {
                     "label": STR.CREATE_PROJECT_BACKUP_IF_SAVED,
+                    "description": STR.CREATE_PROJECT_BACKUP_IF_SAVED_DESC,
                     "default": True,
                 },
             },
@@ -120,7 +124,11 @@ class LoadFolderLayersDialog(BasePluginMTL):
 
         file_config = {}
         for label in self.FILE_TYPES.keys():
-            file_config[label] = {"label": label, "default": False}
+            file_config[label] = {
+                "label": label,
+                "description": STR.FILE_TYPE_SELECTION_DESC,
+                "default": False,
+            }
 
         self.chk_types = GridCheckbox(
             config=file_config,
@@ -128,15 +136,15 @@ class LoadFolderLayersDialog(BasePluginMTL):
             title=None,
             control_buttons_config={
                 "select_all": {
-                    "label": "Selecionar Todos",
+                    "label": STR.SELECT_ALL,
                     "callback": lambda: self.chk_types.select_all(),
                 },
                 "deselect_all": {
-                    "label": "Desmarcar Todos",
+                    "label": STR.DESELECT_ALL,
                     "callback": lambda: self.chk_types.deselect_all(),
                 },
                 "invert": {
-                    "label": "Inverter",
+                    "label": STR.INVERT,
                     "callback": lambda: self.chk_types.invert_selection(),
                 },
             },
@@ -155,7 +163,7 @@ class LoadFolderLayersDialog(BasePluginMTL):
             config={
                 "run": {
                     "label": STR.LOAD_FILES,
-                    "description": "Carrega todos os arquivos da pasta selecionada",
+                    "description": STR.START_LOADING_FOLDER_FILES,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

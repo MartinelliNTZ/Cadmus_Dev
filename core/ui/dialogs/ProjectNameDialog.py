@@ -79,7 +79,7 @@ class ProjectNameDialog(BaseDialog):
             config={
                 "create": {
                     "label": STR.CREATE_PROJECT,
-                    "description": "Criar o projeto na pasta definida",
+                    "description": STR.CREATE_PROJECT_IN_CONFIGURED_FOLDER,
                     "callback": self._on_accept,
                     "is_run_button": True,
                 },

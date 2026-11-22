@@ -52,7 +52,7 @@ class VectorToSvgPlugin(BasePluginMTL):
             config={
                 "camada": {
                     "label": STR.VECTOR_LAYER_LABEL,
-                    "description": "Camada vetorial do projeto ou arquivo externo",
+                    "description": STR.VECTOR_LAYER_INPUT_DESC,
                     "allow_layer": True,
                     "layer_filters": QgsMapLayerProxyModel.Filter.VectorLayer,
                     "allow_features_check": True,
@@ -63,7 +63,7 @@ class VectorToSvgPlugin(BasePluginMTL):
                 },
                 "pasta_saida": {
                     "label": STR.OUTPUT_FOLDER,
-                    "description": "Pasta onde os SVGs serao salvos",
+                    "description": STR.SVG_OUTPUT_FOLDER_DESC,
                     "mode_type": "output",
                     "parent": "camada",
                     "subfolder": "svgs",
@@ -101,6 +101,7 @@ class VectorToSvgPlugin(BasePluginMTL):
             config={
                 "border_width": {
                     "label": STR.BORDER_WIDTH,
+                    "description": STR.BORDER_WIDTH_DESC,
                     "value": 1.2,
                     "min": 0.0,
                     "max": 50.0,
@@ -127,6 +128,7 @@ class VectorToSvgPlugin(BasePluginMTL):
             config={
                 "label_size": {
                     "label": STR.LABEL_SIZE,
+                    "description": STR.LABEL_SIZE_DESC,
                     "value": 14.0,
                     "min": 1.0,
                     "max": 200.0,
@@ -142,10 +144,22 @@ class VectorToSvgPlugin(BasePluginMTL):
 
         self.options_checkbox = GridCheckbox(
             config={
-                "transparent_background": {"label": STR.TRANSPARENT_BACKGROUND},
-                "show_border": {"label": STR.SHOW_BORDER},
-                "show_label": {"label": STR.SHOW_LABEL},
-                "for_each_feature": {"label": STR.GENERATE_SVG_FOR_EACH_FEATURE},
+                "transparent_background": {
+                    "label": STR.TRANSPARENT_BACKGROUND,
+                    "description": STR.TRANSPARENT_BACKGROUND_DESC,
+                },
+                "show_border": {
+                    "label": STR.SHOW_BORDER,
+                    "description": STR.SHOW_BORDER_DESC,
+                },
+                "show_label": {
+                    "label": STR.SHOW_LABEL,
+                    "description": STR.SHOW_LABEL_DESC,
+                },
+                "for_each_feature": {
+                    "label": STR.GENERATE_SVG_FOR_EACH_FEATURE,
+                    "description": STR.GENERATE_SVG_FOR_EACH_FEATURE_DESC,
+                },
             },
             title="",
             items_per_row=2,
@@ -157,7 +171,7 @@ class VectorToSvgPlugin(BasePluginMTL):
             config={
                 "run": {
                     "label": STR.EXECUTE,
-                    "description": "Inicia a exportacao de SVG",
+                    "description": STR.START_SVG_EXPORT,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

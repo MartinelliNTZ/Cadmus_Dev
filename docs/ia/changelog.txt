@@ -1,3 +1,10 @@
+[3.1.0.9][22/11/2026] Tooltips das ferramentas 07, 08 e 09:
+   - Carregar Pasta de Arquivos agora explica a pasta de busca, filtros, organização, backup e execução.
+   - Novo Projeto agora explica a pasta padrão, o nome do projeto e as confirmações dos diálogos auxiliares.
+   - Conversor de Vetor para SVG agora explica camada, pasta de saída, estilo, opções de geração e execução.
+   - Novas descrições foram tokenizadas exclusivamente em `i18n/Strings_pt_BR.py`.
+   - Versão de distribuição incrementada de `3.1.0.8` para `3.1.0.9` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.8][22/11/2026] Correção da separação entre tooltip e placeholder em GridInputFields:
    - `description` deixou de ser usado automaticamente como texto de fundo do `QLineEdit`.
    - `placeholder` passou a ser o único texto de exemplo exibido no fundo do campo.

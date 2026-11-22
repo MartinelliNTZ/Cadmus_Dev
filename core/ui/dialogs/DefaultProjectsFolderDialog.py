@@ -69,7 +69,7 @@ class DefaultProjectsFolderDialog(BaseDialog):
             config={
                 "accept": {
                     "label": STR.OK,
-                    "description": "Confirmar pasta padrão",
+                    "description": STR.CONFIRM_DEFAULT_PROJECTS_FOLDER,
                     "callback": self._on_accept,
                     "is_run_button": True,
                 },

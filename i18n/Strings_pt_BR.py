@@ -200,6 +200,27 @@ class Strings_pt_BR:
     CREATE_PROJECT_BACKUP_IF_SAVED = (
         "Criar backup do projeto antes de carregar (somente se salvo)"
     )
+    ROOT_FOLDER_DESC = (
+        "Escolha a pasta onde o Cadmus deve procurar arquivos para carregar no projeto."
+    )
+    LOAD_ONLY_MISSING_FILES_DESC = (
+        "Quando marcado, ignora os arquivos que já estão carregados no projeto."
+    )
+    PRESERVE_FOLDER_STRUCTURE_DESC = (
+        "Cria grupos no painel de camadas seguindo as pastas e subpastas encontradas."
+    )
+    DO_NOT_GROUP_LAST_FOLDER_DESC = (
+        "Quando marcado, não cria um grupo para o último nível da pasta encontrada."
+    )
+    CREATE_PROJECT_BACKUP_IF_SAVED_DESC = (
+        "Antes de carregar os arquivos, cria uma cópia do projeto atual se ele já estiver salvo."
+    )
+    FILE_TYPE_SELECTION_DESC = (
+        "Marque para incluir arquivos deste formato na busca pela pasta selecionada."
+    )
+    START_LOADING_FOLDER_FILES = (
+        "Procura os formatos marcados na pasta escolhida e adiciona os arquivos encontrados ao projeto."
+    )
 
     # Common messages
     SUCCESS_MESSAGE = "Processamento executado com sucesso."
@@ -631,18 +652,24 @@ class Strings_pt_BR:
     CREATE_PROJECT_TITLE = "Novo Projeto"
     CREATE_PROJECT = "Novo Projeto"
     CREATE_PROJECT_TOOLTIP = (
-        "Cria uma nova estrutura de projeto em uma pasta dedicada.\n"
-        "Se ainda nao houver pasta padrao definida, solicita esse caminho,\n"
-        "depois cria a pasta do projeto, o arquivo .qgz\n"
-        "e as subpastas vectors e rasters."
+        "Cria um novo projeto QGIS em uma pasta própria.\n"
+        "Se a pasta padrão ainda não estiver definida, pede para você escolhê-la.\n"
+        "Depois solicita o nome do projeto e cria o arquivo .qgz\n"
+        "com as subpastas de vetores e rasters."
     )
     DEFAULT_PROJECTS_FOLDER_TITLE = "Pasta padrao dos projetos"
     DEFAULT_PROJECTS_FOLDER_PROMPT = (
-        "Defina a pasta padrao onde os novos projetos do Cadmus serao criados."
+        "Escolha a pasta padrão onde o Cadmus deverá criar os novos projetos."
     )
     PROJECT_NAME_TITLE = "Novo projeto"
     PROJECT_NAME_PROMPT = (
-        "Informe o nome do projeto. Se deixar em branco, sera usado o nome sugerido."
+        "Informe o nome do novo projeto. Se deixar em branco, será usado o nome sugerido."
+    )
+    CREATE_PROJECT_IN_CONFIGURED_FOLDER = (
+        "Confirma o nome informado e cria o projeto na pasta padrão escolhida."
+    )
+    CONFIRM_DEFAULT_PROJECTS_FOLDER = (
+        "Confirma a pasta onde os novos projetos serão criados."
     )
     PROJECT_NAME_LABEL = "Nome do projeto"
     PROJECTS_DEFAULT_FOLDER_MISSING = (
@@ -668,10 +695,9 @@ class Strings_pt_BR:
         "Projeto '{project_name}' criado e aberto em outra janela"
     )
     LOAD_FOLDER_LAYERS_TOOLTIP = (
-        "Carrega em lote arquivos vetoriais e raster de uma pasta\n"
-        "e de suas subpastas para o projeto QGIS.\n"
-        "Pode filtrar por tipo de arquivo, evitar duplicados\n"
-        "e organizar as camadas conforme a estrutura de pastas."
+        "Procura arquivos vetoriais e raster na pasta escolhida e em suas subpastas.\n"
+        "Marque os formatos que deseja carregar e escolha como organizar as camadas.\n"
+        "A ferramenta pode ignorar arquivos já carregados e criar grupos pela estrutura de pastas."
     )
 
     # plugins/GenerateTrailPlugin.py
@@ -819,24 +845,42 @@ class Strings_pt_BR:
     # plugins/VectorToSvgPlugin.py
     VECTOR_TO_SVG_TITLE = "Conversor de Vetor para SVG"
     VECTOR_TO_SVG_TOOLTIP = (
-        "Exporta uma camada vetorial do projeto para SVG.\n"
-        "Permite configurar fundo, borda e rótulo,\n"
-        "além de gerar um único arquivo ou um SVG\n"
-        "separado para cada feição."
+        "Converte uma camada vetorial em arquivo SVG.\n"
+        "Escolha a camada, a pasta de saída e o estilo do desenho.\n"
+        "Você também pode gerar um único SVG ou um arquivo separado para cada feição."
     )
     VECTOR_LAYER_LABEL = "Camada Vetorial"
+    VECTOR_LAYER_INPUT_DESC = (
+        "Selecione uma camada vetorial carregada no QGIS ou um arquivo vetorial externo. "
+        "Use a opção de feições selecionadas para exportar somente o que estiver marcado."
+    )
+    SVG_OUTPUT_FOLDER_DESC = (
+        "Escolha a pasta onde os arquivos SVG serão gravados. "
+        "A ferramenta cria a subpasta de saída quando necessário."
+    )
     BACKGROUND_COLOR = "Cor Fundo"
     BORDER_COLOR = "Cor Borda"
     BORDER_WIDTH = "Espessura Borda"
+    BORDER_WIDTH_DESC = "Define a espessura da borda desenhada no SVG."
     LABEL_COLOR = "Cor Rotulo"
     LABEL_SIZE = "Tamanho Rotulo"
+    LABEL_SIZE_DESC = "Define o tamanho do texto usado como rótulo no SVG."
     SELECT_FILL_COLOR = "Selecione a cor de preenchimento"
     SELECT_BORDER_COLOR = "Selecione a cor da borda"
     SELECT_LABEL_COLOR = "Selecione a cor do rotulo"
     TRANSPARENT_BACKGROUND = "Fundo transparente"
+    TRANSPARENT_BACKGROUND_DESC = (
+        "Quando marcado, não preenche o fundo do SVG com uma cor."
+    )
     SHOW_BORDER = "Mostrar Borda"
+    SHOW_BORDER_DESC = "Quando marcado, desenha a borda das geometrias no SVG."
     SHOW_LABEL = "Mostrar Rotulo"
+    SHOW_LABEL_DESC = "Quando marcado, inclui o nome da camada ou da feição no SVG."
     GENERATE_SVG_FOR_EACH_FEATURE = "Gerar SVG para cada feicao"
+    GENERATE_SVG_FOR_EACH_FEATURE_DESC = (
+        "Quando marcado, cria um arquivo SVG separado para cada feição exportada."
+    )
+    START_SVG_EXPORT = "Gera os arquivos SVG usando a camada e as opções escolhidas."
     SVGS_GENERATED_SUCCESS = "SVG(s) gerado(s) com sucesso."
     DIVIDE_POINTS_BY_STRIPS_TITLE = "Dividir Vetor de Pontos por Faixas"
     DIVIDE_POINTS_BY_STRIPS_TOOLTIP = (

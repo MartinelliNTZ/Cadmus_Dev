@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.8`<br>
+**Versão de referência:** `3.1.0.9`<br>
 **Data:** 22/11/2026  
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -98,10 +98,16 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **06 — Sobre o Cadmus:** concluída a revisão da tooltip de entrada. `plugins/AboutDialog.py` não foi editado, conforme a regra de proteção.
 - **Validação extra de `GridInputFields`:** corrigida a separação entre `description` (tooltip) e `placeholder` (exemplo no fundo do campo); os campos de Substituir e os sufixos das Configurações agora usam placeholders explícitos.
 
+### Lote seguinte — ferramentas 07, 08 e 09
+
+- **07 — Carregar Pasta de Arquivos:** concluídas as tooltips da pasta, opções, tipos de arquivo e execução; os controles de seleção em lote usam tokens genéricos do widget.
+- **08 — Novo Projeto:** concluídas as tooltips da entrada da ferramenta, da pasta padrão, do nome do projeto e das confirmações dos diálogos auxiliares.
+- **09 — Conversor de Vetor para SVG:** concluídas as tooltips da camada, pasta de saída, cores, parâmetros de estilo, opções de geração e execução.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.8`.
-- Changelog correspondente: `[3.1.0.8][22/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.9`.
+- Changelog correspondente: `[3.1.0.9][22/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -131,9 +137,9 @@ Para cada ferramenta, seguir esta ordem:
 | 04 | Logcat Viewer | `logcat` | Não fazer agora — ferramenta complexa |
 | 05 | Configurações Cadmus | `settings` | **Concluída** |
 | 06 | Sobre o Cadmus | `about_dialog` | **Concluída — arquivo protegido** |
-| 07 | Carregar Pasta de Arquivos | `load_folder_layers` | A fazer |
-| 08 | Novo Projeto | `create_project` | A fazer |
-| 09 | Conversor de Vetor para SVG | `vector_to_svg` | A fazer |
+| 07 | Carregar Pasta de Arquivos | `load_folder_layers` | **Concluída** |
+| 08 | Novo Projeto | `create_project` | **Concluída** |
+| 09 | Conversor de Vetor para SVG | `vector_to_svg` | **Concluída** |
 | 10 | Calcular Campos Vetoriais | `vector_fields` | A fazer |
 | 11 | Remover Campos KML | `remove_kml_fields` | A fazer |
 | 12 | Capturar Coordenadas | `coord_click_tool` | A fazer |

@@ -38,11 +38,28 @@ class CoordResultDialog(BasePluginMTL):
         # ── WGS84 ReadOnly ────────────────────────────────────
         self.wgs_widget = GridReadOnly(
             title=STR.WGS84_EPSG4326,
+            title_description=STR.WGS84_COORDINATES_DESC,
             fields={
-                "lat_dec": {"title": STR.LATITUDE_DECIMAL, "value": ""},
-                "lon_dec": {"title": STR.LONGITUDE_DECIMAL, "value": ""},
-                "lat_dms": {"title": STR.LATITUDE_DMS, "value": ""},
-                "lon_dms": {"title": STR.LONGITUDE_DMS, "value": ""},
+                "lat_dec": {
+                    "title": STR.LATITUDE_DECIMAL,
+                    "value": "",
+                    "description": STR.LATITUDE_DECIMAL_DESC,
+                },
+                "lon_dec": {
+                    "title": STR.LONGITUDE_DECIMAL,
+                    "value": "",
+                    "description": STR.LONGITUDE_DECIMAL_DESC,
+                },
+                "lat_dms": {
+                    "title": STR.LATITUDE_DMS,
+                    "value": "",
+                    "description": STR.LATITUDE_DMS_DESC,
+                },
+                "lon_dms": {
+                    "title": STR.LONGITUDE_DMS,
+                    "value": "",
+                    "description": STR.LONGITUDE_DMS_DESC,
+                },
             },
             show_copy_buttons=True,
             separator_bottom=True,
@@ -53,9 +70,18 @@ class CoordResultDialog(BasePluginMTL):
         # ── UTM ReadOnly ─────────────────────────────────────
         self.utm_widget = GridReadOnly(
             title=STR.UTM_SIRGAS_2000,
+            title_description=STR.UTM_COORDINATES_DESC,
             fields={
-                "utm_x": {"title": STR.EASTING_X, "value": ""},
-                "utm_y": {"title": STR.NORTHING_Y, "value": ""},
+                "utm_x": {
+                    "title": STR.EASTING_X,
+                    "value": "",
+                    "description": STR.EASTING_X_DESC,
+                },
+                "utm_y": {
+                    "title": STR.NORTHING_Y,
+                    "value": "",
+                    "description": STR.NORTHING_Y_DESC,
+                },
             },
             show_copy_buttons=True,
             parent=self,
@@ -63,16 +89,22 @@ class CoordResultDialog(BasePluginMTL):
         self.layout.addWidget(self.utm_widget)
 
         # ── UTM Info Label ────────────────────────────────────
-        self.lbl_utm_info = SimpleLabel(text="", parent=self)
+        self.lbl_utm_info = SimpleLabel(
+            text="",
+            tooltip=STR.UTM_REFERENCE_DESC,
+            parent=self,
+        )
         self.layout.addWidget(self.lbl_utm_info)
 
         # ── Altimetria ReadOnly ──────────────────────────────
         self.alt_widget = GridReadOnly(
             title=STR.ALTIMETRY_OPENTOPO,
+            title_description=STR.ALTIMETRY_OPENTOPO_DESC,
             fields={
                 "altitude": {
                     "title": STR.APPROX_ALTITUDE_METERS,
                     "value": STR.LOADING,
+                    "description": STR.APPROX_ALTITUDE_DESC,
                 }
             },
             show_copy_buttons=True,
@@ -84,11 +116,26 @@ class CoordResultDialog(BasePluginMTL):
 
         # ── Labels de Endereço ────────────────────────────────
         self.address_labels = GridLabel(config={
-            "municipio": {"text": f"{STR.CITY}: {STR.LOADING_LOWER}"},
-            "state_district": {"text": f"{STR.INTERMEDIATE_REGION}: {STR.LOADING_LOWER}"},
-            "state": {"text": f"{STR.STATE}: {STR.LOADING_LOWER}"},
-            "region": {"text": f"{STR.REGION}: {STR.LOADING_LOWER}"},
-            "country": {"text": f"{STR.COUNTRY}: {STR.LOADING_LOWER}"},
+            "municipio": {
+                "text": f"{STR.CITY}: {STR.LOADING_LOWER}",
+                "description": STR.MUNICIPALITY_DESC,
+            },
+            "state_district": {
+                "text": f"{STR.INTERMEDIATE_REGION}: {STR.LOADING_LOWER}",
+                "description": STR.INTERMEDIATE_REGION_DESC,
+            },
+            "state": {
+                "text": f"{STR.STATE}: {STR.LOADING_LOWER}",
+                "description": STR.STATE_DESC,
+            },
+            "region": {
+                "text": f"{STR.REGION}: {STR.LOADING_LOWER}",
+                "description": STR.REGION_DESC,
+            },
+            "country": {
+                "text": f"{STR.COUNTRY}: {STR.LOADING_LOWER}",
+                "description": STR.COUNTRY_DESC,
+            },
         }, separator_bottom=True, parent=self)
         self.layout.addWidget(self.address_labels)
 
@@ -97,7 +144,7 @@ class CoordResultDialog(BasePluginMTL):
             config={
                 "copy_all": {
                     "label": STR.COPY_LOCATION_FULL,
-                    "description": "Copia todas as coordenadas e endereço",
+                    "description": STR.COPY_COORDINATES_AND_ADDRESS_TO_CLIPBOARD,
                     "callback": self.copy_all_info,
                     "is_run_button": True,
                 },
@@ -196,20 +243,50 @@ class CoordResultDialog(BasePluginMTL):
     def set_address(self, data):
         if not data:
             self.address_labels.set_config({
-                "municipio": {"text": f"{STR.CITY}: {STR.LOADING_LOWER}"},
-                "state_district": {"text": f"{STR.INTERMEDIATE_REGION}: {STR.LOADING_LOWER}"},
-                "state": {"text": f"{STR.STATE}: {STR.LOADING_LOWER}"},
-                "region": {"text": f"{STR.REGION}: {STR.LOADING_LOWER}"},
-                "country": {"text": f"{STR.COUNTRY}: {STR.LOADING_LOWER}"},
+                "municipio": {
+                    "text": f"{STR.CITY}: {STR.LOADING_LOWER}",
+                    "description": STR.MUNICIPALITY_DESC,
+                },
+                "state_district": {
+                    "text": f"{STR.INTERMEDIATE_REGION}: {STR.LOADING_LOWER}",
+                    "description": STR.INTERMEDIATE_REGION_DESC,
+                },
+                "state": {
+                    "text": f"{STR.STATE}: {STR.LOADING_LOWER}",
+                    "description": STR.STATE_DESC,
+                },
+                "region": {
+                    "text": f"{STR.REGION}: {STR.LOADING_LOWER}",
+                    "description": STR.REGION_DESC,
+                },
+                "country": {
+                    "text": f"{STR.COUNTRY}: {STR.LOADING_LOWER}",
+                    "description": STR.COUNTRY_DESC,
+                },
             })
             return
 
         self.address_labels.set_config({
-            "municipio": {"text": f"{STR.CITY}: {data.get('municipio', '-')}"},
-            "state_district": {"text": f"{STR.INTERMEDIATE_REGION}: {data.get('state_district', '-')}"},
-            "state": {"text": f"{STR.STATE}: {data.get('state', '-')}"},
-            "region": {"text": f"{STR.REGION}: {data.get('region', '-')}"},
-            "country": {"text": f"{STR.COUNTRY}: {data.get('country', '-')}"},
+            "municipio": {
+                "text": f"{STR.CITY}: {data.get('municipio', '-')}",
+                "description": STR.MUNICIPALITY_DESC,
+            },
+            "state_district": {
+                "text": f"{STR.INTERMEDIATE_REGION}: {data.get('state_district', '-')}",
+                "description": STR.INTERMEDIATE_REGION_DESC,
+            },
+            "state": {
+                "text": f"{STR.STATE}: {data.get('state', '-')}",
+                "description": STR.STATE_DESC,
+            },
+            "region": {
+                "text": f"{STR.REGION}: {data.get('region', '-')}",
+                "description": STR.REGION_DESC,
+            },
+            "country": {
+                "text": f"{STR.COUNTRY}: {data.get('country', '-')}",
+                "description": STR.COUNTRY_DESC,
+            },
         })
         self.logger.debug(f"set_address: {data}")
 

@@ -26,6 +26,7 @@ fields : dict
     Dict de campos. Cada chave é identificador, valor é dict com:
     - "title" (str): rótulo do campo
     - "value" (str, optional): valor inicial
+    - "description" (str, optional): descrição contextual do campo
 show_copy_buttons : bool, optional
     Se True, cada campo readonly terá um botão copiar individual.
 separator_top : bool, optional
@@ -34,6 +35,8 @@ separator_bottom : bool, optional
     Adiciona separador após o widget.
 parent : QWidget, optional
     Widget pai.
+title_description : str, optional
+    Tooltip contextual do título do bloco.
 
 API pública:
     set_value(key, value) -> None
@@ -69,6 +72,7 @@ class GridReadOnly(QWidget):
         separator_top: bool = False,
         separator_bottom: bool = False,
         parent=None,
+        title_description: str = "",
     ):
         super().__init__(parent)
         self._fields = {}
@@ -76,14 +80,29 @@ class GridReadOnly(QWidget):
         self._row_widgets = []  # mantém referência aos containers de linha
 
         try:
-            self._configure(title, fields or {}, show_copy_buttons, separator_top, separator_bottom)
+            self._configure(
+                title,
+                fields or {},
+                show_copy_buttons,
+                separator_top,
+                separator_bottom,
+                title_description,
+            )
             self._apply_styles()
         except Exception as error:
             LogUtils(
                 tool=ToolKey.SYSTEM, class_name="GridReadOnly"
             ).exception(error, code="GRID_READONLY_INIT_ERROR")
 
-    def _configure(self, title: str, fields: dict, show_copy_buttons: bool, separator_top: bool, separator_bottom: bool):
+    def _configure(
+        self,
+        title: str,
+        fields: dict,
+        show_copy_buttons: bool,
+        separator_top: bool,
+        separator_bottom: bool,
+        title_description: str,
+    ):
         """Monta UI."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -96,12 +115,15 @@ class GridReadOnly(QWidget):
         # ── Título ──
         if title:
             self._title_label = SimpleLabel(text=f"<b>{title}</b>", parent=self)
+            if title_description:
+                self._title_label.setToolTip(title_description)
             layout.addWidget(self._title_label)
 
         # ── Campos readonly ──
         for key, cfg in fields.items():
             field_title = cfg.get("title", key)
             field_value = cfg.get("value", "")
+            field_description = cfg.get("description", "")
 
             # Container QWidget para manter referência C++ dos filhos
             row_container = QWidget(self)
@@ -110,7 +132,14 @@ class GridReadOnly(QWidget):
             row_layout.setSpacing(theme.LAYOUT_HORIZONTAL_SPACING)
 
             label = SimpleLabel(text=f"{field_title}:", parent=row_container)
-            readonly = SimpleReadOnly(text=field_value, show_copy_button=show_copy_buttons, parent=row_container)
+            if field_description:
+                label.setToolTip(field_description)
+            readonly = SimpleReadOnly(
+                text=field_value,
+                show_copy_button=show_copy_buttons,
+                parent=row_container,
+                tooltip=field_description,
+            )
 
             self._fields[key] = readonly
 

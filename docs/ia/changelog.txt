@@ -1,3 +1,18 @@
+[3.1.0.11][22/11/2026] Tooltips contextuais da janela Capturar Coordenadas:
+   - Cada seção, campo de coordenadas, referência UTM, altitude e informação de endereço recebeu descrição própria.
+   - `GridReadOnly` passou a aceitar `title_description` e `description` por campo, repassando o contexto ao rótulo e ao valor.
+   - `SimpleLabel` passou a aceitar tooltip fornecida pelo widget consumidor; botões internos continuam com tooltip genérica do widget.
+   - O mapa de ferramentas e `SKILL_WIDGETS2.md` foram atualizados para documentar o novo contrato de `GridReadOnly`.
+   - O checklist de widgets passou a exigir descrição contextual para cada item declarado pela ferramenta, não apenas para controles considerados não autoexplicativos.
+   - Versão de distribuição incrementada de `3.1.0.10` para `3.1.0.11` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
+[3.1.0.10][22/11/2026] Tooltips das ferramentas 10, 11, 12 e 13:
+   - Revisadas as tooltips de Calcular Campos Vetoriais, Remover Campos KML e Converter Multipart.
+   - Revisada a tooltip de Capturar Coordenadas para explicar a janela de resultados e as ações de cópia.
+   - A descrição contextual do botão de copiar coordenadas e endereço passou a usar `STR`.
+   - O botão de cópia dos campos somente leitura passou a usar uma tooltip genérica e tokenizada.
+   - Versão de distribuição incrementada de `3.1.0.9` para `3.1.0.10` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.9][22/11/2026] Tooltips das ferramentas 07, 08 e 09:
    - Carregar Pasta de Arquivos agora explica a pasta de busca, filtros, organização, backup e execução.
    - Novo Projeto agora explica a pasta padrão, o nome do projeto e as confirmações dos diálogos auxiliares.

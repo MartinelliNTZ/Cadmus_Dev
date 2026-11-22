@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.9`<br>
+**Versão de referência:** `3.1.0.11`<br>
 **Data:** 22/11/2026  
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -37,11 +37,13 @@ Este plano separa dois públicos:
 | Elemento | Responsabilidade pela tooltip |
 |---|---|
 | Entrada da ferramenta no `ToolRegistry` | A ferramenta fornece a tooltip geral da própria ferramenta. |
-| Campo, checkbox, combo ou botão declarado no `config` da ferramenta | A ferramenta fornece a descrição contextual daquele item. |
+| Campo, checkbox, combo ou botão declarado no `config` da ferramenta | A ferramenta fornece a descrição contextual daquele item; cada item visível deve ter uma explicação, mesmo que breve. |
 | Controle interno criado pelo widget | O widget fornece a tooltip genérica e reutilizável. |
 | `GridCheckbox` | A ferramenta descreve cada checkbox declarado; o widget descreve os controles genéricos de seleção em lote. |
 | `ComplexSelector` | A ferramenta descreve o campo/seleção; o widget descreve arquivo, pasta, camada, origem, projeto, Explorer, cópia e bloqueio. |
 | `GridExecutionButtons` | A ferramenta descreve os botões declarados no `config`; o widget descreve Fechar, Configurações e Info. |
+| `GridReadOnly` | A ferramenta descreve o título de cada bloco e cada campo; o widget aplica a descrição ao rótulo e ao valor, mantendo a cópia como controle interno. |
+| `GridLabel` | A ferramenta descreve cada label informativo declarado no `config`. |
 | Diálogo auxiliar | O chamador fornece o contexto dos itens; o diálogo preserva a descrição e o widget mantém os controles internos. |
 
 ## O que já foi feito
@@ -104,10 +106,17 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **08 — Novo Projeto:** concluídas as tooltips da entrada da ferramenta, da pasta padrão, do nome do projeto e das confirmações dos diálogos auxiliares.
 - **09 — Conversor de Vetor para SVG:** concluídas as tooltips da camada, pasta de saída, cores, parâmetros de estilo, opções de geração e execução.
 
+### Lote seguinte — ferramentas 10, 11, 12 e 13
+
+- **10 — Calcular Campos Vetoriais:** concluída a revisão da tooltip geral no `ToolRegistry`; a ferramenta é instantânea e não possui janela própria.
+- **11 — Remover Campos KML:** concluída a revisão da tooltip geral no `ToolRegistry`; a ferramenta é instantânea e não possui janela própria.
+- **12 — Capturar Coordenadas:** concluída a revisão da tooltip do `ToolRegistry` e das descrições individuais de todas as seções, campos, informação UTM, endereço e botão de cópia da janela de resultados.
+- **13 — Converter Multipart:** concluída a revisão da tooltip geral no `ToolRegistry`; a ferramenta é instantânea e não possui janela própria.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.9`.
-- Changelog correspondente: `[3.1.0.9][22/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.11`.
+- Changelog correspondente: `[3.1.0.11][22/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -123,6 +132,7 @@ Para cada ferramenta, seguir esta ordem:
 7. Substituir strings literais em `description=`, `tooltip=` e `setToolTip()` por `STR.TOKEN`.
 8. Revisar o texto como usuário iniciante: explicar o que faz, o que deve ser informado e o efeito da opção.
 9. Validar sintaxe, referências dos tokens, duplicidades e ausência de alteração funcional.
+   Em janelas, considerar incompleta a revisão se qualquer campo, label informativo, seção ou botão declarado pela ferramenta ficar sem descrição contextual, salvo controles internos já documentados pelo widget.
 10. Atualizar o mapa de ferramentas quando houver mudança funcional grande ou nova ferramenta/widget.
 11. Quando houver mudança de código ou skill, incrementar somente `build_distribution.py: VERSION` e criar no changelog uma entrada com a **mesma versão**, no formato `[versão][data]`.
 12. Nunca editar manualmente `metadata.txt` ou `plugins/AboutDialog.py`.
@@ -140,10 +150,10 @@ Para cada ferramenta, seguir esta ordem:
 | 07 | Carregar Pasta de Arquivos | `load_folder_layers` | **Concluída** |
 | 08 | Novo Projeto | `create_project` | **Concluída** |
 | 09 | Conversor de Vetor para SVG | `vector_to_svg` | **Concluída** |
-| 10 | Calcular Campos Vetoriais | `vector_fields` | A fazer |
-| 11 | Remover Campos KML | `remove_kml_fields` | A fazer |
-| 12 | Capturar Coordenadas | `coord_click_tool` | A fazer |
-| 13 | Converter Multipart | `converter_multipart` | A fazer |
+| 10 | Calcular Campos Vetoriais | `vector_fields` | **Concluída** |
+| 11 | Remover Campos KML | `remove_kml_fields` | **Concluída** |
+| 12 | Capturar Coordenadas | `coord_click_tool` | **Concluída** |
+| 13 | Converter Multipart | `converter_multipart` | **Concluída** |
 | 14 | Copiar Atributos de Vetor | `copy_attributes` | A fazer |
 | 15 | Dividir Vetor de Pontos por Faixas | `divide_points_by_strips` | A fazer |
 | 16 | Salvar Temporárias | `save_temporary_layer` | A fazer |

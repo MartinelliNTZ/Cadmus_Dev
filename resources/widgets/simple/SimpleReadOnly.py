@@ -8,6 +8,7 @@ Plugins NUNCA importam Simple diretamente.
 from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout
 
 from ...IconManager import IconManager
+from ....i18n.TranslationManager import STR
 from .SquareIconButton import SquareIconButton
 from .SimpleQLineEdit import SimpleQLineEdit
 from ....utils.ProjectUtils import ProjectUtils
@@ -30,10 +31,23 @@ class SimpleReadOnly(QWidget):
         False → estilo secondary (paleta NEUTRAL do tema).
     parent : QWidget, optional
         Widget pai.
+    tooltip : str, optional
+        Descrição contextual do valor exibido.
     """
 
-    def __init__(self, text: str = "", placeholder: str = "", show_copy_button: bool = False, primary: bool = True, parent=None):
+    def __init__(
+        self,
+        text: str = "",
+        placeholder: str = "",
+        show_copy_button: bool = False,
+        primary: bool = True,
+        parent=None,
+        tooltip: str = "",
+    ):
         super().__init__(parent)
+
+        if tooltip:
+            self.setToolTip(tooltip)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -46,13 +60,15 @@ class SimpleReadOnly(QWidget):
             primary=primary,
             parent=self,
         )
+        if tooltip:
+            self._line_edit.setToolTip(tooltip)
 
         layout.addWidget(self._line_edit, stretch=1)
 
         if show_copy_button:
             self._copy_btn = SquareIconButton(
                 icon=IconManager.icon(IconManager.COPY2),
-                tooltip="Copiar",
+                tooltip=STR.COPY_VALUE_TO_CLIPBOARD,
                 parent=self,
             )
             self._copy_btn.clicked.connect(self._copy_to_clipboard)

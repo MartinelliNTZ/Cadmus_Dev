@@ -31,6 +31,9 @@ class Strings_pt_BR:
     EXECUTE = "Executar"
     COPIED = "Copiado"
     COPY = "Copiar"
+    COPY_VALUE_TO_CLIPBOARD = (
+        "Copia o valor exibido para a área de transferência."
+    )
     SELECT = "Selecionar"
     REMOVE = "Remover"
     INVERT = "Inverter"
@@ -161,6 +164,50 @@ class Strings_pt_BR:
     LONGITUDE_DMS = "Longitude (DMS)"
     EASTING_X = "Easting (X)"
     NORTHING_Y = "Northing (Y)"
+    WGS84_COORDINATES_DESC = (
+        "Mostra o ponto no sistema geográfico WGS 84 (EPSG:4326), "
+        "usado como referência global de latitude e longitude."
+    )
+    LATITUDE_DECIMAL_DESC = (
+        "Latitude em graus decimais: indica a posição norte-sul do ponto. "
+        "Valores negativos ficam ao sul do Equador."
+    )
+    LONGITUDE_DECIMAL_DESC = (
+        "Longitude em graus decimais: indica a posição leste-oeste do ponto. "
+        "Valores negativos ficam a oeste do meridiano de Greenwich."
+    )
+    LATITUDE_DMS_DESC = (
+        "Latitude no formato graus, minutos e segundos (DMS). "
+        "É a mesma latitude decimal, apenas escrita em formato mais tradicional."
+    )
+    LONGITUDE_DMS_DESC = (
+        "Longitude no formato graus, minutos e segundos (DMS). "
+        "É a mesma longitude decimal, apenas escrita em formato mais tradicional."
+    )
+    UTM_COORDINATES_DESC = (
+        "Mostra o ponto em coordenadas projetadas UTM no datum SIRGAS 2000. "
+        "Os valores dependem da zona UTM do ponto."
+    )
+    EASTING_X_DESC = (
+        "Easting (X) é a distância, em metros, em relação ao eixo leste-oeste "
+        "da zona UTM."
+    )
+    NORTHING_Y_DESC = (
+        "Northing (Y) é a distância, em metros, em relação ao Equador "
+        "no sistema UTM."
+    )
+    UTM_REFERENCE_DESC = (
+        "Informa o EPSG, a zona UTM e o hemisfério usados para calcular "
+        "as coordenadas projetadas do ponto."
+    )
+    ALTIMETRY_OPENTOPO_DESC = (
+        "A altitude é consultada no serviço OpenTopoData usando o modelo "
+        "SRTM 90 m; o resultado é uma estimativa e depende da disponibilidade do serviço."
+    )
+    APPROX_ALTITUDE_DESC = (
+        "Altitude aproximada do ponto obtida por consulta ao OpenTopoData/SRTM 90 m. "
+        "Não é uma leitura direta do aparelho no momento do clique."
+    )
     ADDRESS_OSM = "Endereço (OSM):"
     COPY_WGS84_FULL = "Copiar WGS 84 (Completo)"
     COPY_UTM_FULL = "Copiar UTM (Completo)"
@@ -174,6 +221,24 @@ class Strings_pt_BR:
     STATE = "Estado"
     REGION = "Região"
     COUNTRY = "País"
+    MUNICIPALITY_DESC = (
+        "Município identificado pelo serviço BigDataCloud de geocodificação reversa "
+        "a partir das coordenadas do ponto."
+    )
+    INTERMEDIATE_REGION_DESC = (
+        "Região intermediária identificada pelo serviço BigDataCloud de geocodificação reversa."
+    )
+    STATE_DESC = (
+        "Estado identificado pelo serviço BigDataCloud de geocodificação reversa "
+        "a partir das coordenadas do ponto."
+    )
+    REGION_DESC = (
+        "Região ou estado maior identificado pelo serviço BigDataCloud de geocodificação reversa."
+    )
+    COUNTRY_DESC = (
+        "País identificado pelo serviço BigDataCloud de geocodificação reversa "
+        "a partir das coordenadas do ponto."
+    )
     LOADING = "Carregando..."
     LOADING_LOWER = "carregando..."
     UNAVAILABLE = "Indisponível"
@@ -777,19 +842,17 @@ class Strings_pt_BR:
     # plugins/VectorMultipartPlugin.py
     CONVERTER_MULTIPART_TITLE = "Converter Multipart"
     CONVERTER_MULTIPART_TOOLTIP = (
-        "Processa feições multipart da camada vetorial ativa\n"
-        "e separa cada parte em feições simples.\n"
-        "Pode atuar apenas nas feições selecionadas\n"
-        "ou em toda a camada, preservando os atributos."
+        "Separa cada parte de uma feição multipart em uma feição simples.\n"
+        "Atua apenas nas feições selecionadas quando houver seleção;\n"
+        "caso contrário, processa toda a camada e preserva os atributos."
     )
 
     # plugins/CoordClickTool.py
     COORD_CLICK_TOOL_TITLE = "Capturar Coordenadas"
     COORD_CLICK_TOOL_TOOLTIP = (
-        "Permite clicar no mapa para consultar coordenadas do ponto.\n"
-        "Abre um dialogo com WGS84, UTM, altitude aproximada\n"
-        "e endereco estimado, alem de opcoes de copia\n"
-        "para a area de transferencia."
+        "Permite clicar em um ponto do mapa para consultar suas coordenadas.\n"
+        "Abre uma janela com WGS84, UTM, altitude aproximada\n"
+        "e endereço estimado, além de opções para copiar os resultados."
     )
 
     # plugins/RasterSamplerTool.py
@@ -831,15 +894,19 @@ class Strings_pt_BR:
     LAYER_NOW_EDITABLE = "Camada colocada em modo de edição automaticamente."
     VECTOR_FIELDS_TITLE = "Calcular Campos Vetoriais"
     VECTOR_FIELDS_TOOLTIP = (
-        "Calcula automaticamente campos vetoriais como area,\n"
-        "comprimento ou coordenadas X/Y na camada ativa.\n"
-        "E util para gerar atributos tecnicos sem editar campo por campo."
+        "Calcula campos de área, comprimento ou coordenadas X/Y\n"
+        "na camada vetorial ativa, conforme a geometria e as configurações.\n"
+        "Cria ou atualiza os campos necessários para cada feição."
     )
     REMOVE_KML_FIELDS_TITLE = "Remover Campos KML"
     REMOVE_KML_FIELDS_TOOLTIP = (
-        "Remove da camada ativa os campos de atributos tipicos de KML.\n"
-        "A ferramenta so executa se a camada estiver em edicao\n"
-        "e nao salva nem encerra o modo de edicao."
+        "Remove da camada vetorial ativa os campos de atributos típicos de KML.\n"
+        "A camada precisa estar no modo de edição para a operação ser executada.\n"
+        "A ferramenta não salva a camada nem encerra o modo de edição."
+    )
+    COPY_COORDINATES_AND_ADDRESS_TO_CLIPBOARD = (
+        "Copia todas as coordenadas e o endereço exibidos nesta janela "
+        "para a área de transferência."
     )
 
     # plugins/VectorToSvgPlugin.py

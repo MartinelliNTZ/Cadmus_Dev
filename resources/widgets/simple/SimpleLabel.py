@@ -22,10 +22,14 @@ class SimpleLabel(QLabel):
         Texto do label.
     parent : QWidget, optional
         Widget pai.
+    tooltip : str, optional
+        Tooltip fornecida pelo widget consumidor.
     """
 
-    def __init__(self, text: str = "", parent=None):
+    def __init__(self, text: str = "", parent=None, tooltip: str = ""):
         super().__init__(text, parent)
+        if tooltip:
+            self.setToolTip(tooltip)
         self._apply_styles()
 
     def _apply_styles(self):

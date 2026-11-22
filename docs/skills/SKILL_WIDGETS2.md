@@ -314,6 +314,7 @@ readonly = SimpleReadOnly(
     text="-10.12345678",
     show_copy_button=True,
     primary=True,       # estilo do input (True=PRIMARY, False=NEUTRAL)
+    tooltip=STR.LATITUDE_DECIMAL_DESC,
     parent=self,
 )
 
@@ -325,6 +326,7 @@ readonly = SimpleReadOnly(text="valor", parent=self)
 - `setText(text)` — define o texto (aceita `None`)
 - `text()` — retorna o texto
 - `setPlaceholderText(text)` — define placeholder
+- `tooltip` — descrição contextual opcional aplicada ao valor e ao campo readonly; o botão de cópia mantém a tooltip genérica do widget.
 
 ---
 
@@ -361,15 +363,28 @@ Container com título + campos readonly (`SimpleReadOnly`). Cada campo pode ter 
 ```python
 wgs84 = GridReadOnly(
     title="WGS84 (EPSG:4326)",
+    title_description=STR.WGS84_COORDINATES_DESC,
     fields={
-        "lat_dec": {"title": "Latitude", "value": ""},
-        "lon_dec": {"title": "Longitude", "value": ""},
+        "lat_dec": {
+            "title": STR.LATITUDE_DECIMAL,
+            "value": "",
+            "description": STR.LATITUDE_DECIMAL_DESC,
+        },
+        "lon_dec": {
+            "title": STR.LONGITUDE_DECIMAL,
+            "value": "",
+            "description": STR.LONGITUDE_DECIMAL_DESC,
+        },
     },
     show_copy_buttons=True,   # botão copiar em cada campo (usa SimpleModernButton + COPY2)
     separator_bottom=True,
     parent=self,
 )
 layout.addWidget(wgs84)
+
+# `title_description` descreve o bloco; `description` descreve cada campo.
+# O GridReadOnly aplica a descrição ao rótulo e ao valor, enquanto o botão
+# interno de cópia usa a tooltip genérica do SimpleReadOnly.
 
 # API pública
 wgs84.set_value("lat_dec", "-10.12345678")
@@ -1250,7 +1265,7 @@ Este contrato separa duas camadas que não podem ser misturadas:
 ### Checklist de revisão
 
 - [ ] Cada ferramenta possui uma tooltip de entrada no `ToolRegistry`.
-- [ ] Cada instância declarada pela ferramenta possui `description` contextual quando o controle não for autoexplicativo.
+- [ ] Cada instância declarada pela ferramenta possui `description` contextual; o texto pode ser breve, mas não deve deixar campos, labels ou botões sem explicação.
 - [ ] Cada botão interno criado pelo widget possui tooltip própria e tokenizada.
 - [ ] Diálogos auxiliares foram incluídos no inventário da ferramenta que os abre.
 - [ ] O texto é compreensível para uma pessoa que não conhece o processamento.
@@ -1407,6 +1422,7 @@ border: 1px solid {theme.COLOR_BORDER};
 
 | Data | Versão | Descrição |
 |------|--------|-----------|
+| 2026-11-22 | 3.1.0 | `GridReadOnly` passou a aceitar `title_description` e `description` por campo; `SimpleReadOnly` passou a aceitar tooltip contextual sem substituir a tooltip genérica do botão interno de cópia. |
 | 2026-07-21 | 1.0.0 | Criação inicial — Novo sistema de widgets autoconfiguráveis |
 | 2026-07-21 | 1.1.0 | Adicionada regra de callbacks (widget não expõe sinais Qt, plugin passa funções callback como parâmetros) |
 | 2026-07-21 | 1.2.0 | Adicionado padrão de configuração via dict `config={}` com chaves identificadoras e suporte a `description` para tooltip |

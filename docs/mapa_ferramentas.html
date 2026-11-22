@@ -82,6 +82,8 @@ h2{font-size:clamp(28px,4vw,42px);margin-bottom:12px}
 .catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:9px}
 .tool-card{appearance:none;text-align:left;color:var(--ink);font:inherit;min-height:82px;background:var(--glass);border:1px solid var(--line);border-top:3px solid var(--c);border-radius:12px;padding:11px;cursor:pointer;transition:.22s;display:flex;flex-direction:column;gap:7px}
 .tool-card:hover,.tool-card.on{background:var(--glass2);border-color:var(--c);transform:translateY(-2px);box-shadow:0 12px 24px -18px var(--c)}
+.tool-card.retired{opacity:.62;border-style:dashed}
+.tool-card.retired:hover,.tool-card.retired.on{opacity:.9}
 .tool-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tool-card .num{align-self:flex-start;border-radius:99px;padding:2px 7px;background:var(--c);color:#fff;font:700 10px "Cascadia Mono",Consolas,monospace}
 .family-mark{display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--line);border-radius:8px;color:var(--ink);background:var(--glass2);font-size:16px;line-height:1}
@@ -186,7 +188,7 @@ footer.foot .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:
 </section>
 
 <div class="wrap"><div class="stats rv">
-  <div class="stat"><b>40</b><span>ferramentas únicas catalogadas</span></div>
+  <div class="stat"><b>41</b><span>registros numerados (40 ativos + 1 histórico)</span></div>
   <div class="stat"><b>39</b><span>widgets catalogados</span></div>
   <div class="stat"><b>4</b><span>famílias de ferramenta</span></div>
   <div class="stat"><b>2</b><span>portas oficiais: plugin e Processing</span></div>
@@ -368,6 +370,73 @@ const WIDGETS = [
   {id:"SquareIconButton",layer:"simple/interno",path:"resources/widgets/simple/SquareIconButton.py",purpose:"Botão interno quadrado para ações compactas, como copiar ou abrir um seletor.",example:"SquareIconButton(icon=IconManager.COPY2, tooltip=STR.COPY, parent=self)",usedBy:"ComplexColorPicker, ComplexSelector e componentes compostos",color:"#a78bfa"}
 ];
 
+TOOLS.push({id:"photo_vectorization",name:"Vetorização de Fotos [ELIMINADA]",area:"Agricultura",kind:"Dialog",entry:"registro histórico · funcionalidade absorvida pelo DroneCoordinates",purpose:"Registro histórico de uma ferramenta que deixou de existir como entrada separada. Sua funcionalidade foi integrada ao fluxo de Drone Coordinates.",flow:["A ferramenta separada foi descontinuada.","A vetorização de fotos passou a integrar o DroneCoordinates."],inputs:["Funcionalidade histórica de vetorização de fotos"],outputs:["Fluxo integrado ao DroneCoordinates"],widgets:["Absorvida por DroneCoordinates"],deps:["DroneCoordinates"],color:"#f97316",retired:true});
+
+const TOOL_ORDER=[
+  "export_all_layouts","replace_in_layouts","restart_qgis","load_folder_layers",
+  "generate_trail","about_dialog","coord_click_tool","vector_fields",
+  "drone_coordinates","converter_multipart","copy_attributes","logcat","settings",
+  "raster_mass_sampler","difference_fields","attribute_statistics","raster_mass_clipper",
+  "geometry_line_from_points","raster_difference_statistics","remove_kml_fields",
+  "vector_to_svg","create_project","photo_vectorization","report_metadata",
+  "raster_weighted_average","divide_points_by_strips","grid_generator","raster_optimizer",
+  "ndvi_calculator","rgb_mosaic_creator","rgb_style_standardizer","path_extension_tool",
+  "save_temporary_layer","ndre_calculator","gli_calculator","calculate_chm",
+  "raster_mask_clipper","raster_mean_adjust","developer_test_tool",
+  "imagery_downloader","raster_sampler"
+];
+
+const TOOL_METADATA={
+  export_all_layouts:{label:"Exportar Todos os Layouts",version:"1.0.0"},
+  replace_in_layouts:{label:"Substituir Textos nos Layouts",version:"1.1.0"},
+  restart_qgis:{label:"Salvar, Fechar e Reabrir Projeto",version:"1.1.1"},
+  load_folder_layers:{label:"Carregar Pasta de Arquivos",version:"1.2.0"},
+  generate_trail:{label:"Gerar Rastro de Implemento",version:"1.3.0"},
+  about_dialog:{label:"Sobre o Cadmus",version:"1.2.6"},
+  coord_click_tool:{label:"Capturar Coordenadas",version:"1.2.6"},
+  vector_fields:{label:"Calcular Campos Vetoriais",version:"1.3.0"},
+  drone_coordinates:{label:"Obter Coordenadas de Drone",version:"1.3.0"},
+  converter_multipart:{label:"Converter Multipart",version:"1.4.0"},
+  copy_attributes:{label:"Copiar Atributos de Vetores",version:"1.4.0"},
+  logcat:{label:"LogCat Viewer",version:"1.4.0"},
+  settings:{label:"Configurações",version:"1.5.0"},
+  raster_mass_sampler:{label:"Amostrador Massivo de Raster",version:"1.2.0"},
+  difference_fields:{label:"Gerador de Diferença entre Campos",version:"1.2.0"},
+  attribute_statistics:{label:"Estatísticas de Atributos",version:"1.2.3"},
+  raster_mass_clipper:{label:"Recortador Massivo de Raster",version:"2.0.7"},
+  geometry_line_from_points:{label:"Gerador de Linhas entre Pontos",version:"2.0.8"},
+  raster_difference_statistics:{label:"Gerador de Diferença entre Rasters",version:"2.0.9"},
+  remove_kml_fields:{label:"Ferramenta de Remoção de Campos KML",version:"2.2.3"},
+  vector_to_svg:{label:"Vetor para SVG",version:"3.0.0"},
+  create_project:{label:"Criador de Projeto",version:"3.0.0"},
+  photo_vectorization:{label:"Vetorização de Fotos [ELIMINADA]",version:"3.0.0"},
+  report_metadata:{label:"Relatório de Fotos",version:"3.0.0"},
+  raster_weighted_average:{label:"Média Ponderada de Raster",version:"3.0.0"},
+  divide_points_by_strips:{label:"Separação de Faixas",version:"3.0.0"},
+  grid_generator:{label:"Gerador de Grade",version:"3.0.0"},
+  raster_optimizer:{label:"Otimizador de Raster",version:"3.0.0"},
+  ndvi_calculator:{label:"Calculadora NDVI",version:"3.0.0"},
+  rgb_mosaic_creator:{label:"Criador de Mosaico RGB",version:"3.0.0"},
+  rgb_style_standardizer:{label:"Padronizador de Estilo RGB",version:"3.0.0"},
+  path_extension_tool:{label:"Extensão de Caminho (Path Extension)",version:"3.0.0"},
+  save_temporary_layer:{label:"Salvar Camadas Temporárias",version:"3.0.0"},
+  ndre_calculator:{label:"Calculadora NDRE",version:"3.0.0"},
+  gli_calculator:{label:"Calculadora GLI",version:"3.0.0"},
+  calculate_chm:{label:"Calcular CHM (MDS - MDT)",version:"3.4.0.12"},
+  raster_mask_clipper:{label:"Recortar Raster por Máscara",version:"3.4.0.13"},
+  raster_mean_adjust:{label:"Ajustar Média Raster",version:"3.4.0.14"},
+  developer_test_tool:{label:"Developer Test Tool",version:"—"},
+  imagery_downloader:{label:"Downloader de Imagens de Satélite",version:"—"},
+  raster_sampler:{label:"Amostrar Valores de Rasters",version:"—"}
+};
+
+TOOLS.forEach(tool=>{
+  const metadata=TOOL_METADATA[tool.id]||{};
+  Object.assign(tool,metadata);
+  if(metadata.label) tool.name=metadata.label;
+});
+TOOLS.sort((a,b)=>TOOL_ORDER.indexOf(a.id)-TOOL_ORDER.indexOf(b.id));
+
 const areaColors={
   "Todas":"#41c9ff",
   "Layouts":"#14b8a6",
@@ -396,14 +465,14 @@ function renderFilters(){
 function renderCatalog(){
   const list=TOOLS.filter(visible);
   if(!list.length){$("catalog").innerHTML='<div class="empty">Nenhuma ferramenta encontrada para este filtro.</div>';return}
-  $("catalog").innerHTML=list.map(t=>`<button type="button" class="tool-card ${state.selected===t.id?"on":""}" data-tool="${esc(t.id)}" style="--c:${toolColor(t)}"><span class="tool-card-head"><span class="num">${String(TOOLS.indexOf(t)+1).padStart(2,"0")}</span><span class="family-mark" title="${esc(familyLabel(t.kind))}" aria-label="${esc(familyLabel(t.kind))}">${familyIcon(t.kind)}</span></span><h3>${esc(t.name)}</h3></button>`).join("");
+  $("catalog").innerHTML=list.map(t=>`<button type="button" class="tool-card ${state.selected===t.id?"on":""} ${t.retired?"retired":""}" data-tool="${esc(t.id)}" style="--c:${toolColor(t)}"><span class="tool-card-head"><span class="num">${String(TOOLS.indexOf(t)+1).padStart(2,"0")}</span><span class="family-mark" title="${esc(familyLabel(t.kind))}" aria-label="${esc(familyLabel(t.kind))}">${familyIcon(t.kind)}</span></span><h3>${esc(t.name)}</h3></button>`).join("");
   document.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{state.selected=b.dataset.tool;renderDetail();renderCatalog();$("toolPanel").scrollIntoView({behavior:"smooth",block:"start"})});
 }
 function list(items){return items.map(x=>`<li>${esc(x)}</li>`).join("")}
 function renderDetail(){
   const t=TOOLS.find(x=>x.id===state.selected)||TOOLS[0];
   $("toolPanel").style.setProperty("--c",toolColor(t));
-  $("toolPanel").innerHTML=`<div class="ptitle"><h3>${esc(t.name)}</h3><span class="kind"><span class="family-mark" title="${esc(familyLabel(t.kind))}" aria-label="${esc(familyLabel(t.kind))}">${familyIcon(t.kind)}</span> ${esc(t.area)} · ${esc(t.kind)}</span></div><div class="identity"><span class="chip">${esc(t.id)}</span><span class="chip">${esc(t.entry)}</span></div><div class="cols"><div class="col"><h4>Para que serve</h4><p>${esc(t.purpose)}</p></div><div class="col"><h4>Entrada</h4><ul>${list(t.inputs)}</ul></div><div class="col"><h4>Saída</h4><ul>${list(t.outputs)}</ul></div></div><div class="detail-flow"><b>Funcionamento:</b> ${t.flow.map(esc).join(" → ")}</div><h4 class="sh4">Widgets e componentes</h4><div class="subs">${t.widgets.map((w,i)=>`<div class="sub"><b>${String(i+1).padStart(2,"0")}</b><h4>${esc(w.split(" · ")[0])}</h4><p>${esc(w.includes(" · ")?w.split(" · ").slice(1).join(" · "):"Componente usado pela ferramenta")}</p></div>`).join("")}</div><h4 class="sh4">Dependências e pontos de integração</h4><div class="nut">${t.deps.map(d=>`<span>${esc(d)}</span>`).join("")}</div>`;
+  $("toolPanel").innerHTML=`<div class="ptitle"><h3>${esc(t.name)}</h3><span class="kind"><span class="family-mark" title="${esc(familyLabel(t.kind))}" aria-label="${esc(familyLabel(t.kind))}">${familyIcon(t.kind)}</span> ${esc(t.area)} · ${esc(t.kind)}</span></div><div class="identity"><span class="chip">${esc(t.id)}</span><span class="chip">${esc(t.entry)}</span><span class="chip">Criada: ${esc(t.version||"não informado")}</span>${t.retired?'<span class="chip">Registro histórico · eliminada</span>':""}</div><div class="cols"><div class="col"><h4>Para que serve</h4><p>${esc(t.purpose)}</p></div><div class="col"><h4>Entrada</h4><ul>${list(t.inputs)}</ul></div><div class="col"><h4>Saída</h4><ul>${list(t.outputs)}</ul></div></div><div class="detail-flow"><b>Funcionamento:</b> ${t.flow.map(esc).join(" → ")}</div><h4 class="sh4">Widgets e componentes</h4><div class="subs">${t.widgets.map((w,i)=>`<div class="sub"><b>${String(i+1).padStart(2,"0")}</b><h4>${esc(w.split(" · ")[0])}</h4><p>${esc(w.includes(" · ")?w.split(" · ").slice(1).join(" · "):"Componente usado pela ferramenta")}</p></div>`).join("")}</div><h4 class="sh4">Dependências e pontos de integração</h4><div class="nut">${t.deps.map(d=>`<span>${esc(d)}</span>`).join("")}</div>`;
 }
 const widgetLayers=["Todos","grid","raiz","simple/interno"];
 function renderWidgetFilters(){
@@ -429,7 +498,7 @@ const familyInfo={
   Processing:{label:"Processing",icon:"⚙",description:"Algoritmo exposto pelo MTLProvider e executado pelo contrato nativo do QGIS Processing.",color:"#38bdf8"}
 };
 function renderFamilies(){
-  const counts=TOOLS.reduce((acc,t)=>{acc[t.kind]=(acc[t.kind]||0)+1;return acc},{});
+  const counts=TOOLS.filter(t=>!t.retired).reduce((acc,t)=>{acc[t.kind]=(acc[t.kind]||0)+1;return acc},{});
   const keys=["Dialog","Instant\u00e2neo","Map tool","Processing"];
   $("familyGrid").innerHTML=keys.map(key=>{const f=familyInfo[key];return`<article class="family-card" style="--c:${f.color}"><div class="family-icon" aria-hidden="true">${f.icon}</div><span class="family-count">${String(counts[key]||0).padStart(2,"0")} ferramentas</span><h3>${esc(f.label)}</h3><p>${esc(f.description)}</p><p><code>${esc(key)} · ${counts[key]||0} ferramentas</code></p></article>`}).join("");
 }

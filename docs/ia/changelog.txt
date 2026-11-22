@@ -1,3 +1,18 @@
+3.4.1.27 22/11/2026
+[3.4.1.27][22/11/2026] Ajuste do protocolo de diagnóstico do agente:
+   - A leitura de logs deixou de ser descrita como obrigatória para toda tarefa.
+   - O procedimento agora é aplicado somente na resolução de falhas, atrasos, regressões ou comportamentos inesperados.
+   - Criação de ferramentas, alterações rotineiras, refatorações sem sintoma e documentação devem ler apenas os arquivos necessários.
+   - `build_distribution.py: VERSION` é a única fonte manual; `metadata.txt` e `plugins/AboutDialog.py` ficam derivados e são sincronizados na execução do build.
+   - O build agora aborta se não encontrar exatamente os marcadores de versão dos arquivos derivados, evitando empacotar uma distribuição inconsistente.
+
+3.4.1.26 22/11/2026
+[3.4.1.26][22/11/2026] Correções no Export All Layouts, versionamento e diagnóstico:
+   - `ComplexSelector` em modo pasta deixou de testar `os.path.isfile()` em caminhos restaurados; isso elimina o atraso síncrono causado por unidades de rede indisponíveis na abertura do `ExportAllLayouts`.
+   - `build_distribution.py` agora substitui a versão pontuada inteira no `AboutDialog`, evitando o acúmulo de sufixos numéricos a cada build.
+   - Versão de distribuição incrementada uma única vez: `3.1.0.1` → `3.1.0.2` em `build_distribution.py`, `metadata.txt` e `plugins/AboutDialog.py`.
+   - `SKILL_AGENT.md` recebeu o procedimento obrigatório para localizar sessões, correlacionar eventos e separar falhas de dependência de gargalos de inicialização.
+
 3.4.1.25 21/11/2026
 [3.4.1.25][21/11/2026] Correções de conformidade Flake8:
    - Corrigidos espaçamentos, linhas em branco, finais de arquivo e imports não utilizados.

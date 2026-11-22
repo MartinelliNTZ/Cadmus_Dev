@@ -1428,4 +1428,5 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-08-20 | 3.6.5 | **GridBBoxSelector — prévia vermelha some sozinha (auto-clear):**
    - O `QgsRubberBand` vermelho desenhado após selecionar a extensão (tela/camada/desenho) ficava permanentemente no canvas; agora é limpo sozinho após `_PREVIEW_CLEAR_MS` (3000 ms) via `QTimer` de disparo único
    - Novos métodos `_schedule_preview_clear()`/`_clear_preview()` (o timer é reutilizado e reiniciado a cada redraw; a limpeza não apaga o estado boundary/tipo/path) — feedback breve e fiel ao QGIS
+| 2026-11-22 | 3.6.6 | `ComplexSelector` em modo `folder` não chama mais `os.path.isfile()` ao restaurar ou editar caminhos; isso evita bloqueios síncronos em pastas de rede indisponíveis e acelera a abertura de ferramentas que restauram paths remotos. |
 

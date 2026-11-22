@@ -37,7 +37,9 @@ from core.services.PackageManager import PackageManager
 # Chave de licença opcional incorporada no pacote de distribuição
 # Se vazia "", nenhuma chave é adicionada
 DISTRIBUTION_KEY = "6U5D9-4H0J8-6P1U4"
-VERSION = "3.1.0.1"
+# Fonte única da versão. metadata.txt e AboutDialog.py são atualizados pelo build.
+VERSION = "3.1.0.3"
+VERSION_PATTERN = r"\d+(?:\.\d+)+"
 
 # Nome do arquivo de saída (sem extensão) — extensão .dist
 DISTRIBUTION_FILENAME = f"Cadmus_package_{VERSION}_dist"
@@ -228,7 +230,12 @@ class BuildDistribution:
         print("=" * 55)
 
         # 0. Atualizar arquivos de versão (metadata.txt e AboutDialog.py)
-        self._update_version_files()
+        if not self._update_version_files():
+            print(
+                "[BuildDistribution] ERRO: sincronização de versão falhou. "
+                "Build abortado para evitar pacote inconsistente."
+            )
+            return False
 
         # 1. Remover todos os __pycache__ do projeto
         self._remove_pycache()
@@ -428,63 +435,99 @@ class BuildDistribution:
         """
         Atualiza a versão nos arquivos metadata.txt e AboutDialog.py
         com base no valor da constante VERSION definida neste script.
+
+        Returns:
+            bool: True quando os dois arquivos foram sincronizados ou já
+            estavam sincronizados; False quando algum marcador não existe.
         """
         import re
         from datetime import date
 
         print(f"[BuildDistribution] Atualizando versão para {VERSION}...")
+        sync_ok = True
+        metadata_content = None
+        metadata_new_content = None
+        about_content = None
+        about_new_content = None
 
         # --- metadata.txt ---
         metadata_path = self._root / "metadata.txt"
         if metadata_path.exists():
-            content = metadata_path.read_text(encoding="utf-8")
+            metadata_content = metadata_path.read_text(encoding="utf-8")
             # Substitui version=QUALQUER_COISA no metadata.txt
-            new_content = re.sub(
+            new_content, replacements = re.subn(
                 r'^version=.*$',
                 f'version={VERSION}',
-                content,
+                metadata_content,
                 count=1,
                 flags=re.MULTILINE,
             )
-            if new_content != content:
-                metadata_path.write_text(new_content, encoding="utf-8")
-                print(f"[BuildDistribution]   metadata.txt -> version={VERSION}")
+            if replacements != 1:
+                sync_ok = False
+                print(
+                    "[BuildDistribution]   ERRO: campo version não encontrado "
+                    "em metadata.txt."
+                )
             else:
-                print(f"[BuildDistribution]   metadata.txt já está em version={VERSION}")
+                metadata_new_content = new_content
         else:
+            sync_ok = False
             print("[BuildDistribution]   AVISO: metadata.txt não encontrado.")
 
         # --- plugins/AboutDialog.py ---
         about_path = self._root / "plugins" / "AboutDialog.py"
         if about_path.exists():
-            content = about_path.read_text(encoding="utf-8")
+            about_content = about_path.read_text(encoding="utf-8")
 
-            # Substitui a versão no AboutDialog (ex: 2.0.7 -> 3.0.0)
-            # A linha se parece com:  f"<b>{STR.VERSION}:</b> 2.0.7<br>"
-            new_content = re.sub(
-                r'(STR\.VERSION.*?</b>\s*)\d+\.\d+\.\d+',
+            # Substitui a versão pontuada inteira no AboutDialog.
+            # Isso evita deixar sufixos antigos quando a versão tem 4+ partes.
+            new_content, version_replacements = re.subn(
+                rf'(STR\.VERSION.*?</b>\s*){VERSION_PATTERN}',
                 rf'\g<1>{VERSION}',
-                content,
+                about_content,
                 count=1,
             )
 
-            # Atualiza a data para a data atual
-            today = date.today()
-            date_str = f"{today.day:02d} / {today.month:02d} / {today.year}"
-            new_content = re.sub(
-                r'(STR\.UPDATED_ON.*?</b>\s*)\d+\s*/\s*\d+\s*/\s*\d+',
-                r'\g<1>' + date_str,
-                new_content,
-                count=1,
-            )
-
-            if new_content != content:
-                about_path.write_text(new_content, encoding="utf-8")
-                print(f"[BuildDistribution]   AboutDialog.py -> version={VERSION}, updated={date_str}")
+            if version_replacements != 1:
+                sync_ok = False
+                print(
+                    "[BuildDistribution]   ERRO: campo STR.VERSION não encontrado "
+                    "em AboutDialog.py."
+                )
             else:
-                print("[BuildDistribution]   AboutDialog.py já está atualizado.")
+                # Atualiza a data junto com a versão somente quando a versão foi encontrada.
+                today = date.today()
+                date_str = f"{today.day:02d} / {today.month:02d} / {today.year}"
+                new_content = re.sub(
+                    r'(STR\.UPDATED_ON.*?</b>\s*)\d+\s*/\s*\d+\s*/\s*\d+',
+                    r'\g<1>' + date_str,
+                    new_content,
+                    count=1,
+                )
+                about_new_content = new_content
         else:
+            sync_ok = False
             print("[BuildDistribution]   AVISO: plugins/AboutDialog.py não encontrado.")
+
+        if not sync_ok:
+            return False
+
+        if metadata_new_content != metadata_content:
+            metadata_path.write_text(metadata_new_content, encoding="utf-8")
+            print(f"[BuildDistribution]   metadata.txt -> version={VERSION}")
+        else:
+            print(f"[BuildDistribution]   metadata.txt já está em version={VERSION}")
+
+        if about_new_content != about_content:
+            about_path.write_text(about_new_content, encoding="utf-8")
+            print(
+                f"[BuildDistribution]   AboutDialog.py -> version={VERSION}, "
+                f"updated={date_str}"
+            )
+        else:
+            print("[BuildDistribution]   AboutDialog.py já está atualizado.")
+
+        return True
 
     def _remove_pycache(self):
         """

@@ -72,6 +72,27 @@ Regras críticas do plugin que **nunca** podem ser violadas:
 - Processing herda de BaseProcessingAlgorithm
 - Plugins registrados no ToolRegistry
 
+## COMO VASCULHAR LOGS DURANTE A RESOLUÇÃO DE PROBLEMAS
+
+Use este procedimento somente quando a tarefa envolver diagnóstico de falha, atraso, regressão ou comportamento inesperado. Em criação de ferramenta, alteração rotineira, refatoração sem sintoma ou documentação, não vasculhe os logs por padrão: leia apenas os arquivos necessários para a tarefa.
+
+1. **Localizar a sessão correta**: usar `log/` na raiz do plugin, escolher o arquivo mais recente compatível com o horário do problema e registrar tamanho, PID e `session_id`.
+2. **Filtrar por contexto**: pesquisar primeiro pelo `tool`, depois por `class`, `code`, `ERROR`/`CRITICAL`, `exception`, `traceback`, `ImportError`, `ModuleNotFoundError` e `DEPENDENCY_`. Usar `rg` para a busca textual e preservar o número da linha.
+3. **Reconstruir a sequência**: ler os eventos anteriores e posteriores ao primeiro erro ou ao maior intervalo de timestamps. Correlacionar `session_id`, `pid`, `thread`, `tool` e `class`; não concluir pela última mensagem isolada.
+4. **Investigar desempenho**: comparar timestamps entre marcos de início/fim, contar eventos repetidos e identificar chamadas síncronas, leituras completas, sondagens de rede, montagem de muitos widgets e checagens de dependência. Diferenciar tempo de abertura, tempo de ação do usuário e tempo de processamento.
+5. **Validar dependências somente por evidência**: procurar logs de `DEPENDENCY_PRESENT`, `DEPENDENCY_MISSING`, importação ou instalação. Se a dependência está disponível e a checagem ocorre apenas após um clique, ela não explica a lentidão da abertura.
+6. **Tratar exceções corretamente**: localizar o traceback completo, identificar o primeiro frame do código Cadmus e seguir a cadeia de chamadas até o ponto de entrada da ferramenta. Não mascarar um erro com uma mensagem posterior de sucesso.
+7. **Concluir com diagnóstico rastreável**: informar arquivo de log, linhas/eventos usados, causa provável, hipóteses descartadas e a menor correção compatível com os contratos. Nunca registrar ou reproduzir credenciais, tokens, PII ou chaves de licença.
+
+Comandos de referência no PowerShell:
+
+```powershell
+rg -n -i '"tool":"minha_ferramenta"|ERROR|CRITICAL|exception|traceback|ImportError|ModuleNotFoundError|DEPENDENCY_' log
+rg -n -C 5 -i 'mensagem-chave|code-chave' log\sessao.log
+```
+
+Para problemas de abertura, compare o último marco de construção da UI com o marco de abertura concluída e verifique se o intervalo acontece antes ou depois de `_load_prefs()`, restauração de paths, importações ou callbacks de widgets.
+
 ## 📜 SKILL_ASYNC_PAPELINE.md
 
 `docs/skills/SKILL_ASYNC_PAPELINE.md`
@@ -118,7 +139,9 @@ Consulte a seção **MAPEAMENTO SITUAÇÃO → SKILL** acima para identificar qu
 
 - Antes de concluir qualquer alteração no plugin, leia `build_distribution.py` e incremente o último componente numérico de `VERSION`.
 - `VERSION` é a fonte da versão do pacote de distribuição; não deixe essa constante inalterada após uma modificação de código, skill ou estrutura do plugin.
+- A única versão editável manualmente é `build_distribution.py: VERSION`; `metadata.txt` e `plugins/AboutDialog.py` são arquivos derivados e devem ser sincronizados pelo BuildDistribution.
 - Preserve o formato existente da versão. Exemplo: `3.0.0.3` → `3.0.0.4`.
+- Ao atualizar arquivos derivados, substitua a versão pontuada inteira; nunca faça append sobre um prefixo já existente (por exemplo, `3.1.0.1.0`).
 - Registre a versão alterada no `docs/ia/changelog.txt` e informe no resumo final quais arquivos foram atualizados.
 - Não execute um segundo incremento para a própria alteração de versionamento.
 

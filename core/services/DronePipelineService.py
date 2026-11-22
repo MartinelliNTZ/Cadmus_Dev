@@ -58,9 +58,6 @@ class DronePipelineService:
         "apply_style_track": False,
     }
 
-    # Nível mínimo de licença exigido para gerar relatórios
-    REGISTRY_LEVEL: int = 3
-
     # ── API PÚBLICA ────────────────────────────────────────────────
 
     @staticmethod
@@ -174,19 +171,11 @@ class DronePipelineService:
         should_generate_report = prefs.get("generate_report", True)
         if should_generate_report:
             try:
-                from ..config.RegistryManager import RegistryManager
-                reg_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
-                if reg_mgr.has_minimum_level(DronePipelineService.REGISTRY_LEVEL):
-                    # Import lazy: ReportGenerationStep só é importado se houver licença
-                    # Isso permite que o pipeline funcione em modo free sem o módulo
-                    from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
-                    steps.append(ReportGenerationStep())
-                else:
-                    logger.warning(
-                        f"Licença sem nível mínimo {DronePipelineService.REGISTRY_LEVEL} — relatório não será gerado"
-                    )
+                # O relatório faz parte do fluxo público do Drone Coordinates.
+                from ..engine_tasks.ReportGenerationStep import ReportGenerationStep
+                steps.append(ReportGenerationStep())
             except Exception as e:
-                logger.error(f"Falha ao verificar licença: {e}")
+                logger.error(f"Falha ao adicionar etapa de relatório: {e}")
 
         # ── Dados extras para callback (modo MRK) ─────────────────
         if file_path:
@@ -325,17 +314,10 @@ class DronePipelineService:
                 "Gerando relatório no pós-processamento (main thread)..."
             )
             try:
-                from ..config.RegistryManager import RegistryManager
-                reg_mgr = RegistryManager(tool_key=ToolKey.DRONE_COORDINATES)
-                if reg_mgr.has_minimum_level(DronePipelineService.REGISTRY_LEVEL):
-                    from .ReportGenerationService import ReportGenerationService
-                    report_payload = ReportGenerationService(
-                        tool_key=ToolKey.DRONE_COORDINATES
-                    ).generate_from_json(json_path)
-                else:
-                    logger.warning(
-                        f"Licença sem nível mínimo {DronePipelineService.REGISTRY_LEVEL} — relatório não será gerado no pós-processamento"
-                    )
+                from .ReportGenerationService import ReportGenerationService
+                report_payload = ReportGenerationService(
+                    tool_key=ToolKey.DRONE_COORDINATES
+                ).generate_from_json(json_path)
             except Exception as e:
                 logger.error(f"Falha ao gerar report: {e}")
         elif report_payload:

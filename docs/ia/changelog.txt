@@ -1,3 +1,9 @@
+3.4.1.20 21/11/2026
+[3.4.1.20][21/11/2026] Drone Coordinates liberado para uso público:
+   - Removidas as verificações de registro da interface do Drone Coordinates.
+   - Logo, título de projeto e geração de relatório ficam disponíveis sem licença.
+   - Mantido o sistema de registro das demais ferramentas e do Report Metadata.
+
 3.1.0 05/08/2026
 [3.1.0.1][05/08/2026] ExportAllLayouts: seleção individual de layouts:
    - Novo botão "Layouts" no GridExecutionButtons (STR.SELECT_LAYOUTS / STR.SELECT_LAYOUTS_DESC)

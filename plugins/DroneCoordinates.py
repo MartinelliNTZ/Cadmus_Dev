@@ -54,9 +54,6 @@ class DroneCordinates(BasePluginMTL):
 
     TOOL_KEY = ToolKey.DRONE_COORDINATES
 
-    # Nível mínimo de licença exigido para funcionalidades premium (relatório, logo, título)
-    REGISTRY_LEVEL: int = 3
-
     CHECKBOX_OPTIONS = {
         "recursive": STR.RECURSIVE_SEARCH,
         "use_mrk": STR.USE_MRK_DATA,
@@ -85,17 +82,6 @@ class DroneCordinates(BasePluginMTL):
             enable_scroll=True,
         )
 
-        # Verifica licença — controla exibição de itens do relatório
-        try:
-            from ..core.config.RegistryManager import RegistryManager
-            lic_mgr = RegistryManager(tool_key=self.TOOL_KEY)
-            is_lic_valid = lic_mgr.has_minimum_level(self.REGISTRY_LEVEL)
-        except Exception as e:
-            self.logger.error(
-                f"Erro ao verificar licença: {e}", code="CHECK_ERROR"
-            )
-            is_lic_valid = False
-
         # ====== PASTA MRK (GridComplexSelector folder input) ======
         self.grid_input = GridComplexSelector(
             config={
@@ -122,47 +108,43 @@ class DroneCordinates(BasePluginMTL):
         )
         self.layout.addWidget(self.opts_collapsible)
 
-        # ====== LOGO / IMAGE SELECTOR (só se licença válida) ======
-        if is_lic_valid:
-            self.logo_selector = GridComplexSelector(
-                config={
-                    "logo": {
-                        "label": STR.LOGO_LABEL,
-                        "description": "Arquivo de logotipo",
-                        "mode_type": "output",
-                        "allow_file": True,
-                        "allow_folder": False,
-                        "file_filter": StringManager.FILTER_IMAGES,
-                        "allow_lock_check": True,
-                        "lock_check_default": False,
-                    },
+        # ====== LOGO / IMAGE SELECTOR ======
+        self.logo_selector = GridComplexSelector(
+            config={
+                "logo": {
+                    "label": STR.LOGO_LABEL,
+                    "description": "Arquivo de logotipo",
+                    "mode_type": "output",
+                    "allow_file": True,
+                    "allow_folder": False,
+                    "file_filter": StringManager.FILTER_IMAGES,
+                    "allow_lock_check": True,
+                    "lock_check_default": False,
                 },
-                tool_key=self.TOOL_KEY,
-                grid_id="grid_logo",
-                parent=self,
-            )
-            self.opts_collapsible.add_content_widget(self.logo_selector)
+            },
+            tool_key=self.TOOL_KEY,
+            grid_id="grid_logo",
+            parent=self,
+        )
+        self.opts_collapsible.add_content_widget(self.logo_selector)
 
-        # ====== PROJETO TITLE (só se licença válida) ======
-        if is_lic_valid:
-            self.title_input = GridInputFields(
-                config={
-                    "project_title": {
-                        "label": STR.PROJECT_TITLE,
-                        "description": STR.PROJECT_TITLE_HINT,
-                        "default": "",
-                    },
+        # ====== PROJETO TITLE ======
+        self.title_input = GridInputFields(
+            config={
+                "project_title": {
+                    "label": STR.PROJECT_TITLE,
+                    "description": STR.PROJECT_TITLE_HINT,
+                    "default": "",
                 },
-                title=None,
-                separator_bottom=False,
-                parent=self,
-            )
-            self.opts_collapsible.add_content_widget(self.title_input)
+            },
+            title=None,
+            separator_bottom=False,
+            parent=self,
+        )
+        self.opts_collapsible.add_content_widget(self.title_input)
 
         # ====== OPÇÕES CHECKBOXES (GridCheckbox 1 coluna) ======
         checkbox_options = dict(self.CHECKBOX_OPTIONS)
-        if not is_lic_valid:
-            checkbox_options.pop("generate_report", None)
 
         self.opts_checkbox = GridCheckbox(
             config={

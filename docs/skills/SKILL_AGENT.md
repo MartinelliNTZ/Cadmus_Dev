@@ -139,9 +139,10 @@ Consulte a seção **MAPEAMENTO SITUAÇÃO → SKILL** acima para identificar qu
 
 - Antes de concluir qualquer alteração no plugin, leia `build_distribution.py` e incremente o último componente numérico de `VERSION`.
 - `VERSION` é a fonte da versão do pacote de distribuição; não deixe essa constante inalterada após uma modificação de código, skill ou estrutura do plugin.
-- A única versão editável manualmente é `build_distribution.py: VERSION`; `metadata.txt` e `plugins/AboutDialog.py` são arquivos derivados e devem ser sincronizados pelo BuildDistribution.
+- A única versão que o agente pode editar é `build_distribution.py: VERSION`.
+- **É proibido editar manualmente `metadata.txt` ou `plugins/AboutDialog.py` para atualizar versão, data ou qualquer marcador derivado.** Esses arquivos são derivados e só podem ser atualizados pelo processo oficial do BuildDistribution.
 - Preserve o formato existente da versão. Exemplo: `3.0.0.3` → `3.0.0.4`.
-- Ao atualizar arquivos derivados, substitua a versão pontuada inteira; nunca faça append sobre um prefixo já existente (por exemplo, `3.1.0.1.0`).
+- O agente não deve aplicar patch, substituição, script ou qualquer outra escrita manual nos arquivos derivados; nunca sincronizar esses arquivos diretamente.
 - Registre a versão alterada no `docs/ia/changelog.txt` e informe no resumo final quais arquivos foram atualizados.
 - Não execute um segundo incremento para a própria alteração de versionamento.
 
@@ -163,6 +164,8 @@ Consulte a seção **MAPEAMENTO SITUAÇÃO → SKILL** acima para identificar qu
 - ✅ Você **SEMPRE** garante compatibilidade com QGIS 3.16+ até 4.99 e Python 3.10+.
 
 ---
+
+- ✅ Você **SEMPRE** mantém `docs/mapa_ferramentas.html` como documentação viva do sistema: atualize a ficha quando uma ferramenta sofrer mudança funcional grande, inclua toda ferramenta nova e atualize o catálogo quando um widget for criado ou mudar de contrato.
 
 # ARQUITETURA DA PIPELINE
 

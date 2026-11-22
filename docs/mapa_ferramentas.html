@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cadmus · mapa de ferramentas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#030a2b;--bg2:#071a6b;--glass:rgba(255,255,255,.06);--glass2:rgba(255,255,255,.11);
+  --line:rgba(130,175,255,.2);--ink:#f1f5ff;--muted:#a3b5e3;--cyan:#41c9ff;--blue:#1f5bff;
+  --pink:#ff1f8e;--pink2:#c9006b;--nav:rgba(3,10,43,.78);--code:#9fe3ff;
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){--bg:#eef3ff;--bg2:#cfdcff;--glass:rgba(255,255,255,.75);--glass2:rgba(255,255,255,.95);
+  --line:rgba(25,70,170,.16);--ink:#091848;--muted:#4a5d93;--nav:rgba(238,243,255,.85);--code:#0b4ea8}
+}
+:root[data-theme="light"]{--bg:#eef3ff;--bg2:#cfdcff;--glass:rgba(255,255,255,.75);--glass2:rgba(255,255,255,.95);
+  --line:rgba(25,70,170,.16);--ink:#091848;--muted:#4a5d93;--nav:rgba(238,243,255,.85);--code:#0b4ea8}
+*{box-sizing:border-box}
+html{height:auto;scroll-behavior:smooth;scroll-padding-top:calc(78px + env(safe-area-inset-top,0px))}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 "Montserrat",system-ui,"Segoe UI",sans-serif;
+  background-image:radial-gradient(1000px 600px at 85% -5%,var(--bg2),transparent 70%);background-repeat:no-repeat;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--nav);z-index:30}
+code,.mono{font-family:"Cascadia Mono",Consolas,"Courier New",monospace;font-size:.84em;color:var(--code)}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:8px}
+header.site-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--nav);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.bar{max-width:1240px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:22px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none;white-space:nowrap}
+.logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--pink),var(--pink2));display:grid;place-items:center;font-size:13px;color:#fff}
+nav{display:flex;gap:4px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+nav a{padding:7px 14px;border-radius:99px;text-decoration:none;font-size:14px;color:var(--muted);white-space:nowrap;transition:.2s}
+nav a:hover{color:var(--ink)}
+nav a.on{background:var(--glass2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.theme{border:1px solid var(--line);background:var(--glass);color:var(--ink);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:15px;flex:none}
+.wrap{max-width:1240px;margin:0 auto;padding:0 22px}
+section{padding:84px 0 20px}
+h1,h2,h3{font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:0}
+h2{font-size:clamp(28px,4vw,42px);margin-bottom:12px}
+.lead{color:var(--muted);max-width:72ch;margin:0 0 34px;font-size:17px}
+.hero{position:relative;padding:92px 0 150px;overflow:hidden}
+.hero h1{font-size:clamp(44px,8vw,92px);max-width:10ch;animation:rise .9s cubic-bezier(.2,.7,.2,1) both}
+.hero h1 span{display:block;font-weight:400;font-size:.36em;letter-spacing:.28em;color:var(--cyan);margin-top:18px}
+.hero p{max-width:67ch;color:var(--muted);font-size:18px;margin:26px 0 34px;animation:rise .9s .15s both}
+.btns{display:flex;flex-wrap:wrap;gap:14px;animation:rise .9s .3s both}
+.btn{display:inline-block;padding:15px 30px;border-radius:12px;font-weight:600;text-decoration:none;font-size:15px;transition:.25s}
+.btn.pri{background:linear-gradient(135deg,var(--pink),var(--pink2));color:#fff;box-shadow:0 12px 34px -10px var(--pink)}
+.btn.pri:hover{transform:translateY(-3px);box-shadow:0 18px 40px -10px var(--pink)}
+.btn.sec{border:1px solid var(--line);background:var(--glass)}
+.btn.sec:hover{background:var(--glass2)}
+.waves{position:absolute;left:0;right:0;bottom:0;height:60%;pointer-events:none;z-index:-1}
+.waves svg{position:absolute;bottom:0;width:200%;height:100%;animation:drift 22s linear infinite}
+.waves svg+svg{animation-duration:34s;animation-direction:reverse;opacity:.7}
+@keyframes drift{to{transform:translateX(-50%)}}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:-70px;position:relative}
+.stat{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(12px);border-radius:18px;padding:22px}
+.stat b{display:block;font-size:40px;font-weight:800;line-height:1;background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat span{color:var(--muted);font-size:14px}
+.flow3{display:grid;grid-template-columns:1fr 60px 1fr 60px 1fr;align-items:stretch}
+.box{background:var(--glass);border:1px solid var(--line);border-radius:20px;padding:26px}
+.box h3{font-size:22px;margin-bottom:10px}
+.box ul{margin:0;padding-left:18px;color:var(--muted);font-size:15px}
+.box.mid{background:linear-gradient(160deg,rgba(31,91,255,.35),rgba(65,201,255,.12));border-color:rgba(65,201,255,.5)}
+.arrow{display:grid;place-items:center}
+.arrow i{display:block;width:100%;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);background-size:200% 100%;animation:flow 1.8s linear infinite}
+@keyframes flow{from{background-position:200% 0}to{background-position:-200% 0}}
+.tool-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px}
+.tool-toolbar button,.searchbox{font:inherit;color:var(--ink);border:1px solid var(--line);background:var(--glass);border-radius:10px;padding:9px 13px}
+.tool-toolbar button{cursor:pointer}
+.tool-toolbar button:hover,.tool-toolbar button.on{background:var(--glass2);border-color:var(--cyan);color:var(--ink)}
+.searchbox{width:min(430px,100%);outline:none}
+.searchbox:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(65,201,255,.12)}
+.catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:9px}
+.tool-card{appearance:none;text-align:left;color:var(--ink);font:inherit;min-height:82px;background:var(--glass);border:1px solid var(--line);border-top:3px solid var(--c);border-radius:12px;padding:11px;cursor:pointer;transition:.22s;display:flex;flex-direction:column;gap:7px}
+.tool-card:hover,.tool-card.on{background:var(--glass2);border-color:var(--c);transform:translateY(-2px);box-shadow:0 12px 24px -18px var(--c)}
+.tool-card .num{align-self:flex-start;border-radius:99px;padding:2px 7px;background:var(--c);color:#fff;font:700 10px "Cascadia Mono",Consolas,monospace}
+.tool-card h3{font-size:13px;line-height:1.18}
+.tool-card p,.tool-card .kind{display:none}
+.empty{grid-column:1/-1;padding:30px;text-align:center;color:var(--muted);background:var(--glass);border:1px dashed var(--line);border-radius:18px}
+.widget-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:12px}
+.widget-card{appearance:none;text-align:left;color:var(--ink);font:inherit;min-height:150px;background:var(--glass);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:16px;padding:16px;cursor:pointer;transition:.22s;display:flex;flex-direction:column;gap:8px}
+.widget-card:hover,.widget-card.on{background:var(--glass2);border-color:var(--c);transform:translateY(-2px);box-shadow:0 14px 30px -18px var(--c)}
+.widget-card .layer{align-self:flex-start;color:var(--code);font:700 10px "Cascadia Mono",Consolas,monospace;text-transform:uppercase;letter-spacing:.08em}
+.widget-card h3{font-size:16px;line-height:1.2}
+.widget-card p{margin:0;color:var(--muted);font-size:12.5px}
+.widget-card .path{margin-top:auto;font-size:11px;word-break:break-word}
+.widget-panel pre{margin:10px 0 0;white-space:pre-wrap;color:var(--code);font:12.5px/1.55 "Cascadia Mono",Consolas,monospace}
+.family-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.family-card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:20px;border-top:4px solid var(--c)}
+.family-card b{display:block;font-size:34px;line-height:1;color:var(--c)}
+.family-card h3{font-size:18px;margin:10px 0 5px}.family-card p{margin:0;color:var(--muted);font-size:13px}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:30px;border-top:4px solid var(--c);transition:border-color .3s}
+.panel header{all:unset;display:block}
+.ptitle{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:6px}
+.ptitle h3{font-size:28px}
+.kind{font-size:13px;color:var(--muted)}
+.identity{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.chip{padding:4px 9px;border-radius:99px;background:var(--glass2);border:1px solid var(--line);font:12px "Cascadia Mono",Consolas,monospace;color:var(--code)}
+.cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:22px}
+.col h4{margin:0 0 8px;font-size:14px;color:var(--c)}
+.col ul{margin:0;padding-left:18px;font-size:14.5px;color:var(--muted)}
+.col li{margin:4px 0}
+.col p{margin:0;font-size:14.5px;color:var(--muted)}
+.detail-flow{margin-top:22px;padding:15px 17px;background:var(--glass2);border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:14px}
+.detail-flow b{color:var(--ink)}
+.sh4{margin:24px 0 0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.subs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:14px}
+.sub{display:flex;flex-direction:column;gap:6px;min-height:132px;background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:14px;overflow:auto;scrollbar-width:thin;transition:.2s}
+.sub:hover{border-color:var(--c);transform:translateY(-2px)}
+.sub>b{align-self:flex-start;font:700 11px "Cascadia Mono",Consolas,monospace;color:#fff;background:var(--c);border-radius:99px;padding:3px 9px}
+.sub h4{margin:0;font-size:14px;line-height:1.25}
+.sub p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.45}
+.routes{display:grid;gap:12px}
+.route{display:grid;grid-template-columns:230px 1fr 1fr;gap:18px;align-items:center;background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:16px 20px;transition:.2s}
+.route:hover{background:var(--glass2);transform:translateX(4px)}
+.route p{margin:0;font-size:14px;color:var(--muted)}
+.route b{display:block;color:var(--ink);font-size:14px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:20px;padding:26px}
+.card h3{font-size:20px;margin-bottom:10px}
+.card p,.card li{color:var(--muted);font-size:15px}
+.card ul{padding-left:18px;margin:8px 0 0}
+.tree{font:13.5px/1.9 "Cascadia Mono",Consolas,monospace;color:var(--muted);margin-top:12px}
+.tree div{padding-left:calc(var(--d)*22px);position:relative}
+.tree div::before{content:"";position:absolute;left:calc(var(--d)*22px - 14px);top:50%;width:9px;height:1px;background:var(--cyan);display:var(--show,block)}
+.tree b{color:var(--cyan);font-weight:600}
+.rules{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px}
+.rule{display:flex;gap:14px;background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:18px}
+.rule i{flex:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:grid;place-items:center;color:#fff;font-style:normal;font-weight:800}
+.rule b{display:block;font-size:15px}.rule span{color:var(--muted);font-size:14px}
+.outs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.out{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:22px;border-left:4px solid var(--c)}
+.out h3{font-size:18px;margin-bottom:4px}
+.out p{margin:0 0 10px;color:var(--muted);font-size:14px}
+.out code{display:block;margin-top:4px;word-break:break-all}
+footer.foot{margin-top:90px;padding:34px 0 44px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+footer.foot .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.rv{opacity:0;transform:translateY(22px);transition:.7s cubic-bezier(.2,.7,.2,1)}
+.rv.in{opacity:1;transform:none}
+@media(max-width:900px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .flow3{grid-template-columns:1fr}.arrow{height:36px}.arrow i{width:3px;height:100%}
+  .cols,.grid2,.rules,.outs,.family-grid{grid-template-columns:1fr}
+  .route{grid-template-columns:1fr;gap:8px}
+  .brand span.t{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="bar">
+  <a class="brand" href="#inicio"><span class="logo">Ca</span><span class="t">Cadmus</span></a>
+  <nav id="nav">
+    <a href="#inicio">Início</a><a href="#visao">Visão geral</a><a href="#fluxo">Arquitetura</a>
+    <a href="#ferramentas">Ferramentas</a><a href="#widgets">Widgets</a><a href="#familias">Famílias</a><a href="#manutencao">Manutenção</a>
+    <a href="#padroes">Padrões</a><a href="#saidas">Saídas</a>
+  </nav>
+  <button class="theme" id="theme" aria-label="Alternar tema claro e escuro">◐</button>
+</div></header>
+
+<main>
+<section class="hero" id="inicio" style="padding-top:92px">
+  <div class="waves" aria-hidden="true">
+    <svg viewBox="0 0 2400 400" preserveAspectRatio="none"><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f5bff" stop-opacity=".85"/><stop offset="1" stop-color="#0a1f9c" stop-opacity=".9"/></linearGradient></defs>
+      <path fill="url(#g1)" d="M0 220C150 120 300 120 450 200S750 320 900 230 1050 110 1200 220C1350 120 1500 120 1650 200S1950 320 2100 230 2250 110 2400 220V400H0Z"/></svg>
+    <svg viewBox="0 0 2400 400" preserveAspectRatio="none"><defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#41c9ff" stop-opacity=".55"/><stop offset="1" stop-color="#1f5bff" stop-opacity=".25"/></linearGradient></defs>
+      <path fill="url(#g2)" d="M0 280C200 190 380 200 600 270S1000 340 1200 280C1400 190 1580 200 1800 270S2200 340 2400 280V400H0Z"/></svg>
+  </div>
+  <div class="wrap">
+    <h1>Do ToolKey à ferramenta<span>CADMUS</span></h1>
+    <p>Mapa técnico do Cadmus para desenvolvedores. Ele mostra como cada ferramenta entra no sistema, qual classe executa o trabalho, quais widgets compõem a interface, quais dados recebe e o que entrega ao QGIS.</p>
+    <div class="btns"><a class="btn pri" href="#ferramentas">Explorar ferramentas</a><a class="btn sec" href="#fluxo">Ver arquitetura</a></div>
+  </div>
+</section>
+
+<div class="wrap"><div class="stats rv">
+  <div class="stat"><b>40</b><span>ferramentas únicas catalogadas</span></div>
+  <div class="stat"><b>39</b><span>widgets catalogados</span></div>
+  <div class="stat"><b>4</b><span>famílias de ferramenta</span></div>
+  <div class="stat"><b>2</b><span>portas oficiais: plugin e Processing</span></div>
+</div></div>
+
+<section id="visao"><div class="wrap">
+  <h2 class="rv">Uma ferramenta, uma entrada rastreável</h2>
+  <p class="lead rv">O Cadmus tem duas portas oficiais: o <code>ToolRegistry</code> para ferramentas de menu/toolbar e o <code>MTLProvider</code> para algoritmos do Processing. As duas usam <code>ToolKey</code> como identidade.</p>
+  <div class="flow3 rv">
+    <div class="box"><h3>Descoberta</h3><ul><li><code>ToolKey</code> identifica a ferramenta.</li><li><code>ToolRegistry</code> registra nome, categoria, tipo e executor.</li><li><code>MTLProvider</code> registra algoritmos no Processing.</li><li>Preferências e logs usam a mesma identidade.</li></ul></div>
+    <div class="arrow"><i></i></div>
+    <div class="box mid"><h3>Execução</h3><ul><li>Dialogs herdam de <code>BasePluginMTL</code>/<code>BaseDialog</code>.</li><li>A UI usa widgets de <code>resources/widgets</code>.</li><li>Map tools recebem eventos do canvas.</li><li>Processing usa <code>BaseProcessingAlgorithm</code>.</li></ul></div>
+    <div class="arrow"><i></i></div>
+    <div class="box"><h3>Resultado</h3><ul><li>Camadas, arquivos, relatórios ou alterações no projeto.</li><li>Mensagens pelo sistema de comunicação do Cadmus.</li><li>Preferências persistidas quando aplicável.</li><li>Logs rastreáveis pelo <code>tool_key</code>.</li></ul></div>
+  </div>
+</div></section>
+
+<section id="fluxo"><div class="wrap">
+  <h2 class="rv">Arquitetura de execução</h2>
+  <p class="lead rv">A mesma ferramenta pode ter uma interface composta por vários widgets, diálogos auxiliares e serviços. O mapa abaixo organiza esses caminhos para que a manutenção comece pelo ponto certo.</p>
+  <div class="grid2 rv">
+    <div class="card"><h3>Menu e toolbar</h3><p>O registro é a fonte da verdade para as ferramentas públicas.</p><div class="tree"><div style="--d:0"><b>ToolRegistry</b></div><div style="--d:1">Tool(tool_key, category, type)</div><div style="--d:1">main_action / toolbar</div><div style="--d:1">executor</div><div style="--d:2">plugin ou map tool</div></div></div>
+    <div class="card"><h3>Interface de diálogo</h3><p>O plugin monta o fluxo e passa configurações para widgets autoconfiguráveis.</p><div class="tree"><div style="--d:0"><b>BasePluginMTL</b></div><div style="--d:1">BaseDialog + MainLayout</div><div style="--d:1">Grid widgets</div><div style="--d:2">Simple widgets internos</div><div style="--d:1">callback da ferramenta</div></div></div>
+    <div class="card"><h3>Map tools</h3><p>Atuam no canvas e abrem resultado ou diálogo somente depois da interação.</p><div class="tree"><div style="--d:0"><b>QgsMapTool</b></div><div style="--d:1">evento do canvas</div><div style="--d:1">consulta/pipeline</div><div style="--d:2">dialog de resultado</div></div></div>
+    <div class="card"><h3>Processing</h3><p>Algoritmos são construídos pelo provider e exibem editores padrão do QGIS.</p><div class="tree"><div style="--d:0"><b>MTLProvider</b></div><div style="--d:1">BaseProcessingAlgorithm</div><div style="--d:1">initAlgorithm()</div><div style="--d:1">processAlgorithm()</div><div style="--d:2">camada/arquivo de saída</div></div></div>
+  </div>
+  <div class="rules">
+    <div class="rule rv"><i>1</i><div><b>ToolKey é a identidade</b><span>Nome, registro, preferências e logs devem apontar para a mesma chave.</span></div></div>
+    <div class="rule rv"><i>2</i><div><b>Widget é infraestrutura de UI</b><span>A ferramenta fornece configuração e callbacks; o widget encapsula a montagem.</span></div></div>
+    <div class="rule rv"><i>3</i><div><b>Processing é outra porta</b><span>Algoritmos usam a interface nativa do QGIS, não a tela de diálogo dos plugins.</span></div></div>
+    <div class="rule rv"><i>4</i><div><b>Diálogo auxiliar continua pertencendo ao fluxo</b><span>Seleção de layouts, rasters, cenas e projetos aparece junto da ferramenta que o abre.</span></div></div>
+  </div>
+</div></section>
+
+<section id="ferramentas"><div class="wrap">
+  <h2 class="rv">Ferramentas, uma por uma</h2>
+  <p class="lead rv">Use os filtros para localizar uma ferramenta. Clique no cartão para abrir a documentação técnica completa daquela entrada: finalidade, funcionamento, widgets, dependências, entrada e saída.</p>
+  <div class="tool-toolbar rv" id="filters"></div>
+  <div class="tool-toolbar rv"><input class="searchbox" id="search" type="search" placeholder="Buscar por nome, tool_key, classe, arquivo ou widget…" aria-label="Buscar ferramenta"></div>
+  <div class="catalog rv" id="catalog"></div>
+  <div class="panel rv" id="toolPanel" aria-live="polite"></div>
+</div></section>
+
+<section id="widgets"><div class="wrap">
+  <h2 class="rv">Widgets, a camada visual reutilizável</h2>
+  <p class="lead rv">A ferramenta define o fluxo e passa configuração, textos contextuais e callbacks. O widget monta a interface e controla seus elementos internos. A camada abaixo indica responsabilidade de uso, não apenas a pasta do arquivo: <code>grid</code> é público para plugins, <code>raiz</code> é infraestrutura/composição e <code>simple/interno</code> é bloco interno.</p>
+  <div class="tool-toolbar rv" id="widgetFilters"></div>
+  <div class="widget-grid rv" id="widgetCatalog"></div>
+  <div class="panel widget-panel rv" id="widgetPanel" aria-live="polite"></div>
+</div></section>
+
+<section id="familias"><div class="wrap">
+  <h2 class="rv">Famílias de ferramentas</h2>
+  <p class="lead rv">A família informa como a ferramenta entra no QGIS e qual contrato de execução o desenvolvedor deve procurar primeiro.</p>
+  <div class="family-grid rv" id="familyGrid"></div>
+</div></section>
+
+<section id="manutencao"><div class="wrap">
+  <h2 class="rv">Como manter este mapa vivo</h2>
+  <p class="lead rv">Este HTML é documentação técnica para a equipe. Ele deve acompanhar o sistema, não uma entrega isolada.</p>
+  <div class="grid2">
+    <div class="card rv"><h3>Quando atualizar uma ferramenta</h3><ul><li>Altere a ficha correspondente quando houver mudança funcional relevante.</li><li>Revise finalidade, fluxo, entradas, saídas, widgets e dependências afetados.</li><li>Se a família ou a forma de entrada mudar, revise também a arquitetura e os contadores.</li></ul></div>
+    <div class="card rv"><h3>Quando criar uma ferramenta ou widget</h3><ul><li>Inclua toda ferramenta nova no array <code>TOOLS</code>, com número visual gerado pela ordem da lista.</li><li>Inclua todo widget novo no array <code>WIDGETS</code>, com camada, arquivo, responsabilidade e exemplo.</li><li>Preserve a separação: a ferramenta documenta seu uso; o widget documenta seus controles internos.</li></ul></div>
+    <div class="card rv"><h3>Mapa técnico ≠ tooltip de usuário</h3><ul><li>Este documento explica arquitetura e funcionamento para desenvolvedores.</li><li>A ferramenta é dona da descrição contextual dos itens que declara, como cada checkbox de um <code>GridCheckbox</code>.</li><li>O widget é dono da descrição dos controles internos que ele próprio cria, como botões internos de um <code>ComplexSelector</code>.</li><li>Tooltips reais continuam tokenizadas e em <code>Strings_pt_BR</code>; não copie o texto deste mapa diretamente para a interface.</li></ul></div>
+  </div>
+</div></section>
+
+<section id="padroes"><div class="wrap">
+  <h2 class="rv">Padrões que atravessam o catálogo</h2>
+  <p class="lead rv">Abaixo estão os componentes compartilhados que aparecem em várias ferramentas. Eles são os pontos certos para entender uma mudança transversal.</p>
+  <div class="grid2">
+    <div class="card rv"><h3>Widgets de entrada</h3><ul><li><code>GridComplexSelector</code>: arquivo, pasta, camada, origem e saída.</li><li><code>GridInputFields</code>: campos textuais em dicionário.</li><li><code>GridComboBox</code>/<code>GridRadioButton</code>: escolhas declarativas.</li><li><code>GridDoubleSpin</code>/<code>GridSlider</code>/<code>GridDateSelector</code>: valores especializados.</li><li><code>GridBBoxSelector</code>: extensão por camada, tela ou desenho.</li></ul></div>
+    <div class="card rv"><h3>Widgets de ação</h3><ul><li><code>GridExecutionButtons</code>: execução, fechar, info e config.</li><li><code>GridModernButtons</code>/<code>GridIconButton</code>: ações auxiliares.</li><li><code>GridCheckbox</code>: opções e seleção em lote.</li><li><code>GridAttributeSelector</code>: campos vetoriais com controles próprios.</li><li><code>ListSelectionDialog</code>/<code>SceneSelectionListWidget</code>: seleção de itens complexos.</li></ul></div>
+    <div class="card rv"><h3>Persistência e contexto</h3><ul><li>Plugins carregam e salvam preferências com <code>Preferences</code>.</li><li>Widgets com estado próprio expõem <code>get_preferences()</code>/<code>set_preferences()</code>.</li><li>Processing usa <code>BaseProcessingAlgorithm</code> para preferências e ajuda.</li><li>O <code>tool_key</code> acompanha logs, tarefas e diálogos.</li></ul></div>
+    <div class="card rv"><h3>Camadas de suporte</h3><ul><li><code>BaseDialog</code> fornece <code>MainLayout</code>.</li><li><code>AppStyles</code>/<code>ThemeManager</code> fornecem estilo.</li><li><code>InstructionsManager</code> resolve ajuda de plugins.</li><li><code>HtmlInstructionsProvider</code> resolve ajuda de Processing.</li></ul></div>
+  </div>
+</div></section>
+
+<section id="saidas"><div class="wrap">
+  <h2 class="rv">Famílias de resultado</h2>
+  <p class="lead rv">O resultado final varia por tipo de ferramenta, mas cada cartão do catálogo informa o destino concreto.</p>
+  <div class="outs">
+    <div class="out rv" style="--c:#38bdf8"><h3>Camadas vetoriais</h3><p>Ferramentas que criam, alteram ou enriquecem dados vetoriais no projeto.</p><code>VectorFields · CopyAttributes · GeometryLineFromPoints</code></div>
+    <div class="out rv" style="--c:#22c55e"><h3>Rasters</h3><p>Recortes, amostragens, índices espectrais, mosaicos e otimização.</p><code>RasterMassClipper · NDVI · RGB · CHM</code></div>
+    <div class="out rv" style="--c:#f472b6"><h3>Arquivos de projeto</h3><p>Projetos QGIS, layouts exportados e camadas temporárias persistidas.</p><code>CreateProject · ExportAllLayouts · SaveTemporary</code></div>
+    <div class="out rv" style="--c:#a78bfa"><h3>Relatórios e metadata</h3><p>JSONs temporários, relatórios HTML, coordenadas e informações de voo.</p><code>ReportMetadata · DroneCoordinates · CoordClick</code></div>
+    <div class="out rv" style="--c:#fbbf24"><h3>Configuração do Cadmus</h3><p>Preferências globais, toolbar, CRS, tema e método de cálculo.</p><code>Settings · About · Logcat</code></div>
+    <div class="out rv" style="--c:#fb7185"><h3>Ações de sessão</h3><p>Ações instantâneas que não criam um painel de dados próprio.</p><code>RestartQgis · RemoveKml · Multipart</code></div>
+  </div>
+</div></section>
+</main>
+
+<footer class="foot"><div class="wrap"><span>Cadmus · mapa de ferramentas · documentação de desenvolvedor</span><span>Fonte: ToolRegistry, MTLProvider, plugins, processing e resources/widgets · 22/11/2026</span></div></footer>
+
+<script>
+const TOOLS = [
+  {id:"export_all_layouts",name:"Exportar Todos os Layouts",area:"Layouts",kind:"Dialog",entry:"plugins/ExportAllLayoutsPlugin.py · ExportAllLayoutsPlugin",purpose:"Exporta os layouts do projeto QGIS para PDF, PNG e SVG, com opções de seleção, resolução, georreferenciamento, mesclagem e substituição de arquivos.",flow:["Carrega preferências e layouts disponíveis.","Permite selecionar layouts e formatos.","Exporta cada layout para a pasta escolhida.","Opcionalmente reúne PDFs/PNGs e informa o resultado."],inputs:["Layouts do projeto QGIS","Formatos PDF/PNG/SVG","Largura máxima e DPI","Pasta de saída","Opções de georreferenciamento e mesclagem"],outputs:["Arquivos PDF, PNG e SVG","PDF/PNG final quando a mesclagem está marcada","Mensagens de sucesso/erro"],widgets:["GridCheckbox · checkbox_widget · formatos e opções","GridDoubleSpin · max_width_input, dpi_input","GridComplexSelector · folder_selector","GridExecutionButtons · action_buttons","ListSelectionDialog · seleção de layouts"],deps:["QgsLayoutManager","QgsLayoutExporter","Preferences","ListSelectionDialog"],color:"#14b8a6"},
+  {id:"replace_in_layouts",name:"Substituir Texto em Layouts",area:"Layouts",kind:"Dialog",entry:"plugins/ReplaceInLayouts.py · ReplaceInLayoutsDialog",purpose:"Procura textos nos labels dos layouts do projeto e substitui pelo novo valor, com opções de escopo e backup do projeto.",flow:["Recebe o texto original e o novo texto.","Lê as opções de substituição.","Cria backup antes da alteração.","Percorre os layouts e salva o projeto alterado."],inputs:["Texto a procurar","Texto de substituição","Opções de substituição","Projeto com layouts"],outputs:["Projeto com labels atualizados","Backup automático","Mensagem de conclusão"],widgets:["GridInputFields · input_fields","GridCheckbox · checkbox_widget","GridLabel · info_label","GridExecutionButtons · action_buttons"],deps:["QgsProject","ProjectUtils","Preferences"],color:"#14b8a6"},
+  {id:"restart_qgis",name:"Salvar, Fechar e Reabrir Projeto",area:"Sistema",kind:"Instantâneo",entry:"plugins/RestartQgis.py · _RestartExecutor",purpose:"Salva o projeto atual, fecha o QGIS e reabre o mesmo projeto. É uma ação de recuperação de sessão, não um diálogo de processamento.",flow:["Verifica se existe projeto salvo.","Salva o projeto quando necessário.","Fecha o QGIS e inicia a reabertura do arquivo."],inputs:["Projeto QGIS atual","Estado da sessão"],outputs:["Projeto salvo e reaberto","Mensagem de confirmação ou falha"],widgets:["Nenhum widget Cadmus próprio","Ação executada pelo registro"],deps:["QgsProject","QgisMessageUtil","Preferences"],color:"#ef4444"},
+  {id:"logcat",name:"Logcat Viewer",area:"Sistema",kind:"Dialog",entry:"plugins/logcat/ui/logcat_dialog.py · LogcatDialog",purpose:"Abre o visualizador dos logs do Cadmus para consultar sessões, níveis, ferramentas, classes e eventos registrados.",flow:["Carrega as sessões de log disponíveis.","Atualiza a tabela por observação do arquivo.","Aplica filtros por sessão, busca, nível, ferramenta e classe.","Permite exportar ou limpar a seleção atual."],inputs:["Arquivos da pasta de logs","Sessão selecionada","Filtros e texto de busca"],outputs:["Tabela filtrada de eventos","Arquivos exportados","Sessão ou logs removidos quando solicitado"],widgets:["QComboBox · combo_sessions","QLineEdit · edit_search","QPushButton · refresh/filtros/exportação/limpeza","QTableView · table_view","QListWidget · diálogos de filtros"],deps:["LogLoader","LogFileWatcher","LogSessionManager","LogFilterEngine"],color:"#64748b"},
+  {id:"settings",name:"Configurações Cadmus",area:"Sistema",kind:"Dialog",entry:"plugins/SettingsPlugin.py · SettingsPlugin",purpose:"Centraliza as configurações globais do Cadmus: pasta de projetos, CRS padrão, idioma, tema, toolbar e parâmetros dos cálculos vetoriais.",flow:["Carrega preferências globais e de cálculo.","Monta as seções Geral e Cálculos.","Permite editar valores e abrir registro/preferências.","Salva as configurações pelo botão Salvar."],inputs:["Pasta raiz de projetos","CRS padrão","Idioma e tema","Categorias visíveis na toolbar","Precisão, limiar e método de cálculo","Sufixos e confirmação de substituição"],outputs:["Preferências SYSTEM","Preferências VECTOR_FIELDS","Toolbar e cálculos configurados"],widgets:["CollapsibleParametersWidget · geral_collapsable, calc_collapsable","GridComplexSelector · project_folder_selector","ComplexCrsSelector · crs_selector","GridComboBox · lang_selector","GridDoubleSpin · spin_precision, spin_threshold","GridCheckbox · toolbar_category_checks, ask_replace_check","GridRadioButton · radio_calc","GridInputFields · area_fields_inputs","GridExecutionButtons · action_buttons"],deps:["Preferences","MenuManager","RegistryDialog","ThemeManager"],color:"#64748b"},
+  {id:"about_dialog",name:"Sobre o Cadmus",area:"Sistema",kind:"Dialog",entry:"plugins/AboutDialog.py · AboutDialog",purpose:"Exibe versão, autoria, informações do plugin e links externos do projeto.",flow:["Monta as informações da aplicação.","Exibe links sociais e de contato.","Permite fechar ou abrir configurações pelo diálogo."],inputs:["Metadados do plugin","Versão de distribuição","Links configurados"],outputs:["Informação visual ao desenvolvedor/usuário","Abertura de links externos"],widgets:["GridLabel · grid_info","GridIconButton · social_buttons","GridExecutionButtons · action_buttons"],deps:["BaseDialog","IconManager","STR"],color:"#64748b"},
+  {id:"load_folder_layers",name:"Carregar Pasta de Arquivos",area:"Pasta",kind:"Dialog",entry:"plugins/LoadFolderLayers.py · LoadFolderLayersDialog",purpose:"Carrega em lote arquivos vetoriais e raster de uma pasta e de suas subpastas para o projeto QGIS.",flow:["Seleciona a pasta raiz.","Define duplicados, estrutura e tipos de arquivo.","Percorre os diretórios e identifica arquivos compatíveis.","Adiciona as camadas ao projeto e salva preferências."],inputs:["Pasta raiz","Tipos de arquivo","Opções de duplicados e estrutura","Projeto atual"],outputs:["Camadas adicionadas ao QGIS","Backup do projeto quando aplicável","Preferências de seleção"],widgets:["GridComplexSelector · folder_selector","GridCheckbox · chk_options, chk_types","CollapsibleParametersWidget · coll_widget","GridExecutionButtons · action_buttons"],deps:["ExplorerUtils","QgsProject","Preferences","QgisMessageUtil"],color:"#22c55e"},
+  {id:"create_project",name:"Novo Projeto",area:"Pasta",kind:"Instantâneo",entry:"plugins/CreateProjectPlugin.py · CreateProjectPlugin",purpose:"Cria uma estrutura de projeto dedicada, incluindo pasta do projeto e arquivo QGIS, usando a pasta padrão configurada ou solicitando uma nova.",flow:["Carrega a pasta padrão de projetos.","Abre o diálogo de pasta caso ela não exista.","Solicita o nome do projeto.","Cria pastas, arquivo .qgz e aplica o CRS padrão."],inputs:["Pasta padrão de projetos","Nome do projeto","CRS padrão"],outputs:["Pasta do novo projeto","Arquivo .qgz","Projeto aberto no QGIS"],widgets:["DefaultProjectsFolderDialog · GridLabel, GridComplexSelector, GridExecutionButtons","ProjectNameDialog · GridLabel, GridInputFields, GridExecutionButtons"],deps:["ProjectUtils","DefaultProjectsFolderDialog","ProjectNameDialog","Preferences"],color:"#22c55e"},
+  {id:"vector_to_svg",name:"Conversor de Vetor para SVG",area:"Pasta",kind:"Dialog",entry:"plugins/VectorToSvgPlugin.py · VectorToSvgPlugin",purpose:"Exporta uma camada vetorial do projeto ou arquivo externo para SVG, configurando fundo, borda, rótulo, tamanho e separação por feição.",flow:["Seleciona a camada e a pasta de saída.","Define cores, largura, tamanho e opções.","Percorre as feições ou gera um SVG único.","Salva os SVGs na subpasta configurada."],inputs:["Camada vetorial","Pasta de saída","Cores de fundo, borda e rótulo","Largura da borda e tamanho do rótulo","Opções de transparência e separação"],outputs:["Arquivos SVG","Subpasta svgs quando configurada","Mensagens de processamento"],widgets:["GridComplexSelector · grid_selectors","ComplexColorPicker · fill_color_widget, border_color_widget, label_color_widget","GridDoubleSpin · border_width_spin, label_size_spin","GridCheckbox · options_checkbox","GridExecutionButtons · action_buttons"],deps:["QgsVectorLayer","QgsFeature","SVGUtils","ExplorerUtils"],color:"#22c55e"},
+  {id:"vector_fields",name:"Calcular Campos Vetoriais",area:"Vetorial",kind:"Instantâneo",entry:"plugins/VectorFieldsCalculationPlugin.py · VectorFieldsCalculationPlugin",purpose:"Calcula campos técnicos de área, comprimento e coordenadas X/Y na camada vetorial ativa, respeitando método e precisão configurados.",flow:["Obtém a camada vetorial ativa.","Lê método, precisão e sufixos das preferências.","Calcula as métricas para as feições.","Cria ou atualiza os campos configurados."],inputs:["Camada vetorial ativa","Método elipsoidal/cartesiano","Precisão e sufixos","Regra para campos existentes"],outputs:["Campos vetoriais calculados","Camada ativa atualizada","Mensagem de resultado"],widgets:["Nenhum widget próprio","Configuração feita em SettingsPlugin"],deps:["VectorLayerAttributes","VectorLayerMetrics","Preferences","QgisMessageUtil"],color:"#a855f7"},
+  {id:"remove_kml_fields",name:"Remover Campos KML",area:"Vetorial",kind:"Instantâneo",entry:"plugins/RemoveKmlFieldsPlugin.py · RemoveKmlFieldsPlugin",purpose:"Remove da camada vetorial em edição os campos de atributos normalmente criados por arquivos KML.",flow:["Verifica a camada ativa e o modo de edição.","Identifica campos KML conhecidos.","Remove os campos encontrados sem encerrar a edição.","Informa se algo foi removido."],inputs:["Camada vetorial ativa","Camada em modo de edição"],outputs:["Estrutura de campos limpa","Mensagem de sucesso ou ausência de campos"],widgets:["Nenhum widget próprio","Ação instantânea sobre a camada ativa"],deps:["VectorLayerAttributes","QgisMessageUtil"],color:"#a855f7"},
+  {id:"coord_click_tool",name:"Capturar Coordenadas",area:"Vetorial",kind:"Map tool",entry:"plugins/CoordClickTool.py + plugins/CoorResultDialog.py",purpose:"Permite clicar no mapa para consultar coordenadas, altitude aproximada e endereço estimado do ponto.",flow:["Ativa o map tool no canvas.","Recebe o ponto clicado e transforma o CRS.","Executa altitude e geocodificação quando configurado.","Abre o diálogo com valores e ações de cópia."],inputs:["Clique no canvas","CRS do canvas","Serviços de altitude e geocodificação"],outputs:["Coordenadas WGS84 e UTM","Altitude aproximada","Endereço estimado","Texto completo no clipboard"],widgets:["GridReadOnly · wgs_widget, utm_widget, alt_widget","GridLabel · address_labels","SimpleLabel · lbl_utm_info","GridExecutionButtons · action_buttons"],deps:["ExecutionContext","ReverseGeocodeTask","AltimetryTask","ProjectUtils"],color:"#a855f7"},
+  {id:"converter_multipart",name:"Converter Multipart",area:"Vetorial",kind:"Instantâneo",entry:"plugins/VectorMultipartPlugin.py · VectorMultipartPlugin",purpose:"Separa geometrias multipart em feições simples na camada vetorial selecionada, podendo trabalhar somente nas feições marcadas.",flow:["Valida a camada vetorial.","Pergunta se deve usar somente feições selecionadas.","Converte cada parte em uma feição simples.","Atualiza a camada conforme o fluxo da ferramenta."],inputs:["Camada vetorial ativa","Seleção atual de feições","Confirmação do escopo"],outputs:["Feições simples no lugar das multipart","Mensagem de conclusão"],widgets:["Nenhum widget próprio","Perguntas são tratadas pelo fluxo instantâneo"],deps:["VectorLayerGeometry","QgisMessageUtil"],color:"#a855f7"},
+  {id:"copy_attributes",name:"Copiar Atributos de Vetor",area:"Vetorial",kind:"Dialog",entry:"plugins/CopyAttributesPlugin.py · CopyAttributes",purpose:"Copia a estrutura de campos de uma camada vetorial de origem para uma camada vetorial de destino, permitindo selecionar os atributos.",flow:["Seleciona destino e origem.","Lê os campos disponíveis na origem.","Marca ou desmarca os atributos desejados.","Cria os campos escolhidos na camada de destino."],inputs:["Camada de destino","Camada de origem","Lista de atributos","Opção de usar todos"],outputs:["Campos criados na camada de destino","Mensagem de conflito ou sucesso"],widgets:["GridComplexSelector · layer_selector","GridAttributeSelector · attr_selector","GridExecutionButtons · action_buttons"],deps:["VectorLayerAttributes","Preferences","QgisMessageUtil"],color:"#a855f7"},
+  {id:"divide_points_by_strips",name:"Dividir Vetor de Pontos por Faixas",area:"Vetorial",kind:"Dialog",entry:"plugins/DividePointsByStripsPlugin.py · DividePointsByStripsPlugin",purpose:"Organiza a configuração para segmentar pontos de voo em faixas, com parâmetros operacionais, sensibilidade, modo de julgamento e salvamento de pontos/rastros.",flow:["Seleciona a camada de pontos e os campos obrigatórios.","Configura parâmetros operacionais e de sensibilidade.","Escolhe o modo de processamento e o tipo de caminho.","Seleciona atributos e caminhos de saída.","A rotina de divisão permanece indicada pela própria ferramenta como etapa futura."],inputs:["Camada de pontos ou arquivo","Campo de ID e timestamp","Campo de agrupamento opcional","Parâmetros de sensibilidade","Modo de julgamento","Saídas de pontos e rastro"],outputs:["Configuração persistida da ferramenta","Saídas configuradas quando a rotina estiver disponível","Mensagens de validação"],widgets:["GridLabel · intro_label","GridComplexSelector · layer_input, save_points_selector, save_track_selector","CollapsibleParametersWidget · 4 seções","GridComboBox · 4 seletores","GridInputFields · operational_fields, sensitivity_fields","GridRadioButton · radio_path_mode","GridCheckbox · output_fields_grid","GridExecutionButtons · action_buttons"],deps:["StringManager","Preferences","SimpleSPBJudge","ScoreSPBJudge","SequentialPointBreakJudge"],color:"#a855f7"},
+  {id:"save_temporary_layer",name:"Salvar Temporárias",area:"Pasta",kind:"Dialog",entry:"plugins/SaveTemporaryLayersPlugin.py · SaveTemporaryLayersPlugin",purpose:"Salva camadas temporárias de memória em arquivos permanentes, escolhendo extensões, prefixo, sufixo e pasta de saída.",flow:["Lista camadas temporárias do projeto.","Configura nomes e extensões por tipo.","Seleciona a pasta de saída.","Grava cada camada no formato escolhido."],inputs:["Camadas temporárias","Prefixo e sufixo","Extensão vetorial e raster","Pasta de saída"],outputs:["Arquivos vetoriais e raster permanentes","Mensagens de salvamento","Preferências dos campos"],widgets:["GridInputFields · input_fields","GridComboBox · ext_combo","GridComplexSelector · folder_selector","GridExecutionButtons · action_buttons"],deps:["SaveVectorLayerTask","VectorLayerSource","RasterLayerSource","Preferences"],color:"#22c55e"},
+  {id:"path_extension_tool",name:"Remover/Restaurar Extensão",area:"Agricultura",kind:"Dialog",entry:"plugins/PathExtensionPlugin.py · PathExtensionPlugin",purpose:"Remove ou restaura extensões nos caminhos das feições e também oferece operações de compactação e descompactação.",flow:["Seleciona a camada e o campo de caminho.","Escolhe o modo de operação.","Configura o caminho de saída quando necessário.","Executa a task e atualiza os dados."],inputs:["Camada vetorial","Campo de caminho","Modo remover/restaurar/zip/unzip","Pasta ou arquivo de saída"],outputs:["Caminhos atualizados ou arquivos compactados","Relatório da operação","Preferências do modo selecionado"],widgets:["GridComplexSelector · layer_selector","GridComboBox · attr_selector","GridRadioButton · mode_selector","GridExecutionButtons · action_buttons"],deps:["PathExtensionTask","ExplorerUtils","Preferences"],color:"#f97316"},
+  {id:"drone_coordinates",name:"DJI Coordenadas de Drone",area:"Agricultura",kind:"Dialog",entry:"plugins/DroneCoordinates.py · DroneCordinates",purpose:"Lê arquivos MRK de drone, cruza metadados das imagens, gera pontos e rastro do voo e permite salvar resultados e estilos QML.",flow:["Seleciona a pasta MRK.","Escolhe fontes de metadados e campos.","Configura título, logo e saídas.","Executa a pipeline de enriquecimento e vetorização.","Salva pontos, rastro e estilos quando habilitados."],inputs:["Pasta MRK","Campos EXIF, DJI, customizados, iniciais e MRK","Título e logo","Caminhos de pontos, rastro e QML"],outputs:["Camada de pontos das fotos","Camada de rastro do voo","Arquivos JSON/relatório quando configurados","Estilos QML"],widgets:["GridComplexSelector · grid_input, logo_selector, grid_save, grid_qml","CollapsibleParametersWidget · 8 seções","GridInputFields · title_input","GridCheckbox · 6 grupos de campos","GridExecutionButtons · action_buttons"],deps:["AsyncPipelineEngine","PhotoEnrichmentTask","MrkParser","ExifUtil","XmpUtil","ReportGenerationService"],color:"#f97316"},
+  {id:"generate_trail",name:"Gerar Rastro de Máquinas",area:"Agricultura",kind:"Dialog",entry:"plugins/GenerateTrailPlugin.py · GenerateTrailPlugin",purpose:"Gera a faixa ocupada por um implemento a partir de uma camada de linhas, aplicando buffer com a largura informada e podendo aplicar estilo QML.",flow:["Seleciona linhas de entrada e saída.","Informa a largura do implemento.","Configura parâmetros avançados e estilo.","Executa buffer na unidade correta da camada.","Salva a faixa e aplica o estilo quando indicado."],inputs:["Camada de linhas","Largura do implemento","Opções avançadas","Arquivo QML opcional"],outputs:["Camada de faixa/rastro","Estilo aplicado","Preferências de estado expandido"],widgets:["GridComplexSelector · grid, qml_grid","GridDoubleSpin · implement_spin","CollapsibleParametersWidget · advanced_params","GridExecutionButtons · action_buttons"],deps:["BufferLayerTask","VectorLayerGeometry","Preferences","ProjectUtils"],color:"#f97316"},
+  {id:"report_metadata",name:"Relatorio de Metadata",area:"Agricultura",kind:"Dialog",entry:"plugins/ReportMetadataPlugin.py · ReportMetadataPlugin",purpose:"Lista JSONs temporários de metadata e permite vetorizar um voo, regenerar relatório HTML e abrir as pastas de JSONs e relatórios.",flow:["Atualiza a lista de JSONs temporários.","Seleciona um JSON de voo.","Pode vetorizar o voo selecionado.","Pode gerar novamente o relatório HTML.","Abre pastas de apoio quando solicitado."],inputs:["JSONs temporários","JSON selecionado","Ações de atualização, vetorização e relatório"],outputs:["Camadas vetorizadas","Relatório HTML regenerado","Pastas de JSON e relatório abertas"],widgets:["GridLabel · explanation_label","GridComboBox · json_selector","GridModernButtons · action_buttons","GridExecutionButtons · exec_buttons"],deps:["ReportGenerationService","JsonMetadataManager","ExplorerUtils","Preferences"],color:"#f97316"},
+  {id:"raster_mass_clipper",name:"Recorte Massivo de Rasters",area:"Raster",kind:"Processing",entry:"processing/RasterMassClipper.py · RasterMassClipper",purpose:"Recorta vários rasters usando uma camada poligonal, com opção de recorte por feição, buffer de correção e pasta de saída.",flow:["Recebe a camada máscara e os rasters.","Valida os parâmetros e a pasta.","Percorre rasters e feições conforme as opções.","Executa recortes e grava os arquivos."],inputs:["Camada de máscara","Rasters selecionados","Recorte por feição","Buffer de correção","Pasta de saída","Abrir pasta/ajuda"],outputs:["Rasters recortados em lote","Arquivos temporários ou permanentes","Relatório de execução"],widgets:["QgsProcessingParameterFeatureSource","QgsProcessingParameterMultipleLayers","QgsProcessingParameterBoolean","QgsProcessingParameterFolderDestination"],deps:["BaseProcessingAlgorithm","RasterLayerProcessing","GDAL/Processing","Preferences"],color:"#0ea5e9"},
+  {id:"raster_mass_sampler",name:"Amostragem Massiva de Rasters",area:"Raster",kind:"Processing",entry:"processing/RasterMassSampler.py · RasterMassSampler",purpose:"Executa amostragem em lote de vários rasters sobre uma camada vetorial de pontos ou feições e gera uma camada com os valores.",flow:["Recebe a camada de pontos e os rasters.","Define CRS e destino.","Lê os valores raster nas geometrias.","Grava a camada de saída com os campos amostrados."],inputs:["Camada de pontos/feições","Rasters","CRS de saída opcional","Destino da camada","Abrir pasta/ajuda"],outputs:["Camada vetorial com valores amostrados","Campos de raster na saída"],widgets:["QgsProcessingParameterFeatureSource","QgsProcessingParameterMultipleLayers","QgsProcessingParameterCrs","QgsProcessingParameterFeatureSink","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerMetrics","RasterLayerSource","Preferences"],color:"#0ea5e9"},
+  {id:"raster_sampler",name:"Amostrar Valores de Rasters",area:"Raster",kind:"Map tool",entry:"plugins/RasterSamplerTool.py + plugins/RasterSamplerDialog.py",purpose:"Seleciona rasters do projeto e permite clicar no mapa para consultar o valor de cada raster no ponto escolhido.",flow:["Abre o diálogo de seleção de rasters.","Ativa a ferramenta de mapa.","Recebe o ponto clicado.","Consulta cada raster e atualiza os valores exibidos."],inputs:["Rasters do projeto","Ponto clicado","Casas decimais","Seleção persistida"],outputs:["Valores por raster no ponto","Labels atualizados no diálogo","Seleção de rasters lembrada"],widgets:["GridDoubleSpin · decimals_spin","GridLabel · values_label","GridExecutionButtons · action_buttons","ListSelectionDialog · GridCheckbox + GridExecutionButtons"],deps:["QgsMapTool","RasterLayerSource","ListSelectionDialog","Preferences"],color:"#0ea5e9"},
+  {id:"imagery_downloader",name:"Downloader de Imagens de Satélite",area:"Raster",kind:"Dialog",entry:"plugins/ImageryDownloaderPlugin.py · ImageryDownloaderPlugin",purpose:"Busca e baixa cenas Sentinel-2 por extensão, período e cobertura de nuvens, com seleção de bandas, composição, recorte, reprojeção e carregamento no QGIS.",flow:["Define a extensão da busca por camada, tela ou desenho.","Escolhe datas e limite de nuvens.","Busca cenas disponíveis.","Seleciona cenas, bandas e composições.","Baixa, recorta, reprojeta e processa as saídas.","Carrega resultados no projeto quando configurado."],inputs:["Extensão/boundary","Data inicial e final","Máximo de nuvens","Bandas e assets","Opções de recorte/reprojeção/conversão","EPSG e pasta de saída"],outputs:["Cenas baixadas","Rasters de bandas/composições","Arquivos recortados/reprojetados","Camadas carregadas no QGIS"],widgets:["CollapsibleParametersWidget · settings_collapse, bands_collapse","GridBBoxSelector · bbox","GridDateSelector · dates","GridSlider · cloud_slider","GridCheckbox · options, bands","ComplexCrsSelector · epsg_output","GridComplexSelector · output","GridExecutionButtons · buttons","SceneSelectionDialog · GridComboBox, GridLabel, SceneSelectionListWidget, GridExecutionButtons"],deps:["ImageryApi","DownloadDateTask","SceneSelectionDialog","GDAL/OGR","Preferences"],color:"#0ea5e9"},
+  {id:"developer_test_tool",name:"Developer Test Tool",area:"Desenvolvedor",kind:"Dialog",entry:"plugins/DeveloperTestTool.py · DeveloperTestToolDialog",purpose:"Ferramenta oficial para testar widgets, componentes e recursos do Cadmus em um ambiente controlado.",flow:["Seleciona entradas de teste.","Executa a ação configurada.","Exibe o resultado e permite repetir a operação."],inputs:["Arquivo/pasta de entrada","Pasta de saída","Widgets ou componentes sob teste"],outputs:["Resultado da execução de teste","Logs e mensagens para diagnóstico"],widgets:["GridComplexSelector · grid_selector","GridExecutionButtons · action_buttons"],deps:["BasePluginMTL","Preferences","LogUtils"],color:"#8b5cf6"},
+  {id:"raster_mask_clipper",name:"Recortar Raster por Máscara de Feições",area:"Processing",kind:"Processing",entry:"processing/RasterMaskClipper.py · RasterMaskClipper",purpose:"Recorta um raster usando uma camada poligonal como máscara, podendo separar a saída por feição e aplicar prefixo/sufixo.",flow:["Recebe raster e camada poligonal.","Valida máscara, nomes e pasta.","Executa o recorte por máscara.","Gera uma saída única ou uma por feição."],inputs:["Raster de entrada","Camada máscara poligonal","Pasta de saída","Prefixo/sufixo","Separar feições"],outputs:["Raster mascarado","Rasters por feição quando habilitado"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterVectorLayer","QgsProcessingParameterFolderDestination","QgsProcessingParameterString","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","GDAL","RasterMaskClipper service"],color:"#38bdf8"},
+  {id:"raster_optimizer",name:"Otimizar Raster (Overviews)",area:"Processing",kind:"Processing",entry:"processing/RasterOptimizer.py · RasterOptimizer",purpose:"Cria ou reconstrói pirâmides/overviews em rasters TIFF, definindo níveis, reamostragem, compressão e busca recursiva.",flow:["Recebe camadas ou pasta de rasters.","Localiza arquivos, inclusive subpastas se marcado.","Define níveis, método e compressão.","Remove overviews antigas quando solicitado e recria as novas."],inputs:["Camadas raster ou pasta","Níveis de overview","Método de reamostragem","Compressão/predictor/zlevel","BigTIFF e recursão","Excluir overviews existentes"],outputs:["Overviews criadas/atualizadas","Rasters otimizados","Log de processamento"],widgets:["QgsProcessingParameterMultipleLayers","QgsProcessingParameterFile","QgsProcessingParameterEnum","QgsProcessingParameterNumber","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","GDAL","RasterLayerProcessing","Preferences"],color:"#38bdf8"},
+  {id:"difference_fields",name:"Gerador de Diferenças entre Campos",area:"Processing",kind:"Processing",entry:"processing/DifferenceFields.py · DifferenceFieldsAlgorithm",purpose:"Calcula diferenças entre campos numéricos de uma camada de pontos e grava novos campos no resultado.",flow:["Recebe a camada e o campo base.","Seleciona campos numéricos a comparar.","Exclui campos quando necessário.","Calcula as diferenças e grava a camada de saída."],inputs:["Camada de pontos","Campo base/subtraendo","Campos a excluir","Prefixo dos novos campos","Destino vetorial"],outputs:["Camada com campos de diferença","Campos derivados por comparação"],widgets:["QgsProcessingParameterFeatureSource","QgsProcessingParameterField","QgsProcessingParameterString","QgsProcessingParameterNumber","QgsProcessingParameterFeatureSink","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","VectorLayerAttributes","Preferences"],color:"#38bdf8"},
+  {id:"attribute_statistics",name:"Estatísticas de Atributos",area:"Processing",kind:"Processing",entry:"processing/AttributeStatistics.py · AttributeStatistics",purpose:"Calcula estatísticas descritivas para campos numéricos de uma camada e gera um CSV configurável para uso no Excel brasileiro.",flow:["Recebe camada e campos a analisar.","Exclui campos opcionais e define precisão.","Calcula estatísticas por campo.","Grava CSV e pode carregá-lo no QGIS."],inputs:["Camada de entrada","Campos a excluir","Casas decimais","Formato PT-BR opcional","Carregar CSV","Arquivo CSV de saída"],outputs:["CSV com estatísticas","Camada CSV carregada quando solicitado","Contagem, médias, percentis e dispersão"],widgets:["QgsProcessingParameterFeatureSource","QgsProcessingParameterField","QgsProcessingParameterNumber","QgsProcessingParameterFileDestination","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","AttributeStatisticsModel","Preferences"],color:"#38bdf8"},
+  {id:"geometry_line_from_points",name:"Linha de Diferença entre Pontos",area:"Processing",kind:"Processing",entry:"processing/GeometryLineFromPoints.py · GeometryLineFromPoints",purpose:"Cria linhas de diferença entre pontos agrupados por atributos, com suporte a um modo de comparação entre duas camadas.",flow:["Lê a camada de pontos principal.","Seleciona campo base e agrupamento.","Opcionalmente recebe uma segunda camada.","Conecta pontos correspondentes e grava linhas."],inputs:["Camada de pontos/primeira camada","Atributo base A","Segunda camada opcional","Atributo base B","Modo de operação","Destino de linhas"],outputs:["Camada de linhas de diferenças","Feições conectando pontos relacionados"],widgets:["QgsProcessingParameterFeatureSource","QgsProcessingParameterField","QgsProcessingParameterFeatureSink","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","VectorLayerGeometry","Preferences"],color:"#38bdf8"},
+  {id:"raster_difference_statistics",name:"Processar Diferença de Rasters",area:"Processing",kind:"Processing",entry:"processing/RasterDifferenceStatiscs.py · RasterDifferenceStatiscs",purpose:"Compara combinações de rasters, gera rasters de diferença e consolida estatísticas dos pares processados.",flow:["Localiza rasters em pasta ou camadas selecionadas.","Forma combinações de pares.","Calcula diferenças onde há sobreposição.","Gera estatísticas e relatório consolidado."],inputs:["Pasta ou camadas raster","Pasta de saída","Opções de diferença","Abrir pasta/ajuda"],outputs:["Rasters de diferença","Estatísticas por par","Relatório consolidado"],widgets:["QgsProcessingParameterFolderDestination","QgsProcessingParameterMultipleLayers","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerProcessing","RasterLayerMetrics","Preferences"],color:"#38bdf8"},
+  {id:"raster_weighted_average",name:"Média Ponderada de Rasters",area:"Processing",kind:"Processing",entry:"processing/RasterWeightedAverage.py · RasterWeightedAverage",purpose:"Calcula uma média ponderada entre rasters, com pesos e parâmetros avançados para camadas opcionais.",flow:["Recebe os rasters principais e seus pesos.","Valida CRS e sobreposição.","Aplica pesos e combina os valores.","Grava o raster de saída."],inputs:["Raster 1 e peso","Raster 2 e peso","Rasters avançados opcionais","CRS","Parâmetros de NoData","Raster de saída"],outputs:["Raster de média ponderada","Mensagens de processamento"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterNumber","QgsProcessingParameterCrs","QgsProcessingParameterRasterDestination","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerMetrics","RasterLayerProcessing","Preferences"],color:"#38bdf8"},
+  {id:"grid_generator",name:"Gerador de Grade",area:"Processing",kind:"Processing",entry:"processing/GridGenerator.py · GridGenerator",purpose:"Gera uma grade regular a partir da extensão de uma camada de entrada, com espaçamentos horizontal/vertical e tipo de grade configurável.",flow:["Recebe a camada de referência.","Define espaçamentos e tipo.","Calcula a extensão e cria a grade.","Grava a camada de saída."],inputs:["Camada de entrada poligonal","Espaçamento horizontal","Espaçamento vertical","Tipo de grade","Destino vetorial","Log detalhado"],outputs:["Camada de grade","Feições de pontos ou células conforme o tipo"],widgets:["QgsProcessingParameterFeatureSource","QgsProcessingParameterNumber","QgsProcessingParameterEnum","QgsProcessingParameterFeatureSink","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","VectorLayerGeometry","Preferences"],color:"#38bdf8"},
+  {id:"ndvi_calculator",name:"Calculadora NDVI",area:"Processing",kind:"Processing",entry:"processing/NdviCalculator.py · NdviCalculator",purpose:"Calcula o índice NDVI usando bandas NIR e vermelha, seguindo a fórmula de vegetação e gravando o raster resultante.",flow:["Recebe raster NIR e raster RED.","Seleciona as bandas.","Calcula (NIR - RED) / (NIR + RED).","Grava o NDVI e aplica opções padrão de saída."],inputs:["Raster NIR","Banda NIR","Raster RED","Banda RED","Destino NDVI","Abrir pasta/ajuda"],outputs:["Raster NDVI","Metadados de saída"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterBand","QgsProcessingParameterRasterDestination","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerProcessing","Preferences"],color:"#38bdf8"},
+  {id:"ndre_calculator",name:"Calculadora NDRE (Red Edge)",area:"Processing",kind:"Processing",entry:"processing/NdreCalculator.py · NdreCalculator",purpose:"Calcula o índice NDRE usando NIR e Red Edge para análise de vegetação, gerando um raster de saída.",flow:["Recebe NIR e Red Edge.","Seleciona as bandas correspondentes.","Calcula o índice NDRE.","Grava o raster resultante."],inputs:["Raster NIR","Banda NIR","Raster Red Edge","Banda Red Edge","Destino NDRE","Abrir pasta/ajuda"],outputs:["Raster NDRE","Metadados de saída"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterBand","QgsProcessingParameterRasterDestination","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerProcessing","Preferences"],color:"#38bdf8"},
+  {id:"rgb_mosaic_creator",name:"Criador de Mosaico RGB",area:"Processing",kind:"Processing",entry:"processing/RgbMosaicCreator.py · RgbMosaicCreator",purpose:"Combina bandas vermelha, verde e azul em um raster RGB, com opção de banda alpha para NoData.",flow:["Recebe as três fontes raster.","Seleciona banda R, G e B.","Normaliza/combina os canais.","Cria alpha quando solicitado e grava o mosaico."],inputs:["Raster/banda vermelha","Raster/banda verde","Raster/banda azul","Valor NoData alpha","Destino RGB","Abrir pasta/ajuda"],outputs:["Raster RGB composto","Banda alpha opcional"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterBand","QgsProcessingParameterNumber","QgsProcessingParameterRasterDestination","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerProcessing","Preferences"],color:"#38bdf8"},
+  {id:"rgb_style_standardizer",name:"Padronizar Estilo RGB (Percentil)",area:"Processing",kind:"Processing",entry:"processing/RgbStyleStandardizer.py · RgbStyleStandardizer",purpose:"Padroniza a visualização de um raster RGB por percentis e produz uma saída com contraste ajustado.",flow:["Recebe o raster RGB.","Define percentis inferior e superior.","Calcula o ajuste dos canais.","Grava o raster RGB padronizado."],inputs:["Raster RGB","Percentil inferior","Percentil superior","Destino","Abrir pasta/ajuda"],outputs:["Raster RGB padronizado","Estilo/contraste ajustado"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterNumber","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerRendering","RasterLayerProcessing","Preferences"],color:"#38bdf8"},
+  {id:"gli_calculator",name:"Calculadora GLI (Green Leaf Index)",area:"Processing",kind:"Processing",entry:"processing/GliCalculator.py · GliCalculator",purpose:"Calcula o Green Leaf Index a partir de um raster RGB, com suporte a bandas e estilo QML de interpretação.",flow:["Recebe o raster RGB.","Seleciona bandas e parâmetros.","Calcula o GLI por pixel.","Grava o raster e pode aplicar o estilo indicado."],inputs:["Raster RGB","Bandas R/G/B","Parâmetros numéricos","Destino GLI","Estilo QML opcional"],outputs:["Raster GLI","Interpretação visual por estilo quando configurada"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterBand","QgsProcessingParameterNumber","QgsProcessingParameterRasterDestination","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerRendering","RasterLayerProcessing","Preferences"],color:"#38bdf8"},
+  {id:"calculate_chm",name:"Calcular CHM (MDS - MDT)",area:"Processing",kind:"Processing",entry:"processing/CalculateChm.py · CalculateChm",purpose:"Calcula o modelo de altura de copas subtraindo o MDT do MDS e grava o raster CHM.",flow:["Recebe MDS e MDT.","Valida compatibilidade espacial.","Calcula a diferença pixel a pixel.","Grava o CHM."],inputs:["Raster MDS","Raster MDT","Destino CHM","Abrir pasta/ajuda"],outputs:["Raster de altura de copas (CHM)"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterRasterDestination","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerProcessing","Preferences"],color:"#38bdf8"},
+  {id:"raster_mean_adjust",name:"Ajustar Média Raster",area:"Processing",kind:"Processing",entry:"processing/RasterMeanAdjust.py · RasterMeanAdjust",purpose:"Ajusta a média de um raster para um valor desejado e grava o resultado como novo raster.",flow:["Recebe o raster de entrada.","Informa a média desejada.","Calcula o fator de ajuste.","Grava o raster ajustado."],inputs:["Raster de entrada","Média desejada","Destino raster","Abrir pasta/ajuda"],outputs:["Raster com média ajustada"],widgets:["QgsProcessingParameterRasterLayer","QgsProcessingParameterNumber","QgsProcessingParameterRasterDestination","QgsProcessingParameterBoolean"],deps:["BaseProcessingAlgorithm","RasterLayerMetrics","RasterLayerProcessing","Preferences"],color:"#38bdf8"}
+];
+
+const WIDGETS = [
+  {id:"GridBBoxSelector",layer:"grid",path:"resources/widgets/grid/GridBBoxSelector.py",purpose:"Seleciona uma extensão a partir de camada, tela ou desenho no canvas e devolve os dados de recorte.",example:"GridBBoxSelector(config={\"boundary\": {\"label\": \"Extensão\"}}, iface=iface, parent=self)",usedBy:"Downloader de Imagens de Satélite e ferramentas que trabalham com área de interesse",color:"#38bdf8"},
+  {id:"GridCheckbox",layer:"grid",path:"resources/widgets/grid/GridCheckbox.py",purpose:"Monta um grupo de caixas de seleção a partir de um dicionário; a ferramenta define o significado de cada opção.",example:"GridCheckbox(config={\"export_pdf\": {\"label\": \"Exportar PDF\", \"description\": \"Gera arquivos PDF\"}}, title=\"Formatos\", parent=self)",usedBy:"Exportar Todos os Layouts, Drone Coordenadas, Settings e opções de Processing",color:"#38bdf8"},
+  {id:"GridComboBox",layer:"grid",path:"resources/widgets/grid/GridComboBox.py",purpose:"Agrupa combos configuráveis; cada item declara label, descrição, opções, valor inicial e callback.",example:"GridComboBox(config={\"format\": {\"label\": \"Formato\", \"options\": {\"gpkg\": \"GeoPackage\"}}}, parent=self)",usedBy:"Settings, SaveTemporaryLayers, PathExtension e seletores de parâmetros",color:"#38bdf8"},
+  {id:"GridComplexSelector",layer:"grid",path:"resources/widgets/grid/GridComplexSelector.py",purpose:"Oferece seleção complexa de arquivos, pastas ou camadas com preferências, bloqueio e callbacks de mudança.",example:"GridComplexSelector(config={\"input\": {\"label\": \"Arquivo de entrada\", \"mode\": \"file\"}}, tool_key=self.TOOL_KEY, parent=self)",usedBy:"Exportação, conversores, rasters, projetos e pastas de saída",color:"#38bdf8"},
+  {id:"GridDateSelector",layer:"grid",path:"resources/widgets/grid/GridDateSelector.py",purpose:"Monta um ou mais campos de data com formato e leitura padronizados.",example:"GridDateSelector(config={\"start\": {\"label\": \"Data inicial\"}, \"end\": {\"label\": \"Data final\"}}, parent=self)",usedBy:"Downloader de Imagens de Satélite",color:"#38bdf8"},
+  {id:"GridDoubleSpin",layer:"grid",path:"resources/widgets/grid/GridDoubleSpin.py",purpose:"Monta campos numéricos com limites, passo, precisão e valor inicial declarados pela ferramenta.",example:"GridDoubleSpin(config={\"dpi\": {\"label\": \"DPI\", \"value\": 300, \"min\": 72}}, parent=self)",usedBy:"Exportação de layouts, campos vetoriais e parâmetros numéricos",color:"#38bdf8"},
+  {id:"GridExecutionButtons",layer:"grid",path:"resources/widgets/grid/GridExecutionButtons.py",purpose:"Centraliza botões de executar, fechar, ajuda e ações auxiliares; callbacks vêm da ferramenta.",example:"GridExecutionButtons(config={\"run\": {\"label\": \"Executar\", \"callback\": self.execute_tool, \"is_run_button\": True}}, enable_close_button=True, parent=self)",usedBy:"A maioria dos diálogos do Cadmus",color:"#38bdf8"},
+  {id:"GridIconButton",layer:"grid",path:"resources/widgets/grid/GridIconButton.py",purpose:"Agrupa ações representadas por ícones, recebendo ícone, rótulo e callback no config.",example:"GridIconButton(config={\"github\": {\"label\": \"GitHub\", \"icon\": IconManager.GITHUB, \"callback\": self.open_github}}, parent=self)",usedBy:"Sobre o Cadmus e diálogos com links ou ações rápidas",color:"#38bdf8"},
+  {id:"GridInputFields",layer:"grid",path:"resources/widgets/grid/GridInputFields.py",purpose:"Monta campos de texto em grupo e expõe valores por chave para a ferramenta.",example:"GridInputFields(config={\"old\": {\"label\": \"Texto atual\"}, \"new\": {\"label\": \"Novo texto\"}}, parent=self)",usedBy:"Substituir Texto em Layouts e ferramentas com parâmetros textuais",color:"#38bdf8"},
+  {id:"GridLabel",layer:"grid",path:"resources/widgets/grid/GridLabel.py",purpose:"Exibe labels informativos configuráveis, com descrição e cor quando necessário.",example:"GridLabel(config={\"status\": {\"text\": \"Pronto\", \"color\": \"green\"}}, parent=self)",usedBy:"Informações de status, resultados e metadados",color:"#38bdf8"},
+  {id:"GridModernButtons",layer:"grid",path:"resources/widgets/grid/GridModernButtons.py",purpose:"Monta botões modernos para ações auxiliares, como selecionar tudo, limpar ou inverter seleção.",example:"GridModernButtons(config={\"select_all\": {\"label\": \"Selecionar tudo\", \"callback\": self.select_all}}, parent=self)",usedBy:"Controles internos de GridCheckbox e ações auxiliares",color:"#38bdf8"},
+  {id:"GridRadioButton",layer:"grid",path:"resources/widgets/grid/GridRadioButton.py",purpose:"Monta escolhas mutuamente exclusivas com chave selecionada e callback configurável.",example:"GridRadioButton(config={\"method\": {\"label\": \"Método\", \"options\": {\"mean\": \"Média\", \"median\": \"Mediana\"}}}, default_key=\"mean\", parent=self)",usedBy:"Settings e ferramentas com modos de operação",color:"#38bdf8"},
+  {id:"GridReadOnly",layer:"grid",path:"resources/widgets/grid/GridReadOnly.py",purpose:"Exibe valores que a pessoa deve consultar, não editar, com cópia opcional por campo.",example:"GridReadOnly(title=\"Coordenadas\", fields={\"lat\": {\"title\": \"Latitude\", \"value\": \"\"}}, show_copy_buttons=True, parent=self)",usedBy:"Captura de Coordenadas e telas de resultado",color:"#38bdf8"},
+  {id:"GridSlider",layer:"grid",path:"resources/widgets/grid/GridSlider.py",purpose:"Monta controles deslizantes com limites, valor e sufixo definidos pela ferramenta.",example:"GridSlider(config={\"clouds\": {\"label\": \"Nuvens\", \"value\": 20, \"min\": 0, \"max\": 100, \"suffix\": \"%\"}}, parent=self)",usedBy:"Downloader de Imagens de Satélite",color:"#38bdf8"},
+  {id:"AppBarWidget",layer:"raiz",path:"resources/widgets/AppBarWidget.py",purpose:"Fornece a barra superior compartilhada de uma janela, com identidade visual e ações de contexto.",example:"AppBarWidget(title=dialog_title, tool_key=self.TOOL_KEY, parent=self)",usedBy:"Layouts principais de diálogos",color:"#f472b6"},
+  {id:"CollapsibleParametersWidget",layer:"raiz",path:"resources/widgets/CollapsibleParametersWidget.py",purpose:"Agrupa parâmetros em uma seção recolhível e persiste o estado aberto/fechado.",example:"CollapsibleParametersWidget(title=STR.OPTIONS, content=options_widget, parent=self)",usedBy:"Settings, Drone Coordenadas e diálogos com muitos parâmetros",color:"#f472b6"},
+  {id:"ComplexColorPicker",layer:"raiz",path:"resources/widgets/ComplexColorPicker.py",purpose:"Combina rótulo, seletor de cor, valor textual e botão de cópia em um controle completo.",example:"ComplexColorPicker(label_text=STR.BACKGROUND_COLOR, default_color=\"#ffffff\", parent=self)",usedBy:"Conversor de Vetor para SVG",color:"#f472b6"},
+  {id:"ComplexCrsSelector",layer:"raiz",path:"resources/widgets/ComplexCrsSelector.py",purpose:"Apresenta um seletor de CRS integrado ao QGIS e devolve o sistema de referência escolhido.",example:"ComplexCrsSelector(label_text=STR.OUTPUT_CRS_LABEL, default_crs=\"EPSG:4326\", parent=self)",usedBy:"Settings e Downloader de Imagens de Satélite",color:"#f472b6"},
+  {id:"DropdownToolButton",layer:"raiz",path:"resources/widgets/DropdownToolButton.py",purpose:"Cria um botão de ferramenta com menu suspenso para reunir ações relacionadas.",example:"DropdownToolButton(text=actions_title, menu_items=actions, tool_key=self.TOOL_KEY, parent=self)",usedBy:"Infraestrutura de menus e ações agrupadas",color:"#f472b6"},
+  {id:"GridAttributeSelector",layer:"grid",path:"resources/widgets/GridAttributeSelector.py",purpose:"Permite usar todos os atributos ou selecionar campos individualmente, com controles de selecionar, remover e inverter.",example:"GridAttributeSelector(title=STR.ATTRIBUTES, tool_key=self.TOOL_KEY, parent=self); selector.set_fields(field_names)",usedBy:"Ferramentas que escolhem campos vetoriais",color:"#38bdf8"},
+  {id:"MainLayout",layer:"raiz",path:"resources/widgets/MainLayout.py",purpose:"Organiza cabeçalho, área de conteúdo, rolagem e botões fixos de um diálogo Cadmus.",example:"MainLayout(title=dialog_title, tool_key=self.TOOL_KEY, parent=self)",usedBy:"BaseDialog e diálogos do plugin",color:"#f472b6"},
+  {id:"SceneSelectionListWidget",layer:"raiz",path:"resources/widgets/SceneSelectionListWidget.py",purpose:"Lista cenas de satélite com checkbox e thumbnail para seleção visual.",example:"SceneSelectionListWidget(scenes=scenes, tool_key=self.TOOL_KEY, parent=self)",usedBy:"Downloader de Imagens de Satélite",color:"#f472b6"},
+  {id:"ScrollWidget",layer:"raiz",path:"resources/widgets/ScrollWidget.py",purpose:"Fornece uma área de rolagem padronizada para conteúdos maiores que a janela.",example:"ScrollWidget(content=parameters_widget, parent=self)",usedBy:"MainLayout e diálogos extensos",color:"#f472b6"},
+  {id:"SeparatorWidget",layer:"raiz",path:"resources/widgets/SeparatorWidget.py",purpose:"Insere separadores visuais entre blocos sem espalhar margens manuais pelos plugins.",example:"layout.addWidget(SeparatorWidget(orientation=\"horizontal\", parent=self))",usedBy:"MainLayout e composição de diálogos",color:"#f472b6"},
+  {id:"TextBrowser",layer:"raiz",path:"resources/widgets/TextBrowser.py",purpose:"Exibe texto rico ou Markdown com estilo padronizado e fallback compatível entre Qt5 e Qt6.",example:"TextBrowser(markdown=help_text, tool_key=self.TOOL_KEY, parent=self)",usedBy:"Ajuda, instruções e resultados textuais",color:"#f472b6"},
+  {id:"ComplexSelector",layer:"simple/interno",path:"resources/widgets/simple/ComplexSelector.py",purpose:"Controle interno completo para arquivo, pasta ou camada; a versão Grid o expõe para plugins.",example:"ComplexSelector(label_text=label, selection_mode=\"file\", tooltip=tooltip, parent=self)",usedBy:"GridComplexSelector",color:"#a78bfa"},
+  {id:"SimpleButton",layer:"simple/interno",path:"resources/widgets/simple/SimpleButton.py",purpose:"Botão básico estilizado usado para montar widgets compostos.",example:"SimpleButton(text=STR.CLOSE, parent=self)",usedBy:"Widgets de infraestrutura",color:"#a78bfa"},
+  {id:"SimpleCheckbox",layer:"simple/interno",path:"resources/widgets/simple/SimpleCheckbox.py",purpose:"Checkbox básico estilizado; a versão Grid organiza vários e conecta seus callbacks.",example:"SimpleCheckbox(text=label, parent=self)",usedBy:"GridCheckbox",color:"#a78bfa"},
+  {id:"SimpleComboBox",layer:"simple/interno",path:"resources/widgets/simple/SimpleComboBox.py",purpose:"Combo básico com opções por chave; a versão Grid controla vários combos declarativamente.",example:"SimpleComboBox(parent=self); combo.set_options({\"a\": \"Opção A\"})",usedBy:"GridComboBox",color:"#a78bfa"},
+  {id:"SimpleDateEdit",layer:"simple/interno",path:"resources/widgets/simple/SimpleDateEdit.py",purpose:"Campo de data interno com calendário e formato padronizado.",example:"SimpleDateEdit(date_str=\"2026-01-01\", parent=self)",usedBy:"GridDateSelector",color:"#a78bfa"},
+  {id:"SimpleDoubleSpinBox",layer:"simple/interno",path:"resources/widgets/simple/SimpleDoubleSpinBox.py",purpose:"Campo numérico interno com limites, passo e precisão; a versão Grid agrupa parâmetros.",example:"SimpleDoubleSpinBox(value=300, min_val=1, decimals=0, type_spec=\"int\", parent=self)",usedBy:"GridDoubleSpin",color:"#a78bfa"},
+  {id:"SimpleIconButton",layer:"simple/interno",path:"resources/widgets/simple/SimpleIconButton.py",purpose:"Botão interno com ícone e tooltip; usado por containers que fornecem a ação contextual.",example:"SimpleIconButton(icon_path=icon_path, tooltip=tooltip, parent=self)",usedBy:"GridIconButton e controles compostos",color:"#a78bfa"},
+  {id:"SimpleLabel",layer:"simple/interno",path:"resources/widgets/simple/SimpleLabel.py",purpose:"Label interno com estilo global para widgets compostos.",example:"SimpleLabel(text=\"Status\", parent=self)",usedBy:"GridLabel, ComplexColorPicker e infraestrutura",color:"#a78bfa"},
+  {id:"SimpleModernButton",layer:"simple/interno",path:"resources/widgets/simple/SimpleModernButton.py",purpose:"Botão interno com estilo moderno; recebe texto, ícone, tooltip e modo primário.",example:"SimpleModernButton(text=STR.EXECUTE, tooltip=tooltip, primary=True, parent=self)",usedBy:"GridExecutionButtons e GridModernButtons",color:"#a78bfa"},
+  {id:"SimpleQLineEdit",layer:"simple/interno",path:"resources/widgets/simple/SimpleQLineEdit.py",purpose:"Campo de texto interno com estilo moderno, placeholder e modo somente leitura.",example:"SimpleQLineEdit(text=\"\", placeholder=placeholder, parent=self)",usedBy:"GridInputFields, ComplexSelector e SimpleReadOnly",color:"#a78bfa"},
+  {id:"SimpleRadioButton",layer:"simple/interno",path:"resources/widgets/simple/SimpleRadioButton.py",purpose:"Radio button interno para escolhas mutuamente exclusivas.",example:"SimpleRadioButton(text=label, parent=self)",usedBy:"GridRadioButton",color:"#a78bfa"},
+  {id:"SimpleReadOnly",layer:"simple/interno",path:"resources/widgets/simple/SimpleReadOnly.py",purpose:"Campo interno de leitura com cópia opcional do valor.",example:"SimpleReadOnly(text=\"-10.123456\", show_copy_button=True, parent=self)",usedBy:"GridReadOnly",color:"#a78bfa"},
+  {id:"SimpleSlider",layer:"simple/interno",path:"resources/widgets/simple/SimpleSlider.py",purpose:"Slider interno com label de valor e sufixo; a versão Grid organiza vários controles.",example:"SimpleSlider(value=50, minimum=0, maximum=100, suffix=\"%\", parent=self)",usedBy:"GridSlider",color:"#a78bfa"},
+  {id:"SquareIconButton",layer:"simple/interno",path:"resources/widgets/simple/SquareIconButton.py",purpose:"Botão interno quadrado para ações compactas, como copiar ou abrir um seletor.",example:"SquareIconButton(icon=IconManager.COPY2, tooltip=STR.COPY, parent=self)",usedBy:"ComplexColorPicker, ComplexSelector e componentes compostos",color:"#a78bfa"}
+];
+
+const state={area:"Todas",query:"",selected:TOOLS[0].id,widgetLayer:"Todos",selectedWidget:WIDGETS[0].id};
+const areas=["Todas",...new Set(TOOLS.map(t=>t.area))];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const words=t=>[t.id,t.name,t.area,t.kind,t.entry,t.purpose,...t.inputs,...t.outputs,...t.widgets,...t.deps].join(" ").toLowerCase();
+function visible(t){return(state.area==="Todas"||t.area===state.area)&&words(t).includes(state.query)}
+function renderFilters(){
+  $("filters").innerHTML=areas.map(a=>`<button type="button" class="${state.area===a?"on":""}" data-area="${esc(a)}">${esc(a)}</button>`).join("");
+  document.querySelectorAll("[data-area]").forEach(b=>b.onclick=()=>{state.area=b.dataset.area;render()});
+}
+function renderCatalog(){
+  const list=TOOLS.filter(visible);
+  if(!list.length){$("catalog").innerHTML='<div class="empty">Nenhuma ferramenta encontrada para este filtro.</div>';return}
+  $("catalog").innerHTML=list.map(t=>`<button type="button" class="tool-card ${state.selected===t.id?"on":""}" data-tool="${esc(t.id)}" style="--c:${esc(t.color)}"><span class="num">${String(TOOLS.indexOf(t)+1).padStart(2,"0")}</span><h3>${esc(t.name)}</h3></button>`).join("");
+  document.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{state.selected=b.dataset.tool;renderDetail();renderCatalog();$("toolPanel").scrollIntoView({behavior:"smooth",block:"start"})});
+}
+function list(items){return items.map(x=>`<li>${esc(x)}</li>`).join("")}
+function renderDetail(){
+  const t=TOOLS.find(x=>x.id===state.selected)||TOOLS[0];
+  $("toolPanel").style.setProperty("--c",t.color);
+  $("toolPanel").innerHTML=`<div class="ptitle"><h3>${esc(t.name)}</h3><span class="kind">${esc(t.area)} · ${esc(t.kind)}</span></div><div class="identity"><span class="chip">${esc(t.id)}</span><span class="chip">${esc(t.entry)}</span></div><div class="cols"><div class="col"><h4>Para que serve</h4><p>${esc(t.purpose)}</p></div><div class="col"><h4>Entrada</h4><ul>${list(t.inputs)}</ul></div><div class="col"><h4>Saída</h4><ul>${list(t.outputs)}</ul></div></div><div class="detail-flow"><b>Funcionamento:</b> ${t.flow.map(esc).join(" → ")}</div><h4 class="sh4">Widgets e componentes</h4><div class="subs">${t.widgets.map((w,i)=>`<div class="sub"><b>${String(i+1).padStart(2,"0")}</b><h4>${esc(w.split(" · ")[0])}</h4><p>${esc(w.includes(" · ")?w.split(" · ").slice(1).join(" · "):"Componente usado pela ferramenta")}</p></div>`).join("")}</div><h4 class="sh4">Dependências e pontos de integração</h4><div class="nut">${t.deps.map(d=>`<span>${esc(d)}</span>`).join("")}</div>`;
+}
+const widgetLayers=["Todos","grid","raiz","simple/interno"];
+function renderWidgetFilters(){
+  $("widgetFilters").innerHTML=widgetLayers.map(layer=>`<button type="button" class="${state.widgetLayer===layer?"on":""}" data-widget-layer="${esc(layer)}">${esc(layer)}</button>`).join("");
+  document.querySelectorAll("[data-widget-layer]").forEach(b=>b.onclick=()=>{state.widgetLayer=b.dataset.widgetLayer;renderWidgets()});
+}
+function renderWidgets(){
+  const list=state.widgetLayer==="Todos"?WIDGETS:WIDGETS.filter(w=>w.layer===state.widgetLayer);
+  renderWidgetFilters();
+  $("widgetCatalog").innerHTML=list.map(w=>`<button type="button" class="widget-card ${state.selectedWidget===w.id?"on":""}" data-widget="${esc(w.id)}" style="--c:${esc(w.color)}"><span class="layer">${esc(w.layer)}</span><h3>${esc(w.id)}</h3><p>${esc(w.purpose)}</p><span class="path">${esc(w.path)}</span></button>`).join("");
+  document.querySelectorAll("[data-widget]").forEach(b=>b.onclick=()=>{state.selectedWidget=b.dataset.widget;renderWidgetDetail();renderWidgets();$("widgetPanel").scrollIntoView({behavior:"smooth",block:"start"})});
+  renderWidgetDetail();
+}
+function renderWidgetDetail(){
+  const w=WIDGETS.find(x=>x.id===state.selectedWidget)||WIDGETS[0];
+  $("widgetPanel").style.setProperty("--c",w.color);
+  $("widgetPanel").innerHTML=`<div class="ptitle"><h3>${esc(w.id)}</h3><span class="kind">${esc(w.layer)} · widget reutilizável</span></div><div class="identity"><span class="chip">${esc(w.path)}</span></div><div class="cols"><div class="col"><h4>Responsabilidade</h4><p>${esc(w.purpose)}</p></div><div class="col"><h4>Onde aparece</h4><p>${esc(w.usedBy)}</p></div><div class="col"><h4>Regra de integração</h4><p>${w.layer==="grid"?"O plugin configura este widget e fornece callbacks; o widget monta seus controles internos.":w.layer==="raiz"?"A infraestrutura do diálogo compõe este widget; a ferramenta o usa como bloco estrutural.":"Este é um bloco interno; plugins não devem importá-lo diretamente."}</p></div></div><div class="detail-flow"><b>Exemplo de instanciação/configuração:</b><pre>${esc(w.example)}</pre></div>`;
+}
+const familyInfo={
+  Dialog:{label:"Dialog",description:"Janela de plugin com widgets Cadmus, preferências, callbacks e uma ação principal.",color:"#14b8a6"},
+  "Instant\u00e2neo":{label:"Instantâneo",description:"Ação curta sobre projeto ou sessão, sem fluxo de parâmetros extenso.",color:"#ef4444"},
+  "Map tool":{label:"Map tool",description:"Ferramenta ligada ao canvas que recebe uma interação espacial antes de concluir a operação.",color:"#fbbf24"},
+  Processing:{label:"Processing",description:"Algoritmo exposto pelo MTLProvider e executado pelo contrato nativo do QGIS Processing.",color:"#38bdf8"}
+};
+function renderFamilies(){
+  const counts=TOOLS.reduce((acc,t)=>{acc[t.kind]=(acc[t.kind]||0)+1;return acc},{});
+  const keys=["Dialog","Instant\u00e2neo","Map tool","Processing"];
+  $("familyGrid").innerHTML=keys.map(key=>{const f=familyInfo[key];return`<article class="family-card" style="--c:${f.color}"><b>${String(counts[key]||0).padStart(2,"0")}</b><h3>${esc(f.label)}</h3><p>${esc(f.description)}</p><p><code>${esc(key)} · ${counts[key]||0} ferramentas</code></p></article>`}).join("");
+}
+function render(){state.query=$("search").value.trim().toLowerCase();renderFilters();renderCatalog();renderDetail();renderWidgets();renderFamilies()}
+$("search").oninput=render;
+$("theme").onclick=()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==="dark"?"light":"dark"};
+render();
+
+const railLinks=document.querySelectorAll("#nav a");
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll(".rv").forEach(el=>io.observe(el));
+const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){railLinks.forEach(l=>l.classList.toggle("on",l.getAttribute("href")==="#"+e.target.id))}}),{rootMargin:"-40% 0px -55% 0px"});
+document.querySelectorAll("section[id]").forEach(s=>so.observe(s));
+</script>
+</body>
+</html>

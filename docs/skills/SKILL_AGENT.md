@@ -167,6 +167,15 @@ Consulte a seção **MAPEAMENTO SITUAÇÃO → SKILL** acima para identificar qu
 
 - ✅ Você **SEMPRE** mantém `docs/mapa_ferramentas.html` como documentação viva do sistema: atualize a ficha quando uma ferramenta sofrer mudança funcional grande, inclua toda ferramenta nova e atualize o catálogo quando um widget for criado ou mudar de contrato.
 
+## REGRAS DE TOKENIZAÇÃO EM `Strings_pt_BR`
+
+- Todo token deve nomear o **significado reutilizável** do texto, não o arquivo, classe ou widget que o utiliza hoje.
+- Prefira nomes semânticos e genéricos, como `SELECT_ALL_LIST`, `CLOSE_WINDOW_WITHOUT_EXECUTING`, `OPEN_LOCATION` e `COPY_PATH`.
+- Não use prefixos como `GRID_EXECUTION_BUTTONS_` ou `COMPLEX_SELECTOR_` apenas porque o texto apareceu primeiro nesse widget.
+- Só inclua o nome da ferramenta ou do widget quando a mensagem for realmente específica e não puder ser reutilizada sem mudar seu significado. Exemplo: `EXPORT_ALL_LAYOUTS_TOOLTIP` identifica a entrada exclusiva dessa ferramenta.
+- Antes de criar um token, pesquise `Strings_pt_BR.py` para reutilizar uma chave existente ou evitar duas chaves para o mesmo significado.
+- Mantenha nomes em `UPPERCASE_WITH_UNDERSCORES`; o valor fica em `Strings_pt_BR.py` e o código acessa o token por `STR`.
+
 # ARQUITETURA DA PIPELINE
 
 O processamento pesado no Cadmus é orquestrado usando uma **Arquitetura de Pipeline Assíncrona**.

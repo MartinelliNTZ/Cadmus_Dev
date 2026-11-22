@@ -51,6 +51,7 @@ from ..simple.SimpleCheckbox import SimpleCheckbox
 from ..SeparatorWidget import SeparatorWidget
 from .GridModernButtons import GridModernButtons
 from ...styles.AppStyles import AppStyles
+from ....i18n.TranslationManager import STR
 
 
 class GridCheckbox(QWidget):
@@ -340,8 +341,20 @@ class GridCheckbox(QWidget):
 
         # Botões de controle (opcionais) — separador ABAIXO dos botões
         if self._control_buttons_config:
+            default_tooltips = {
+                "select_all": STR.SELECT_ALL_LIST,
+                "deselect_all": STR.DESELECT_ALL_LIST,
+                "invert": STR.INVERT_LIST_SELECTION,
+            }
+            control_config = {}
+            for key, item_config in self._control_buttons_config.items():
+                config_item = dict(item_config)
+                if not config_item.get("description"):
+                    config_item["description"] = default_tooltips.get(key, "")
+                control_config[key] = config_item
+
             self._control_buttons = GridModernButtons(
-                config=self._control_buttons_config,
+                config=control_config,
                 separator_top=False,
                 separator_bottom=True,
                 parent=self,

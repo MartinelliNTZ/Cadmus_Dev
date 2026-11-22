@@ -61,18 +61,18 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
         self.checkbox_widget = GridCheckbox(
             config={
                 "export_pdf": {
-                    "label": F"{STR.EXPORT} PDF",
-                    "description": "Exporta layouts em formato PDF",
+                    "label": STR.EXPORT_PDF,
+                    "description": STR.EXPORT_SELECTED_LAYOUTS_PDF,
                     "default": True,
                 },
                 "export_png": {
-                    "label": F"{STR.EXPORT} PNG",
-                    "description": "Exporta layouts em formato PNG",
+                    "label": STR.EXPORT_PNG,
+                    "description": STR.EXPORT_SELECTED_LAYOUTS_PNG,
                     "default": False,
                 },
                 "export_svg": {
-                    "label": F"{STR.EXPORT} SVG",
-                    "description": "Exporta layouts em formato SVG (vetorial)",
+                    "label": STR.EXPORT_SVG,
+                    "description": STR.EXPORT_SELECTED_LAYOUTS_SVG,
                     "default": False,
                 },
                 "georeference_pdf": {
@@ -82,19 +82,19 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
                 },
                 "merge_pdf": {
                     "label": STR.MERGE_PDFS_FINAL,
-                    "description": "Combina todos os PDFs em um único arquivo",
+                    "description": STR.MERGE_EXPORTED_PDFS,
                     "default": False,
                     "onchange": self.on_merge_pdf_changed,
                 },
                 "merge_png": {
                     "label": STR.MERGE_PNGS_FINAL,
-                    "description": "Combina todos os PNGs em um único PDF",
+                    "description": STR.MERGE_EXPORTED_PNGS_TO_PDF,
                     "default": False,
                     "onchange": self.on_merge_png_changed,
                 },
                 "replace_existing": {
                     "label": STR.REPLACE_EXISTING_FILES,
-                    "description": "Substitui arquivos existentes sem criar cópias numeradas",
+                    "description": STR.REPLACE_EXISTING_FILES_DESC,
                     "default": False,
                 },
             },
@@ -113,7 +113,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
             config={
                 "max_width": {
                     "label": STR.MAX_WIDTH_PNG,
-                    "description": "Largura máxima em pixels para exportação PNG",
+                    "description": STR.MAX_WIDTH_MERGED_PNG,
                     "value": 3500,
                     "min": 100,
                     "max": 10000,
@@ -156,7 +156,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
             config={
                 "output_folder": {
                     "label": STR.OUTPUT_FOLDER,
-                    "description": "Pasta onde os arquivos exportados serão salvos",
+                    "description": STR.OUTPUT_FOLDER_DESC,
                     "path": default_path,
                     "mode_type": "output",
                     "allow_file": False,
@@ -182,7 +182,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
                 },
                 "exportar": {
                     "label": STR.EXPORT,
-                    "description": "Inicia a exportação dos layouts",
+                    "description": STR.START_EXPORT,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },
@@ -213,6 +213,7 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
             name = layout.name()
             items[name] = {
                 "label": name,
+                "description": STR.SELECT_LAYOUT_ITEM,
                 "default": name in self._selected_layouts,
             }
 

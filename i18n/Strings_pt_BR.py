@@ -43,6 +43,58 @@ class Strings_pt_BR:
     PROJECTS_DEFAULT_FOLDER = "Pasta padrão de projetos"
     OPEN_SETTINGS = "Abrir Configurações"
 
+    # Tooltips internos dos widgets reutilizáveis
+    CLOSE_WINDOW_WITHOUT_EXECUTING = (
+        "Fecha esta janela sem executar a ferramenta."
+    )
+    OPEN_SETTINGS_PANEL = (
+        "Abre as configurações do Cadmus para ajustar preferências gerais."
+    )
+    OPEN_TOOL_INSTRUCTIONS = (
+        "Abre as instruções da ferramenta e mostra como usá-la."
+    )
+    SELECT_ALL_LIST = "Marca todas as opções da lista."
+    DESELECT_ALL_LIST = "Desmarca todas as opções da lista."
+    INVERT_LIST_SELECTION = (
+        "Inverte a marcação: marca as opções desmarcadas e desmarca as marcadas."
+    )
+    LOCK_FIELD = (
+        "Campo desbloqueado: clique para bloqueá-lo e impedir alterações."
+    )
+    UNLOCK_FIELD = (
+        "Campo bloqueado: clique para desbloqueá-lo e permitir alterações."
+    )
+    CHOOSE_FILE = (
+        "Seleciona um arquivo para usar na ferramenta."
+    )
+    CHOOSE_FILES = (
+        "Seleciona um ou mais arquivos para usar na ferramenta."
+    )
+    CHOOSE_FOLDER = (
+        "Seleciona uma pasta para usar na ferramenta."
+    )
+    CHOOSE_FOLDERS = (
+        "Seleciona uma ou mais pastas para usar na ferramenta."
+    )
+    CHOOSE_LAYER = (
+        "Alterna para selecionar uma camada carregada no QGIS."
+    )
+    USE_SOURCE_FOLDER = (
+        "Usa a mesma pasta da origem para montar o caminho de saída."
+    )
+    SUGGEST_PROJECT_FOLDER = (
+        "Usa a pasta do projeto como sugestão para o caminho de saída."
+    )
+    OPEN_LOCATION = (
+        "Abre a localização atual no Explorador de Arquivos."
+    )
+    COPY_PATH = (
+        "Copia o caminho atual para a área de transferência."
+    )
+    CONFIRM_SELECTION = (
+        "Confirma a seleção atual e fecha esta janela."
+    )
+
     # Common labels
     PRECISION = "Precisao"
     CONTINUE_ANYWAY = "Continuar mesmo assim"
@@ -82,17 +134,18 @@ class Strings_pt_BR:
     MAX_WIDTH_PNG = "Max Width para PNG (px):"
     DPI_OUTPUT = "DPI de saída:"
     DPI_OUTPUT_DESC = (
-        "Resolução em pontos por polegada (dpi) para PNG e PDF.\n"
-        "Use 0 para manter o DPI configurado no layout.\n"
-        "Maximo de DPI é 1200"
+        "Define a resolução dos arquivos exportados em pontos por polegada (DPI).\n"
+        "Use 0 para manter o DPI configurado em cada layout.\n"
+        "Valores maiores podem gerar arquivos mais detalhados e maiores."
     )
     USE_PROJECT_FOLDER = "Usar pasta do projeto"
     EXPORT_PDF = "Exportar PDF"
     EXPORT_PNG = "Exportar PNG"
+    EXPORT_SVG = "Exportar SVG"
     GEOREFERENCE_PDF = "PDF com geolocalização"
     GEOREFERENCE_PDF_DESC = (
-        "Gera PDFs georreferenciados (com geolocalização embutida).\n"
-        "Permite abrir o PDF em softwares GIS com posicionamento correto."
+        "Adiciona a localização do mapa ao PDF exportado.\n"
+        "Assim, softwares GIS podem posicionar o PDF corretamente sobre o mapa."
     )
     MERGE_PDFS_FINAL = "Unir PDFs em PDF final"
     MERGE_PNGS_FINAL = "Unir PNGs em PDF final"
@@ -617,15 +670,52 @@ class Strings_pt_BR:
     # plugins/ExportAllLayouts.py
     EXPORT_ALL_LAYOUTS_TITLE = "Exportar Todos os Layouts"
     EXPORT_ALL_LAYOUTS_TOOLTIP = (
-        "Exporta todos os layouts do projeto em PDF, PNG ou ambos.\n"
-        "Pode unir os PDFs gerados em um arquivo final,\n"
-        "converter os PNGs em PDF e controlar sobrescrita\n"
-        "dos arquivos na pasta de saída."
+        "Exporta os layouts do projeto para PDF, PNG ou SVG.\n"
+        "Escolha os layouts, os formatos e a pasta de saída.\n"
+        "Também permite definir a resolução, georreferenciar PDFs,\n"
+        "unir arquivos e controlar a substituição de arquivos existentes."
+    )
+    EXPORT_SELECTED_LAYOUTS_PDF = (
+        "Marque para criar um arquivo PDF para cada layout selecionado."
+    )
+    EXPORT_SELECTED_LAYOUTS_PNG = (
+        "Marque para criar uma imagem PNG para cada layout selecionado."
+    )
+    EXPORT_SELECTED_LAYOUTS_SVG = (
+        "Marque para criar um arquivo SVG vetorial para cada layout selecionado."
+    )
+    MERGE_EXPORTED_PDFS = (
+        "Marque para juntar todos os PDFs exportados em um único arquivo final. "
+        "Essa opção precisa do pacote PyPDF2."
+    )
+    MERGE_EXPORTED_PNGS_TO_PDF = (
+        "Marque para converter e juntar os PNGs exportados em um único PDF. "
+        "Essa opção precisa do pacote Pillow."
+    )
+    REPLACE_EXISTING_FILES_DESC = (
+        "Marque para substituir arquivos com o mesmo nome. "
+        "Se desmarcado, a ferramenta cria outro nome para preservar o arquivo existente."
+    )
+    MAX_WIDTH_MERGED_PNG = (
+        "Define a largura máxima, em pixels, ao juntar PNGs em um PDF. "
+        "Imagens maiores são reduzidas proporcionalmente."
+    )
+    OUTPUT_FOLDER_DESC = (
+        "Escolha a pasta base onde os arquivos exportados serão salvos."
+    )
+    START_EXPORT = (
+        "Inicia a exportação usando os layouts, formatos e opções escolhidos."
     )
     SELECT_LAYOUTS = "Layouts"
-    SELECT_LAYOUTS_DESC = "Escolhe quais layouts do projeto exportar"
+    SELECT_LAYOUTS_DESC = (
+        "Abre a lista de layouts. Marque os que deseja exportar; "
+        "se nenhum ficar marcado, todos os layouts do projeto serão usados."
+    )
+    SELECT_LAYOUT_ITEM = "Marque este layout para incluí-lo na exportação."
     SELECT_LAYOUTS_TITLE = "Selecionar Layouts"
-    SELECT_LAYOUTS_HINT = "Marque os layouts que deseja exportar"
+    SELECT_LAYOUTS_HINT = (
+        "Marque os layouts que deseja exportar. Se nenhum ficar marcado, todos serão usados."
+    )
     INVERT_SELECTION = "Inverter"
     NO_LAYOUTS_SELECTED = "Nenhum layout selecionado para exportação."
     LAYOUTS_SELECTED_COUNT = "{count} layout(s) selecionado(s)"

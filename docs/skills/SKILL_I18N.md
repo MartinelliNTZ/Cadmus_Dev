@@ -254,6 +254,11 @@ class HtmlInstructions:
   - Ruim: `LABEL_WIDTH = "Largura"`
   - Bom: `WIDTH = "Largura"` + `f"{STR.WIDTH} (mm)"`
 
+- **Nomear tokens pelo significado reutilizável**
+  - O nome deve descrever a ação ou informação da mensagem, não o widget que a usa hoje.
+  - Prefira `SELECT_ALL_LIST`, `OPEN_LOCATION` e `COPY_PATH` a nomes como `GRID_CHECKBOX_SELECT_ALL_TOOLTIP`.
+  - Use o nome da ferramenta ou widget somente quando o texto for realmente exclusivo daquele contexto.
+
 ### ❌ **NUNCA:**
 
 - Não hardcode strings em código Python

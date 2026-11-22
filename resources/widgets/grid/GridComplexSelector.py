@@ -65,6 +65,7 @@ from ..simple.ComplexSelector import ComplexSelector
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
 from ....core.config.LogUtils import LogUtils
+from ....i18n.TranslationManager import STR
 
 
 class GridComplexSelector(QWidget):
@@ -364,7 +365,7 @@ class GridComplexSelector(QWidget):
             self._connect_output_listener(label, parent_selector)
             selector.set_origin_callback(
                 partial(self._on_use_origin, label),
-                tooltip="Usar mesmo diretório da origem",
+                tooltip=STR.USE_SOURCE_FOLDER,
             )
 
         return selector

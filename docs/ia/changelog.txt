@@ -1,3 +1,18 @@
+3.4.1.30 22/11/2026
+[3.4.1.30][22/11/2026] Padronização semântica dos nomes de tokens:
+   - Tokens reutilizáveis de widgets e seleções deixaram de carregar o nome da implementação, usando nomes como `SELECT_ALL_LIST`, `OPEN_LOCATION` e `COPY_PATH`.
+   - Mantido o nome da ferramenta apenas nas mensagens realmente exclusivas, como `EXPORT_ALL_LAYOUTS_TOOLTIP`.
+   - Corrigidas colisões com tokens de rótulo já existentes, usando nomes semânticos distintos como `CHOOSE_FILE` e `SUGGEST_PROJECT_FOLDER`.
+   - A regra foi documentada em `SKILL_AGENT.md`, `SKILL_I18N.md` e `SKILL_WIDGETS2.md`.
+   - Versão de distribuição incrementada de `3.1.0.5` para `3.1.0.6` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
+3.4.1.29 22/11/2026
+[3.4.1.29][22/11/2026] Tooltips instrutivas da ferramenta 01 — Exportar Todos os Layouts:
+   - Adicionados tokens pt_BR para explicar formatos PDF/PNG/SVG, DPI, georreferenciamento, união de arquivos, substituição, pasta de saída, seleção de layouts e execução.
+   - ListSelectionDialog agora preserva a descrição contextual de cada item e usa tooltip tokenizada para confirmar a seleção.
+   - Tooltips internas de GridExecutionButtons, GridCheckbox, GridComplexSelector e ComplexSelector passaram a usar tokens do widget em Strings_pt_BR.
+   - Versão de distribuição incrementada de `3.1.0.4` para `3.1.0.5` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 3.4.1.28 22/11/2026
 [3.4.1.28][22/11/2026] Planejamento do sistema de tooltips e inventário técnico de widgets:
    - Criado `docs/plano_acao_tooltips.md` com 40 ferramentas únicas, widgets por ferramenta, diálogos auxiliares e matriz de responsabilidades.

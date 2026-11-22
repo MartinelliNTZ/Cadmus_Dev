@@ -68,6 +68,7 @@ from ...InstructionsManager import InstructionsManager
 from ...IconManager import IconManager
 from ....core.config.LogUtils import LogUtils
 from ....utils.ToolKeys import ToolKey
+from ....i18n.TranslationManager import STR
 
 # ── Compatibilidade Qt5 / Qt6 ──────────────────────────────────
 try:
@@ -182,16 +183,20 @@ class GridExecutionButtons(QWidget):
 
         # 2. Botão Close
         if self._enable_close:
-            self.btn_close = SimpleModernButton(text="Fechar", parent=self, primary=False)
+            self.btn_close = SimpleModernButton(
+                text=STR.CLOSE,
+                parent=self,
+                primary=False,
+            )
             self.btn_close.clicked.connect(self._on_close_clicked)
-            self.btn_close.setToolTip("Fecha a janela atual")
+            self.btn_close.setToolTip(STR.CLOSE_WINDOW_WITHOUT_EXECUTING)
             layout.addWidget(self.btn_close)
 
         # 3. Botão Config ⚙️ (entre close e info)
         if self._enable_config:
             self.btn_config = SquareIconButton(
                 icon=IconManager.icon(IconManager.CONFIG3),
-                tooltip="Abre as configurações do plugin",
+                tooltip=STR.OPEN_SETTINGS_PANEL,
                 parent=self,
             )
             if self._config_callback:
@@ -204,7 +209,7 @@ class GridExecutionButtons(QWidget):
         if self._enable_info:
             self.btn_info = SquareIconButton(
                 icon=IconManager.icon(IconManager.INFO),
-                tooltip="Exibe instruções e informações do plugin",
+                tooltip=STR.OPEN_TOOL_INSTRUCTIONS,
                 parent=self,
             )
             if self._tool_key:

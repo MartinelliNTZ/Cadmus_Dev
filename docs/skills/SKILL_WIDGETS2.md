@@ -1233,8 +1233,9 @@ Este contrato separa duas camadas que não podem ser misturadas:
 
 - Todo texto de tooltip novo deve ser um token acessado por `STR`.
 - Durante esta fase, adicionar e revisar tokens somente em `i18n/Strings_pt_BR.py`.
-- A ferramenta deve usar famílias como `TOOL_KEY_*_TOOLTIP` e `TOOL_KEY_*_*_DESC` para seus controles contextuais.
-- O widget deve usar famílias próprias, como `COMPLEX_SELECTOR_*_TOOLTIP` ou `GRID_EXECUTION_BUTTONS_*_TOOLTIP`, para controles internos reutilizados.
+- O nome do token deve representar o significado reutilizável do texto, não o nome da ferramenta ou do widget que o utiliza hoje. Prefira `SELECT_ALL_LIST`, `OPEN_LOCATION` ou `COPY_PATH`.
+- Só use o nome da ferramenta ou do widget no token quando a mensagem for realmente específica daquele contexto e não puder ser reutilizada sem alterar seu significado.
+- Tooltips de entrada exclusivas de uma ferramenta podem usar uma chave específica, como `EXPORT_ALL_LAYOUTS_TOOLTIP`; textos genéricos de controles devem permanecer sem prefixo de implementação.
 - É proibido colocar texto literal novo em `description=`, `tooltip=` ou `setToolTip()`.
 - Antes de criar um token, procurar se já existe um equivalente reutilizável em `Strings_pt_BR.py`.
 
@@ -1474,4 +1475,5 @@ border: 1px solid {theme.COLOR_BORDER};
    - Novos métodos `_schedule_preview_clear()`/`_clear_preview()` (o timer é reutilizado e reiniciado a cada redraw; a limpeza não apaga o estado boundary/tipo/path) — feedback breve e fiel ao QGIS
 | 2026-11-22 | 3.6.6 | `ComplexSelector` em modo `folder` não chama mais `os.path.isfile()` ao restaurar ou editar caminhos; isso evita bloqueios síncronos em pastas de rede indisponíveis e acelera a abertura de ferramentas que restauram paths remotos. |
 | 2026-11-22 | 3.6.7 | Formalizado o contrato de tooltips: a ferramenta é responsável pelas descrições contextuais dos itens declarados no `config`, o widget é responsável pelos controles internos; incluídas regras de separação de públicos e tokenização somente em `Strings_pt_BR`. |
+| 2026-11-22 | 3.6.8 | Nomes de tokens de tooltip devem ser semânticos e reutilizáveis; prefixos de ferramenta/widget só são permitidos quando o texto for realmente específico do contexto. |
 

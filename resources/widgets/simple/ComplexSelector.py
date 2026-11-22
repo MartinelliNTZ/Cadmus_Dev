@@ -46,6 +46,7 @@ from ...styles.AppStyles import AppStyles
 from ....utils.ExplorerUtils import ExplorerUtils
 from ....utils.ProjectUtils import ProjectUtils
 from ....utils.QgisMessageUtil import QgisMessageUtil
+from ....i18n.TranslationManager import STR
 from ...IconManager import IconManager
 from .SquareIconButton import SquareIconButton
 
@@ -272,7 +273,11 @@ class ComplexSelector(QWidget):
         if self._allow_lock_check:
             self._lock_button = SquareIconButton(
                 icon=IconManager.icon(IconManager.LOCK),
-                tooltip="🔒 Desbloqueado — clique para bloquear" if self._lock_check_default else "🔓 Bloqueado — clique para desbloquear",
+                tooltip=(
+                    STR.LOCK_FIELD
+                    if self._lock_check_default
+                    else STR.UNLOCK_FIELD
+                ),
                 parent=self,
             )
             self._lock_button.setCheckable(True)
@@ -285,7 +290,11 @@ class ComplexSelector(QWidget):
         if self._allow_file:
             self._btn_file = SquareIconButton(
                 icon=IconManager.icon(IconManager.FILE2),
-                tooltip="Selecionar arquivos" if self._multiple else "Selecionar arquivo",
+                tooltip=(
+                    STR.CHOOSE_FILES
+                    if self._multiple
+                    else STR.CHOOSE_FILE
+                ),
                 parent=self,
             )
             self._btn_file.clicked.connect(self._browse_file)
@@ -295,7 +304,11 @@ class ComplexSelector(QWidget):
         if self._allow_folder:
             self._btn_folder = SquareIconButton(
                 icon=IconManager.icon(IconManager.FOLDER),
-                tooltip="Selecionar pastas" if self._multiple else "Selecionar pasta",
+                tooltip=(
+                    STR.CHOOSE_FOLDERS
+                    if self._multiple
+                    else STR.CHOOSE_FOLDER
+                ),
                 parent=self,
             )
             self._btn_folder.clicked.connect(self._browse_folder)
@@ -305,7 +318,7 @@ class ComplexSelector(QWidget):
         if self._mode_type == "input" and self._allow_layer:
             self._btn_project = SquareIconButton(
                 icon=IconManager.icon(IconManager.LAYER2),
-                tooltip="Alternar para seleção de camada",
+                tooltip=STR.CHOOSE_LAYER,
                 parent=self,
             )
             self._btn_project.clicked.connect(self._on_project_clicked)
@@ -315,7 +328,7 @@ class ComplexSelector(QWidget):
         if self._mode_type == "output" and self._parent_selector is not None:
             self._btn_origin = SquareIconButton(
                 icon=IconManager.icon(IconManager.ORIGIN),
-                tooltip="Usar mesmo diretório da origem",
+                tooltip=STR.USE_SOURCE_FOLDER,
                 parent=self,
             )
             self._btn_origin.clicked.connect(self._on_origin_clicked)
@@ -325,7 +338,7 @@ class ComplexSelector(QWidget):
         if self._mode_type == "output":
             self._btn_suggest = SquareIconButton(
                 icon=IconManager.icon(IconManager.PROJECT_FOLDER1),
-                tooltip="Usar pasta do projeto",
+                tooltip=STR.SUGGEST_PROJECT_FOLDER,
                 parent=self,
             )
             self._btn_suggest.clicked.connect(self._on_suggest_clicked)
@@ -335,7 +348,7 @@ class ComplexSelector(QWidget):
         if self._show_explorer_button:
             self._btn_explorer = SquareIconButton(
                 icon=IconManager.icon(IconManager.EXPLORER),
-                tooltip="Abrir localização no Explorer",
+                tooltip=STR.OPEN_LOCATION,
                 parent=self,
             )
             self._btn_explorer.clicked.connect(self._open_explorer)
@@ -345,7 +358,7 @@ class ComplexSelector(QWidget):
         if self._show_copy_button:
             self._btn_copy = SquareIconButton(
                 icon=IconManager.icon(IconManager.COPY2),
-                tooltip="Copiar caminho",
+                tooltip=STR.COPY_PATH,
                 parent=self,
             )
             self._btn_copy.clicked.connect(self._copy_to_clipboard)
@@ -780,8 +793,9 @@ class ComplexSelector(QWidget):
                 IconManager.icon(IconManager.LOCK if locked else IconManager.UNLOCK)
             )
             self._lock_button.setToolTip(
-                "🔒 Desbloqueado — clique para bloquear" if locked
-                else "🔓 Bloqueado — clique para desbloquear"
+                STR.LOCK_FIELD
+                if locked
+                else STR.UNLOCK_FIELD
             )
 
     def _update_blocked_state(self):

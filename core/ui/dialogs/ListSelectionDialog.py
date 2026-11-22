@@ -99,6 +99,7 @@ class ListSelectionDialog(BaseDialog):
         for key, item in self._items.items():
             config[key] = {
                 "label": item.get("label", key),
+                "description": item.get("description", ""),
                 "default": item.get("default", True),
             }
 
@@ -129,7 +130,7 @@ class ListSelectionDialog(BaseDialog):
             config={
                 "ok": {
                     "label": STR.OK,
-                    "description": "Confirma a seleção",
+                    "description": STR.CONFIRM_SELECTION,
                     "callback": self._on_ok,
                     "is_run_button": True,
                 },

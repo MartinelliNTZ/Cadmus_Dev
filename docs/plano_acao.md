@@ -119,7 +119,7 @@ Para cada ferramenta, seguir esta ordem:
 | 01 | Exportar Todos os Layouts | `export_all_layouts` | **Concluída** |
 | 02 | Substituir Texto em Layouts | `replace_in_layouts` | A fazer |
 | 03 | Salvar, Fechar e Reabrir Projeto | `restart_qgis` | A fazer |
-| 04 | Logcat Viewer | `logcat` | A fazer |
+| 04 | Logcat Viewer | `logcat` | NÃO FAZER |
 | 05 | Configurações Cadmus | `settings` | A fazer |
 | 06 | Sobre o Cadmus | `about_dialog` | A fazer |
 | 07 | Carregar Pasta de Arquivos | `load_folder_layers` | A fazer |

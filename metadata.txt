@@ -21,6 +21,14 @@ tracker=https://github.com/MartinelliNTZ/Cadmus/issues
 
 
 changelog=
+    3.1.0.0
+        - Refactored the processing architecture with a unified execution context, standardized tasks and steps, cooperative cancellation, improved error handling, and clearer progress feedback
+        - Added a new image processing tool for TIFF conversion to JPG/PNG, cropping by extent, resizing, and image blending
+        - Added individual layout selection in Export All Layouts, with selection preferences saved between sessions
+        - Added support for exporting georeferenced PDFs from layouts
+        - Modernized dialogs and settings with a new widget system, responsive controls, collapsible parameters, and more informative tooltips
+        - Improved preference and configuration handling while preserving default values
+        - Added consistent visual styling and expanded support for QGIS translations
     3.0.0.3
         - Bug fixes and performance improvements
     3.0.0.2

@@ -73,12 +73,18 @@ h2{font-size:clamp(28px,4vw,42px);margin-bottom:12px}
 .tool-toolbar button,.searchbox{font:inherit;color:var(--ink);border:1px solid var(--line);background:var(--glass);border-radius:10px;padding:9px 13px}
 .tool-toolbar button{cursor:pointer}
 .tool-toolbar button:hover,.tool-toolbar button.on{background:var(--glass2);border-color:var(--cyan);color:var(--ink)}
+.tool-toolbar button[data-area]{border-left:4px solid var(--area-color)}
 .searchbox{width:min(430px,100%);outline:none}
 .searchbox:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(65,201,255,.12)}
+.catalog-key{display:flex;flex-wrap:wrap;gap:10px 18px;margin:-8px 0 18px;color:var(--muted);font-size:13px}
+.catalog-key span{display:inline-flex;align-items:center;gap:7px}
+.catalog-key i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--key-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--key-color) 18%,transparent)}
 .catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:9px}
 .tool-card{appearance:none;text-align:left;color:var(--ink);font:inherit;min-height:82px;background:var(--glass);border:1px solid var(--line);border-top:3px solid var(--c);border-radius:12px;padding:11px;cursor:pointer;transition:.22s;display:flex;flex-direction:column;gap:7px}
 .tool-card:hover,.tool-card.on{background:var(--glass2);border-color:var(--c);transform:translateY(-2px);box-shadow:0 12px 24px -18px var(--c)}
+.tool-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tool-card .num{align-self:flex-start;border-radius:99px;padding:2px 7px;background:var(--c);color:#fff;font:700 10px "Cascadia Mono",Consolas,monospace}
+.family-mark{display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--line);border-radius:8px;color:var(--ink);background:var(--glass2);font-size:16px;line-height:1}
 .tool-card h3{font-size:13px;line-height:1.18}
 .tool-card p,.tool-card .kind{display:none}
 .empty{grid-column:1/-1;padding:30px;text-align:center;color:var(--muted);background:var(--glass);border:1px dashed var(--line);border-radius:18px}
@@ -92,7 +98,8 @@ h2{font-size:clamp(28px,4vw,42px);margin-bottom:12px}
 .widget-panel pre{margin:10px 0 0;white-space:pre-wrap;color:var(--code);font:12.5px/1.55 "Cascadia Mono",Consolas,monospace}
 .family-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .family-card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:20px;border-top:4px solid var(--c)}
-.family-card b{display:block;font-size:34px;line-height:1;color:var(--c)}
+.family-card .family-icon{display:block;font-size:34px;line-height:1;color:var(--c)}
+.family-card .family-count{display:block;margin-top:7px;color:var(--muted);font:700 11px "Cascadia Mono",Consolas,monospace;letter-spacing:.06em}
 .family-card h3{font-size:18px;margin:10px 0 5px}.family-card p{margin:0;color:var(--muted);font-size:13px}
 .panel{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:30px;border-top:4px solid var(--c);transition:border-color .3s}
 .panel header{all:unset;display:block}
@@ -217,6 +224,7 @@ footer.foot .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:
 <section id="ferramentas"><div class="wrap">
   <h2 class="rv">Ferramentas, uma por uma</h2>
   <p class="lead rv">Use os filtros para localizar uma ferramenta. Clique no cartão para abrir a documentação técnica completa daquela entrada: finalidade, funcionamento, widgets, dependências, entrada e saída.</p>
+  <div class="catalog-key rv"><span><i style="--key-color:#14b8a6"></i>Cor da borda = categoria funcional</span><span>▣ ⚡ ⌖ ⚙ = família de execução</span></div>
   <div class="tool-toolbar rv" id="filters"></div>
   <div class="tool-toolbar rv"><input class="searchbox" id="search" type="search" placeholder="Buscar por nome, tool_key, classe, arquivo ou widget…" aria-label="Buscar ferramenta"></div>
   <div class="catalog rv" id="catalog"></div>
@@ -360,27 +368,42 @@ const WIDGETS = [
   {id:"SquareIconButton",layer:"simple/interno",path:"resources/widgets/simple/SquareIconButton.py",purpose:"Botão interno quadrado para ações compactas, como copiar ou abrir um seletor.",example:"SquareIconButton(icon=IconManager.COPY2, tooltip=STR.COPY, parent=self)",usedBy:"ComplexColorPicker, ComplexSelector e componentes compostos",color:"#a78bfa"}
 ];
 
+const areaColors={
+  "Todas":"#41c9ff",
+  "Layouts":"#14b8a6",
+  "Sistema":"#64748b",
+  "Pasta":"#22c55e",
+  "Vetorial":"#a855f7",
+  "Agricultura":"#f97316",
+  "Raster":"#0ea5e9",
+  "Desenvolvedor":"#8b5cf6",
+  "Processing":"#38bdf8"
+};
+const areaColor=area=>areaColors[area]||"#64748b";
 const state={area:"Todas",query:"",selected:TOOLS[0].id,widgetLayer:"Todos",selectedWidget:WIDGETS[0].id};
 const areas=["Todas",...new Set(TOOLS.map(t=>t.area))];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const familyIcon=kind=>(familyInfo[kind]||{}).icon||"•";
+const familyLabel=kind=>(familyInfo[kind]||{}).label||kind;
+const toolColor=tool=>areaColor(tool.area);
 const words=t=>[t.id,t.name,t.area,t.kind,t.entry,t.purpose,...t.inputs,...t.outputs,...t.widgets,...t.deps].join(" ").toLowerCase();
 function visible(t){return(state.area==="Todas"||t.area===state.area)&&words(t).includes(state.query)}
 function renderFilters(){
-  $("filters").innerHTML=areas.map(a=>`<button type="button" class="${state.area===a?"on":""}" data-area="${esc(a)}">${esc(a)}</button>`).join("");
+  $("filters").innerHTML=areas.map(a=>`<button type="button" class="${state.area===a?"on":""}" data-area="${esc(a)}" style="--area-color:${areaColor(a)}">${esc(a)}</button>`).join("");
   document.querySelectorAll("[data-area]").forEach(b=>b.onclick=()=>{state.area=b.dataset.area;render()});
 }
 function renderCatalog(){
   const list=TOOLS.filter(visible);
   if(!list.length){$("catalog").innerHTML='<div class="empty">Nenhuma ferramenta encontrada para este filtro.</div>';return}
-  $("catalog").innerHTML=list.map(t=>`<button type="button" class="tool-card ${state.selected===t.id?"on":""}" data-tool="${esc(t.id)}" style="--c:${esc(t.color)}"><span class="num">${String(TOOLS.indexOf(t)+1).padStart(2,"0")}</span><h3>${esc(t.name)}</h3></button>`).join("");
+  $("catalog").innerHTML=list.map(t=>`<button type="button" class="tool-card ${state.selected===t.id?"on":""}" data-tool="${esc(t.id)}" style="--c:${toolColor(t)}"><span class="tool-card-head"><span class="num">${String(TOOLS.indexOf(t)+1).padStart(2,"0")}</span><span class="family-mark" title="${esc(familyLabel(t.kind))}" aria-label="${esc(familyLabel(t.kind))}">${familyIcon(t.kind)}</span></span><h3>${esc(t.name)}</h3></button>`).join("");
   document.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{state.selected=b.dataset.tool;renderDetail();renderCatalog();$("toolPanel").scrollIntoView({behavior:"smooth",block:"start"})});
 }
 function list(items){return items.map(x=>`<li>${esc(x)}</li>`).join("")}
 function renderDetail(){
   const t=TOOLS.find(x=>x.id===state.selected)||TOOLS[0];
-  $("toolPanel").style.setProperty("--c",t.color);
-  $("toolPanel").innerHTML=`<div class="ptitle"><h3>${esc(t.name)}</h3><span class="kind">${esc(t.area)} · ${esc(t.kind)}</span></div><div class="identity"><span class="chip">${esc(t.id)}</span><span class="chip">${esc(t.entry)}</span></div><div class="cols"><div class="col"><h4>Para que serve</h4><p>${esc(t.purpose)}</p></div><div class="col"><h4>Entrada</h4><ul>${list(t.inputs)}</ul></div><div class="col"><h4>Saída</h4><ul>${list(t.outputs)}</ul></div></div><div class="detail-flow"><b>Funcionamento:</b> ${t.flow.map(esc).join(" → ")}</div><h4 class="sh4">Widgets e componentes</h4><div class="subs">${t.widgets.map((w,i)=>`<div class="sub"><b>${String(i+1).padStart(2,"0")}</b><h4>${esc(w.split(" · ")[0])}</h4><p>${esc(w.includes(" · ")?w.split(" · ").slice(1).join(" · "):"Componente usado pela ferramenta")}</p></div>`).join("")}</div><h4 class="sh4">Dependências e pontos de integração</h4><div class="nut">${t.deps.map(d=>`<span>${esc(d)}</span>`).join("")}</div>`;
+  $("toolPanel").style.setProperty("--c",toolColor(t));
+  $("toolPanel").innerHTML=`<div class="ptitle"><h3>${esc(t.name)}</h3><span class="kind"><span class="family-mark" title="${esc(familyLabel(t.kind))}" aria-label="${esc(familyLabel(t.kind))}">${familyIcon(t.kind)}</span> ${esc(t.area)} · ${esc(t.kind)}</span></div><div class="identity"><span class="chip">${esc(t.id)}</span><span class="chip">${esc(t.entry)}</span></div><div class="cols"><div class="col"><h4>Para que serve</h4><p>${esc(t.purpose)}</p></div><div class="col"><h4>Entrada</h4><ul>${list(t.inputs)}</ul></div><div class="col"><h4>Saída</h4><ul>${list(t.outputs)}</ul></div></div><div class="detail-flow"><b>Funcionamento:</b> ${t.flow.map(esc).join(" → ")}</div><h4 class="sh4">Widgets e componentes</h4><div class="subs">${t.widgets.map((w,i)=>`<div class="sub"><b>${String(i+1).padStart(2,"0")}</b><h4>${esc(w.split(" · ")[0])}</h4><p>${esc(w.includes(" · ")?w.split(" · ").slice(1).join(" · "):"Componente usado pela ferramenta")}</p></div>`).join("")}</div><h4 class="sh4">Dependências e pontos de integração</h4><div class="nut">${t.deps.map(d=>`<span>${esc(d)}</span>`).join("")}</div>`;
 }
 const widgetLayers=["Todos","grid","raiz","simple/interno"];
 function renderWidgetFilters(){
@@ -400,15 +423,15 @@ function renderWidgetDetail(){
   $("widgetPanel").innerHTML=`<div class="ptitle"><h3>${esc(w.id)}</h3><span class="kind">${esc(w.layer)} · widget reutilizável</span></div><div class="identity"><span class="chip">${esc(w.path)}</span></div><div class="cols"><div class="col"><h4>Responsabilidade</h4><p>${esc(w.purpose)}</p></div><div class="col"><h4>Onde aparece</h4><p>${esc(w.usedBy)}</p></div><div class="col"><h4>Regra de integração</h4><p>${w.layer==="grid"?"O plugin configura este widget e fornece callbacks; o widget monta seus controles internos.":w.layer==="raiz"?"A infraestrutura do diálogo compõe este widget; a ferramenta o usa como bloco estrutural.":"Este é um bloco interno; plugins não devem importá-lo diretamente."}</p></div></div><div class="detail-flow"><b>Exemplo de instanciação/configuração:</b><pre>${esc(w.example)}</pre></div>`;
 }
 const familyInfo={
-  Dialog:{label:"Dialog",description:"Janela de plugin com widgets Cadmus, preferências, callbacks e uma ação principal.",color:"#14b8a6"},
-  "Instant\u00e2neo":{label:"Instantâneo",description:"Ação curta sobre projeto ou sessão, sem fluxo de parâmetros extenso.",color:"#ef4444"},
-  "Map tool":{label:"Map tool",description:"Ferramenta ligada ao canvas que recebe uma interação espacial antes de concluir a operação.",color:"#fbbf24"},
-  Processing:{label:"Processing",description:"Algoritmo exposto pelo MTLProvider e executado pelo contrato nativo do QGIS Processing.",color:"#38bdf8"}
+  Dialog:{label:"Dialog",icon:"▣",description:"Janela de plugin com widgets Cadmus, preferências, callbacks e uma ação principal.",color:"#14b8a6"},
+  "Instant\u00e2neo":{label:"Instantâneo",icon:"⚡",description:"Ação curta sobre projeto ou sessão, sem fluxo de parâmetros extenso.",color:"#ef4444"},
+  "Map tool":{label:"Map tool",icon:"⌖",description:"Ferramenta ligada ao canvas que recebe uma interação espacial antes de concluir a operação.",color:"#fbbf24"},
+  Processing:{label:"Processing",icon:"⚙",description:"Algoritmo exposto pelo MTLProvider e executado pelo contrato nativo do QGIS Processing.",color:"#38bdf8"}
 };
 function renderFamilies(){
   const counts=TOOLS.reduce((acc,t)=>{acc[t.kind]=(acc[t.kind]||0)+1;return acc},{});
   const keys=["Dialog","Instant\u00e2neo","Map tool","Processing"];
-  $("familyGrid").innerHTML=keys.map(key=>{const f=familyInfo[key];return`<article class="family-card" style="--c:${f.color}"><b>${String(counts[key]||0).padStart(2,"0")}</b><h3>${esc(f.label)}</h3><p>${esc(f.description)}</p><p><code>${esc(key)} · ${counts[key]||0} ferramentas</code></p></article>`}).join("");
+  $("familyGrid").innerHTML=keys.map(key=>{const f=familyInfo[key];return`<article class="family-card" style="--c:${f.color}"><div class="family-icon" aria-hidden="true">${f.icon}</div><span class="family-count">${String(counts[key]||0).padStart(2,"0")} ferramentas</span><h3>${esc(f.label)}</h3><p>${esc(f.description)}</p><p><code>${esc(key)} · ${counts[key]||0} ferramentas</code></p></article>`}).join("");
 }
 function render(){state.query=$("search").value.trim().toLowerCase();renderFilters();renderCatalog();renderDetail();renderWidgets();renderFamilies()}
 $("search").oninput=render;

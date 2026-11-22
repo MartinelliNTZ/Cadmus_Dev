@@ -1,4 +1,393 @@
 #inicie aqui sempre use a data atual nos logs sempre insira na sequencia
+3.4.1.25 21/11/2026
+[3.4.1.25][21/11/2026] Correções de conformidade Flake8:
+   - Corrigidos espaçamentos, linhas em branco, finais de arquivo e imports não utilizados.
+   - Corrigidos anotações de tipo ausentes e f-strings sem placeholders.
+   - Exceções antes silenciadas com `except ...: pass` agora são registradas ou mantêm o fallback explícito.
+   - `build_distribution.py` atualizado de `VERSION=3.0.0.4` para `VERSION=3.0.0.5`.
+
+3.4.1.24 21/11/2026
+[3.4.1.24][21/11/2026] Versionamento de distribuição automatizado pelo agente:
+   - `build_distribution.py` atualizado de `VERSION=3.0.0.3` para `VERSION=3.0.0.4`.
+   - `SKILL_AGENT.md` agora exige o incremento automático da versão a cada modificação.
+
+[3.4.1.23][21/11/2026] Registro migrado temporariamente para modo offline:
+   - Removida a validação de licenças via Supabase e as credenciais do serviço.
+   - Mantida a estrutura local de registro com licença genérica de nível 5 por 10 anos.
+   - Preservados o arquivo local assinado e a tela de gerenciamento de registro.
+
+[3.4.1.20][21/11/2026] Drone Coordinates liberado para uso público:
+   - Removidas as verificações de registro da interface do Drone Coordinates.
+   - Logo, título de projeto e geração de relatório ficam disponíveis sem licença.
+   - Mantido o sistema de registro das demais ferramentas e do Report Metadata.
+
+3.1.0 05/08/2026
+[3.1.0.1][05/08/2026] ExportAllLayouts: seleção individual de layouts:
+   - Novo botão "Layouts" no GridExecutionButtons (STR.SELECT_LAYOUTS / STR.SELECT_LAYOUTS_DESC)
+   - Nova classe LayoutsSelectionDialog (BaseDialog) com GridCheckbox de layouts do projeto
+   - GridCheckbox com control_buttons_config: Selecionar Todos / Desselecionar Todos / Inverter (STR.SELECT_ALL, STR.DESELECT_ALL, STR.INVERT_SELECTION)
+   - Botões OK/Fechar via GridExecutionButtons (add_execution_buttons)
+   - Seleção persistida em Preferences via "selected_layouts" (_load_prefs/_save_prefs)
+   - execute_tool filtra layouts pela seleção; se nenhum selecionado, exporta todos (comportamento padrão)
+   - Validação: se nenhum layout no projeto ou seleção vazia → modal NO_LAYOUTS_SELECTED
+   - Novas strings: SELECT_LAYOUTS, SELECT_LAYOUTS_DESC, SELECT_LAYOUTS_TITLE, SELECT_LAYOUTS_HINT, INVERT_SELECTION, NO_LAYOUTS_SELECTED, LAYOUTS_SELECTED_COUNT (pt_BR, en; es/de herdam de pt_BR)
+   - Classe LayoutsSelectionDialog movida para core/ui/dialogs/LayoutsSelectionDialog.py (padrão DefaultProjectsFolderDialog/ProjectNameDialog)
+   - Import de BaseDialog adicionado; sem imports não utilizados (F401)
+3.2.0 06/08/2026
+[3.2.0.1][06/08/2026] ExportAllLayouts: configuração de DPI de saída:
+   - Novo campo "DPI de saída" (GridDoubleSpin) entre Max Width e pasta de saída
+   - Valor 0 = usa o DPI configurado no layout (padrão); >0 define DPI manual para PNG e PDF
+   - Aplicado em PdfExportSettings.dpi e ImageExportSettings.dpi (somente se > 0)
+   - Persistência em Preferences via chave "dpi" (_load_prefs/_save_prefs)
+   - Logs incluem o DPI efetivo usado em PDF e PNG
+   - Novas strings: DPI_OUTPUT, DPI_OUTPUT_DESC (pt_BR apenas)
+ 3.3.0 06/08/2026
+ [3.3.0.1][06/08/2026] ExportAllLayouts: exportação em formato SVG:
+    - Novo checkbox "Exportar SVG" (F"{STR.EXPORT} SVG") no GridCheckbox de formatos
+    - Labels de PDF/PNG/SVG padronizados com F"{STR.EXPORT} FORMATO" (PDF/PNG/SVG não são traduzidos)
+    - Exportação via QgsLayoutExporter.exportToSvg com SvgExportSettings (dpi aplicado se > 0)
+    - Caminho de saída .svg com mesma lógica de nomenclatura/substituição de PDF/PNG
+    - Validação exige pelo menos um formato (PDF, PNG ou SVG)
+    - Persistência em Preferences via chave "export_svg" (_load_prefs/_save_prefs)
+    - Contagem de sucesso considera SVG (ok_pdf or ok_png or ok_svg)
+    - Sem novas strings de tradução (usa STR.EXPORT + sufixo do formato)
+ [3.3.0.2][06/08/2026] core/enum: correção de importação de MenuCategory:
+    - Adicionada re-exportação de MenuCategory em core/enum/__init__.py
+    - Corrige erro "module 'Cadmus.core.enum.MenuCategory' has no attribute 'LAYOUTS'"
+    - Causa: from ..enum import MenuCategory resolvia o módulo, não a classe
+  [3.3.0.3][06/08/2026] ExportAllLayouts: refatoração de prefs via GridCheckbox:
+     - _load_prefs usa checkbox_widget.set_preferences(prefs.get("checkbox_states"))
+     - _save_prefs usa checkbox_widget.get_preferences() → chave "checkbox_states"
+     - Removidas chaves individuais (export_pdf/export_png/export_svg/georeference_pdf/merge_pdf/merge_png/replace_existing) em favor do dict único
+     - Log de save simplificado (sem referência a chaves antigas)
+   [3.3.0.4][06/08/2026] DeveloperTestTool: nova ferramenta oficial de testes:
+      - Novo ToolKey DEVELOPER_TEST_TOOL em utils/ToolKeys.py
+      - Novas strings DEVELOPER_TEST_TOOL_TITLE, DEVELOPER_TEST_TOOL_TOOLTIP, MENU_DEVELOPER em Strings_pt_BR
+      - Categoria MenuCategory.DEVELOPER já existente em core/enum/MenuCategory.py
+      - Categoria DEVELOPER adicionada em StringManager.MENU_CATEGORIES e MenuManager.category_icons
+      - Novo plugin plugins/DeveloperTestTool.py (BasePluginMTL + GridComplexSelector + GridExecutionButtons)
+      - Registrado em ToolRegistry com registry_level=3 (developer), categoria DEVELOPER, tool_type=DIALOG
+      - Ícone reutilizado mtl_agro.ico via IconManager.DEVELOPER_TEST_TOOL
+   [3.3.0.5][06/08/2026] InfoDialog: informações do plugin + redes sociais:
+      - GridLabel + GridIconButton na mesma linha (QHBoxLayout local no rodapé) exibem nome do plugin (STR.APP_NAME), versão (lida do metadata.txt via _get_plugin_version()), criador (STR.CREATOR) e todos os botões de rede social (GitHub, LinkedIn, Instagram, E-mail, Buy Me a Coffee) via webbrowser
+      - Sem alterações em widgets (GridIconButton/GridLabel intactos)
+      - Sem novas strings (reutiliza STR.APP_NAME, STR.VERSION, STR.CREATOR)
+      - Sem imports não utilizados (F401)
+   [3.3.0.6][06/08/2026] RasterSamplerTool: nova map tool de amostragem de rasters:
+      - Novo ToolKey RASTER_SAMPLER em utils/ToolKeys.py (com cor #16A085)
+      - Novas strings RASTER_SAMPLER_TITLE, RASTER_SAMPLER_TOOLTIP, RASTER_SAMPLER_SELECT_RASTERS, RASTER_SAMPLER_VALUES, RASTER_SAMPLER_NO_RASTERS, RASTER_SAMPLER_CLICK_CANVAS_HINT em Strings_pt_BR
+      - Novo plugin plugins/RasterSamplerTool.py (QgsMapTool, padrão CoordClickTool) — canvasReleaseEvent amostra rasters selecionados no ponto clicado via dataProvider().sample() com conversão de CRS
+      - Novo plugin plugins/RasterSamplerDialog.py (BasePluginMTL, padrão CoordResultDialog) — GridCheckbox para seleção múltipla de rasters + GridLabel para valores + GridExecutionButtons (Fechar/Info)
+      - Seleção de rasters persistida em Preferences via chave "selected_rasters" (_load_prefs/_save_prefs)
+      - Registrado em ToolRegistry com tool_type=MAP_TOOL, categoria RASTER, order=30, executor run_raster_sampler (referência em self.raster_sampler_tool)
+      - Ícone reutilizado raster_mass_sampler.ico via IconManager
+       - Amostragem no main thread (operação leve, manipula objetos C++ do QGIS)
+       - Sem imports não utilizados (F401)
+3.4.0 06/08/2026
+[3.4.0.1][06/08/2026] ListSelectionDialog genérico + migração ExportAllLayouts/RasterSampler:
+   - Nova classe core/ui/dialogs/ListSelectionDialog.py (BaseDialog) — diálogo genérico de seleção de itens com checkboxes
+   - Substitui o LayoutsSelectionDialog específico (que permanece no repositório, sem uso)
+   - Parâmetros: items (dict {key: {"label", "default"}}), title, hint, tool_key (obrigatório para logs), icon_path, parent
+   - API: get_selected_items() → list[str] (chaves dos itens marcados após exec() True)
+   - GridCheckbox com control_buttons_config (Selecionar Todos / Desselecionar / Inverter) + GridExecutionButtons (OK/Fechar)
+   - ExportAllLayoutsPlugin migrado: open_layouts_selection constrói dict de layouts e usa ListSelectionDialog
+   - RasterSamplerDialog migrado: botão "Rasters para amostragem (N)" no GridExecutionButtons abre ListSelectionDialog
+   - GridExecutionButtons ganhou update_button_label(key, text) — atualiza texto de botão do config pelo identificador
+   - RasterSamplerDialog: seleção continua persistida em Preferences via chave "selected_rasters" (_load_prefs/_save_prefs)
+   - RasterSamplerDialog: refresh_raster_list mantém apenas rasters ainda existentes no projeto
+   - Sem imports não utilizados (F401)
+[3.4.0.2][06/08/2026] RasterSamplerDialog: enumeração + diferenças + stretch:
+   - Stretch adicionado após o GridLabel (self.layout.addStretch()) empurra todos os itens para cima
+   - Novo helper _get_selected_layers_ordered() — camadas selecionadas na ordem do projeto para enumeração estável
+   - set_raster_values agora enumera os rasters (1, 2, 3...) e exibe a diferença de cada um para os demais selecionados no formato "(N: ±X.XX)"
+   - clear_values mantém a enumeração dos rasters selecionados ao limpar
+   - Sem novas strings (reutiliza STR.UNAVAILABLE e STR.RASTER_SAMPLER_CLICK_CANVAS_HINT)
+   - Sem imports não utilizados (F401)
+3.4.0.5 07/08/2026
+[3.4.0.5][07/08/2026] Licença/Supabase: diagnóstico + correção de logging:
+   - Confirmado via nslookup/DNS público (8.8.8.8) que o domínio ynlameyuhvmesozcuanh.supabase.co NÃO existe mais (Non-existent domain)
+   - Causa da falha de ativação de licença: projeto Supabase excluído/pausado — nenhuma chave pode ser validada
+   - RegistryManager._query_server: trocado logging.getLogger (padrão Python, invisível no log do plugin) por LogUtils com ToolKey.SYSTEM
+   - Effecto: falhas de conexão com o servidor agora aparecem no log estruturado do Cadmus
+   - ToolRegistry._filter_tools_by_reg: corrigida mensagem de log corrompida ("Falsenível" → "is_valid=..., nível atual=...")
+   - ToolRegistry: DeveloperTestTool com registry_level=None (correção 3.4.0.1)
+[3.4.0.6][07/08/2026] RegistryManager: constante ENABLE_REGISTRY para desabilitar servidor:
+   - Adicionada constante ENABLE_REGISTRY: bool = False no RegistryManager
+   - is_registry_valid() retorna True quando ENABLE_REGISTRY=False (modo livre)
+   - save_lic_key() recusa salvar quando ENABLE_REGISTRY=False (com aviso)
+   - has_minimum_level() retorna True quando ENABLE_REGISTRY=False (todas as features liberadas)
+   - _query_server() não faz requisição HTTP quando ENABLE_REGISTRY=False
+   - Efeito: plugin funciona completo sem depender do servidor Supabase (que está offline)
+[3.4.0.3][06/08/2026] RasterSamplerDialog: paleta de cores + rebuild dinâmico + HTML:
+   - GridLabel ganhou método rebuild(config) — remove todos os labels existentes e reconstrói a partir do config dict (permite atualizar a quantidade de itens dinamicamente)
+   - RasterSamplerDialog: nova paleta RASTER_COLORS com 5 cores (verde, laranja, azul, vermelho, roxo) — cada raster enumerado recebe uma cor da paleta
+   - Labels agora usam HTML: nome do raster em negrito na cor da paleta dele; cada diferença "(N: X.XX)" na cor do raster N referenciado com &emsp; de espaçamento
+   - _rebuild_labels() reconstrói o grid com a quantidade atual de rasters selecionados — chamado ao alterar seleção (open_raster_selection, set_selected_raster_ids, refresh_raster_list, _load_prefs)
+   - clear_values mantém enumeração e cores ao limpar
+   - Sem novas strings (reutiliza STR.UNAVAILABLE e STR.RASTER_SAMPLER_CLICK_CANVAS_HINT)
+   - Sem imports não utilizados (F401)
+3.4.0.4 07/08/2026
+[3.4.0.4][07/08/2026] DeveloperTestTool: correção de visibilidade sem licença:
+   - ToolRegistry: registry_level alterado de 3 para None no developer_test_tool
+   - Causa: _filter_tools_by_reg() removia a ferramenta quando não havia licença válida (is_valid=False, nível=0), pois registry_level=3 > 0
+   - Efeito: DeveloperTestTool e toolbar developer agora aparecem para todos os usuários, sem exigir licença
+    - Ferramenta de desenvolvimento/teste não deve ser bloqueada por licença
+[3.4.0.7][10/08/2026] ExportAllLayouts: instruções atualizadas + metadados obrigatórios:
+   - Instruções do ExportAllLayouts reescritas refletindo o comportamento atual (seleção de layouts, DPI de saída, exportação SVG, georreferenciamento, união de arquivos)
+   - Arquivos atualizados: resources/instructions/pt_BR/export_all_layouts_help.md, en/, es/, de/
+   - Novo arquivo: resources/instructions/ja/export_all_layouts_help.md
+   - Adicionado bloco de metadados obrigatório no topo de cada arquivo .md de instrução (Versao, Data de criacao, Data da ultima modificacao)
+   - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.3.0: regra de metadados obrigatórios, sempre atualizar Data da ultima modificacao ao editar
+   - InstructionsManager.py mantido sem alterações (não solicitado)
+[3.4.0.8][10/08/2026] PathExtension: novas instruções em todos os locales:
+   - Novos arquivos de instrução path_extension_tool_help.md em pt_BR, en, es, de, ja (com metadados: Versao, Data de criacao, Data da ultima modificacao)
+   - Conteúdo baseado no comportamento real: PathExtensionPlugin, PathExtensionStep, PathExtensionTask e plano_acao_path_extension
+   - Documentados os 4 modos: Remover Extensao, Restaurar Extensao, Zipar, Deszipar (com detalhes do campo NewPath, agrupamento por pasta e remoção de originais/ZIP)
+   - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.4.0 (arquivo listado + histórico)
+[3.4.0.9][10/08/2026] ReportMetadata: novas instruções em todos os locales:
+   - Novos arquivos de instrução report_metadata_help.md em pt_BR, en, es, de, ja (com metadados: Versao, Data de criacao, Data da ultima modificacao)
+   - Conteúdo baseado no comportamento real do plugins/ReportMetadataPlugin.py
+   - Documentados: gerar relatorio (licenca nivel 3), vetorizar voo (camadas pontos + rastro), refresh da lista de JSONs, abertura de pastas temporarias
+   - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.5.0 (arquivo listado + histórico)
+[3.4.0.10][10/08/2026] Settings: instruções atualizadas com metadados e conteúdo real:
+   - settings_help.md reescrito refletindo o comportamento atual do SettingsPlugin (pasta de projetos, SRC padrão, idioma, sufixos de área, categorias da toolbar)
+   - Adicionado bloco de metadados obrigatório (Versao, Data de criacao, Data da ultima modificacao)
+   - Corrigida a afirmação sobre a chave de preferências: salva em SYSTEM, VECTOR_FIELDS e settings
+   - Documentada a validação de sufixos duplicados e o sinal de atualização da toolbar
+   - Arquivos atualizados em todos os 4 idiomas: pt_BR, en, es, de
+   - Novo arquivo: resources/instructions/ja/settings_help.md
+    - SKILL_INSTRUCTIONS_SYSTEM.md atualizado para 1.7.0 (histórico)
+[3.4.0.11][10/08/2026] ReportGeneration (API 3): correção de métricas zeradas/ausentes no relatório:
+   - Causa raiz: o JSON v2.0 (API 1) pode não conter os campos custom derivados (3DSpeed, MotionBlurRisk, PredictedOverlap, RtkEffectivePrecision, XYDifference, ZDifference, GroundSampleDistanceCm, PhotogrammetryQualityIndex, etc.) quando o usuário não seleciona todos os campos custom no filtro. O relatório (API 3) dependia desses campos para classificar indicadores e calcular métricas, resultando em campos zerados/'-' e alertas disparando em 100% das fotos.
+   - utils/report/IMGMetadata.py: adicionadas derivações de indicadores a partir dos campos brutos EXIF/XMP/MRK presentes no JSON:
+     - speed_3d_ms/kmh (de FlightX/Y/ZSpeed ou Speed3dKmh), incidence_angle (de GimbalPitchDegree)
+     - gsd_cm (sensor_width * altitude / (focal * width)), motion_blur_risk (speed * exposure / pixel_size)
+     - gimbal_offset, yaw_alignment_error, yaw_relative_error (de GimbalYaw/FlightYaw)
+     - rtk_effective_precision (média RtkStdLat/Lon/Hgt), rtk_type (de RtkFlag), rtk_stability_score (de RtkDiffAge)
+     - xy_difference (Haversine MRK vs XMP), z_difference (Alt vs AbsoluteAltitude)
+     - ground_elevation, flight_altitude, coverage_width/height, predicted_overlap, f_overlap, is_ideal_overlap
+     - light_source_classification/light_consistency (de LightSource), ev, light_value, ev_classification
+     - focal_length_35efl, fov, circle_of_confusion, hyperfocal_distance, dof, nadir
+     - total_heat_index, shutter_life_pct, orthorectification_potential, photogrammetry_quality_index, linear_velocity_instant
+   - IMGMetadata.score(): valores derivados agora são populados em level5_values para que os agregadores (AggregateAnalyzer, JsonMetadataManager) encontrem os dados.
+   - IMGMetadata.compute_sequence_indicators(): novo método estático que calcula indicadores baseados em sequência (time_since_previous, geodesic_distance_previous, distance_3d_previous, avg_velocity_between_photos, displacement_direction, gimbal_angular_velocity, vertical_stability, trajectory_smoothness, speed_variation_index, capture_efficiency, abrupt_change_flag, strip_id, is_valid_sequence_prev/next).
+   - core/services/ReportGenerationService.py: chama IMGMetadata.compute_sequence_indicators(results) após o score para popular métricas de sequência (distância entre fotos, sobreposição, faixas) mesmo quando o JSON não contém os campos custom.
+   - Sem alterações em API 1 (geração JSON) nem API 2 (vetorização). Apenas API 3 (relatório) foi corrigida.
+    - Sem novas strings (logs em pt_BR).
+[3.4.0.12][12/08/2026] CalculateChm: novo algoritmo de processamento CHM:
+   - Novo ToolKey CALCULATE_CHM em utils/ToolKeys.py (com cor #1ABC9C)
+   - Novas strings CALCULATE_CHM_TITLE, CALCULATE_CHM_INPUT_MDS ("Raster MDS (Modelo Digital de Superfície)"), CALCULATE_CHM_INPUT_MDT ("Raster MDT (Modelo Digital do Terreno)"), CALCULATE_CHM_OUTPUT ("Raster CHM (Modelo de Altura de Copas)") em Strings_pt_BR
+   - Novo processing/CalculateChm.py (BaseProcessingAlgorithm, grupo RASTER) — calcula CHM = max(MDS - MDT, 0)
+   - Alinhamento robusto: se MDS e MDT não tiverem a mesma grade, MDT é reamostrado com gdal.Warp forçando width/height exatos do MDS (elimina erro de 1 pixel)
+   - Cálculo em blocos via GDAL/numpy (sem gdal_calc/VRT intermediários)
+   - NoData de saída sempre -9999 (0 é valor válido de CHM); NoData de entrada de cada raster respeitado e propagado
+   - Checkboxes padrão OPEN_OUTPUT_FOLDER e DISPLAY_HELP com prefs
+   - Registrado em processing/provider.py (MTLProvider.loadAlgorithms)
+   - Sem imports não utilizados (F401)
+   [3.4.0.13][12/08/2026] RasterMaskClipper: novo algoritmo de processamento de recorte por máscara:
+      - Novo ToolKey RASTER_MASK_CLIPPER em utils/ToolKeys.py (com cor #E74C3C)
+      - Novas strings RASTER_MASK_CLIPPER_TITLE ("Recortar Raster por Máscara de Feições"), SEPARATE_FEATURES ("Separar feições"), RASTER_MASK_CLIPPER_TOOLTIP em Strings_pt_BR
+      - Novo processing/RasterMaskClipper.py (BaseProcessingAlgorithm, grupo RASTER) — recorta um raster usando uma camada poligonal como máscara
+      - Modo 'Separar feições': gera um raster por feição usando o campo 'name' (quando existir) para nomear os arquivos
+      - Modo camada inteira: gera apenas um raster usando toda a camada
+      - Suporte a prefixo e sufixo personalizados na nomenclatura, com sanitização de caracteres inválidos e nomes únicos (evita colisão)
+      - Reprojeção automática do vetor para o CRS do raster quando necessário
+      - Validação de sobreposição entre raster e vetor antes do recorte
+      - Se nenhuma pasta de saída for informada, gera em pasta temporária e carrega no projeto
+      - Checkboxes padrão OPEN_OUTPUT_FOLDER e DISPLAY_HELP com prefs
+      - Registrado em processing/provider.py (MTLProvider.loadAlgorithms)
+      - Sem imports não utilizados (F401)
+[3.4.0.14][13/08/2026] RasterMeanAdjust: novo algoritmo de processamento de ajuste de média raster:
+   - Novo ToolKey RASTER_MEAN_ADJUST em utils/ToolKeys.py (com cor #F5B041)
+   - Novas strings genéricas TARGET_MEAN ("Média desejada") e OUTPUT ("Saída") em Strings_pt_BR; título RASTER_MEAN_ADJUST_TITLE ("Ajustar Média Raster")
+   - Strings traduzidas em en (Adjust Raster Mean / Desired mean / Output), es (Ajustar Media Raster / Media deseada / Salida) e de (Raster-Mittelwert anpassen / Gewünschter Mittelwert / Ausgabe)
+   - Novo processing/RasterMeanAdjust.py (BaseProcessingAlgorithm, grupo RASTER) — ajusta a média dos valores de um raster para um valor desejado
+   - Calcula fator = media_desejada / media_atual e multiplica todos os pixels válidos por esse fator (sem gdal_calc)
+   - Pixels NoData preservados; georreferenciamento, projeção e NoData do raster original mantidos na saída
+   - Processamento em blocos via GDAL/numpy com cancelamento cooperativo e progresso percentual
+   - Validação: erro se a média atual do raster for zero (impossível calcular o fator)
+   - Média desejada persistida em Preferences (chave target_mean) com valor padrão 100.0
+   - Checkboxes padrão OPEN_OUTPUT_FOLDER e DISPLAY_HELP com prefs
+   - Registrado em processing/provider.py (MTLProvider.loadAlgorithms)
+   - Instruções HTML get_raster_mean_adjust_help adicionadas em HtmlInstructions_pt_BR, _en, _es e _de
+   - Sem imports não utilizados (F401)
+
+3.4.1 17/08/2026
+[3.4.1.1][17/08/2026] Sistema de temas com seletor no SettingsPlugin:
+   - ThemeManager: registro dos 2 temas oficiais como singletons — "citizien" (CitizienTheme, PADRÃO) e "black_gold" (BlackGoldTheme); removido registro "base"
+   - ThemeManager: cache de instâncias únicas por tema (_THEME_INSTANCES) + classmethod all_themes() — lista de singletons de todos os temas
+   - ThemeManager: ao ser inicializado/carregado valida a chave salva em System > "theme"; se ausente ou inválida, habilita o tema padrão (citizien) em vez de levantar KeyError
+   - ThemeManager.reload_theme() agora invalida o cache de AppStyles (AppStyles.invalidate_cache()) — novos widgets usam o tema recarregado
+   - BlackGoldTheme: corrigido import de BaseTheme (from base_theme → from .BaseTheme)
+   - SettingsPlugin: seletor de tema no mesmo GridComboBox do idioma (1 widget, item "theme" com allow_empty + STR.THEME/STR.THEME_DESC); _load_prefs carrega a chave salva; _save_prefs salva em System > "theme" ou remove a chave se em branco; theme_manager.reload_theme() após salvar aplica o tema
+   - Novas strings: THEME, THEME_DESC (pt_BR apenas)
+   - Sem imports não utilizados (F401)
+
+[3.4.1.2][18/08/2026] Padronização de resolução por tool_key nos algoritmos de processing:
+   - BaseProcessingAlgorithm._resolve_name(): name() derivado do valor da TOOL_KEY; ALGORITHM_NAME declarado mantém prioridade (modo legado)
+   - shortHelpString() resolve instruções via HtmlInstructionsProvider.get_instructions(TOOL_KEY) em vez de ALGORITHM_NAME
+   - HtmlInstructionsProvider.get_instructions(tool_key): busca get_<tool_key>_help com fallback LEGACY_METHOD_SUFFIX para tool_keys legadas divergentes
+   - RasterDifferenceStatiscs: corrigido TOOL_KEY (era RASTER_MASS_CLIPPER) para ToolKey.RASTER_DIFERENCE_STATISTICS; ICON redundante removido (resolvido por tool_key)
+   - Filhos agora declaram apenas TOOL_KEY + ALGORITHM_DISPLAY_NAME + ALGORITHM_GROUP; INSTRUCTIONS_FILE/ICON/ALGORITHM_NAME tornaram-se opcionais
+   - SKILL_PROCESSING atualizada para 1.2.0; SKILL_INSTRUCTIONS_SYSTEM para 1.8.0; referências em SKILL_I18N atualizadas
+   - Sem imports não utilizados (F401)
+
+[3.4.1.3][18/08/2026] Remoção total do modo legado nos algoritmos de processing:
+   - HtmlInstructionsProvider: removido LEGACY_METHOD_SUFFIX — get_instructions(tool_key) resolve somente get_<tool_key>_help
+   - ToolKeys: DIFFERENCE_FIELDS = "difference_fields" e RASTER_DIFERENCE_STATISTICS = "raster_difference_statistics" (padronização/ortografia)
+   - BaseProcessingAlgorithm: removidos INSTRUCTIONS_FILE/DEFAULT_ICON/ICON/ALGORITHM_NAME e branches legados; _resolve_name() e icon() 100% via TOOL_KEY
+   - Todos os filhos: removidos ALGORITHM_NAME, ICON e INSTRUCTIONS_FILE (declaram apenas TOOL_KEY + ALGORITHM_DISPLAY_NAME + ALGORITHM_GROUP); imports de IconManager sem uso removidos (F401)
+   - HtmlInstructions_<locale>: método de GeometryLineFromPoints renomeado para get_geometry_line_from_points_help (4 locales)
+   - Ícones renomeados para o padrão {tool_key}.ico: attribute_statistics, difference_fields, geometry_line_from_points, raster_difference_statistics, raster_optimizer
+   - SKILL_PROCESSING 1.3.0; SKILL_INSTRUCTIONS_SYSTEM 1.9.0
+
+[3.4.1.4][18/08/2026] ImageryDownloader: nova ferramenta de download de imagens de satélite (Sentinel-2 L2A):
+   - plugins/ImageryDownloaderPlugin.py (BasePluginMTL, DIALOG): GridBBoxSelector (raster/vetor/tela) + GridDateSelector + GridSlider (% nuvens) + CollapsibleParametersWidget+GridCheckbox de bandas/composições pré-populado + GridComplexSelector (polígono + pasta de saída) + GridCheckbox de opções (clip/reproject/convert/delete) + GridComboBox EPSG + GridExecutionButtons
+   - core/ui/dialogs/SceneSelectionDialog.py: seleção de cenas com thumbnails assíncronas (QThread), Selecionar/Desselecionar todas, Baixar Selecionadas
+   - RF10: _can_use_parallel() → ParallelStep com 2+ datas independentes; execução sequencial com 1 data; bar_info + help documentando o modelo
+   - 2 engines: engine 1 (ImagerySearchStep/Task) busca STAC; engine 2 (DownloadDateStep/Task) baixa por data; on_success carrega camadas em grupo "Sentinel-2 {data}" via ProjectUtils/RasterLayerSource
+   - RF1: PySTACClient validada/instalada na abertura via DependenciesManager (modal confirm)
+   - RasterVectorBridge.clip_raster_by_vector implementado (gdal:cliprasterbymasklayer); RasterLayerProcessing.scale_raster_to_float32 novo (GDAL+numpy, SCL não convertida)
+   - core/api/ImageryApi.py: search_scenes/get_thumbnail/download_asset/resolve_bands/resolve_epsg/process_item (clip polígono/boundary, reprojeção condicional gdal.Warp, ÷10000, metadata.json por cena) — sem objetos QGIS
+   - Registrado no ToolRegistry (categoria RASTER, order=40, DIALOG, im.icon_by_tool_key)
+   - Instruções: resources/instructions/pt_BR/imagery_downloader_help.md (resolvido automaticamente por InstructionsManager.get(TOOL_KEY))
+   - Ícone: resolvido via im.icon_by_tool_key(ToolKey.IMAGERY_DOWNLOADER) → resources/icons/imagery_downloader.ico com fallback automático para cadmus_icon.ico
+   - SKILL_WIDGETS2 atualizada para 3.5.0 (SimpleDateEdit, GridDateSelector, SimpleSlider, GridSlider, GridBBoxSelector, SceneSelectionListWidget); SKILL_UTILS atualizada para 2.3.0 (ImageryApi + métodos raster)
+   - Sem imports não utilizados (F401)
+
+[3.4.1.5][18/08/2026] Correção de compatibilidade Qt6 no SimpleSlider:
+   - resources/widgets/simple/SimpleSlider.py usava QSlider(Qt.Horizontal) → erro "type object 'Qt' has no attribute 'Horizontal'" no Qt6 (QGIS 4)
+   - Corrigido com resolve_qt_enum(Qt, "Horizontal", "Orientation", "Horizontal") de utils/qt_compat.py (tenta Qt.Orientation.Horizontal no Qt6 e cai para Qt.Horizontal no Qt5)
+   - SKILL_WIDGETS2 atualizada para 3.5.1; sem imports não utilizados (F401)
+   - Impacto: ImageryDownloaderPlugin (GridSlider → SimpleSlider) volta a abrir no QGIS 4 / Qt6
+
+[3.4.1.6][18/08/2026] ImageryDownloader: re-run seguro — skip de bandas já existentes:
+   - core/api/ImageryApi.py process_item: antes de cada download, verifica se o produto final já existe na pasta (`{prefixo}_{banda}.tif`, ou `{prefixo}_{banda}_refl.tif` quando convert_uint16 e banda != SCL); se existir, pula download e processamento e apenas reutiliza o arquivo (novo código IMAGERY_SKIP_EXISTING + progresso da banda avançado)
+   - utils/raster/RasterLayerProcessing.py scale_raster_to_float32: remove a saída existente antes de driver.Create() (evita WinError 183 "cannot create a file already exists" em re-execuções)
+   - Resultado: ao rodar de novo sobre uma pasta já com rasters, o plugin não re-baixa nem reconflita; apenas carrega as camadas existentes no final (on_success)
+   - SKILL_UTILS atualizada para 2.3.1; sem imports não utilizados (F401)
+
+[3.4.1.7][18/08/2026] ImageryDownloader: crash do QGIS por GDAL/numpy concorrente — serializado com lock:
+   - Causa: ParallelStep roda 1 DownloadDateTask por data (4+ threads); cada task executava gdal.Translate/gdal.Open/driver.Create + numpy simultaneamente → access violation (crash duro, sem exceção Python)
+   - core/api/ImageryApi.py: novo lock global _GDAL_LOCK (threading.Lock) e método _process_band_gdal() que executa todo o processamento pesado (clip polígono/boundary, rename do final, conversão ÷10000) sob o lock
+   - Downloads (rede/requests) continuam paralelos; apenas GDAL/numpy roda em fila — elimina a condição de corrida que derrubava o QGIS
+   - SKILL_UTILS atualizada para 2.3.2; sem imports não utilizados (F401)
+
+[3.4.1.8][18/08/2026] ImageryDownloader: GridBBoxSelector reformulado (linha única) e recorte unificado:
+   - resources/widgets/grid/GridBBoxSelector.py reescrito em LINHA ÚNICA: QgsMapLayerComboBox (todas as camadas) + botão "Tela" (captura do canvas) + botão "Desenhar" (map tool de polígono no canvas; clique adiciona vértice, botão direito/duplo clique conclui; restaura a ferramenta anterior)
+   - Widget armazena boundary (QgsRectangle + CRS), path (source da camada) e TIPO DE ENTRADA: "drawn" (desenhado) | "layer" (camada: raster/polygon/line/point via geom_type) | "canvas" (tela), além de polygon_wkt (EPSG:4326) p/ recorte por máscara
+   - API nova: get_input_type/get_polygon_wkt/is_polygon_clip/is_clip_valid/build_clip_data ({"mode": "polygon"|"extent", ...}); get_source mantida como compat; get_preferences/set_preferences persistem boundary_wgs84 + path + tipo + polygon_wkt
+   - Plugin ImageryDownloaderPlugin (**removido** GridComplexSelector de polígono): recorte agora vem do próprio bbox (polígono desenhado ou camada de polígono -> clip por máscara; demais origens -> boundary)
+   - core/task/DownloadDateTask: usa clip_data do contexto — para polígono desenhado, gera máscara GPKG temporária via ImageryApi.create_polygon_mask (GDAL/OGR sob _GDAL_LOCK, worker-safe)
+   - core/api/ImageryApi: método novo create_polygon_mask(wkt, dest_path) + lock global _GDAL_LOCK (threading.Lock) para OGR
+   - Novas strings pt_BR: BBOX_CAPTURE_SCREEN, BBOX_CAPTURE_SCREEN_DESC, BBOX_DRAW_MAP, BBOX_DRAW_MAP_DESC; textos BBOX_SOURCE_DESC/CLIP_BY_POLYGON_DESC/IMAGERY_VALIDATION_EXTENT atualizados
+   - SKILL_WIDGETS2 atualizada para 3.6.0; sem imports não utilizados (F401)
+
+[3.4.1.9][18/08/2026] ImageryDownloader: UI reorganizada em 2 collapsables (Configurações + Bandas):
+   - Novo CollapsibleParametersWidget "Configurações" (STR.IMAGERY_SETTINGS) como PRIMEIRO bloco do diálogo, agrupando tudo que estava solto: GridBBoxSelector (extensão), GridDateSelector (período), GridSlider (% nuvens), GridCheckbox de opções, GridComboBox EPSG e GridComplexSelector de pasta de saída
+   - CollapsibleParametersWidget de "Bandas e Composições" (GridCheckbox de bandas/composições) agora é o SEGUNDO bloco, sem alteração de lógica
+   - Estado expandido/recolhido de ambos os collapsables persistido via get_preferences/set_preferences (chaves "settings_collapse" e "bands_collapse" em _load_prefs/_save_prefs)
+   - Nova string pt_BR: IMAGERY_SETTINGS = "Configurações"
+   - SKILL_WIDGETS2 atualizada para 3.6.1; sem imports não utilizados (F401)
+
+[3.4.1.10][19/08/2026] GridBBoxSelector/GridDateSelector: correção de "encavalamento" dentro de collapsibles:
+   - resources/widgets/grid/GridBBoxSelector.py e resources/widgets/grid/GridDateSelector.py não definiam altura mínima nem size policy — dentro do CollapsibleParametersWidget o layout esticava/achatava o conteúdo e as linhas sobrepunham ("encavalado")
+   - Adicionado setMinimumHeight(self.minimumSizeHint().height()) + setSizePolicy(Preferred, Fixed) no fim do _build_ui dos dois widgets (padrão já usado por ComplexSelector)
+   - Compat Qt5/Qt6 via try/except (QSizePolicy.Policy.Preferred/Fixed vs QSizePolicy.Preferred/Fixed)
+   - SKILL_WIDGETS2 atualizada para 3.6.2; sem imports não utilizados (F401)
+
+[3.4.1.11][19/08/2026] ImageryDownloader: EPSG de saída migrado de GridComboBox para ComplexCrsSelector:
+   - plugins/ImageryDownloaderPlugin.py: removido o GridComboBox de EPSG (opções utm/4326/31983/31984/31985) e criado ComplexCrsSelector (label + QgsProjectionSelectionWidget) — widget já existente e documentado em SKILL_WIDGETS2 (3.1.0), sem mudança de padrão
+   - Default do CRS agora é EPSG:4326 (antes era "utm" = CRS nativo da cena) via default_auth_id
+   - _load_prefs: normaliza preferências antigas ("utm"/"native"/código sem prefixo -> "EPSG:4326" ou "EPSG:{código}") e aplica via set_crs_authid; fallback para EPSG:4326 com warning IMAGERY_EPSG_INVALID se o SRC salvo for inválido
+   - _save_prefs persiste get_crs_authid() (ex: "EPSG:4326"); _build_context usa epsg_out = get_crs_authid() — ImageryApi.resolve_epsg já converte "EPSG:xxxx" para int do EPSG
+   - Import de GridComboBox removido do plugin (F401); sem imports não utilizados
+
+[3.4.1.12][19/08/2026] ImageryDownloader: tokens STR renomeados para genéricos e removidos não utilizados (pt_BR apenas):
+   - i18n/Strings_pt_BR.py: removidos SEM uso no código — BBOX_RASTER, BBOX_VECTOR, BBOX_CANVAS, BBOX_NO_LAYERS, POLYGON_LAYER, POLYGON_LAYER_DESC, SELECT_SCENES_HINT, DOWNLOAD_STARTED, DOWNLOAD_ERROR, IMAGERY_LOADED_LAYERS, IMAGERY_ORIGINALS_DELETED
+   - Renomes genéricos (nome sem prefixo de ferramenta, princípio de tokens reutilizáveis): IMAGERY_SETTINGS -> SETTINGS, SOURCE_SAT -> SOURCE, IMAGERY_VALIDATION_EXTENT/DATES/BANDS/CLIP -> VALIDATION_*, IMAGERY_TEMP_FOLDER_HINT -> TEMP_FOLDER_HINT
+   - plugins/ImageryDownloaderPlugin.py e core/ui/dialogs/SceneSelectionDialog.py atualizados para os novos nomes
+   - Sem imports não utilizados (F401)
+
+
+[3.4.1.13][19/08/2026] ImageryDownloader: skip de bandas já existentes + serialização GDAL efetivamente implementados:
+   - core/api/ImageryApi.py process_item: implementado o re-run seguro que constava apenas na doc (3.4.1.6/2.3.1) — antes de baixar, verifica se o produto final já existe na pasta (`{prefixo}_{banda}.tif`, ou `{prefixo}_{banda}_refl.tif` quando convert_uint16 e banda != SCL) e, se existir (não-vazio), pula download e processamento, reutiliza o arquivo e apenas o adiciona ao resultado (code IMAGERY_SKIP_EXISTING + progresso da banda avançado)
+   - core/api/ImageryApi.py process_item: implementada a serialização GDAL/numpy que constava apenas na doc (3.4.1.7/2.3.2) — todo o processamento pesado de banda (clip polígono via RasterVectorBridge, clip por boundary via gdal.Translate, rename do final, conversão ÷10000) agora roda sob `_GDAL_LOCK`; downloads (rede) continuam paralelos. Elimina access violation (crash duro sem exceção) ao rodar ParallelStep com 2+ datas
+   - core/api/ImageryApi.py _clip_by_extent: remove saída existente antes de gdal.Translate (evita [WinError 183] cannot create a file already exists no Windows); clip total também usa pre-delete em out_clip
+   - Metadados/log: novo campo `pulados_existentes` e linha de log IMAGERY_ITEM_DONE com contagem de pulados
+   - Resultado: ao rodar de novo sobre pasta já com rasters, não re-baixa/não reconflita; carrega as camadas existentes no final (on_success) e não trava o QGIS
+   - SKILL_UTILS atualizada para 2.3.4; sem imports não utilizados (F401)
+
+[3.4.1.14][19/08/2026] ImageryDownloader: SceneSelectionListWidget recriado (arquivo .py faltava no repo):
+   - resources/widgets/SceneSelectionListWidget.py: módulo era importado por SceneSelectionDialog (core/ui/dialogs) mas o .py estava ausente — restava apenas o .pyc no __pycache__, causando "No module named 'Cadmus.resources.widgets.SceneSelectionListWidget'" ao exibir a seleção de cenas
+   - Widget recriado do zero seguindo SKILL_WIDGETS2 (contrato de widgets raiz): QWidget + QScrollArea interna + cartões por cena (SimpleCheckbox + QLabel thumbnail com QPixmap + QLabel texto com wrap)
+   - API documentada em 3.5.0 preservada: set_scenes(list[dict]) / set_thumbnail(scene_id, bytes) / get_selected_scenes() -> list[dict] / select_all() / deselect_all()
+   - Thumbnails: carregadas via QPixmap.loadFromData com fallback para STR.NO_THUMBNAIL; escala com resolução Qt5/Qt6 via resolve_qt_enum (AspectRatioMode/TransformationMode)
+   - i18n/Strings_pt_BR.py: nova string NO_THUMBNAIL = "sem thumbnail"
+   - SKILL_WIDGETS2 atualizada para 3.6.3; sem imports não utilizados (F401)
+
+[3.4.1.15][19/08/2026] ImageryDownloader: SceneSelectionDialog pendente do rename SOURCE_SAT -> SOURCE:
+   - core/ui/dialogs/SceneSelectionDialog.py:88: label da GridComboBox de fonte (config "source") ainda usava STR.SOURCE_SAT — token removido em 3.4.1.12 (renomeado para STR.SOURCE); causava AttributeError "'Strings_pt_BR' object has no attribute 'SOURCE_SAT'" no callback on_finished da engine 1, impedindo o diálogo de seleção de abrir (a busca STAC funcionava — 119 cenas)
+   - Corrigido para STR.SOURCE ("Fonte", já presente em Strings_pt_BR); sem imports não utilizados (F401)
+
+[3.4.1.16][19/08/2026] ImageryDownloader: SceneSelectionListWidget com thumbnail 2x maior + grid de 2 colunas:
+   - resources/widgets/SceneSelectionListWidget.py: _THUMB_WIDTH 64->128 e _THUMB_HEIGHT 56->112 (altura dobrada) para melhor visualização da thumbnail
+   - Container interno trocado de QVBoxLayout para QGridLayout com 2 colunas — cartões posicionados por índice (linha = index // 2, coluna = index % 2); colunas com stretch igual e linha flexível no rodapé substituindo addStretch
+   - _add_scene_row recebe o índice (index) e posiciona o cartão no grid; API pública (set_scenes/set_thumbnail/get_selected_scenes/select_all/deselect_all) e SceneSelectionDialog inalterados
+   - SKILL_WIDGETS2 atualizada para 3.6.4; sem imports não utilizados (F401)
+
+[3.4.1.17][20/08/2026] GridBBoxSelector: prévia vermelha agora some sozinha (auto-clear):
+   - resources/widgets/grid/GridBBoxSelector.py: o retângulo vermelho (QgsRubberBand) desenhado após selecionar a extensão (tela/camada/desenho) ficava permanentemente no canvas, sem nunca sumir — comportamento não fiel ao QGIS
+   - Adicionado auto-clear via QTimer de disparo único: novos métodos _schedule_preview_clear + _clear_preview; a prévia some sozinha após _PREVIEW_CLEAR_MS (3000 ms)
+   - _schedule_preview_clear reutiliza um único QTimer (reiniciado a cada redraw); _clear_preview reseta/oculta a banda sem apagar o estado (boundary/tipo/path preservados)
+   - SKILL_WIDGETS2 atualizada para 3.6.5; sem imports não utilizados (F401)
+
+[3.4.1.18][20/08/2026] ImageryDownloader: nova composición NDVI + limpieza de checkboxes sen asset:
+   - core/api/ImageryApi.py: en SOURCES["sentinel2"]["compositions"] agregado "NDVI" (Nome "NDVI (Vegetación)", bandas [B08, B04]) — permite marcar con un clic NIR+RED para xerar NDVI co NdviCalculator
+   - plugins/ImageryDownloaderPlugin.py: _build_bands_config agora filtra bandas que non existan na fonte (assets/asset_map) e omite composiciones sen bandas válidas; evita checkboxes a assets inexistentes
+   - Workflow recomendado: marcar composición NDVI -> baixa B08 (NIR) + B04 (Red) -> process/ndvi_calculator xera o NDVI final
+   - Sen imports non utilizados (F401); arquivos con newline final (W292)
+
+[3.4.1.19][20/08/2026] ImageryDownloader: correção de download "parcial" (descarga em pasta errada + sem recorte/reprojeção):
+   - core/api/ImageryApi.py process_item: fallback de proj_epsg — se a cena não trouxer proj_epsg (alguns catálogos STAC não incluem), lê o CRS real do raster acabado de baixar com _get_raster_epsg() dentro de _GDAL_LOCK; assim o recorte por boundary e a reprojeção condicional funcionam sempre (elimina os avisos IMAGERY_CLIP_NO_EPSG do log)
+   - core/api/ImageryApi.py process_item: reprojeção IMPLEMENTADA (bloco 2.5) — resolve_epsg/_reproject_raster já existiam mas nunca eram chamadas, então o EPSG de saída (ex: EPSG:4674) era ignorado; agora, após o clip, resolve ``EPSG:xxxx`` e aplica gdal.Warp quando o CRS da cena difere do EPSG de saída
+   - plugins/ImageryDownloaderPlugin.py: novo método _resolve_output_folder() que valida a pasta de saída. O GridComplexSelector podia devolver a URI de uma camada XYZ (type=xyz url= crs=), salvando os rasters em rotas não esperadas; agora rejeita URIs/caminhos não absolutos e cai na pasta temporária (ExplorerUtils.get_temp_folder)
+   - Sem imports em desuso; arquivos com newline final
+
+[3.4.1.20][20/08/2026] ImageryDownloader: composições prontas agora geram o raster composto (etapa 1 — RGB):
+   - core/api/ImageryApi.py process_item: novo paràmetro `compositions` (list[str]) + geração do multibanda composto após baixar bandas. Para cada composición seleccionada de 3+ bandas e resolución uniforme (RGB, FALSA_COR), compõe via `RasterLayerProcessing.compose_multiband_raster` sob `_GDAL_LOCK` → `{prefixo}_{COMPOSICION}.tif`, adicionado a `files` e a metadata (`composiciones_geradas`). Composición sin resolución uniforme (20m+10m) requerira resample -> se pula (IMAGERY_COMP_MIXED_RES); <3 bandas (NDVI) pula (IMAGERY_COMP_MIN_BANDS)
+   - core/api/ImageryApi.py: nuevo helper `_composicion_banda_path` — resuelve el path final de una banda (`_refl` si convertido) idéntico a `process_item`
+   - core/task/DownloadDateTask.py: lee `compositions` del ExecutionContext y lo propaga a `process_item`
+   - plugins/ImageryDownloaderPlugin.py: nuevo `_resolve_compositions()` que extrae del GridCheckbox las claves `comp_*` marcadas y las inyecta en `context.set("compositions", ...)` em `_build_context`
+   - O resultado cargase el compuesto como capa en el grupo por fecha (RGB ahora é capaz em el grupo)
+   - Sem imports em desuso; arquivos com newline final
+
+[3.4.1.21][20/08/2026] ImageryDownloader: etapa 2 das composições — estilização RGB automática + composições de resolução mista (resample):
+   - core/api/ImageryApi.py: novo `_resample_raster()` (gdal.Warp com xRes/yRes + bilinear) e `_band_resolucion_m()` (parse "20m" -> 20.0); tudo sob `_GDAL_LOCK`
+   - core/api/ImageryApi.py process_item: composições com resolução mista (SWIR/AGRICULTURA/URBANO: B8A/B11/B12 20m + B04/B08 10m) agora geradas — resolução alvo = banda mais fina da composição, bandas grossas reamostradas (temporário `{prefixo}_{banda}_{comp}_res{N}m.tif`) antes do BuildVRT; removida a parada IMAGERY_COMP_MIXED_RES
+   - core/api/ImageryApi.py process_item: retorna `composite_files` (paths dos compostos gerados); metadata mantém `composicoes_geradas`
+   - core/task/DownloadDateTask.py: agrega `composite_files` no resultado da data (incluindo empty result)
+   - core/engine_tasks/DownloadDateStep.py on_success: aplica estilo percentil RGB (2-98%, bandas 1-3, StretchToMinimumMaximum — mesmo padrão do RgbStyleStandardizer) nos compostos ao carregá-los no grupo; falha de estilo não quebra a carga (log IMAGERY_COMP_STYLE_FAILED)
+   - Correção ortográfica da entrada 3.4.1.20 (pt_BR)
+   - Sem imports em desuso; arquivos com newline final
+[3.4.1.22][02/09/2026] ImageryDownloader: aceleração de download (Session HTTP + bandas/cenas em paralelo):
+   - core/api/ImageryApi.py: nova `_get_http_session()` — Session requests global thread-safe (lazy) com keep-alive + retry (429/500/502/503/504); `download_asset` agora usa timeout (15s conectar, 300s ler) e `DOWNLOAD_CHUNK_SIZE` de 1 MiB no iter_content (antes 8 KiB); `get_thumbnail` também usa a Session — elimina handshake TLS/TCP a cada banda baixada do mesmo host S3
+   - core/api/ImageryApi.py process_item: downloads de banda agora em PARALELO via ThreadPoolExecutor (máx. MAX_BAND_DOWNLOADS = 4, thread_name_prefix "imagery_dl") — a rede é o gargalo dominante (bandas baixavam uma atrás da outra); o processamento GDAL/numpy (clip, reprojeção, renome, ÷10000) continua 100% serializado sob _GDAL_LOCK em loop próprio (Fase 3), preservando a regra SKILL_UTILS 2.3.2 (sem crash por GDAL concorrente)
+   - core/api/ImageryApi.py process_item: nova semântica de falha — a falha de rede/HTTP de UMA banda não derruba mais a cena inteira; a banda é pulada com log code IMAGERY_BAND_DOWNLOAD_FAILED e as demais são processadas normalmente (composições detectam banda faltante e pulam via lógica `faltando` existente)
+   - core/task/DownloadDateTask.py: cenas da MESMA data (mosaico de tiles) processadas em paralelo com ThreadPoolExecutor (máx. 2, thread_name_prefix "imagery_scene") — cada thread usa instância própria de ImageryApi; o download da cena seguinte adianta enquanto a outra cena processa no lock GDAL; cancelamento cooperativo preservado em ambos os branches (pool e sequencial)
+   - SKILL_UTILS atualizada para 2.3.5; sem imports não utilizados (F401); arquivos com newline final (W292)
+[3.4.1.23][02/09/2026] ImageryDownloader: correção de corrupção com cenas paralelas da mesma data:
+   - core/api/ImageryApi.py: novo static `compute_prefixo(item)` (data_tile_plataforma) extraído do process_item; novo parâmetro `unique_by_item` no process_item — quando True, inclui o id sanitizado da cena no prefixo/pasta (ex: `2026-05-24_22_SENTINEL-2C_S2C_22LDJ_20260524_0_L2A`), eliminando colisão de `_tmp_*.tif` entre cenas do mesmo grid (22LDJ vs 22LCJ)
+   - core/task/DownloadDateTask.py: detecta colisão de prefixo entre cenas da mesma data antes de paralelizar; se colidem, cada cena grava em subpasta própria via `unique_by_item` (paralelismo seguro); corrigido o loop `as_completed` — desempacotava um Future individual (`for future, item in as_completed(dict)` gerava "cannot unpack non-iterable Future object" e derrubava a task), agora `for future in as_completed(...)`
+   - Caixa (causa raiz do bug relatado após 3.4.1.22): cenas do mesmo grid + mesma data compartilhavam a pasta `data_tile_plataforma`; com downloads em paralelo (Patch C), os `_tmp_*.tif` eram sobrescritos concorrentemente → `TIFFReadEncodedTile()/ZIPDecode` error (banda B02 lida como corrompida pelo gdal.Warp) e crash final da task
+   - SKILL_UTILS atualizada para 2.3.6; sem imports não utilizados (F401); arquivos com newline final (W292)
+[3.4.1.24][02/09/2026] VectorFieldsCalculationPlugin + SettingsPlugin: pergunta de substituição de campos opcional:
+   - Novo checkbox "Perguntar ao substituir campos existentes" (STR.ASK_BEFORE_REPLACING_FIELDS / STR.ASK_BEFORE_REPLACING_FIELDS_DESC) na seção "Cálculos Vetoriais" do SettingsPlugin
+   - Padrão = marcado (sempre pergunta, preserva comportamento atual)
+   - Quando desmarcado, campos com nome já existente são substituídos automaticamente (sem diálogo) no VectorFieldsCalculationPlugin
+   - Persistência via chave "ask_before_replacing_fields" em ToolKey.SYSTEM (_load_prefs/_save_prefs do SettingsPlugin)
+   - Novas strings apenas em Strings_pt_BR; sem imports não utilizados (F401); arquivos com newline final (W292)
+
 2.3.29 27/04/2026
 [2.3.29.1][27/04/2026] comece aqui
 [2.3.29.2][28/04/2026] Corrigido possível erro de argumentos duplicados em DividePointsByStripsPlugin.judge_args

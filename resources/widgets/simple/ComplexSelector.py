@@ -402,7 +402,7 @@ class ComplexSelector(QWidget):
             self._emit_path_change()
             return
         if not self._multiple:
-            self._root_path = os.path.dirname(text) if os.path.isfile(text) else text
+            self._root_path = self._resolve_root_path(text)
             self._selected_list = [text]
             self._emit_path_change()
         else:
@@ -410,7 +410,7 @@ class ComplexSelector(QWidget):
             parts = [p for p in parts if p]
             if parts:
                 first = parts[0]
-                self._root_path = os.path.dirname(first) if os.path.isfile(first) else first
+                self._root_path = self._resolve_root_path(first)
                 self._selected_list = parts
             else:
                 self._root_path = ""
@@ -901,6 +901,12 @@ class ComplexSelector(QWidget):
     # API Pública — Paths
     # ══════════════════════════════════════════════════════════════════
 
+    def _resolve_root_path(self, path: str) -> str:
+        """Resolve o diretório-base sem sondar pastas remotas como arquivos."""
+        if not path or self._selection_mode == "folder":
+            return path or ""
+        return os.path.dirname(path) if os.path.isfile(path) else path
+
     def get_root_path(self) -> str:
         return self._root_path
 
@@ -960,7 +966,7 @@ class ComplexSelector(QWidget):
     def set_path(self, path: str):
         self._using_layer_combo = False
         if path:
-            self._root_path = os.path.dirname(path) if os.path.isfile(path) else path
+            self._root_path = self._resolve_root_path(path)
             self._selected_list = [path]
         else:
             self._root_path = ""
@@ -972,7 +978,7 @@ class ComplexSelector(QWidget):
         self._using_layer_combo = False
         if paths:
             first = paths[0]
-            self._root_path = os.path.dirname(first) if os.path.isfile(first) else first
+            self._root_path = self._resolve_root_path(first)
             self._selected_list = list(paths)
         else:
             self._root_path = ""

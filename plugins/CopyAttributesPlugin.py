@@ -42,7 +42,7 @@ class CopyAttributes(BasePluginMTL):
             config={
                 "target_layer": {
                     "label": STR.TARGET_LAYER,
-                    "description": "Selecione a camada vetorial de destino",
+                    "description": STR.COPY_TARGET_LAYER_DESC,
                     "allow_layer": True,
                     "layer_filters": QgsMapLayerProxyModel.VectorLayer,
                     "allow_file": False,
@@ -51,7 +51,7 @@ class CopyAttributes(BasePluginMTL):
                 },
                 "source_layer": {
                     "label": STR.SOURCE_LAYER,
-                    "description": "Selecione a camada vetorial de origem",
+                    "description": STR.COPY_SOURCE_LAYER_DESC,
                     "allow_layer": True,
                     "layer_filters": QgsMapLayerProxyModel.VectorLayer,
                     "allow_file": False,
@@ -85,7 +85,10 @@ class CopyAttributes(BasePluginMTL):
         self.logger.debug("Criando GridAttributeSelector")
         self.attr_selector = GridAttributeSelector(
             title=STR.SOURCE_LAYER_ATTRIBUTES,
+            title_description=STR.SOURCE_LAYER_ATTRIBUTES_DESC,
             check_all_text=STR.USE_ALL_ATTRIBUTES,
+            check_all_description=STR.USE_ALL_ATTRIBUTES_DESC,
+            field_description=STR.ATTRIBUTE_TO_COPY_DESC,
             tool_key=self.TOOL_KEY,
             parent=self,
         )
@@ -100,8 +103,8 @@ class CopyAttributes(BasePluginMTL):
         self.action_buttons = GridExecutionButtons(
             config={
                 "run": {
-                    "label": "Executar",
-                    "description": "Inicia a copia de atributos",
+                    "label": STR.EXECUTE,
+                    "description": STR.START_COPY_ATTRIBUTES,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

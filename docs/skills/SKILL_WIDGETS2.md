@@ -386,6 +386,27 @@ layout.addWidget(wgs84)
 # O GridReadOnly aplica a descrição ao rótulo e ao valor, enquanto o botão
 # interno de cópia usa a tooltip genérica do SimpleReadOnly.
 
+### GridAttributeSelector
+Seletor de campos vetoriais com checkbox para usar todos os atributos, lista dinâmica
+de campos e botões internos de seleção em lote.
+
+```python
+selector = GridAttributeSelector(
+    title=STR.SOURCE_LAYER_ATTRIBUTES,
+    title_description=STR.SOURCE_LAYER_ATTRIBUTES_DESC,
+    check_all_text=STR.USE_ALL_ATTRIBUTES,
+    check_all_description=STR.USE_ALL_ATTRIBUTES_DESC,
+    field_description=STR.ATTRIBUTE_TO_COPY_DESC,
+    tool_key=self.TOOL_KEY,
+    parent=self,
+)
+```
+
+- `title_description` descreve o grupo declarado pela ferramenta.
+- `check_all_description` descreve o checkbox "Usar todos os atributos".
+- `field_description` é aplicada a cada campo criado dinamicamente.
+- Os botões internos de selecionar, remover e inverter usam tooltips genéricas do widget.
+
 # API pública
 wgs84.set_value("lat_dec", "-10.12345678")
 wgs84.get_value("lat_dec")  # → "-10.12345678"
@@ -1422,7 +1443,7 @@ border: 1px solid {theme.COLOR_BORDER};
 
 | Data | Versão | Descrição |
 |------|--------|-----------|
-| 2026-11-22 | 3.1.0 | `GridReadOnly` passou a aceitar `title_description` e `description` por campo; `SimpleReadOnly` passou a aceitar tooltip contextual sem substituir a tooltip genérica do botão interno de cópia. |
+| 2026-11-22 | 3.2.0 | `GridReadOnly` passou a aceitar `title_description` e `description` por campo; `SimpleReadOnly` passou a aceitar tooltip contextual sem substituir a tooltip genérica do botão interno de cópia; `GridAttributeSelector` passou a aceitar descrições do grupo, do checkbox geral e dos campos dinâmicos. |
 | 2026-07-21 | 1.0.0 | Criação inicial — Novo sistema de widgets autoconfiguráveis |
 | 2026-07-21 | 1.1.0 | Adicionada regra de callbacks (widget não expõe sinais Qt, plugin passa funções callback como parâmetros) |
 | 2026-07-21 | 1.2.0 | Adicionado padrão de configuração via dict `config={}` com chaves identificadoras e suporte a `description` para tooltip |

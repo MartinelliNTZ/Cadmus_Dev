@@ -785,6 +785,30 @@ class Strings_pt_BR:
         "Permite selecionar quais atributos criar e tratar conflitos\n"
         "de nome quando um campo já existe na camada destino."
     )
+    COPY_TARGET_LAYER_DESC = (
+        "Escolha a camada vetorial que receberá a estrutura dos campos. "
+        "A camada de destino precisa estar editável."
+    )
+    COPY_SOURCE_LAYER_DESC = (
+        "Escolha a camada vetorial de origem. "
+        "Os campos disponíveis nela serão listados abaixo para seleção."
+    )
+    SOURCE_LAYER_ATTRIBUTES_DESC = (
+        "Lista os campos encontrados na camada de origem para que você escolha "
+        "quais serão criados na camada de destino."
+    )
+    USE_ALL_ATTRIBUTES_DESC = (
+        "Quando marcado, copia a estrutura de todos os campos da camada de origem. "
+        "Desmarque para escolher os campos individualmente."
+    )
+    ATTRIBUTE_TO_COPY_DESC = (
+        "Marque este campo para criar sua estrutura na camada de destino. "
+        "Os valores das feições não são copiados."
+    )
+    START_COPY_ATTRIBUTES = (
+        "Cria na camada de destino a estrutura dos campos escolhidos. "
+        "Se já existir um campo com o mesmo nome, a ferramenta pedirá como tratar o conflito."
+    )
 
     # plugins/ExportAllLayouts.py
     EXPORT_ALL_LAYOUTS_TITLE = "Exportar Todos os Layouts"

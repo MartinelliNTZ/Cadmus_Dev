@@ -24,6 +24,7 @@ Uso em plugins:
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QScrollArea
 from qgis.PyQt.QtCore import Qt
 from ...core.config.LogUtils import LogUtils
+from ...i18n.TranslationManager import STR
 from ..styles.AppStyles import AppStyles
 from .simple.SimpleCheckbox import SimpleCheckbox
 from .grid.GridCheckbox import GridCheckbox
@@ -40,6 +41,12 @@ class GridAttributeSelector(QWidget):
         Título do grupo (QGroupBox).
     check_all_text : str, optional
         Texto do checkbox "Usar todos os atributos".
+    title_description : str, optional
+        Tooltip contextual do grupo de atributos.
+    check_all_description : str, optional
+        Tooltip contextual do checkbox para usar todos os atributos.
+    field_description : str, optional
+        Tooltip aplicada a cada campo criado dinamicamente.
     tool_key : ToolKey, optional
         ToolKey para logging. Obrigatório se não parent com logger.
     parent : QWidget, optional
@@ -58,12 +65,18 @@ class GridAttributeSelector(QWidget):
         check_all_text: str = "Usar todos os atributos",
         tool_key=None,
         parent=None,
+        title_description: str = "",
+        check_all_description: str = "",
+        field_description: str = "",
     ):
         super().__init__(parent)
 
         self._title = title
         self._check_all_text = check_all_text
         self._tool_key = tool_key
+        self._title_description = title_description
+        self._check_all_description = check_all_description
+        self._field_description = field_description
 
         # Logger obrigatório
         self._logger = LogUtils(
@@ -166,6 +179,8 @@ class GridAttributeSelector(QWidget):
         # ── Container com título ────────────────────────────────
         if self._title:
             container = QGroupBox(self._title)
+            if self._title_description:
+                container.setToolTip(self._title_description)
             container.setObjectName("attr_group")
             container.setStyleSheet(
                 "QGroupBox {"
@@ -198,6 +213,8 @@ class GridAttributeSelector(QWidget):
             text=self._check_all_text,
             parent=self,
         )
+        if self._check_all_description:
+            self._chk_all.setToolTip(self._check_all_description)
         self._chk_all.setObjectName("chk_all_attributes")
         self._chk_all.toggled.connect(self._on_chk_all_toggled)
         container_layout.addWidget(self._chk_all)
@@ -242,17 +259,20 @@ class GridAttributeSelector(QWidget):
         self._control_buttons = GridModernButtons(
             config={
                 "select_all": {
-                    "label": "Selecionar",
+                    "label": STR.SELECT_ALL,
+                    "description": STR.SELECT_ALL_LIST,
                     "callback": self._on_select_all,
                     "primary": False,
                 },
                 "deselect_all": {
-                    "label": "Remover",
+                    "label": STR.DESELECT_ALL,
+                    "description": STR.DESELECT_ALL_LIST,
                     "callback": self._on_deselect_all,
                     "primary": False,
                 },
                 "invert": {
-                    "label": "Inverter",
+                    "label": STR.INVERT,
+                    "description": STR.INVERT_LIST_SELECTION,
                     "callback": self._on_invert_selection,
                     "primary": False,
                 },
@@ -277,6 +297,7 @@ class GridAttributeSelector(QWidget):
                 config[name] = {
                     "label": name,
                     "default": True,  # Todos marcados por padrão
+                    "description": self._field_description,
                 }
 
             # Remove o GridCheckbox antigo do scroll container

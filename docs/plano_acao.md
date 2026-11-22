@@ -113,10 +113,15 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **12 — Capturar Coordenadas:** concluída a revisão da tooltip do `ToolRegistry` e das descrições individuais de todas as seções, campos, informação UTM, endereço e botão de cópia da janela de resultados.
 - **13 — Converter Multipart:** concluída a revisão da tooltip geral no `ToolRegistry`; a ferramenta é instantânea e não possui janela própria.
 
+### Lote seguinte — ferramenta 14
+
+- **14 — Copiar Atributos de Vetor:** concluídas as descrições das camadas de origem e destino, do grupo de atributos, do checkbox de seleção total, dos campos dinâmicos e da execução.
+- Os botões internos de selecionar, remover e inverter permanecem com tooltip genérica fornecida pelo `GridAttributeSelector`.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.11`.
-- Changelog correspondente: `[3.1.0.11][22/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.12`.
+- Changelog correspondente: `[3.1.0.12][22/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -154,7 +159,7 @@ Para cada ferramenta, seguir esta ordem:
 | 11 | Remover Campos KML | `remove_kml_fields` | **Concluída** |
 | 12 | Capturar Coordenadas | `coord_click_tool` | **Concluída** |
 | 13 | Converter Multipart | `converter_multipart` | **Concluída** |
-| 14 | Copiar Atributos de Vetor | `copy_attributes` | A fazer |
+| 14 | Copiar Atributos de Vetor | `copy_attributes` | **Concluída** |
 | 15 | Dividir Vetor de Pontos por Faixas | `divide_points_by_strips` | A fazer |
 | 16 | Salvar Temporárias | `save_temporary_layer` | A fazer |
 | 17 | Remover/Restaurar Extensão | `path_extension_tool` | A fazer |

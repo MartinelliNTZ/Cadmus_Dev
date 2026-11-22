@@ -1,3 +1,12 @@
+[3.1.0.12][22/11/2026] Tooltips contextuais da ferramenta 14 — Copiar Atributos de Vetor:
+   - As camadas de origem e destino receberam descrições explicando o papel de cada uma.
+   - O grupo de atributos, o checkbox de usar todos e cada campo dinâmico receberam descrição contextual via `STR`.
+   - Os botões internos de selecionar, remover e inverter receberam tooltips genéricas tokenizadas do widget.
+   - O botão Executar passou a explicar que a ferramenta copia apenas a estrutura dos campos e trata conflitos de nomes.
+   - `GridAttributeSelector` passou a aceitar descrições do grupo, do checkbox geral e dos campos dinâmicos.
+   - `SKILL_WIDGETS2.md` e o mapa de ferramentas foram atualizados para documentar esse contrato.
+   - Versão de distribuição incrementada de `3.1.0.11` para `3.1.0.12` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.11][22/11/2026] Tooltips contextuais da janela Capturar Coordenadas:
    - Cada seção, campo de coordenadas, referência UTM, altitude e informação de endereço recebeu descrição própria.
    - `GridReadOnly` passou a aceitar `title_description` e `description` por campo, repassando o contexto ao rótulo e ao valor.

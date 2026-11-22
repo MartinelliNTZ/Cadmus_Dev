@@ -24,8 +24,10 @@ def _get_plugin_version() -> str:
             for line in f:
                 if line.startswith("version="):
                     return line.strip().split("=", 1)[1]
-    except OSError:
-        pass
+    except OSError as error:
+        LogUtils(
+            tool=ToolKey.SYSTEM, class_name="InfoDialog"
+        ).warning("Não foi possível ler metadata.txt", error=str(error))
     return "0.0.0"
 
 

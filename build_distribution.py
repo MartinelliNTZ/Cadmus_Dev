@@ -36,7 +36,7 @@ from core.services.PackageManager import PackageManager
 # Chave de licença opcional incorporada no pacote de distribuição
 # Se vazia "", nenhuma chave é adicionada
 DISTRIBUTION_KEY = "6U5D9-4H0J8-6P1U4"
-VERSION = "3.0.0.4"
+VERSION = "3.0.0.5"
 
 # Nome do arquivo de saída (sem extensão) — extensão .dist
 DISTRIBUTION_FILENAME = f"Cadmus_package_{VERSION}_dist"
@@ -481,7 +481,7 @@ class BuildDistribution:
                 about_path.write_text(new_content, encoding="utf-8")
                 print(f"[BuildDistribution]   AboutDialog.py -> version={VERSION}, updated={date_str}")
             else:
-                print(f"[BuildDistribution]   AboutDialog.py já está atualizado.")
+                print("[BuildDistribution]   AboutDialog.py já está atualizado.")
         else:
             print("[BuildDistribution]   AVISO: plugins/AboutDialog.py não encontrado.")
 

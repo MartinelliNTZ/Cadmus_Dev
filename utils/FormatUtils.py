@@ -96,8 +96,11 @@ class FormatUtils(BaseUtil):
         text = str(raw).strip()
         try:
             return datetime.fromisoformat(text.replace("Z", "+00:00"))
-        except ValueError:
-            pass
+        except ValueError as error:
+            FormatUtils._get_logger().debug(
+                "Formato ISO inválido; tentando formatos alternativos",
+                error=str(error),
+            )
         for fmt in (
             "%Y:%m:%d %H:%M:%S",
             "%Y-%m-%dT%H:%M:%S.%f",

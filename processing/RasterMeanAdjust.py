@@ -248,6 +248,3 @@ class RasterMeanAdjust(BaseProcessingAlgorithm):
             msg = f"Erro não tratado em processAlgorithm: {e}"
             self.logger.error(msg)
             raise QgsProcessingException(msg)
-
-
-

@@ -676,8 +676,11 @@ class ComplexSelector(QWidget):
         if hasattr(self, '_btn_origin'):
             try:
                 self._btn_origin.clicked.disconnect()
-            except TypeError:
-                pass
+            except TypeError as error:
+                self.logger.debug(
+                    "Botão de origem não possuía conexão para desconectar",
+                    error=str(error),
+                )
             self._btn_origin.clicked.connect(callback)
             if tooltip:
                 self._btn_origin.setToolTip(tooltip)
@@ -1065,8 +1068,11 @@ class ComplexSelector(QWidget):
         if hasattr(self, '_btn_suggest'):
             try:
                 self._btn_suggest.clicked.disconnect()
-            except TypeError:
-                pass
+            except TypeError as error:
+                self.logger.debug(
+                    "Botão de sugestão não possuía conexão para desconectar",
+                    error=str(error),
+                )
             self._btn_suggest.clicked.connect(callback)
             if tooltip:
                 self._btn_suggest.setToolTip(tooltip)

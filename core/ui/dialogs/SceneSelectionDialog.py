@@ -209,7 +209,9 @@ class SceneSelectionDialog(BaseDialog):
             try:
                 self._thumb_loader.requestInterruption()
                 self._thumb_loader.wait(2000)
-            except RuntimeError:
-                pass
+            except RuntimeError as error:
+                self.logger.warning(
+                    "Não foi possível interromper o carregador de thumbnails",
+                    error=str(error),
+                )
         super().closeEvent(event)
-

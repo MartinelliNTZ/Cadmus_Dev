@@ -43,8 +43,6 @@ from qgis.PyQt.QtWidgets import (
     QGroupBox,
     QLabel,
 )
-from qgis.PyQt.QtCore import Qt
-
 from ..simple.SimpleQLineEdit import SimpleQLineEdit
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles

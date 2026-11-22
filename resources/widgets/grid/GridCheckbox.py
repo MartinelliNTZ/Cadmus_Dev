@@ -47,8 +47,6 @@ from qgis.PyQt.QtWidgets import (
     QGridLayout,
     QGroupBox,
 )
-from qgis.PyQt.QtCore import Qt
-
 from ..simple.SimpleCheckbox import SimpleCheckbox
 from ..SeparatorWidget import SeparatorWidget
 from .GridModernButtons import GridModernButtons

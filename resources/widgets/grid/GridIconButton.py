@@ -30,7 +30,6 @@ from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
 from qgis.PyQt.QtCore import QSize, Qt
 from ..simple.SimpleIconButton import SimpleIconButton
 from ..SeparatorWidget import SeparatorWidget
-from ...styles.AppStyles import AppStyles
 import os
 
 

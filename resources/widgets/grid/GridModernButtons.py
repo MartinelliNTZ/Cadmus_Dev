@@ -25,8 +25,6 @@ Uso:
 """
 
 from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QGridLayout
-from qgis.PyQt.QtCore import Qt
-
 from ..simple.SimpleModernButton import SimpleModernButton
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles

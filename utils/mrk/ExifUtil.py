@@ -115,8 +115,11 @@ class ExifUtil:
         if "." not in raw:
             try:
                 return int(raw)
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as error:
+                ExifUtil._get_logger().debug(
+                    "Valor não inteiro; tentando conversão para float",
+                    error=str(error),
+                )
 
         # Tenta float
         try:

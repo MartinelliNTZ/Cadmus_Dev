@@ -8,6 +8,7 @@ from qgis.PyQt.QtCore import QVariant
 from ..config.LogUtils import LogUtils
 from ..enum import MetadataFieldKey
 from ...utils.mrk.MetadataFields import MetadataFields
+from ...utils.ToolKeys import ToolKey
 from ...utils.vector.VectorLayerGeometry import VectorLayerGeometry
 
 
@@ -182,8 +183,13 @@ class JsonToVectorTranslator:
                     return QVariant.Int
                 # Valor grande demais para Int32 → usa String para evitar overflow
                 return QVariant.String
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as error:
+                LogUtils(
+                    tool=ToolKey.SYSTEM, class_name="JsonToVectorTranslator"
+                ).debug(
+                    "Valor não inteiro; tentando conversão para float",
+                    error=str(error),
+                )
 
         # Tenta float (valores com ou sem ponto, ex: "72.0", "-89.90", "0.02591")
         try:

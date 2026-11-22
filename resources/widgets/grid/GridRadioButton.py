@@ -47,8 +47,6 @@ from qgis.PyQt.QtWidgets import (
     QGridLayout,
     QButtonGroup,
 )
-from qgis.PyQt.QtCore import Qt
-
 from ..simple.SimpleRadioButton import SimpleRadioButton
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles

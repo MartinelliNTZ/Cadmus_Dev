@@ -80,8 +80,11 @@ class FileCompressUtils(BaseUtil):
             if os.path.isfile(zip_path):
                 try:
                     os.remove(zip_path)
-                except OSError:
-                    pass
+                except OSError as error:
+                    logger.warning(
+                        "ZIP: não foi possível remover o arquivo parcial",
+                        error=str(error),
+                    )
             return False, f"Erro ao criar zip: {e}"
         except Exception as e:
             logger.error(f"ZIP: erro inesperado: {e}")

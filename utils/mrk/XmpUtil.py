@@ -89,8 +89,11 @@ class XmpUtil:
                 if read_size > 0:
                     fh.seek(file_size - read_size)
                     raw = fh.read().decode("latin1", errors="ignore")
-        except Exception:
-            pass
+        except Exception as error:
+            XmpUtil._get_logger().debug(
+                "Falha ao ler o bloco final do arquivo em busca de XMP",
+                error=str(error),
+            )
 
         start = raw.find("<x:xmpmeta")
         if start != -1:

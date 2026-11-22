@@ -2,7 +2,6 @@
 import os
 
 from ...core.config.LogUtils import LogUtils
-from ..ToolKeys import ToolKey
 
 
 class RasterVectorBridge:
@@ -134,7 +133,6 @@ class RasterVectorBridge:
 
         logger.info(f"clip_raster_by_vector: recortado -> {output}")
         return output
-
 
     def sample_raster_at_points(
         self, raster, point_layer, output_field_name, external_tool_key="untraceable"

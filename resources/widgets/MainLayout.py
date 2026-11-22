@@ -38,6 +38,11 @@ from typing import Optional
 from ..styles.AppStyles import AppStyles
 from .ScrollWidget import ScrollWidget
 from .AppBarWidget import AppBarWidget
+from ...core.config.LogUtils import LogUtils
+from ...utils.ToolKeys import ToolKey
+
+
+_LOGGER = LogUtils(tool=ToolKey.SYSTEM, class_name="MainLayout")
 
 
 # Compatibilidade Qt5/Qt6
@@ -135,8 +140,8 @@ class EdgeFrame(QFrame):
         if self._owner_layout:
             try:
                 self._owner_layout._update_border_geometries()
-            except Exception:
-                pass
+            except Exception as error:
+                _LOGGER.exception(error, code="MAIN_LAYOUT_RESIZE_ERROR")
 
     def paintEvent(self, event):
         if self._texture == BackgroundTexture.SQUARE:
@@ -248,22 +253,22 @@ class BorderHitWidget(QWidget):
     def enterEvent(self, event):
         try:
             self._layout._update_cursor(self._edge)
-        except Exception:
-            pass
+        except Exception as error:
+            _LOGGER.exception(error, code="MAIN_LAYOUT_ENTER_ERROR")
 
     def leaveEvent(self, event):
         try:
             self._layout._update_cursor(None)
             QApplication.restoreOverrideCursor()
-        except Exception:
-            pass
+        except Exception as error:
+            _LOGGER.exception(error, code="MAIN_LAYOUT_LEAVE_ERROR")
 
     def mousePressEvent(self, event):
         try:
             self._layout._start_resize_from_edge(event, self._edge)
             event.accept()
-        except Exception:
-            pass
+        except Exception as error:
+            _LOGGER.exception(error, code="MAIN_LAYOUT_MOUSE_PRESS_ERROR")
 
     def mouseMoveEvent(self, event):
         try:
@@ -271,15 +276,15 @@ class BorderHitWidget(QWidget):
                 self._layout._perform_resize_move(event)
             else:
                 self._layout._update_cursor(self._edge)
-        except Exception:
-            pass
+        except Exception as error:
+            _LOGGER.exception(error, code="MAIN_LAYOUT_MOUSE_MOVE_ERROR")
 
     def mouseReleaseEvent(self, event):
         try:
             self._layout._end_resize()
             event.accept()
-        except Exception:
-            pass
+        except Exception as error:
+            _LOGGER.exception(error, code="MAIN_LAYOUT_MOUSE_RELEASE_ERROR")
 
 
 class MainLayout(QVBoxLayout):
@@ -322,7 +327,7 @@ class MainLayout(QVBoxLayout):
     ):
         super().__init__(parent)
 
-        self.setContentsMargins(0,0, 0, 0)
+        self.setContentsMargins(0, 0, 0, 0)
         self.setSpacing(0)
 
         # Frame container visual
@@ -335,8 +340,8 @@ class MainLayout(QVBoxLayout):
         self._frame.setMouseTracking(True)
         try:
             self._frame.set_owner_layout(self)
-        except Exception:
-            pass
+        except Exception as error:
+            _LOGGER.exception(error, code="MAIN_LAYOUT_OWNER_ERROR")
 
         # Layout interno — SEM margens, a AppBar ocupa 100% do espaço
         self._inner_layout = QVBoxLayout(self._frame)
@@ -382,8 +387,8 @@ class MainLayout(QVBoxLayout):
         try:
             self._create_border_widgets()
             self._update_border_geometries()
-        except Exception:
-            pass
+        except Exception as error:
+            _LOGGER.exception(error, code="MAIN_LAYOUT_BORDER_INIT_ERROR")
 
         if parent:
             parent.setMouseTracking(True)

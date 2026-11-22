@@ -1,3 +1,10 @@
+3.4.1.25 21/11/2026
+[3.4.1.25][21/11/2026] Correções de conformidade Flake8:
+   - Corrigidos espaçamentos, linhas em branco, finais de arquivo e imports não utilizados.
+   - Corrigidos anotações de tipo ausentes e f-strings sem placeholders.
+   - Exceções antes silenciadas com `except ...: pass` agora são registradas ou mantêm o fallback explícito.
+   - `build_distribution.py` atualizado de `VERSION=3.0.0.4` para `VERSION=3.0.0.5`.
+
 3.4.1.24 21/11/2026
 [3.4.1.24][21/11/2026] Versionamento de distribuição automatizado pelo agente:
    - `build_distribution.py` atualizado de `VERSION=3.0.0.3` para `VERSION=3.0.0.4`.

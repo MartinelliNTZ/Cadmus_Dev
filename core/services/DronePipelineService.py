@@ -305,7 +305,7 @@ class DronePipelineService:
         # evitando duplicar a geração no main thread que trava a UI.
         json_path = context.json_path or context.get_result("json_path")
         report_payload = context.get_result("report_payload")
-        
+
         if not report_payload and json_path and Preferences.load_tool_prefs(ToolKey.DRONE_COORDINATES).get("generate_report", False):
             # Fallback: se o ReportGenerationStep não estava no pipeline,
             # gera o relatório agora (raro - apenas pipelines sem o step)

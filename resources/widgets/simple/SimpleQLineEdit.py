@@ -7,7 +7,6 @@ NUNCA importado por plugins.
 
 from qgis.PyQt.QtWidgets import QLineEdit, QGraphicsDropShadowEffect
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtCore import Qt
 from ...styles.AppStyles import AppStyles
 
 

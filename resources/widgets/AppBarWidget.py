@@ -8,7 +8,7 @@ Faz parte do MainLayout — inserida no topo do _inner_layout.
 """
 
 from qgis.PyQt.QtWidgets import QFrame, QLabel, QPushButton, QHBoxLayout
-from qgis.PyQt.QtCore import Qt, QPoint
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QPixmap
 from ..styles.AppStyles import AppStyles
 from ..IconManager import IconManager

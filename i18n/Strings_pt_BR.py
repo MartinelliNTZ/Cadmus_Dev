@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ATUALIZE SOMENTE ESSE ARQUIVO, NAO TRADUZA PARA OS DEMAIS IDIOMAS NAO """
 
+
 class Strings_pt_BR:
     """ "Strings for Brazilian Portuguese (pt-BR)"""
 
@@ -19,7 +20,6 @@ class Strings_pt_BR:
     CREATED_ON = "Criado em"
     CREATOR = "Criador"
     LOCATION = "Local"
-    
 
     # Buttons
     CLOSE = "Fechar"
@@ -604,8 +604,7 @@ class Strings_pt_BR:
 
     QML_STYLE = "Estilo QML"
     SAVE_TRAIL_IN = "Salvar rastro em:"
-    
-    
+
     # plugins/CopyAttributesPlugin.py
     COPY_ATTRIBUTES_TITLE = "Copiar Atributos de Vetor"
     COPY_ATTRIBUTES_TOOLTIP = (
@@ -614,7 +613,7 @@ class Strings_pt_BR:
         "Permite selecionar quais atributos criar e tratar conflitos\n"
         "de nome quando um campo já existe na camada destino."
     )
-    
+
     # plugins/ExportAllLayouts.py
     EXPORT_ALL_LAYOUTS_TITLE = "Exportar Todos os Layouts"
     EXPORT_ALL_LAYOUTS_TOOLTIP = (
@@ -937,4 +936,3 @@ class Strings_pt_BR:
     TEMP_FOLDER_HINT = (
         "Os arquivos foram salvos na pasta temporária do Cadmus."
     )
-

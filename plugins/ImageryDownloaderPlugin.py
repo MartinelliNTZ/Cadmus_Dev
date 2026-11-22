@@ -555,4 +555,3 @@ def run(iface):
     dlg.setModal(False)
     dlg.show()
     return dlg
-

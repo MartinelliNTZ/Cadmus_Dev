@@ -70,9 +70,13 @@ from qgis.gui import QgsMapLayerComboBox, QgsMapTool, QgsRubberBand
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
 from ....core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
 from qgis.PyQt import sip
 
 from ..simple.SimpleModernButton import SimpleModernButton
+
+
+_LOGGER = LogUtils(tool=ToolKey.SYSTEM, class_name="GridBBoxSelector")
 
 
 # ── Compatibilidade Qt5 / Qt6 — size policy ─────────────────────────
@@ -133,8 +137,11 @@ def _layer_geometry_name(layer) -> str:
         if geom == int(Qgis.GeometryType.Polygon):
             return "polygon"
         return ""
-    except (AttributeError, ImportError):
-        pass
+    except (AttributeError, ImportError) as error:
+        _LOGGER.debug(
+            "Enum Qgis.GeometryType indisponível; usando QgsWkbTypes",
+            error=str(error),
+        )
     try:
         from qgis.core import QgsWkbTypes  # pylint: disable=import-outside-toplevel
 
@@ -190,8 +197,8 @@ class _MapExtentDrawTool(QgsMapTool):
         self._points = []
         try:
             self._rubber.reset()
-        except RuntimeError:
-            pass
+        except RuntimeError as error:
+            _LOGGER.debug("Falha ao resetar o rubber band", error=str(error))
         super().deactivate()
 
     def _finish(self):
@@ -203,8 +210,8 @@ class _MapExtentDrawTool(QgsMapTool):
         self._points = []
         try:
             self.canvas().unsetMapTool(self)
-        except RuntimeError:
-            pass
+        except RuntimeError as error:
+            _LOGGER.debug("Falha ao remover a ferramenta do canvas", error=str(error))
         if geometry is not None and self._on_finished is not None:
             self._on_finished(geometry)
 
@@ -258,7 +265,7 @@ class GridBBoxSelector(QWidget):
         self._separator_top = separator_top
         self._separator_bottom = separator_bottom
         self._logger = LogUtils(
-            tool="GridBBoxSelector", class_name="GridBBoxSelector"
+            tool=ToolKey.SYSTEM, class_name="GridBBoxSelector"
         )
 
         # Estado armazenado (boundary, path e tipo de entrada)
@@ -528,8 +535,10 @@ class GridBBoxSelector(QWidget):
             try:
                 if prev is not None and not sip.isdeleted(prev):
                     canvas.setMapTool(prev)
-            except RuntimeError:
-                pass
+            except RuntimeError as error:
+                self._logger.debug(
+                    "Falha ao restaurar a ferramenta anterior", error=str(error)
+                )
             return
 
         self._previous_tool = canvas.mapTool()
@@ -586,8 +595,10 @@ class GridBBoxSelector(QWidget):
         try:
             if prev is not None and not sip.isdeleted(prev):
                 canvas.setMapTool(prev)
-        except RuntimeError:
-            pass
+        except RuntimeError as error:
+            self._logger.debug(
+                "Falha ao restaurar a ferramenta anterior", error=str(error)
+            )
 
     # ── Pré-visualização no canvas ──────────────────────────────────
 
@@ -725,5 +736,5 @@ class GridBBoxSelector(QWidget):
                 if layer is not None and str(layer.source()).split("|")[0] == path:
                     self._combo.setLayer(layer)
                     return
-        except RuntimeError:
-            pass
+        except RuntimeError as error:
+            self._logger.debug("Falha ao selecionar a camada", error=str(error))

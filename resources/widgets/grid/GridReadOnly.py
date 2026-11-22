@@ -45,6 +45,8 @@ from ..simple.SimpleLabel import SimpleLabel
 from ..simple.SimpleReadOnly import SimpleReadOnly
 from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
+from ....core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
 
 
 class GridReadOnly(QWidget):
@@ -77,7 +79,9 @@ class GridReadOnly(QWidget):
             self._configure(title, fields or {}, show_copy_buttons, separator_top, separator_bottom)
             self._apply_styles()
         except Exception as error:
-            pass
+            LogUtils(
+                tool=ToolKey.SYSTEM, class_name="GridReadOnly"
+            ).exception(error, code="GRID_READONLY_INIT_ERROR")
 
     def _configure(self, title: str, fields: dict, show_copy_buttons: bool, separator_top: bool, separator_bottom: bool):
         """Monta UI."""

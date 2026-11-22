@@ -42,8 +42,6 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QGroupBox,
 )
-from qgis.PyQt.QtCore import Qt
-
 from ..simple.SimpleLabel import SimpleLabel
 from ..simple.SimpleDoubleSpinBox import SimpleDoubleSpinBox
 from ..SeparatorWidget import SeparatorWidget

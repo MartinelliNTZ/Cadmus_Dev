@@ -132,7 +132,6 @@ class ImageryApi(BaseUtil):
         super().__init__(tool_key or BaseUtil.TOOL_KEY_UNTRACEABLE)
         self._client = None
 
-
     # ── Catálogo / configuração da fonte ─────────────────────────────
 
     def get_source_config(self, source: Optional[str] = None) -> dict:

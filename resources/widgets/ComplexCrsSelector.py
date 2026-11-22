@@ -175,4 +175,3 @@ class ComplexCrsSelector(QWidget):
         Usa tokens do tema com nomes descritivos.
         """
         return ""
-

@@ -7,8 +7,6 @@ Herda de BaseTheme e sobrescreve todos os tokens visuais.
 
 from __future__ import annotations
 
-from .BaseTheme import BaseTheme
-
 
 class CoffeTheme:
 

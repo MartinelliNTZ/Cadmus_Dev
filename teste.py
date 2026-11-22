@@ -133,8 +133,7 @@ def ned_to_enu(v_ned):
     return (e, n, -d)  # (E, N, U)
 
 
-def compute_footprint(lat, lon, height_agl, yaw_deg, pitch_deg, roll_deg,
-                       focal35_mm, keep_fraction=0.7):
+def compute_footprint(lat, lon, height_agl, yaw_deg, pitch_deg, roll_deg, focal35_mm, keep_fraction=0.7):
     """Retorna lista de 4 pontos (lon,lat) -> footprint real no chão."""
     if height_agl is None or height_agl <= 0 or focal35_mm is None or focal35_mm <= 0:
         return None
@@ -178,13 +177,13 @@ def get_focal35(rec):
         try:
             return float(lens[0])
         except (TypeError, ValueError):
-            pass
+            lens = None
     focal_real = rec.get("FocalLength")
     if focal_real:
         try:
             return float(focal_real) * 1.95  # crop factor aproximado (Zenmuse L2 RGB)
         except (TypeError, ValueError):
-            pass
+            return None
     return None
 
 
@@ -194,7 +193,7 @@ def get_height_agl(rec):
         try:
             return float(h)
         except (TypeError, ValueError):
-            pass
+            return None
     return None
 
 

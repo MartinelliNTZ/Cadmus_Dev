@@ -30,7 +30,7 @@ class ReportGenerationService:
         Renderiza o HTML UMA ÚNICA vez, APÓS ter todos os timestamps
         completos (report_start + report_end), eliminando a re-renderização
         duplicada que consumia ~18min extras.
-        
+
         O report_end é registrado ANTES de renderizar, assim o template
         Jinja2 já exibe o tempo total de geração do relatório corretamente.
         """

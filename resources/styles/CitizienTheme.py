@@ -16,7 +16,6 @@ from __future__ import annotations
 from .BaseTheme import BaseTheme
 
 
-
 class CitizienTheme(BaseTheme):
     """
     Classe base para temas visuais.
@@ -40,12 +39,12 @@ class CitizienTheme(BaseTheme):
         g = int(hex_color[2:4], 16)
         b = int(hex_color[4:6], 16)
         return f"rgba({r},{g},{b},{alpha})"
-    
-    BACKGROUND_SQUARE_CELL_SIZE	= 50
-    BACKGROUND_SQUARE_BASE_COLOR	= "#18181b"
-    BACKGROUND_SQUARE_LINE_ALPHA	= 255
-    BACKGROUND_SQUARE_GRADIENT_ALPHA	= 255
-    BACKGROUND_BORDER_RADIUS	= 8
+
+    BACKGROUND_SQUARE_CELL_SIZE = 50
+    BACKGROUND_SQUARE_BASE_COLOR = "#18181b"
+    BACKGROUND_SQUARE_LINE_ALPHA = 255
+    BACKGROUND_SQUARE_GRADIENT_ALPHA = 255
+    BACKGROUND_BORDER_RADIUS = 8
 
     # ════════════════════════════════════════════════════════════
     # PALETA BASE — 9 CORES (3 grupos × 3 variações)
@@ -112,8 +111,6 @@ class CitizienTheme(BaseTheme):
     COLOR_BORDER_DEFAULT: str = "#27272a"
     COLOR_CHECKBOX_BACKGROUND: str = "#3f3f46"
 
-
-
     # ════════════════════════════════════════════════════════════
     # CORES DE LISTA / SELEÇÃO
     # ════════════════════════════════════════════════════════════
@@ -127,7 +124,6 @@ class CitizienTheme(BaseTheme):
 
     COLOR_APP_BAR_INFO_BUTTON_BACKGROUND: str = "rgba(255, 255, 255, 20)"
     COLOR_APP_BAR_INFO_BUTTON_HOVER_BACKGROUND: str = "rgba(255, 255, 255, 40)"
-
 
     COLOR_COLLAPSIBLE_HEADER_HOVER_END_GRADIENT: str = "rgba(166, 120, 79, 140)"
 

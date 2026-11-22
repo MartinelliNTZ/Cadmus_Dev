@@ -1287,14 +1287,14 @@ class CustomPhotosFieldsUtil:
         gim_pitch = CustomPhotosFieldsUtil._get_safe(
             data, MetadataFieldKey.GIMBAL_PITCH_DEGREE, default=0
         )
-        
+
         # Verifica se é Nadir (pitch a 90° ±3°)
         if abs(abs(gim_pitch) - 90) <= 3:
             return "Nadir"
-        
+
         # Calcula YALREW para classificação oblíqua
         yalrew = CustomPhotosFieldsUtil._calculate_yaw_relative_error(data)
-        
+
         if yalrew >= 315 or yalrew < 45:
             return "Obliqua - Frente"
         elif 45 <= yalrew < 135:

@@ -66,6 +66,8 @@ from ..SeparatorWidget import SeparatorWidget
 from ...styles.AppStyles import AppStyles
 from ...InstructionsManager import InstructionsManager
 from ...IconManager import IconManager
+from ....core.config.LogUtils import LogUtils
+from ....utils.ToolKeys import ToolKey
 
 # ── Compatibilidade Qt5 / Qt6 ──────────────────────────────────
 try:
@@ -121,6 +123,10 @@ class GridExecutionButtons(QWidget):
 
         self._config = config or {}
         self._tool_key = tool_key
+        self._logger = LogUtils(
+            tool=tool_key or ToolKey.SYSTEM,
+            class_name="GridExecutionButtons",
+        )
         self._enable_close = enable_close_button
         self._enable_config = enable_config_button
         self._config_callback = config_callback
@@ -234,8 +240,11 @@ class GridExecutionButtons(QWidget):
             try:
                 from qgis.utils import iface as qgis_iface
                 iface = qgis_iface
-            except Exception:
-                pass
+            except Exception as error:
+                self._logger.warning(
+                    "Não foi possível obter qgis.utils.iface",
+                    error=str(error),
+                )
 
         # 3a tentativa: fallback QgsApplication (caso raro)
         if iface is None:

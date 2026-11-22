@@ -93,7 +93,7 @@ class GridLabel(QWidget):
 
     def set_config(self, config: dict) -> None:
         """Atualiza múltiplos labels a partir de um config dict.
-        
+
         Exemplo:
             labels.set_config({
                 "municipio": {"text": "Cidade: Palmas"},

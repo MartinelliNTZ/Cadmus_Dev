@@ -7,7 +7,7 @@ Uso INTERNO por GridDoubleSpin. NUNCA importado por plugins.
 Suporta type="int" (QSpinBox) e type="double" (QDoubleSpinBox).
 """
 
-from qgis.PyQt.QtWidgets import QDoubleSpinBox, QSpinBox
+from qgis.PyQt.QtWidgets import QDoubleSpinBox
 from ...styles.AppStyles import AppStyles
 
 

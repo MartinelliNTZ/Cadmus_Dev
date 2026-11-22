@@ -856,10 +856,14 @@ class PhotoMetadata:
         raw = str(value).strip()
         if not raw:
             return None
+        logger = LogUtils(tool=ToolKey.SYSTEM, class_name="PhotoMetadata")
         try:
             return datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        except Exception:
-            pass
+        except Exception as error:
+            logger.debug(
+                "Formato ISO inválido; tentando formatos alternativos",
+                error=str(error),
+            )
         formats = [
             "%Y:%m:%d %H:%M:%S",
             "%Y-%m-%d %H:%M:%S",
@@ -873,6 +877,9 @@ class PhotoMetadata:
         for fmt in formats:
             try:
                 return datetime.strptime(str(raw), fmt)
-            except Exception:
-                pass
+            except Exception as error:
+                logger.debug(
+                    f"Formato de data não correspondeu: {fmt}",
+                    error=str(error),
+                )
         return None

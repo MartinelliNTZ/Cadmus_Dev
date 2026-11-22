@@ -257,9 +257,9 @@ class CollapsibleParametersWidget(QWidget):
 
         # Estilo do container de conteúdo
         self._content_container.setStyleSheet(
-            f"background: transparent;"
-            f"border: none;"
-            f"padding: 4px 0px 0px 0px;"
+            "background: transparent;"
+            "border: none;"
+            "padding: 4px 0px 0px 0px;"
         )
 
     def _get_global_style(self) -> str:

@@ -22,7 +22,8 @@ Uso programático:
 
 import os
 import py_compile
-import subprocess
+# O subprocesso usa apenas caminhos fixos de Python do QGIS.
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from typing import Optional, Union, Tuple
@@ -36,7 +37,7 @@ from core.services.PackageManager import PackageManager
 # Chave de licença opcional incorporada no pacote de distribuição
 # Se vazia "", nenhuma chave é adicionada
 DISTRIBUTION_KEY = "6U5D9-4H0J8-6P1U4"
-VERSION = "3.1.0.0"
+VERSION = "3.1.0.1"
 
 # Nome do arquivo de saída (sem extensão) — extensão .dist
 DISTRIBUTION_FILENAME = f"Cadmus_package_{VERSION}_dist"
@@ -624,12 +625,15 @@ class BuildDistribution:
             "    sys.exit(1)\n"
         )
 
-        result = subprocess.run(
+        # O executavel vem exclusivamente de _QGIS_PYTHON_CANDIDATES; nao ha
+        # shell nem entrada do usuario nessa chamada do utilitario de build.
+        result = subprocess.run(  # nosec B603
             [python_exe, "-c", script],
             capture_output=True,
             text=True,
             timeout=60,
             cwd=str(self._root),
+            shell=False,
         )
 
         if result.stdout:

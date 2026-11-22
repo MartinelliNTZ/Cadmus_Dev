@@ -24,7 +24,7 @@ REQUISITO EM AppStyles:
     Ver sugestão de implementação e lista de tokens no final deste arquivo.
 """
 
-import random
+import hashlib
 from enum import Enum
 
 from qgis.PyQt.QtWidgets import (
@@ -203,6 +203,7 @@ class EdgeFrame(QFrame):
             base_color.lighter(140),
         ]
         weights = [70, 15, 10, 5]
+        total_weight = sum(weights)
 
         cols = int(w // cell_size) + 2
         rows = int(h // cell_size) + 2
@@ -211,9 +212,23 @@ class EdgeFrame(QFrame):
             for col in range(cols):
                 key = (row, col)
                 if key not in self._cell_variations:
-                    self._cell_variations[key] = random.choices(
-                        variation_colors, weights=weights, k=1
-                    )[0]
+                    # A textura e apenas visual; use um hash estavel para
+                    # distribuir as cores sem depender de um PRNG.
+                    digest = hashlib.sha256(
+                        f"{row}:{col}".encode("ascii")
+                    ).digest()
+                    selection = int.from_bytes(
+                        digest[:8], "big"
+                    ) % total_weight
+                    for variation_color, weight in zip(
+                        variation_colors, weights
+                    ):
+                        if selection < weight:
+                            self._cell_variations[key] = variation_color
+                            break
+                        selection -= weight
+                    else:
+                        self._cell_variations[key] = variation_colors[-1]
                 color = self._cell_variations[key]
                 x = col * cell_size
                 y = row * cell_size

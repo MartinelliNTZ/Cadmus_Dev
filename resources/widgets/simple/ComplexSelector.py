@@ -36,7 +36,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
     QStackedWidget, QSizePolicy, QCheckBox,
 )
-from qgis.PyQt.QtCore import pyqtSignal, Qt
+from qgis.PyQt.QtCore import QUrl, pyqtSignal, Qt
+from qgis.PyQt.QtGui import QDesktopServices
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsProject
 
@@ -578,8 +579,12 @@ class ComplexSelector(QWidget):
 
         self.logger.info(f"Abrindo Explorer em: {target}", code="COMPLEX_EXPLORER_OPEN")
         try:
-            if os.name == "nt":
-                os.startfile(target)
+            url = QUrl.fromLocalFile(os.path.normpath(target))
+            if not QDesktopServices.openUrl(url):
+                self.logger.warning(
+                    "O sistema nao conseguiu abrir o Explorer",
+                    code="COMPLEX_EXPLORER_OPEN_FAILED",
+                )
         except Exception as e:
             self.logger.error("Erro ao abrir Explorer", code="COMPLEX_EXPLORER_ERROR", error=str(e))
 

@@ -31,7 +31,7 @@ class AboutDialog(BaseDialog):
             self.logger.debug("AboutDialog _build_ui concluído")
 
             info_text = self.tr(
-                f"<b>{STR.VERSION}:</b> 3.1.0.0<br>"
+                f"<b>{STR.VERSION}:</b> 3.1.0.1.0<br>"
                 f"<b>{STR.UPDATED_ON}:</b> 22 / 11 / 2026<br>"
                 f"<b>{STR.CREATED_ON}:</b> 9 / 12 / 2024<br>"
                 f"<b>{STR.CREATOR}:</b> MTL Agricultura e Tecnologia<br>"

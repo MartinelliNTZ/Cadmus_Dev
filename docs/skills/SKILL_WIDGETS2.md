@@ -1205,6 +1205,50 @@ self.social = GridIconButton(items=[...], parent=self)
 
 ---
 
+## 🧭 Contrato de Tooltips — Ferramenta x Widget
+
+Este contrato separa duas camadas que não podem ser misturadas:
+
+| Camada | Responsabilidade | Exemplo |
+|--------|------------------|---------|
+| **Ferramenta/plugin** | Explicar o significado daquele controle dentro do fluxo da ferramenta. A ferramenta cria o `config` e fornece `description` para cada instância, campo, opção ou botão declarado por ela. | O checkbox `reproject_output` explica o que a reprojeção faz no download de imagens. |
+| **Widget** | Explicar e nomear os controles internos que pertencem à própria implementação do widget e são iguais em qualquer ferramenta. | Os botões internos do `ComplexSelector`: selecionar arquivo, selecionar pasta, alternar camada, copiar, abrir no Explorer e bloquear/desbloquear. |
+
+### Regra prática
+
+1. Se o controle aparece porque a **ferramenta o declarou no `config`**, a tooltip é da ferramenta.
+2. Se o controle aparece porque o **widget o cria internamente**, a tooltip é do widget.
+3. Widgets compostos podem aceitar uma descrição contextual da ferramenta, mas não devem transferir para o plugin a responsabilidade de explicar seus botões internos.
+4. `GridCheckbox` segue a regra do item: a tooltip de cada checkbox é da ferramenta que montou o dicionário. Os botões genéricos internos de seleção em lote são responsabilidade do widget.
+5. `ComplexSelector` é a exceção mais importante: a tooltip do seletor/label vem da ferramenta; as tooltips dos botões internos ficam no widget.
+6. `GridExecutionButtons` recebe da ferramenta a descrição de cada botão declarado em `config`; os botões built-in `Fechar`, `Config` e `Info` são responsabilidade do widget.
+7. `GridBBoxSelector` e outros widgets com botões estruturais devem manter defaults no widget e aceitar override somente quando o contexto da ferramenta realmente mudar o significado.
+
+### Separação de públicos
+
+- **Tooltip:** texto curto, direto e instrutivo para quem pode não conhecer o Cadmus. Deve dizer o que o controle faz e, quando necessário, qual é o efeito da ação.
+- **MD/HTML de inventário:** documentação técnica para desenvolvimento. Deve registrar `tool_key`, arquivo, classe, instâncias, callbacks, dependências e dono da tooltip. Não copiar automaticamente esse texto para a interface.
+
+### Tokens obrigatórios
+
+- Todo texto de tooltip novo deve ser um token acessado por `STR`.
+- Durante esta fase, adicionar e revisar tokens somente em `i18n/Strings_pt_BR.py`.
+- A ferramenta deve usar famílias como `TOOL_KEY_*_TOOLTIP` e `TOOL_KEY_*_*_DESC` para seus controles contextuais.
+- O widget deve usar famílias próprias, como `COMPLEX_SELECTOR_*_TOOLTIP` ou `GRID_EXECUTION_BUTTONS_*_TOOLTIP`, para controles internos reutilizados.
+- É proibido colocar texto literal novo em `description=`, `tooltip=` ou `setToolTip()`.
+- Antes de criar um token, procurar se já existe um equivalente reutilizável em `Strings_pt_BR.py`.
+
+### Checklist de revisão
+
+- [ ] Cada ferramenta possui uma tooltip de entrada no `ToolRegistry`.
+- [ ] Cada instância declarada pela ferramenta possui `description` contextual quando o controle não for autoexplicativo.
+- [ ] Cada botão interno criado pelo widget possui tooltip própria e tokenizada.
+- [ ] Diálogos auxiliares foram incluídos no inventário da ferramenta que os abre.
+- [ ] O texto é compreensível para uma pessoa que não conhece o processamento.
+- [ ] A documentação técnica identifica claramente o dono de cada tooltip.
+
+---
+
 ### 📞 Regra de Callbacks
 
 Widgets **não expõem sinais Qt** para o plugin. Em vez disso, o plugin passa **funções callback** como parâmetros no construtor do widget. O widget conecta os sinais internamente.
@@ -1429,4 +1473,5 @@ border: 1px solid {theme.COLOR_BORDER};
    - O `QgsRubberBand` vermelho desenhado após selecionar a extensão (tela/camada/desenho) ficava permanentemente no canvas; agora é limpo sozinho após `_PREVIEW_CLEAR_MS` (3000 ms) via `QTimer` de disparo único
    - Novos métodos `_schedule_preview_clear()`/`_clear_preview()` (o timer é reutilizado e reiniciado a cada redraw; a limpeza não apaga o estado boundary/tipo/path) — feedback breve e fiel ao QGIS
 | 2026-11-22 | 3.6.6 | `ComplexSelector` em modo `folder` não chama mais `os.path.isfile()` ao restaurar ou editar caminhos; isso evita bloqueios síncronos em pastas de rede indisponíveis e acelera a abertura de ferramentas que restauram paths remotos. |
+| 2026-11-22 | 3.6.7 | Formalizado o contrato de tooltips: a ferramenta é responsável pelas descrições contextuais dos itens declarados no `config`, o widget é responsável pelos controles internos; incluídas regras de separação de públicos e tokenização somente em `Strings_pt_BR`. |
 

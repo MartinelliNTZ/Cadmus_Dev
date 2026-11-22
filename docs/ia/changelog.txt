@@ -1,3 +1,11 @@
+3.4.1.28 22/11/2026
+[3.4.1.28][22/11/2026] Planejamento do sistema de tooltips e inventário técnico de widgets:
+   - Criado `docs/plano_acao_tooltips.md` com 40 ferramentas únicas, widgets por ferramenta, diálogos auxiliares e matriz de responsabilidades.
+   - Criado `docs/mapa_tooltips.html` com grid clicável, busca, filtros por categoria e painel técnico construtivo.
+   - `SKILL_WIDGETS2.md` agora formaliza a separação entre tooltip contextual da ferramenta e tooltip de controles internos do widget, com tokens via `STR` somente em `Strings_pt_BR` nesta fase.
+   - `SKILL_AGENT.md` recebeu o roteamento específico para tarefas de inventário e tooltips.
+   - Versão de distribuição incrementada de `3.1.0.3` para `3.1.0.4`; versões derivadas sincronizadas em `metadata.txt` e `plugins/AboutDialog.py`.
+
 3.4.1.27 22/11/2026
 [3.4.1.27][22/11/2026] Ajuste do protocolo de diagnóstico do agente:
    - A leitura de logs deixou de ser descrita como obrigatória para toda tarefa.

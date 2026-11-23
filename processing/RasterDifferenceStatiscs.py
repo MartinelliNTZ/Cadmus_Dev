@@ -37,47 +37,47 @@ class RasterDifferenceStatiscs(BaseProcessingAlgorithm):
         self.logger.debug("initAlgorithm initialized")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterFolderDestination(
-                self.INPUT_FOLDER,
-                STR.RASTER_FOLDER_OR_SELECT_RASTER_LAYERS,
-                defaultValue=self.prefs.get("last_input_folder", ""),
-            )
+        input_folder = QgsProcessingParameterFolderDestination(
+            self.INPUT_FOLDER,
+            STR.RASTER_FOLDER_OR_SELECT_RASTER_LAYERS,
+            defaultValue=self.prefs.get("last_input_folder", ""),
         )
+        input_folder.setHelp(STR.RASTER_DIFFERENCE_INPUT_FOLDER_DESC)
+        self.addParameter(input_folder)
 
-        self.addParameter(
-            QgsProcessingParameterMultipleLayers(
-                self.INPUT_LAYERS,
-                STR.QGIS_RASTER_LAYERS_OR_SELECT_RASTER_FOLDER,
-                QgsProcessing.TypeRaster,
-                optional=True,
-            )
+        input_layers = QgsProcessingParameterMultipleLayers(
+            self.INPUT_LAYERS,
+            STR.QGIS_RASTER_LAYERS_OR_SELECT_RASTER_FOLDER,
+            QgsProcessing.TypeRaster,
+            optional=True,
         )
+        input_layers.setHelp(STR.RASTER_DIFFERENCE_INPUT_LAYERS_DESC)
+        self.addParameter(input_layers)
 
-        self.addParameter(
-            QgsProcessingParameterFolderDestination(
-                self.OUTPUT_FOLDER,
-                STR.OUTPUT_FOLDER_FOR_GENERATED_RASTERS,
-                defaultValue=self.prefs.get("last_output_folder", ""),
-                optional=True,
-            )
+        output_folder = QgsProcessingParameterFolderDestination(
+            self.OUTPUT_FOLDER,
+            STR.OUTPUT_FOLDER_FOR_GENERATED_RASTERS,
+            defaultValue=self.prefs.get("last_output_folder", ""),
+            optional=True,
         )
+        output_folder.setHelp(STR.RASTER_DIFFERENCE_OUTPUT_FOLDER_DESC)
+        self.addParameter(output_folder)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                STR.OPEN_OUTPUT_FOLDER,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            STR.OPEN_OUTPUT_FOLDER,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     @staticmethod
     def overlap(r1, r2):

@@ -44,46 +44,55 @@ class NdviCalculator(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo NdviCalculator...")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_NIR, STR.INPUT_RASTER_NIR)
+        nir_raster = QgsProcessingParameterRasterLayer(
+            self.INPUT_NIR, STR.INPUT_RASTER_NIR
         )
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.NIR_BAND,
-                STR.BAND_NIR,
-                parentLayerParameterName=self.INPUT_NIR,
-                defaultValue=self.prefs.get("nir_band", 1),
-            )
-        )
+        nir_raster.setHelp(STR.NIR_RASTER_INPUT_DESC)
+        self.addParameter(nir_raster)
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_RED, STR.INPUT_RASTER_RED)
+        nir_band = QgsProcessingParameterBand(
+            self.NIR_BAND,
+            STR.BAND_NIR,
+            parentLayerParameterName=self.INPUT_NIR,
+            defaultValue=self.prefs.get("nir_band", 1),
         )
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.RED_BAND,
-                STR.BAND_RED,
-                parentLayerParameterName=self.INPUT_RED,
-                defaultValue=self.prefs.get("red_band", 1),
-            )
-        )
+        nir_band.setHelp(STR.SPECTRAL_BAND_SELECTION_DESC)
+        self.addParameter(nir_band)
 
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT, STR.NDVI))
+        red_raster = QgsProcessingParameterRasterLayer(
+            self.INPUT_RED, STR.INPUT_RASTER_RED
+        )
+        red_raster.setHelp(STR.RED_RASTER_INPUT_DESC)
+        self.addParameter(red_raster)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        red_band = QgsProcessingParameterBand(
+            self.RED_BAND,
+            STR.BAND_RED,
+            parentLayerParameterName=self.INPUT_RED,
+            defaultValue=self.prefs.get("red_band", 1),
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                self.PARAM_DISPLAY_HELP_LABEL,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        red_band.setHelp(STR.SPECTRAL_BAND_SELECTION_DESC)
+        self.addParameter(red_band)
+
+        output = QgsProcessingParameterRasterDestination(self.OUTPUT, STR.NDVI)
+        output.setHelp(STR.NDVI_OUTPUT_DESC)
+        self.addParameter(output)
+
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
+
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            self.PARAM_DISPLAY_HELP_LABEL,
+            defaultValue=self.prefs.get("display_help", True),
+        )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm do NdviCalculator...")

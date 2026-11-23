@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.25`<br>
+**Versão de referência:** `3.1.0.30`<br>
 **Data:** 23/11/2026
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -180,10 +180,18 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **30 — Linha de Diferença entre Pontos:** concluídas as descrições da camada principal, atributos A/B, modo de comparação, camada secundária, saída de linhas e ajuda do Processing.
 - As descrições documentam os dois modos de operação reais: conexão de pontos consecutivos por atributo e relacionamento entre duas camadas por chave.
 
+### Lote seguinte — ferramentas 31 a 35
+
+- **31 — Processar Diferença de Rasters:** concluídas as descrições da pasta/camadas de entrada, pasta de saída, abertura da pasta e ajuda do Processing.
+- **32 — Média Ponderada de Rasters:** concluídas as descrições dos quatro rasters, pesos, CRS, resolução, saída, abertura da pasta e ajuda; rótulos literais foram tokenizados.
+- **33 — Gerador de Grade:** concluídas as descrições da camada poligonal, espaçamentos, tipo de grade, saída, log detalhado e ajuda; opções da enumeração foram tokenizadas.
+- **34 — Calculadora NDVI:** concluídas as descrições dos rasters NIR/RED, bandas, saída, abertura da pasta e ajuda.
+- **35 — Calculadora NDRE:** concluídas as descrições dos rasters NIR/RedEdge, bandas, saída, abertura da pasta e ajuda.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.25`.
-- Changelog correspondente: `[3.1.0.25][23/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.30`.
+- Changelog correspondente: `[3.1.0.30][23/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -238,11 +246,11 @@ Para cada ferramenta, seguir esta ordem:
 | 28 | Gerador de Diferenças entre Campos | `difference_fields` | **Concluída** |
 | 29 | Estatísticas de Atributos | `attribute_statistics` | **Concluída** |
 | 30 | Linha de Diferença entre Pontos | `geometry_line_from_points` | **Concluída** |
-| 31 | Processar Diferença de Rasters | `raster_difference_statistics` | A fazer |
-| 32 | Média Ponderada de Rasters | `raster_weighted_average` | A fazer |
-| 33 | Gerador de Grade | `grid_generator` | A fazer |
-| 34 | Calculadora NDVI | `ndvi_calculator` | A fazer |
-| 35 | Calculadora NDRE (Red Edge) | `ndre_calculator` | A fazer |
+| 31 | Processar Diferença de Rasters | `raster_difference_statistics` | **Concluída** |
+| 32 | Média Ponderada de Rasters | `raster_weighted_average` | **Concluída** |
+| 33 | Gerador de Grade | `grid_generator` | **Concluída** |
+| 34 | Calculadora NDVI | `ndvi_calculator` | **Concluída** |
+| 35 | Calculadora NDRE (Red Edge) | `ndre_calculator` | **Concluída** |
 | 36 | Criador de Mosaico RGB | `rgb_mosaic_creator` | A fazer |
 | 37 | Padronizar Estilo RGB (Percentil) | `rgb_style_standardizer` | A fazer |
 | 38 | Calculadora GLI (Green Leaf Index) | `gli_calculator` | A fazer |

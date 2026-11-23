@@ -1,3 +1,23 @@
+[3.1.0.30][23/11/2026] Tooltips contextuais da ferramenta 35 — Calculadora NDRE:
+   - Os rasters NIR/RedEdge, bandas, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
+   - Foi reutilizado o token semântico de seleção de bandas e foram adicionados tokens somente em `Strings_pt_BR.py`.
+
+[3.1.0.29][23/11/2026] Tooltips contextuais da ferramenta 34 — Calculadora NDVI:
+   - Os rasters NIR/RED, bandas, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
+   - Foi reutilizado o token semântico de seleção de bandas e foram adicionados tokens somente em `Strings_pt_BR.py`.
+
+[3.1.0.28][23/11/2026] Tooltips contextuais da ferramenta 33 — Gerador de Grade:
+   - A camada poligonal, espaçamentos, tipo de grade, saída, log detalhado e ajuda receberam descrições via `setHelp()`.
+   - As opções Ponto, Linha e Retângulo foram tokenizadas em `Strings_pt_BR.py`.
+
+[3.1.0.27][23/11/2026] Tooltips contextuais da ferramenta 32 — Média Ponderada de Rasters:
+   - Todos os rasters, pesos, CRS, resolução, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
+   - Os rótulos literais dos parâmetros foram substituídos por tokens pt-BR sem alterar a lógica.
+
+[3.1.0.26][23/11/2026] Tooltips contextuais da ferramenta 31 — Processar Diferença de Rasters:
+   - A pasta/camadas de entrada, pasta de saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
+   - A descrição explica a combinação de rasters por pasta e por camadas selecionadas.
+
 [3.1.0.25][23/11/2026] Tooltips contextuais da ferramenta 30 — Linha de Diferença entre Pontos:
    - A camada principal, os atributos A/B, o modo de comparação, a camada secundária, a saída de linhas e a ajuda receberam descrições via `setHelp()`.
    - As descrições explicam os dois modos reais de operação: conexão de pontos consecutivos por atributo e relacionamento entre duas camadas por chave.

@@ -34,46 +34,58 @@ class GridGenerator(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo GridGenerator…")
         self.load_preferences()
         self.logger.debug(f"Preferências carregadas: {self.prefs}")
-        self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.INPUT_LAYER,
-                STR.GRID_GENERATOR_INPUT_LAYER,
-                [QgsProcessing.TypeVectorPolygon],
-            )
+        input_layer = QgsProcessingParameterFeatureSource(
+            self.INPUT_LAYER,
+            STR.GRID_GENERATOR_INPUT_LAYER,
+            [QgsProcessing.TypeVectorPolygon],
         )
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.HORIZONTAL_SPACING, STR.HORIZONTAL_SPACING,
-                type=QgsProcessingParameterNumber.Double, minValue=0.000001, defaultValue=self.prefs.get("horizontal_spacing", 15)
-            )
+        input_layer.setHelp(STR.GRID_GENERATOR_INPUT_LAYER_DESC)
+        self.addParameter(input_layer)
+        horizontal_spacing = QgsProcessingParameterNumber(
+            self.HORIZONTAL_SPACING,
+            STR.HORIZONTAL_SPACING,
+            type=QgsProcessingParameterNumber.Double,
+            minValue=0.000001,
+            defaultValue=self.prefs.get("horizontal_spacing", 15),
         )
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.VERTICAL_SPACING, STR.VERTICAL_SPACING,
-                type=QgsProcessingParameterNumber.Double, minValue=0.000001, defaultValue=self.prefs.get("vertical_spacing", 15)
-            )
+        horizontal_spacing.setHelp(STR.HORIZONTAL_GRID_SPACING_DESC)
+        self.addParameter(horizontal_spacing)
+        vertical_spacing = QgsProcessingParameterNumber(
+            self.VERTICAL_SPACING,
+            STR.VERTICAL_SPACING,
+            type=QgsProcessingParameterNumber.Double,
+            minValue=0.000001,
+            defaultValue=self.prefs.get("vertical_spacing", 15),
         )
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.GRID_TYPE, STR.GRID_TYPE,
-                options=['Ponto', 'Linha', 'Retângulo (Polígono)'], defaultValue=self.prefs.get("grid_type", 0)
-            )
+        vertical_spacing.setHelp(STR.VERTICAL_GRID_SPACING_DESC)
+        self.addParameter(vertical_spacing)
+        grid_type = QgsProcessingParameterEnum(
+            self.GRID_TYPE,
+            STR.GRID_TYPE,
+            options=[STR.GRID_POINT_OPTION, STR.GRID_LINE_OPTION, STR.GRID_POLYGON_OPTION],
+            defaultValue=self.prefs.get("grid_type", 0),
         )
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(self.OUTPUT_GRID, STR.OUTPUT_GRID)
+        grid_type.setHelp(STR.GRID_TYPE_DESC)
+        self.addParameter(grid_type)
+        output_grid = QgsProcessingParameterFeatureSink(
+            self.OUTPUT_GRID, STR.OUTPUT_GRID
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.VERBOSE_LOG, STR.VERBOSE_LOG,
-                defaultValue=self.prefs.get("verbose_log", False)
-            )
+        output_grid.setHelp(STR.GRID_OUTPUT_DESC)
+        self.addParameter(output_grid)
+        verbose_log = QgsProcessingParameterBoolean(
+            self.VERBOSE_LOG,
+            STR.VERBOSE_LOG,
+            defaultValue=self.prefs.get("verbose_log", False),
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP, STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True)
-            )
+        verbose_log.setHelp(STR.VERBOSE_PROCESSING_LOG_DESC)
+        self.addParameter(verbose_log)
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, parameters, context, feedback):
         self.logger.info("Executando GridGenerator")

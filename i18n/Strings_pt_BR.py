@@ -447,6 +447,18 @@ class Strings_pt_BR:
         "Processing."
     )
     RASTER_DIFFERENCE_STATISTICS_TITLE = "Processar Diferença de Rasters"
+    RASTER_DIFFERENCE_INPUT_FOLDER_DESC = (
+        "Opcionalmente, selecione uma pasta de rasters. A busca inclui subpastas e "
+        "arquivos TIFF, VRT e IMG."
+    )
+    RASTER_DIFFERENCE_INPUT_LAYERS_DESC = (
+        "Opcionalmente, selecione camadas raster do projeto. As camadas selecionadas "
+        "serão combinadas com os rasters encontrados na pasta."
+    )
+    RASTER_DIFFERENCE_OUTPUT_FOLDER_DESC = (
+        "Escolha a pasta onde serão gravados os rasters de diferença e o relatório "
+        "consolidado. Se ficar vazia, será usada uma pasta temporária."
+    )
     INPUT_MASK_POLYGON_LAYER = "Camada máscara (polígono)"
     CLIP_PER_EACH_POLYGON = "Recortar por cada polígono"
     APPLY_CORRECTION_BUFFER_PIXEL_1_1 = "Aplicar buffer de correção (pixel * 1.1)"
@@ -538,11 +550,32 @@ class Strings_pt_BR:
     )
     GRID_GENERATOR_TITLE = "Gerador de Grade"
     GRID_GENERATOR_INPUT_LAYER = "Camada de Entrada (Polígono)"
+    GRID_GENERATOR_INPUT_LAYER_DESC = (
+        "Selecione a camada poligonal cuja extensão define a grade. A grade será "
+        "recortada para as feições dessa camada."
+    )
     HORIZONTAL_SPACING = "Espaçamento Horizontal"
+    HORIZONTAL_GRID_SPACING_DESC = (
+        "Define a distância horizontal entre os elementos da grade, na unidade do "
+        "CRS da camada de entrada."
+    )
     VERTICAL_SPACING = "Espaçamento Vertical"
+    VERTICAL_GRID_SPACING_DESC = (
+        "Define a distância vertical entre os elementos da grade, na unidade do CRS "
+        "da camada de entrada."
+    )
     GRID_TYPE = "Tipo de Grade"
+    GRID_TYPE_DESC = "Escolha se a grade será formada por pontos, linhas ou polígonos."
+    GRID_POINT_OPTION = "Ponto"
+    GRID_LINE_OPTION = "Linha"
+    GRID_POLYGON_OPTION = "Retângulo (Polígono)"
     OUTPUT_GRID = "Grade de Saída"
+    GRID_OUTPUT_DESC = "Escolha a camada vetorial onde a grade recortada será gravada."
     VERBOSE_LOG = "Log Detalhado"
+    VERBOSE_PROCESSING_LOG_DESC = (
+        "Quando marcado, registra informações adicionais sobre os parâmetros e o "
+        "processamento."
+    )
     ATTRIBUTE_STATISTICS_TITLE = "Estatísticas de Atributos"
     INPUT_LAYER = "Camada de entrada"
     NUMERIC_ATTRIBUTE_LAYER_DESC = (
@@ -1415,6 +1448,16 @@ class Strings_pt_BR:
     CREATE_ALPHA_BAND = "Criar banda alpha para NoData"
     ALPHA_NODATA_VALUE = "Valor NoData para alpha"
     RGB_COMPOSITE = "Composicao RGB"
+    NIR_RASTER_INPUT_DESC = (
+        "Selecione o raster que contém a banda do infravermelho próximo (NIR)."
+    )
+    RED_RASTER_INPUT_DESC = "Selecione o raster que contém a banda vermelha (RED)."
+    REDEDGE_RASTER_INPUT_DESC = (
+        "Selecione o raster que contém a banda de borda vermelha (RedEdge)."
+    )
+    SPECTRAL_BAND_SELECTION_DESC = (
+        "Escolha a banda do raster que será usada no cálculo do índice."
+    )
     NDVI_CALCULATOR_TITLE = "Calculadora NDVI"
     INPUT_RASTER_NIR = "Raster Infravermelho Proximo (NIR)"
     INPUT_RASTER_RED = "Raster Vermelho (RED)"
@@ -1423,11 +1466,48 @@ class Strings_pt_BR:
     SENTINEL_BANDS_INFO = "Sentinel-2: Banda 8 (NIR) e Banda 4 (Red)"
     LANDSAT_BANDS_INFO = "Landsat 8/9: Banda 5 (NIR) e Banda 4 (Red) | Landsat 5/7: Banda 4 (NIR) e Banda 3 (Red)"
     NDVI = "NDVI"
+    NDVI_OUTPUT_DESC = (
+        "Escolha o raster de saída onde será gravado o índice NDVI calculado."
+    )
     NDRE_CALCULATOR_TITLE = "Calculadora NDRE (Red Edge)"
     INPUT_RASTER_NIR_NDRE = "Raster Infravermelho Proximo (NIR) para NDRE"
     INPUT_RASTER_REDEDGE = "Raster Borda Vermelha (RedEdge)"
     BAND_REDEDGE = "Banda RedEdge"
     NDRE = "NDRE"
+    NDRE_OUTPUT_DESC = (
+        "Escolha o raster de saída onde será gravado o índice NDRE calculado."
+    )
+    FIRST_RASTER = "Raster 1"
+    SECOND_RASTER = "Raster 2"
+    THIRD_RASTER_OPTIONAL = "Raster 3 (opcional)"
+    FOURTH_RASTER_OPTIONAL = "Raster 4 (opcional)"
+    FIRST_RASTER_WEIGHT = "Peso Raster 1"
+    SECOND_RASTER_WEIGHT = "Peso Raster 2"
+    THIRD_RASTER_WEIGHT = "Peso Raster 3"
+    FOURTH_RASTER_WEIGHT = "Peso Raster 4"
+    OUTPUT_CRS_OPTIONAL = "CRS de saída (opcional)"
+    OUTPUT_RESOLUTION_OPTIONAL = "Resolução de saída (opcional)"
+    WEIGHTED_AVERAGE_REQUIRED_RASTER_DESC = (
+        "Selecione um dos rasters obrigatórios que participarão da média ponderada."
+    )
+    WEIGHTED_AVERAGE_OPTIONAL_RASTER_DESC = (
+        "Opcionalmente, selecione um raster adicional para incluir na média ponderada."
+    )
+    WEIGHTED_AVERAGE_RASTER_WEIGHT_DESC = (
+        "Defina o peso relativo deste raster. Pesos maiores aumentam sua influência; "
+        "a soma dos pesos não pode ser zero."
+    )
+    WEIGHTED_AVERAGE_OUTPUT_CRS_DESC = (
+        "Opcionalmente, defina o CRS usado para preparar os rasters antes do cálculo. "
+        "Se vazio, será usado o CRS do primeiro raster."
+    )
+    WEIGHTED_AVERAGE_OUTPUT_RESOLUTION_DESC = (
+        "Opcionalmente, informe a resolução espacial dos rasters preparados. Deixe "
+        "zero para manter a resolução original quando não houver reprojeção."
+    )
+    WEIGHTED_AVERAGE_OUTPUT_DESC = (
+        "Escolha o raster de saída onde será gravada a média ponderada."
+    )
     CALCULATE_CHM_TITLE = "Calcular CHM (MDS - MDT)"
     MDS = "Raster MDS (Modelo Digital de Superfície)"
     MDT = "Raster MDT (Modelo Digital do Terreno)"

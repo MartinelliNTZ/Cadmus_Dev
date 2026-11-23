@@ -50,96 +50,114 @@ class RasterWeightedAverage(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo RasterWeightedAverage...")
         self.load_preferences()
 
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_RASTER_1, "Raster 1"))
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.WEIGHT_1,
-                "Peso Raster 1",
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=self.prefs.get("weight_1", 50.0),
-                minValue=0.0,
-            )
+        raster_1 = QgsProcessingParameterRasterLayer(
+            self.INPUT_RASTER_1, STR.FIRST_RASTER
         )
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_RASTER_2, "Raster 2"))
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.WEIGHT_2,
-                "Peso Raster 2",
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=self.prefs.get("weight_2", 50.0),
-                minValue=0.0,
-            )
+        raster_1.setHelp(STR.WEIGHTED_AVERAGE_REQUIRED_RASTER_DESC)
+        self.addParameter(raster_1)
+
+        weight_1 = QgsProcessingParameterNumber(
+            self.WEIGHT_1,
+            STR.FIRST_RASTER_WEIGHT,
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=self.prefs.get("weight_1", 50.0),
+            minValue=0.0,
         )
+        weight_1.setHelp(STR.WEIGHTED_AVERAGE_RASTER_WEIGHT_DESC)
+        self.addParameter(weight_1)
+
+        raster_2 = QgsProcessingParameterRasterLayer(
+            self.INPUT_RASTER_2, STR.SECOND_RASTER
+        )
+        raster_2.setHelp(STR.WEIGHTED_AVERAGE_REQUIRED_RASTER_DESC)
+        self.addParameter(raster_2)
+
+        weight_2 = QgsProcessingParameterNumber(
+            self.WEIGHT_2,
+            STR.SECOND_RASTER_WEIGHT,
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=self.prefs.get("weight_2", 50.0),
+            minValue=0.0,
+        )
+        weight_2.setHelp(STR.WEIGHTED_AVERAGE_RASTER_WEIGHT_DESC)
+        self.addParameter(weight_2)
 
         param = QgsProcessingParameterRasterLayer(
-            self.INPUT_RASTER_3, "Raster 3 (opcional)", optional=True
+            self.INPUT_RASTER_3, STR.THIRD_RASTER_OPTIONAL, optional=True
         )
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        param.setHelp(STR.WEIGHTED_AVERAGE_OPTIONAL_RASTER_DESC)
         self.addParameter(param)
 
         param = QgsProcessingParameterRasterLayer(
-            self.INPUT_RASTER_4, "Raster 4 (opcional)", optional=True
+            self.INPUT_RASTER_4, STR.FOURTH_RASTER_OPTIONAL, optional=True
         )
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        param.setHelp(STR.WEIGHTED_AVERAGE_OPTIONAL_RASTER_DESC)
         self.addParameter(param)
 
         param = QgsProcessingParameterNumber(
             self.WEIGHT_3,
-            "Peso Raster 3",
+            STR.THIRD_RASTER_WEIGHT,
             type=QgsProcessingParameterNumber.Double,
             defaultValue=self.prefs.get("weight_3", 50.0),
             minValue=0.0,
             optional=True,
         )
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        param.setHelp(STR.WEIGHTED_AVERAGE_RASTER_WEIGHT_DESC)
         self.addParameter(param)
 
         param = QgsProcessingParameterNumber(
             self.WEIGHT_4,
-            "Peso Raster 4",
+            STR.FOURTH_RASTER_WEIGHT,
             type=QgsProcessingParameterNumber.Double,
             defaultValue=self.prefs.get("weight_4", 50.0),
             minValue=0.0,
             optional=True,
         )
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        param.setHelp(STR.WEIGHTED_AVERAGE_RASTER_WEIGHT_DESC)
         self.addParameter(param)
 
-        self.addParameter(
-            QgsProcessingParameterCrs(
-                self.OUTPUT_CRS,
-                "CRS de Saida (opcional)",
-                optional=True,
-            )
+        output_crs = QgsProcessingParameterCrs(
+            self.OUTPUT_CRS,
+            STR.OUTPUT_CRS_OPTIONAL,
+            optional=True,
         )
+        output_crs.setHelp(STR.WEIGHTED_AVERAGE_OUTPUT_CRS_DESC)
+        self.addParameter(output_crs)
 
         param = QgsProcessingParameterNumber(
             self.OUTPUT_RESOLUTION,
-            "Resolucao de Saida (pixels)",
+            STR.OUTPUT_RESOLUTION_OPTIONAL,
             type=QgsProcessingParameterNumber.Double,
             defaultValue=self.prefs.get("output_resolution", 0),
             minValue=0.0,
             optional=True,
         )
+        param.setHelp(STR.WEIGHTED_AVERAGE_OUTPUT_RESOLUTION_DESC)
         self.addParameter(param)
 
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT, "Saida"))
+        output = QgsProcessingParameterRasterDestination(self.OUTPUT, STR.OUTPUT)
+        output.setHelp(STR.WEIGHTED_AVERAGE_OUTPUT_DESC)
+        self.addParameter(output)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                STR.OPEN_OUTPUT_FOLDER,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            STR.OPEN_OUTPUT_FOLDER,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm...")

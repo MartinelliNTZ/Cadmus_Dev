@@ -45,46 +45,55 @@ class NdreCalculator(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo NdreCalculator...")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_NIR, STR.INPUT_RASTER_NIR_NDRE)
+        nir_raster = QgsProcessingParameterRasterLayer(
+            self.INPUT_NIR, STR.INPUT_RASTER_NIR_NDRE
         )
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.NIR_BAND,
-                STR.BAND_NIR,
-                parentLayerParameterName=self.INPUT_NIR,
-                defaultValue=self.prefs.get("nir_band", 1),
-            )
-        )
+        nir_raster.setHelp(STR.NIR_RASTER_INPUT_DESC)
+        self.addParameter(nir_raster)
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_REDEDGE, STR.INPUT_RASTER_REDEDGE)
+        nir_band = QgsProcessingParameterBand(
+            self.NIR_BAND,
+            STR.BAND_NIR,
+            parentLayerParameterName=self.INPUT_NIR,
+            defaultValue=self.prefs.get("nir_band", 1),
         )
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.REDEDGE_BAND,
-                STR.BAND_REDEDGE,
-                parentLayerParameterName=self.INPUT_REDEDGE,
-                defaultValue=self.prefs.get("rededge_band", 1),
-            )
-        )
+        nir_band.setHelp(STR.SPECTRAL_BAND_SELECTION_DESC)
+        self.addParameter(nir_band)
 
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT, STR.NDRE))
+        rededge_raster = QgsProcessingParameterRasterLayer(
+            self.INPUT_REDEDGE, STR.INPUT_RASTER_REDEDGE
+        )
+        rededge_raster.setHelp(STR.REDEDGE_RASTER_INPUT_DESC)
+        self.addParameter(rededge_raster)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        rededge_band = QgsProcessingParameterBand(
+            self.REDEDGE_BAND,
+            STR.BAND_REDEDGE,
+            parentLayerParameterName=self.INPUT_REDEDGE,
+            defaultValue=self.prefs.get("rededge_band", 1),
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                self.PARAM_DISPLAY_HELP_LABEL,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        rededge_band.setHelp(STR.SPECTRAL_BAND_SELECTION_DESC)
+        self.addParameter(rededge_band)
+
+        output = QgsProcessingParameterRasterDestination(self.OUTPUT, STR.NDRE)
+        output.setHelp(STR.NDRE_OUTPUT_DESC)
+        self.addParameter(output)
+
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
+
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            self.PARAM_DISPLAY_HELP_LABEL,
+            defaultValue=self.prefs.get("display_help", True),
+        )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm do NdreCalculator...")

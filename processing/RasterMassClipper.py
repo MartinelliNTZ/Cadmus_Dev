@@ -40,61 +40,61 @@ class RasterMassClipper(BaseProcessingAlgorithm):
 
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.INPUT_MASK,
-                STR.INPUT_MASK_POLYGON_LAYER,
-                [QgsProcessing.TypeVectorPolygon],
-            )
+        input_mask = QgsProcessingParameterFeatureSource(
+            self.INPUT_MASK,
+            STR.INPUT_MASK_POLYGON_LAYER,
+            [QgsProcessing.TypeVectorPolygon],
         )
+        input_mask.setHelp(STR.POLYGON_MASK_INPUT_DESC)
+        self.addParameter(input_mask)
 
-        self.addParameter(
-            QgsProcessingParameterMultipleLayers(
-                self.INPUT_RASTERS,
-                STR.RASTERS,
-                QgsProcessing.TypeRaster,
-            )
+        input_rasters = QgsProcessingParameterMultipleLayers(
+            self.INPUT_RASTERS,
+            STR.RASTERS,
+            QgsProcessing.TypeRaster,
         )
+        input_rasters.setHelp(STR.INPUT_RASTERS_DESC)
+        self.addParameter(input_rasters)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.PER_FEATURE,
-                STR.CLIP_PER_EACH_POLYGON,
-                defaultValue=self.prefs.get("per_feature", False),
-            )
+        per_feature = QgsProcessingParameterBoolean(
+            self.PER_FEATURE,
+            STR.CLIP_PER_EACH_POLYGON,
+            defaultValue=self.prefs.get("per_feature", False),
         )
+        per_feature.setHelp(STR.CLIP_PER_EACH_POLYGON_DESC)
+        self.addParameter(per_feature)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.BUFFER_FIX,
-                STR.APPLY_CORRECTION_BUFFER_PIXEL_1_1,
-                defaultValue=self.prefs.get("buffer_fix", True),
-            )
+        buffer_fix = QgsProcessingParameterBoolean(
+            self.BUFFER_FIX,
+            STR.APPLY_CORRECTION_BUFFER_PIXEL_1_1,
+            defaultValue=self.prefs.get("buffer_fix", True),
         )
+        buffer_fix.setHelp(STR.CORRECTION_BUFFER_DESC)
+        self.addParameter(buffer_fix)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                STR.OPEN_OUTPUT_FOLDER,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            STR.OPEN_OUTPUT_FOLDER,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
-        self.addParameter(
-            QgsProcessingParameterFolderDestination(
-                self.OUTPUT_FOLDER,
-                STR.OUTPUT_FOLDER,
-                defaultValue=self.prefs.get("last_output_folder", ""),
-            )
+        output_folder = QgsProcessingParameterFolderDestination(
+            self.OUTPUT_FOLDER,
+            STR.OUTPUT_FOLDER,
+            defaultValue=self.prefs.get("last_output_folder", ""),
         )
+        output_folder.setHelp(STR.OUTPUT_FOLDER_DESC)
+        self.addParameter(output_folder)
 
     def processAlgorithm(self, params, context, feedback):
         mask_layer = self.parameterAsVectorLayer(params, self.INPUT_MASK, context)

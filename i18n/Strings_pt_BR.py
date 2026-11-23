@@ -405,9 +405,31 @@ class Strings_pt_BR:
         "permitindo configurar entradas, campos e saidas pela interface padrao."
     )
     RASTER_MASS_CLIPPER_TOOLTIP = (
-        "Recorta em lote varios rasters usando uma camada poligonal como mascara.\n"
-        "Abre o algoritmo do provider do Cadmus no Processing,\n"
-        "com suporte a recorte por feicao, buffer de correcao e pasta de saida."
+        "Recorta em lote vários rasters usando uma camada poligonal como máscara.\n"
+        "Permite aplicar o recorte à camada inteira ou gerar uma saída por feição,\n"
+        "aplicar uma correção de borda e escolher a pasta de saída no Processing."
+    )
+    POLYGON_MASK_INPUT_DESC = (
+        "Selecione a camada vetorial de polígonos usada como máscara do recorte."
+    )
+    INPUT_RASTERS_DESC = (
+        "Selecione um ou mais rasters que serão recortados pela camada máscara."
+    )
+    CLIP_PER_EACH_POLYGON_DESC = (
+        "Quando marcado, gera um raster separado para cada polígono; desmarcado, "
+        "gera um raster usando a camada máscara inteira."
+    )
+    CORRECTION_BUFFER_DESC = (
+        "Amplia levemente a máscara usando 1,1 vez o tamanho do pixel para reduzir "
+        "bordas sem dados no recorte."
+    )
+    OPEN_OUTPUT_FOLDER_DESC = (
+        "Quando marcado, abre a pasta de saída no Explorador ao terminar o "
+        "processamento."
+    )
+    DISPLAY_HELP_DESC = (
+        "Quando marcado, exibe as instruções da ferramenta no painel de ajuda do "
+        "Processing."
     )
     RASTER_DIFFERENCE_STATISTICS_TITLE = "Processar Diferença de Rasters"
     INPUT_MASK_POLYGON_LAYER = "Camada máscara (polígono)"

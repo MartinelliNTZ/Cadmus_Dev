@@ -1,3 +1,10 @@
+[3.1.0.16][23/11/2026] Tooltips contextuais da ferramenta 21 — Recorte Massivo de Rasters:
+   - A tooltip geral foi revisada para explicar recorte em lote, modo por camada ou feição, correção de borda e pasta de saída.
+   - Os sete parâmetros do algoritmo passaram a usar `setHelp()` com descrições tokenizadas em `Strings_pt_BR.py`.
+   - Foi reaproveitado `OUTPUT_FOLDER_DESC`; os demais tokens foram criados somente para descrições sem equivalente adequado.
+   - A ferramenta 18 (DJI Coordenadas de Drone) permaneceu sem alterações.
+   - Versão de distribuição incrementada de `3.1.0.15` para `3.1.0.16` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.15][22/11/2026] Tooltips contextuais das ferramentas 19 e 20:
    - Gerar Rastro de Máquinas agora descreve a camada de linhas, feições selecionadas, saída, largura do implemento, parâmetros avançados, estilo QML e execução.
    - Relatório de Metadata agora descreve o JSON selecionado, atualização da lista, pastas de JSON/relatórios, vetorização e regeneração do relatório HTML.

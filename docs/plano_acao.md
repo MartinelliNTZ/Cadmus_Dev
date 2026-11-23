@@ -1,7 +1,7 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.15`<br>
-**Data:** 22/11/2026  
+**Versão de referência:** `3.1.0.16`<br>
+**Data:** 23/11/2026
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
 
@@ -137,10 +137,16 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - Foram reaproveitados tokens existentes para feições selecionadas, a explicação geral do relatório e a vetorização do voo.
 - A ferramenta 18 — DJI Coordenadas de Drone — permaneceu sem alterações.
 
+### Lote seguinte — ferramenta 21
+
+- **21 — Recorte Massivo de Rasters:** concluídas a tooltip geral e as descrições dos sete parâmetros do algoritmo Processing.
+- Foram documentados a camada máscara, rasters de entrada, modo por polígono, correção de borda, abertura da pasta, exibição da ajuda e pasta de saída.
+- A ferramenta 18 — DJI Coordenadas de Drone — permaneceu sem alterações.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.15`.
-- Changelog correspondente: `[3.1.0.15][22/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.16`.
+- Changelog correspondente: `[3.1.0.16][23/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -185,7 +191,7 @@ Para cada ferramenta, seguir esta ordem:
 | 18 | DJI Coordenadas de Drone | `drone_coordinates` | A fazer |
 | 19 | Gerar Rastro de Máquinas | `generate_trail` | **Concluída** |
 | 20 | Relatório de Metadata | `report_metadata` | **Concluída** |
-| 21 | Recorte Massivo de Rasters | `raster_mass_clipper` | A fazer |
+| 21 | Recorte Massivo de Rasters | `raster_mass_clipper` | **Concluída** |
 | 22 | Amostragem Massiva de Rasters | `raster_mass_sampler` | A fazer |
 | 23 | Amostrar Valores de Rasters | `raster_sampler` | A fazer |
 | 24 | Downloader de Imagens de Satélite | `imagery_downloader` | A fazer |

@@ -1023,18 +1023,38 @@ class Strings_pt_BR:
     # plugins/RasterSamplerTool.py
     RASTER_SAMPLER_TITLE = "Amostrar Valores de Rasters"
     RASTER_SAMPLER_TOOLTIP = (
-        "Seleciona camadas raster do projeto e permite clicar no mapa\n"
-        "para consultar o valor de cada raster no ponto clicado.\n"
-        "Os rasters selecionados sao lembrados entre sessoes\n"
-        "e os valores sao exibidos na dialog da ferramenta."
+        "Seleciona rasters do projeto e permite clicar no mapa para consultar\n"
+        "o valor de cada raster no ponto clicado. Exibe os valores e as diferenças\n"
+        "entre rasters selecionados, com casas decimais configuráveis."
     )
     RASTER_SAMPLER_SELECT_RASTERS = "Rasters para amostragem"
+    SELECT_RASTERS_FOR_SAMPLING_DESC = (
+        "Abre a lista de rasters do projeto para marcar quais serão consultados\n"
+        "a cada clique no mapa."
+    )
+    RASTER_SAMPLING_SELECTION_HINT = (
+        "Marque os rasters que deseja consultar no ponto clicado."
+    )
+    RASTER_SAMPLING_ITEM_DESC = (
+        "Marca este raster para consultar seu valor nos pontos clicados."
+    )
     RASTER_SAMPLER_VALUES = "Valores no ponto"
     RASTER_SAMPLER_NO_RASTERS = "Nenhum raster selecionado"
     RASTER_SAMPLER_DECIMALS = "Casas decimais"
+    SAMPLED_VALUES_DECIMALS_DESC = (
+        "Define quantas casas decimais serão exibidas nos valores e nas diferenças\n"
+        "entre os rasters selecionados."
+    )
     RASTER_SAMPLER_CLICK_CANVAS_HINT = (
         "Selecione ao menos um raster e clique no mapa\n"
         "para consultar os valores no ponto."
+    )
+    RASTER_SAMPLING_HINT_DESC = (
+        "Orienta a seleção dos rasters e o clique no mapa para iniciar a consulta."
+    )
+    RASTER_SAMPLING_VALUE_DESC = (
+        "Exibe o valor do raster no último ponto clicado; diferenças entre rasters\n"
+        "aparecem entre parênteses quando houver dados disponíveis."
     )
 
     # core/ToolRegistry.py

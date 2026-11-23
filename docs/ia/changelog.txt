@@ -1,3 +1,10 @@
+[3.1.0.19][23/11/2026] Tooltips contextuais da ferramenta 23 — Amostrar Valores de Rasters:
+   - A tooltip geral foi revisada para explicar o clique no mapa, os valores, as diferenças e as casas decimais.
+   - Casas decimais, seleção de rasters, orientação inicial e valores exibidos receberam descrições contextualizadas.
+   - A lista modal passou a receber uma descrição para cada raster selecionável e um hint próprio para a seleção.
+   - Novos tokens foram adicionados somente em `Strings_pt_BR.py`; os controles internos dos widgets continuam genéricos.
+   - Versão de distribuição incrementada de `3.1.0.18` para `3.1.0.19` somente em `build_distribution.py`.
+
 [3.1.0.18][23/11/2026] Tooltips contextuais da ferramenta 22 — Amostragem Massiva de Rasters:
    - A tooltip geral foi revisada para explicar a leitura dos valores raster nos pontos e o CRS final.
    - Os parâmetros da camada de pontos, rasters de entrada, CRS de saída e camada de resultado receberam descrições via `setHelp()`.

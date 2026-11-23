@@ -60,7 +60,7 @@ class RasterSamplerDialog(BasePluginMTL):
             config={
                 "decimals": {
                     "label": STR.RASTER_SAMPLER_DECIMALS,
-                    "description": "Numero de casas decimais dos valores amostrados",
+                    "description": STR.SAMPLED_VALUES_DECIMALS_DESC,
                     "value": 2,
                     "min": 0,
                     "max": 6,
@@ -90,7 +90,7 @@ class RasterSamplerDialog(BasePluginMTL):
             config={
                 "select_rasters": {
                     "label": STR.RASTER_SAMPLER_SELECT_RASTERS,
-                    "description": "Seleciona quais rasters amostrar",
+                    "description": STR.SELECT_RASTERS_FOR_SAMPLING_DESC,
                     "callback": self.open_raster_selection,
                 },
             },
@@ -120,9 +120,17 @@ class RasterSamplerDialog(BasePluginMTL):
 
         Chave = layer.id(), texto inicial = hint.
         """
-        config = {"hint": {"text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT}}
+        config = {
+            "hint": {
+                "text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT,
+                "description": STR.RASTER_SAMPLING_HINT_DESC,
+            }
+        }
         for layer in self._get_raster_layers():
-            config[layer.id()] = {"text": ""}
+            config[layer.id()] = {
+                "text": "",
+                "description": STR.RASTER_SAMPLING_VALUE_DESC,
+            }
         return config
 
     def _update_selection_button_label(self):
@@ -170,13 +178,14 @@ class RasterSamplerDialog(BasePluginMTL):
         for layer in layers:
             items[layer.id()] = {
                 "label": layer.name(),
+                "description": STR.RASTER_SAMPLING_ITEM_DESC,
                 "default": layer.id() in self._selected_raster_ids,
             }
 
         dlg = ListSelectionDialog(
             items=items,
             title=STR.RASTER_SAMPLER_SELECT_RASTERS,
-            hint=STR.RASTER_SAMPLER_SELECT_RASTERS,
+            hint=STR.RASTER_SAMPLING_SELECTION_HINT,
             tool_key=self.TOOL_KEY,
             icon_path="cadmus_icon.ico",
             parent=self,
@@ -225,14 +234,20 @@ class RasterSamplerDialog(BasePluginMTL):
                 &emsp;<span color laranja>(2: 0.21)</span>
                 &emsp;<span color azul>(3: 0.24)</span>
         """
-        config = {"hint": {"text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT}}
+        config = {
+            "hint": {
+                "text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT,
+                "description": STR.RASTER_SAMPLING_HINT_DESC,
+            }
+        }
         layers = self._get_selected_layers_ordered()
         for i, layer in enumerate(layers, start=1):
             color = self._raster_color(i)
             config[layer.id()] = {
                 "text": (
                     f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>:"
-                )
+                ),
+                "description": STR.RASTER_SAMPLING_VALUE_DESC,
             }
         self.values_label.rebuild(config)
 
@@ -267,7 +282,8 @@ class RasterSamplerDialog(BasePluginMTL):
                     "text": (
                         f"<span style='color:{color};'><b>{i} - {layer.name()}   </b></span>"
                         f": {STR.UNAVAILABLE}"
-                    )
+                    ),
+                    "description": STR.RASTER_SAMPLING_VALUE_DESC,
                 }
                 continue
 
@@ -287,20 +303,30 @@ class RasterSamplerDialog(BasePluginMTL):
                     f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>"
                     f": <span style='color:{color};'>{value:.{decimals}f}</span>"
                     f"{''.join(parts)}"
-                )
+                ),
+                "description": STR.RASTER_SAMPLING_VALUE_DESC,
             }
-        config["hint"] = {"text": ""}
+        config["hint"] = {
+            "text": "",
+            "description": STR.RASTER_SAMPLING_HINT_DESC,
+        }
         self.values_label.set_config(config)
 
     def clear_values(self):
         """Limpa os valores exibidos mantendo a enumeracao e as cores."""
-        config = {"hint": {"text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT}}
+        config = {
+            "hint": {
+                "text": STR.RASTER_SAMPLER_CLICK_CANVAS_HINT,
+                "description": STR.RASTER_SAMPLING_HINT_DESC,
+            }
+        }
         for i, layer in enumerate(self._get_selected_layers_ordered(), start=1):
             color = self._raster_color(i)
             config[layer.id()] = {
                 "text": (
                     f"<span style='color:{color};'><b>{i} - {layer.name()}</b></span>:"
-                )
+                ),
+                "description": STR.RASTER_SAMPLING_VALUE_DESC,
             }
         self.values_label.set_config(config)
 

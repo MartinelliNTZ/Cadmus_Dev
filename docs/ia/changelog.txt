@@ -1,3 +1,10 @@
+[3.1.0.15][22/11/2026] Tooltips contextuais das ferramentas 19 e 20:
+   - Gerar Rastro de Máquinas agora descreve a camada de linhas, feições selecionadas, saída, largura do implemento, parâmetros avançados, estilo QML e execução.
+   - Relatório de Metadata agora descreve o JSON selecionado, atualização da lista, pastas de JSON/relatórios, vetorização e regeneração do relatório HTML.
+   - Foram reutilizados tokens existentes para feições selecionadas, explicação geral do relatório e vetorização do voo; somente descrições sem equivalente foram adicionadas.
+   - A ferramenta 18 (DJI Coordenadas de Drone) permaneceu sem alterações.
+   - Versão de distribuição incrementada de `3.1.0.14` para `3.1.0.15` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.14][22/11/2026] Tooltips contextuais da ferramenta 17 — Remover/Restaurar Extensão:
    - A tooltip geral agora explica remoção/restauração de extensão, compactação e extração de ZIP e o campo `NewPath`.
    - A camada, a seleção de feições, o campo de paths, os quatro modos de operação e o botão Executar receberam descrições tokenizadas.

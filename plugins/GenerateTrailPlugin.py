@@ -52,6 +52,7 @@ class GenerateTrailPlugin(BasePluginMTL):
             config={
                 "input_layer": {
                     "label": f"{STR.INPUT_LINE_LAYER}:",
+                    "description": STR.LINE_LAYER_INPUT_DESC,
                     "mode_type": "input",
                     "allow_file": False,
                     "allow_folder": False,
@@ -61,9 +62,11 @@ class GenerateTrailPlugin(BasePluginMTL):
                     "allow_features_check": True,
                     "allow_layer": True,
                     "features_check_text": STR.ONLY_SELECTED_FEATURES,
+                    "features_check_description": STR.ONLY_SELECTED_FEATURES_DESC,
                 },
                 "output_trail": {
                     "label": f"{STR.SAVE_TRAIL_IN}:",
+                    "description": STR.TRAIL_OUTPUT_DESC,
                     "mode_type": "output",
                     "parent": "input_layer",
                     "suffix": "_trail",
@@ -90,6 +93,7 @@ class GenerateTrailPlugin(BasePluginMTL):
             config={
                 "implement_size": {
                     "label": f"{STR.IMPLEMENT_SIZE}:",
+                    "description": STR.IMPLEMENT_SIZE_DESC,
                     "value": 3500,
                     "min": 10,
                     "max": 50000,
@@ -107,6 +111,7 @@ class GenerateTrailPlugin(BasePluginMTL):
         # CollapsibleParameters: Advanced
         self.advanced_params = CollapsibleParametersWidget(
             title=STR.ADVANCED_PARAMETERS,
+            title_description=STR.ADVANCED_PARAMETERS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -116,6 +121,7 @@ class GenerateTrailPlugin(BasePluginMTL):
             config={
                 "qml_style": {
                     "label": f"{STR.QML_STYLE}:",
+                    "description": STR.QML_STYLE_DESC,
                     "mode_type": "input",
                     "allow_file": True,
                     "allow_folder": False,
@@ -136,7 +142,7 @@ class GenerateTrailPlugin(BasePluginMTL):
             config={
                 "run": {
                     "label": STR.EXECUTE,
-                    "description": "Gera o rastro do implemento",
+                    "description": STR.START_TRAIL_GENERATION_DESC,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

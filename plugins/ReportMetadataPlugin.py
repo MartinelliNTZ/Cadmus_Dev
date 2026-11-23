@@ -54,10 +54,7 @@ class ReportMetadataPlugin(BasePluginMTL):
             config={
                 "explanation": {
                     "text": STR.REPORT_METADATA_TOOLTIP,
-                    "description": (
-                        "Ferramenta para regerar relatorios HTML "
-                        "a partir de JSONs temporarios"
-                    ),
+                    "description": STR.REPORT_METADATA_TOOLTIP,
                 },
             },
             separator_bottom=True,
@@ -69,7 +66,7 @@ class ReportMetadataPlugin(BasePluginMTL):
         self.json_selector = GridComboBox(
             config={
                 "json_selector": {
-                    "description": "Selecione o arquivo JSON temporario",
+                    "description": STR.JSON_METADATA_FILE_DESC,
                     "options": self.json_options,
                     "selected_key": self.preferences.get(
                         self.PREF_SELECTED_JSON
@@ -87,19 +84,19 @@ class ReportMetadataPlugin(BasePluginMTL):
                 "refresh": {
                     "label": STR.REFRESH_JSON_LIST,
                     "callback": self._on_refresh,
-                    "description": "Atualizar lista de JSONs temporarios",
+                    "description": STR.REFRESH_JSON_LIST_DESC,
                     "primary": False,
                 },
                 "open_json": {
                     "label": STR.OPEN_JSONS_FOLDER,
                     "callback": self._open_json_folder,
-                    "description": "Abrir pasta de JSONs temporarios",
+                    "description": STR.OPEN_JSONS_FOLDER_DESC,
                     "primary": False,
                 },
                 "open_reports": {
                     "label": STR.OPEN_REPORTS_FOLDER,
                     "callback": self._open_reports_folder,
-                    "description": "Abrir pasta de relatorios HTML",
+                    "description": STR.OPEN_REPORTS_FOLDER_DESC,
                     "primary": False,
                 },
             },
@@ -115,14 +112,12 @@ class ReportMetadataPlugin(BasePluginMTL):
                 "vetorize": {
                     "label": STR.VETORIZE_FLIGHT,
                     "callback": self._vectorize_from_json,
-                    "description": "Vetorizar voo a partir do JSON selecionado",
+                    "description": STR.VETORIZE_FLIGHT_TOOLTIP,
                     "is_run_button": False,
                 },
                 "run": {
                     "label": STR.GENERATE_REPORT,
-                    "description": (
-                        "Gerar relatorio HTML a partir do JSON selecionado"
-                    ),
+                    "description": STR.REGENERATE_HTML_REPORT_DESC,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

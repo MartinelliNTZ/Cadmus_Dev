@@ -568,12 +568,25 @@ class Strings_pt_BR:
     CONVERT_FILE_ERROR = "Falha ao converter arquivo."
     REPORT_METADATA_TITLE = "Relatorio de Metadata"
     REPORT_METADATA_TOOLTIP = (
-        "Lista JSONs temporarios de metadata e permite regerar o relatorio HTML.\n"
-        "Tambem oferece atalho para abrir a pasta de relatorios gerados."
+        "Lista os JSONs temporários de metadata gerados pelo Cadmus e permite "
+        "regenerar o relatório HTML.\n"
+        "Também permite vetorizar o voo selecionado e abrir as pastas de JSONs e "
+        "relatórios."
     )
     REFRESH_JSON_LIST = "Atualizar JSON"
     OPEN_REPORTS_FOLDER = "Abrir relatorios"
     OPEN_JSONS_FOLDER = "Abrir JSONs"
+    JSON_METADATA_FILE_DESC = (
+        "Selecione um JSON temporário de metadata para vetorizar o voo ou gerar "
+        "novamente "
+        "o relatório."
+    )
+    REFRESH_JSON_LIST_DESC = "Atualiza a lista de JSONs temporários disponíveis."
+    OPEN_REPORTS_FOLDER_DESC = "Abre a pasta onde os relatórios HTML são gerados."
+    OPEN_JSONS_FOLDER_DESC = "Abre a pasta onde os JSONs temporários são armazenados."
+    REGENERATE_HTML_REPORT_DESC = (
+        "Gera novamente o relatório HTML usando o JSON temporário selecionado."
+    )
     VECTOR_WITHOUT_MRK_BLOCK_TITLE = "Gerar Vetor Sem MRK"
     VETORIZE_FLIGHT = "Vetorizar voo"
     VETORIZE_FLIGHT_TOOLTIP = (
@@ -780,6 +793,32 @@ class Strings_pt_BR:
 
     QML_STYLE = "Estilo QML"
     SAVE_TRAIL_IN = "Salvar rastro em:"
+    LINE_LAYER_INPUT_DESC = (
+        "Selecione uma camada vetorial de linhas que represente o percurso do "
+        "implemento."
+    )
+    TRAIL_OUTPUT_DESC = (
+        "Informe um arquivo GeoPackage ou uma pasta onde a camada de rastro será "
+        "salva. "
+        "Sem um caminho, o resultado permanece apenas no projeto."
+    )
+    IMPLEMENT_SIZE_DESC = (
+        "Informe a largura total do implemento em metros. A ferramenta usa metade "
+        "desse "
+        "valor para criar o buffer de cada linha."
+    )
+    ADVANCED_PARAMETERS_DESC = (
+        "Reúne opções adicionais da camada de rastro, como a aplicação de um "
+        "estilo QML."
+    )
+    QML_STYLE_DESC = (
+        "Selecione um arquivo QML opcional para aplicar o estilo à camada de "
+        "rastro gerada."
+    )
+    START_TRAIL_GENERATION_DESC = (
+        "Gera a faixa ocupada pelo implemento a partir da camada de linhas escolhida e "
+        "cria a camada resultante."
+    )
 
     # plugins/CopyAttributesPlugin.py
     COPY_ATTRIBUTES_TITLE = "Copiar Atributos de Vetor"

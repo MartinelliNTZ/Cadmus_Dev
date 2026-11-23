@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.14`<br>
+**Versão de referência:** `3.1.0.15`<br>
 **Data:** 22/11/2026  
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -130,10 +130,17 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - A tooltip geral agora explica também os modos de compactação/extração e o preenchimento do campo `NewPath`.
 - A descrição de feições selecionadas foi centralizada em um token semântico reutilizável, preservando o uso da ferramenta 15.
 
+### Lote seguinte — ferramentas 19 e 20
+
+- **19 — Gerar Rastro de Máquinas:** concluídas as tooltips da camada de linhas, feições selecionadas, saída, largura do implemento, parâmetros avançados, estilo QML e execução.
+- **20 — Relatório de Metadata:** concluídas as tooltips do JSON selecionado, atualização da lista, pastas de JSON/relatórios, vetorização e regeneração do relatório HTML.
+- Foram reaproveitados tokens existentes para feições selecionadas, a explicação geral do relatório e a vetorização do voo.
+- A ferramenta 18 — DJI Coordenadas de Drone — permaneceu sem alterações.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.14`.
-- Changelog correspondente: `[3.1.0.14][22/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.15`.
+- Changelog correspondente: `[3.1.0.15][22/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -176,8 +183,8 @@ Para cada ferramenta, seguir esta ordem:
 | 16 | Salvar Temporárias | `save_temporary_layer` | **Concluída** |
 | 17 | Remover/Restaurar Extensão | `path_extension_tool` | **Concluída** |
 | 18 | DJI Coordenadas de Drone | `drone_coordinates` | A fazer |
-| 19 | Gerar Rastro de Máquinas | `generate_trail` | A fazer |
-| 20 | Relatório de Metadata | `report_metadata` | A fazer |
+| 19 | Gerar Rastro de Máquinas | `generate_trail` | **Concluída** |
+| 20 | Relatório de Metadata | `report_metadata` | **Concluída** |
 | 21 | Recorte Massivo de Rasters | `raster_mass_clipper` | A fazer |
 | 22 | Amostragem Massiva de Rasters | `raster_mass_sampler` | A fazer |
 | 23 | Amostrar Valores de Rasters | `raster_sampler` | A fazer |

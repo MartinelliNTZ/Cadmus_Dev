@@ -1,3 +1,9 @@
+[3.1.0.25][23/11/2026] Tooltips contextuais da ferramenta 30 — Linha de Diferença entre Pontos:
+   - A camada principal, os atributos A/B, o modo de comparação, a camada secundária, a saída de linhas e a ajuda receberam descrições via `setHelp()`.
+   - As descrições explicam os dois modos reais de operação: conexão de pontos consecutivos por atributo e relacionamento entre duas camadas por chave.
+   - Foram adicionados tokens semânticos somente em `Strings_pt_BR.py`; `DISPLAY_HELP_DESC` foi reutilizado.
+   - Versão de distribuição incrementada de `3.1.0.24` para `3.1.0.25` somente em `build_distribution.py`.
+
 [3.1.0.24][23/11/2026] Tooltips contextuais da ferramenta 29 — Estatísticas de Atributos:
    - A camada, os campos excluídos, a precisão, as opções de carregamento/formato, cada estatística, a pasta de saída, a ajuda e o CSV receberam descrições via `setHelp()`.
    - Foram adicionados tokens semânticos somente em `Strings_pt_BR.py`; `OPEN_OUTPUT_FOLDER_DESC` e `DISPLAY_HELP_DESC` foram reutilizados.

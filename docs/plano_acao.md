@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.24`<br>
+**Versão de referência:** `3.1.0.25`<br>
 **Data:** 23/11/2026
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -175,10 +175,15 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - Os parâmetros dinâmicos de estatística reutilizam uma descrição semântica única; `OPEN_OUTPUT_FOLDER_DESC` e `DISPLAY_HELP_DESC` foram reaproveitados.
 - O padrão de descrições com `setHelp()` para parâmetros Processing foi formalizado na `SKILL_PROCESSING` versão 1.3.1.
 
+### Lote seguinte — ferramenta 30
+
+- **30 — Linha de Diferença entre Pontos:** concluídas as descrições da camada principal, atributos A/B, modo de comparação, camada secundária, saída de linhas e ajuda do Processing.
+- As descrições documentam os dois modos de operação reais: conexão de pontos consecutivos por atributo e relacionamento entre duas camadas por chave.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.24`.
-- Changelog correspondente: `[3.1.0.24][23/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.25`.
+- Changelog correspondente: `[3.1.0.25][23/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -232,7 +237,7 @@ Para cada ferramenta, seguir esta ordem:
 | 27 | Otimizar Raster (Overviews) | `raster_optimizer` | **Concluída** |
 | 28 | Gerador de Diferenças entre Campos | `difference_fields` | **Concluída** |
 | 29 | Estatísticas de Atributos | `attribute_statistics` | **Concluída** |
-| 30 | Linha de Diferença entre Pontos | `geometry_line_from_points` | A fazer |
+| 30 | Linha de Diferença entre Pontos | `geometry_line_from_points` | **Concluída** |
 | 31 | Processar Diferença de Rasters | `raster_difference_statistics` | A fazer |
 | 32 | Média Ponderada de Rasters | `raster_weighted_average` | A fazer |
 | 33 | Gerador de Grade | `grid_generator` | A fazer |

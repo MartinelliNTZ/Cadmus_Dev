@@ -39,28 +39,30 @@ class GeometryLineFromPoints(BaseProcessingAlgorithm):
     def initAlgorithm(self, config=None):
         self.load_preferences()
         self.logger.debug(f"PreferÃªncias carregadas: {self.prefs}")
-        self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.INPUT_LAYER_A,
-                STR.POINT_LAYER_MODE1_FIRST_LAYER_MODE2,
-                [QgsProcessing.TypeVectorPoint],
-            )
+        input_layer_a = QgsProcessingParameterFeatureSource(
+            self.INPUT_LAYER_A,
+            STR.POINT_LAYER_MODE1_FIRST_LAYER_MODE2,
+            [QgsProcessing.TypeVectorPoint],
         )
-        self.addParameter(
-            QgsProcessingParameterField(
-                self.FIELD_A,
-                STR.BASE_ATTRIBUTE_LAYER_A,
-                parentLayerParameterName=self.INPUT_LAYER_A,
-                type=QgsProcessingParameterField.Any,
-            )
+        input_layer_a.setHelp(STR.POINT_LAYER_FOR_LINE_GENERATION_DESC)
+        self.addParameter(input_layer_a)
+
+        field_a = QgsProcessingParameterField(
+            self.FIELD_A,
+            STR.BASE_ATTRIBUTE_LAYER_A,
+            parentLayerParameterName=self.INPUT_LAYER_A,
+            type=QgsProcessingParameterField.Any,
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.USE_SECOND_LAYER,
-                STR.USE_SECOND_LAYER_MODE2,
-                defaultValue=self.prefs.get("use_second_layer", False),
-            )
+        field_a.setHelp(STR.POINT_GROUPING_FIELD_DESC)
+        self.addParameter(field_a)
+
+        use_second_layer = QgsProcessingParameterBoolean(
+            self.USE_SECOND_LAYER,
+            STR.USE_SECOND_LAYER_MODE2,
+            defaultValue=self.prefs.get("use_second_layer", False),
         )
+        use_second_layer.setHelp(STR.USE_SECOND_LAYER_FOR_COMPARISON_DESC)
+        self.addParameter(use_second_layer)
         layer_b_param = QgsProcessingParameterFeatureSource(
             self.INPUT_LAYER_B,
             STR.SECOND_POINT_LAYER_MODE2_OPTIONAL,
@@ -70,6 +72,7 @@ class GeometryLineFromPoints(BaseProcessingAlgorithm):
         layer_b_param.setFlags(
             layer_b_param.flags() | QgsProcessingParameterFeatureSource.FlagOptional
         )
+        layer_b_param.setHelp(STR.SECOND_POINT_LAYER_FOR_COMPARISON_DESC)
         self.addParameter(layer_b_param)
         field_b_param = QgsProcessingParameterField(
             self.FIELD_B,
@@ -81,17 +84,19 @@ class GeometryLineFromPoints(BaseProcessingAlgorithm):
         field_b_param.setFlags(
             field_b_param.flags() | QgsProcessingParameterField.FlagOptional
         )
+        field_b_param.setHelp(STR.SECOND_LAYER_MATCHING_FIELD_DESC)
         self.addParameter(field_b_param)
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(self.OUTPUT, STR.DIFFERENCE_LINES)
+        output = QgsProcessingParameterFeatureSink(self.OUTPUT, STR.DIFFERENCE_LINES)
+        output.setHelp(STR.DIFFERENCE_LINES_OUTPUT_DESC)
+        self.addParameter(output)
+
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
-        )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     @staticmethod
     def _feature_point(feat):

@@ -498,11 +498,35 @@ class Strings_pt_BR:
     POINT_LAYER_MODE1_FIRST_LAYER_MODE2 = (
         "Camada de Pontos (Modo 1) / Primeira Camada (Modo 2)"
     )
+    POINT_LAYER_FOR_LINE_GENERATION_DESC = (
+        "Selecione a camada de pontos principal. No modo 1, pontos com o mesmo "
+        "atributo serão conectados; no modo 2, serão relacionados à segunda camada."
+    )
     BASE_ATTRIBUTE_LAYER_A = "Atributo base - camada A"
+    POINT_GROUPING_FIELD_DESC = (
+        "Escolha o campo que identifica o grupo dos pontos no modo 1 ou a chave "
+        "de correspondência da camada A no modo 2."
+    )
     USE_SECOND_LAYER_MODE2 = "Usar segunda camada (modo 2)"
+    USE_SECOND_LAYER_FOR_COMPARISON_DESC = (
+        "Quando marcado, compara a camada A com uma segunda camada usando os campos "
+        "escolhidos e cria linhas entre feições correspondentes."
+    )
     SECOND_POINT_LAYER_MODE2_OPTIONAL = "Segunda Camada de Pontos (Modo 2 - opcional)"
+    SECOND_POINT_LAYER_FOR_COMPARISON_DESC = (
+        "Informe a segunda camada de pontos usada no modo 2. Ela é obrigatória quando "
+        "a comparação entre duas camadas estiver habilitada."
+    )
     BASE_ATTRIBUTE_LAYER_B_MODE2 = "Atributo base - camada B (modo 2)"
+    SECOND_LAYER_MATCHING_FIELD_DESC = (
+        "Escolha o campo da camada B que será comparado com o campo da camada A "
+        "para encontrar correspondências."
+    )
     DIFFERENCE_LINES = "Linhas de diferenças"
+    DIFFERENCE_LINES_OUTPUT_DESC = (
+        "Escolha a camada de linhas de saída. Cada linha recebe o grupo, os IDs das "
+        "feições relacionadas e a distância entre os pontos."
+    )
     INVALID_LAYER_A = "Camada A inválida."
     MODE2_REQUIRES_SECOND_POINT_LAYER = "Modo 2 requisita uma segunda camada de pontos."
     MODE2_INFORM_GROUP_FIELD_LAYER_B = (

@@ -1,3 +1,10 @@
+[3.1.0.18][23/11/2026] Tooltips contextuais da ferramenta 22 — Amostragem Massiva de Rasters:
+   - A tooltip geral foi revisada para explicar a leitura dos valores raster nos pontos e o CRS final.
+   - Os parâmetros da camada de pontos, rasters de entrada, CRS de saída e camada de resultado receberam descrições via `setHelp()`.
+   - Foram reaproveitados `REPROJECT_OUTPUT_DESC`, `OPEN_OUTPUT_FOLDER_DESC` e `DISPLAY_HELP_DESC`.
+   - Novos tokens foram adicionados somente em `Strings_pt_BR.py`; instruções HTML/MD não foram editadas.
+   - Versão de distribuição incrementada de `3.1.0.17` para `3.1.0.18` somente em `build_distribution.py`.
+
 [3.1.0.17][23/11/2026] Tooltips contextuais da ferramenta 18 — DJI Coordenadas de Drone:
    - A tooltip geral passou a explicar o processamento do voo, metadados, saídas QML e relatório.
    - A pasta MRK, as quatro opções, o título do projeto e o logotipo receberam descrições contextualizadas.

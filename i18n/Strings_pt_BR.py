@@ -400,9 +400,21 @@ class Strings_pt_BR:
         "com suporte a prefixo e sufixo personalizados."
     )
     RASTER_MASS_SAMPLER_TOOLTIP = (
-        "Executa amostragem em lote de varios rasters sobre uma camada vetorial.\n"
-        "Abre o algoritmo do provider do Cadmus no Processing,\n"
-        "permitindo configurar entradas, campos e saidas pela interface padrao."
+        "Executa amostragem em lote de vários rasters sobre uma camada vetorial de pontos.\n"
+        "Lê o valor de cada raster na posição de cada ponto, acrescenta os valores\n"
+        "à camada de saída e permite definir o CRS final no Processing."
+    )
+    POINT_LAYER_FOR_SAMPLING_DESC = (
+        "Selecione a camada vetorial de pontos onde os valores dos rasters\n"
+        "serão consultados."
+    )
+    RASTERS_FOR_SAMPLING_DESC = (
+        "Selecione um ou mais rasters. Cada raster será amostrado na posição\n"
+        "de cada ponto e terá um campo correspondente na camada de saída."
+    )
+    SAMPLED_VALUES_OUTPUT_DESC = (
+        "Escolha o destino da camada de pontos com os atributos originais\n"
+        "e os valores amostrados dos rasters."
     )
     RASTER_MASS_CLIPPER_TOOLTIP = (
         "Recorta em lote vários rasters usando uma camada poligonal como máscara.\n"

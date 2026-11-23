@@ -53,49 +53,52 @@ class RasterMassSampler(BaseProcessingAlgorithm):
             class_name=self.__class__.__name__,
         )
 
-        self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.INPUT_POINTS,
-                STR.INPUT_POINTS,
-                [QgsProcessing.TypeVectorPoint],
-            )
+        input_points = QgsProcessingParameterFeatureSource(
+            self.INPUT_POINTS,
+            STR.INPUT_POINTS,
+            [QgsProcessing.TypeVectorPoint],
         )
+        input_points.setHelp(STR.POINT_LAYER_FOR_SAMPLING_DESC)
+        self.addParameter(input_points)
 
-        self.addParameter(
-            QgsProcessingParameterMultipleLayers(
-                self.INPUT_RASTERS,
-                STR.RASTERS,
-                QgsProcessing.TypeRaster,
-            )
+        input_rasters = QgsProcessingParameterMultipleLayers(
+            self.INPUT_RASTERS,
+            STR.RASTERS,
+            QgsProcessing.TypeRaster,
         )
+        input_rasters.setHelp(STR.RASTERS_FOR_SAMPLING_DESC)
+        self.addParameter(input_rasters)
 
-        self.addParameter(
-            QgsProcessingParameterCrs(
-                self.OUTPUT_CRS,
-                STR.REPROJECT_OUTPUT_LAYER_OPTIONAL,
-                optional=True,
-            )
+        output_crs = QgsProcessingParameterCrs(
+            self.OUTPUT_CRS,
+            STR.REPROJECT_OUTPUT_LAYER_OPTIONAL,
+            optional=True,
         )
+        output_crs.setHelp(STR.REPROJECT_OUTPUT_DESC)
+        self.addParameter(output_crs)
 
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(self.OUTPUT, STR.SAMPLED_VALUES)
+        output = QgsProcessingParameterFeatureSink(
+            self.OUTPUT,
+            STR.SAMPLED_VALUES,
         )
+        output.setHelp(STR.SAMPLED_VALUES_OUTPUT_DESC)
+        self.addParameter(output)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                STR.OPEN_OUTPUT_FOLDER,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            STR.OPEN_OUTPUT_FOLDER,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, params, context, feedback):
         self.logger.info("Iniciando amostragem massiva de rasters")

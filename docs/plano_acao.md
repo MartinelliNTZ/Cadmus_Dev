@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.17`<br>
+**Versão de referência:** `3.1.0.18`<br>
 **Data:** 23/11/2026
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -148,10 +148,15 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **18 — DJI Coordenadas de Drone:** concluídas a tooltip geral, a pasta MRK, as opções de busca/metadados/relatório, o título, o logotipo, as cinco seções de campos, as saídas de pontos/rastro, os estilos QML e a execução.
 - Foram reaproveitados tokens existentes para salvamento, controles internos dos widgets e descrições dos campos de metadata; novos textos foram adicionados somente em `Strings_pt_BR.py`.
 
+### Lote seguinte — ferramenta 22
+
+- **22 — Amostragem Massiva de Rasters:** concluídas a tooltip geral e as descrições da camada de pontos, rasters de entrada, CRS de saída, camada resultante, abertura da pasta e exibição da ajuda.
+- Foram reaproveitados tokens existentes para reprojeção, abertura da pasta e ajuda do Processing; novos textos foram adicionados somente em `Strings_pt_BR.py`.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.17`.
-- Changelog correspondente: `[3.1.0.17][23/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.18`.
+- Changelog correspondente: `[3.1.0.18][23/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -197,7 +202,7 @@ Para cada ferramenta, seguir esta ordem:
 | 19 | Gerar Rastro de Máquinas | `generate_trail` | **Concluída** |
 | 20 | Relatório de Metadata | `report_metadata` | **Concluída** |
 | 21 | Recorte Massivo de Rasters | `raster_mass_clipper` | **Concluída** |
-| 22 | Amostragem Massiva de Rasters | `raster_mass_sampler` | A fazer |
+| 22 | Amostragem Massiva de Rasters | `raster_mass_sampler` | **Concluída** |
 | 23 | Amostrar Valores de Rasters | `raster_sampler` | A fazer |
 | 24 | Downloader de Imagens de Satélite | `imagery_downloader` | A fazer |
 | 25 | Developer Test Tool | `developer_test_tool` | A fazer |

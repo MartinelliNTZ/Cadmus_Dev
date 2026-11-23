@@ -246,6 +246,10 @@ class Strings_pt_BR:
     FILES_SELECTED = "arquivo(s) selecionado(s)"
     ITEMS_SELECTED = "item(s)"
     ONLY_SELECTED_FEATURES = "Somente feições selecionadas"
+    ONLY_SELECTED_FEATURES_DESC = (
+        "Limita o processamento às feições marcadas na camada; "
+        "sem marcação, a camada inteira é considerada."
+    )
     APPLY_QML_STYLE = "Aplicar estilo QML"
     QML_LABEL = "QML:"
     SAVE_TO_FILE = "Salvar em arquivo:"
@@ -990,9 +994,7 @@ class Strings_pt_BR:
         "Selecione uma camada vetorial de pontos do projeto ou um arquivo de pontos para processar."
     )
     DIVIDE_POINTS_SELECTED_FEATURES_LABEL = "Usar apenas feições selecionadas"
-    DIVIDE_POINTS_SELECTED_FEATURES_DESC = (
-        "Limita o processamento às feições marcadas na camada; sem marcação, a camada inteira é considerada."
-    )
+    DIVIDE_POINTS_SELECTED_FEATURES_DESC = ONLY_SELECTED_FEATURES_DESC
     OPERATIONAL_PARAMETERS = "Parâmetros Operacionais"
     OPERATIONAL_PARAMETERS_DESC = (
         "Reúne os campos e valores básicos usados para identificar e separar os pontos em faixas."
@@ -1196,12 +1198,41 @@ class Strings_pt_BR:
     # plugins/PathExtensionPlugin.py
     PATH_EXTENSION_TITLE = "Remover/Restaurar Extensão"
     PATH_EXTENSION_TOOLTIP = (
-        "Remove ou restaura a extensão de arquivos nos paths das feições"
+        "Remove ou restaura a extensão dos arquivos indicados pelos paths das feições. "
+        "Também permite compactar os arquivos em ZIP ou extrair arquivos ZIP.\n"
+        "O caminho resultante de cada operação é gravado no campo NewPath da camada."
     )
     MODE_REMOVE = "Remover extensão"
     MODE_RESTORE = "Restaurar extensão"
     MODE_ZIP = "Zipar arquivos"
     MODE_UNZIP = "Deszipar arquivos"
+    VECTOR_LAYER_WITH_PATHS_DESC = (
+        "Selecione uma camada vetorial carregada no QGIS ou um arquivo vetorial "
+        "externo que contenha os caminhos dos arquivos a processar."
+    )
+    FILE_PATH_FIELD_DESC = (
+        "Selecione o campo de atributos que armazena os caminhos físicos dos arquivos "
+        "a serem processados."
+    )
+    REMOVE_FILE_EXTENSION_DESC = (
+        "Remove o ponto e a extensão do nome físico do arquivo e grava o novo caminho "
+        "no campo NewPath."
+    )
+    RESTORE_FILE_EXTENSION_DESC = (
+        "Restaura o ponto e a extensão do arquivo físico e grava o novo caminho "
+        "no campo NewPath."
+    )
+    ZIP_REFERENCED_FILES_DESC = (
+        "Agrupa em um ZIP os arquivos apontados pelas feições da mesma pasta e remove "
+        "os arquivos originais após a compactação."
+    )
+    UNZIP_REFERENCED_FILES_DESC = (
+        "Extrai o ZIP da pasta dos arquivos apontados e remove o ZIP após a extração."
+    )
+    START_PATH_FILE_OPERATION_DESC = (
+        "Inicia o processamento dos arquivos apontados. O resultado de cada operação "
+        "é gravado no campo NewPath da camada."
+    )
 
     # Registry
     REG_TITLE = "Gerenciar"

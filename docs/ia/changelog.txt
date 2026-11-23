@@ -1,3 +1,9 @@
+[3.1.0.14][22/11/2026] Tooltips contextuais da ferramenta 17 — Remover/Restaurar Extensão:
+   - A tooltip geral agora explica remoção/restauração de extensão, compactação e extração de ZIP e o campo `NewPath`.
+   - A camada, a seleção de feições, o campo de paths, os quatro modos de operação e o botão Executar receberam descrições tokenizadas.
+   - O token genérico de descrição de feições selecionadas passou a ser compartilhado com a ferramenta 15.
+   - Versão de distribuição incrementada de `3.1.0.13` para `3.1.0.14` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.13][22/11/2026] Tooltips contextuais das ferramentas 15 e 16:
    - Dividir Vetor de Pontos por Faixas agora descreve a introdução, entrada, feições selecionadas, quatro seções, parâmetros, modos de caminho, campos de saída, arquivos opcionais e execução.
    - Salvar Temporárias agora descreve prefixo, sufixo, extensões, pasta de saída e salvamento.

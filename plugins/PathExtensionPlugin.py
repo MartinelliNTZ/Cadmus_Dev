@@ -44,7 +44,7 @@ class PathExtensionPlugin(BasePluginMTL):
             config={
                 "input_layer": {
                     "label": STR.INPUT_LAYER,
-                    "description": "Selecione a camada vetorial de entrada",
+                    "description": STR.VECTOR_LAYER_WITH_PATHS_DESC,
                     "allow_layer": True,
                     "layer_filters": QgsMapLayerProxyModel.VectorLayer,
                     "allow_file": True,
@@ -53,6 +53,7 @@ class PathExtensionPlugin(BasePluginMTL):
                     "mode_type": "input",
                     "allow_features_check": True,
                     "features_check_text": STR.ONLY_SELECTED_FEATURES,
+                    "features_check_description": STR.ONLY_SELECTED_FEATURES_DESC,
                 },
             },
             tool_key=self.TOOL_KEY,
@@ -69,9 +70,7 @@ class PathExtensionPlugin(BasePluginMTL):
             config={
                 "path_field": {
                     "label": f"{STR.PATH}:",
-                    "description": (
-                        "Selecione o campo que contem o caminho dos arquivos"
-                    ),
+                    "description": STR.FILE_PATH_FIELD_DESC,
                     "options": {},  # vazio inicialmente
                     "selected_key": None,
                 },
@@ -121,19 +120,19 @@ class PathExtensionPlugin(BasePluginMTL):
             config={
                 "remove": {
                     "label": STR.MODE_REMOVE,
-                    "description": "Remove a extensao dos arquivos",
+                    "description": STR.REMOVE_FILE_EXTENSION_DESC,
                 },
                 "restore": {
                     "label": STR.MODE_RESTORE,
-                    "description": "Restaura a extensao dos arquivos",
+                    "description": STR.RESTORE_FILE_EXTENSION_DESC,
                 },
                 "zip": {
                     "label": STR.MODE_ZIP,
-                    "description": "Compacta os arquivos em ZIP",
+                    "description": STR.ZIP_REFERENCED_FILES_DESC,
                 },
                 "unzip": {
                     "label": STR.MODE_UNZIP,
-                    "description": "Descompacta arquivos ZIP",
+                    "description": STR.UNZIP_REFERENCED_FILES_DESC,
                 },
             },
             columns=2,
@@ -151,8 +150,8 @@ class PathExtensionPlugin(BasePluginMTL):
         self.action_buttons = GridExecutionButtons(
             config={
                 "run": {
-                    "label": "Executar",
-                    "description": "Inicia o processamento",
+                    "label": STR.EXECUTE,
+                    "description": STR.START_PATH_FILE_OPERATION_DESC,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.13`<br>
+**Versão de referência:** `3.1.0.14`<br>
 **Data:** 22/11/2026  
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -124,10 +124,16 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **16 — Salvar Temporárias:** concluídas as tooltips de prefixo, sufixo, extensões vetorial/raster, pasta de saída e salvamento.
 - O contrato de `CollapsibleParametersWidget` agora aceita `title_description` para contextualizar seus headers, e `GridComplexSelector` aceita `features_check_description` para o checkbox de feições selecionadas.
 
+### Lote seguinte — ferramenta 17
+
+- **17 — Remover/Restaurar Extensão:** concluídas as tooltips da camada com paths, das feições selecionadas, do campo de caminho, dos quatro modos de operação e da execução.
+- A tooltip geral agora explica também os modos de compactação/extração e o preenchimento do campo `NewPath`.
+- A descrição de feições selecionadas foi centralizada em um token semântico reutilizável, preservando o uso da ferramenta 15.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.13`.
-- Changelog correspondente: `[3.1.0.13][22/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.14`.
+- Changelog correspondente: `[3.1.0.14][22/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -168,7 +174,7 @@ Para cada ferramenta, seguir esta ordem:
 | 14 | Copiar Atributos de Vetor | `copy_attributes` | **Concluída** |
 | 15 | Dividir Vetor de Pontos por Faixas | `divide_points_by_strips` | **Concluída** |
 | 16 | Salvar Temporárias | `save_temporary_layer` | **Concluída** |
-| 17 | Remover/Restaurar Extensão | `path_extension_tool` | A fazer |
+| 17 | Remover/Restaurar Extensão | `path_extension_tool` | **Concluída** |
 | 18 | DJI Coordenadas de Drone | `drone_coordinates` | A fazer |
 | 19 | Gerar Rastro de Máquinas | `generate_trail` | A fazer |
 | 20 | Relatório de Metadata | `report_metadata` | A fazer |

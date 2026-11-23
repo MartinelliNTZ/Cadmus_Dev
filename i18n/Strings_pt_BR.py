@@ -521,14 +521,37 @@ class Strings_pt_BR:
     VERBOSE_LOG = "Log Detalhado"
     ATTRIBUTE_STATISTICS_TITLE = "Estatísticas de Atributos"
     INPUT_LAYER = "Camada de entrada"
+    NUMERIC_ATTRIBUTE_LAYER_DESC = (
+        "Selecione a camada que contém os campos numéricos usados no cálculo."
+    )
     EXCLUDE_FIELDS_OPTIONAL = "Campos a excluir (opcional)"
+    FIELDS_TO_EXCLUDE_FROM_STATISTICS_DESC = (
+        "Opcionalmente, selecione campos que não devem entrar nas estatísticas."
+    )
     PRECISION_DECIMAL_PLACES = "Precisão (casas decimais)"
+    STATISTICS_DECIMAL_PLACES_DESC = (
+        "Define quantas casas decimais serão mantidas nos valores estatísticos do CSV."
+    )
     LOAD_CSV_AUTOMATICALLY_AFTER_EXECUTION = (
         "Carregar CSV automaticamente após execução"
     )
+    LOAD_CSV_AFTER_EXECUTION_DESC = (
+        "Quando marcado, adiciona o CSV gerado ao projeto como uma camada de texto "
+        "delimitado após o processamento."
+    )
     FORCE_CSV_PTBR_FORMAT = "Forçar CSV no formato PT-BR (usar ; e ,)"
+    FORCE_PTBR_CSV_FORMAT_DESC = (
+        "Quando marcado, usa ponto e vírgula como separador de colunas e vírgula "
+        "como separador decimal."
+    )
     CALCULATE = "Calcular"
+    INCLUDE_STATISTIC_IN_CSV_DESC = (
+        "Quando marcado, inclui esta estatística como uma coluna no CSV."
+    )
     OUTPUT_CSV_FILE = "Arquivo CSV de saída"
+    STATISTICS_CSV_OUTPUT_DESC = (
+        "Escolha o arquivo CSV onde serão gravadas as estatísticas dos campos numéricos."
+    )
     INVALID_LAYER = "Camada inválida."
     NO_NUMERIC_FIELD_FOUND = "Nenhum campo numérico encontrado."
     FIELD = "Campo"

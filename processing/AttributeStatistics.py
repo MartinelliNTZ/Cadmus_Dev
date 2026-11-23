@@ -57,44 +57,48 @@ class AttributeStatistics(BaseProcessingAlgorithm):
         self.load_preferences()
         prefs = self.prefs or {}
         self._model = AttributeStatisticsModel()
-        self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.INPUT_LAYER, STR.INPUT_LAYER, [QgsProcessing.TypeVectorAnyGeometry]
-            )
+        input_layer = QgsProcessingParameterFeatureSource(
+            self.INPUT_LAYER, STR.INPUT_LAYER, [QgsProcessing.TypeVectorAnyGeometry]
         )
-        self.addParameter(
-            QgsProcessingParameterField(
-                self.EXCLUDE_FIELDS,
-                STR.EXCLUDE_FIELDS_OPTIONAL,
-                parentLayerParameterName=self.INPUT_LAYER,
-                type=QgsProcessingParameterField.Any,
-                allowMultiple=True,
-                optional=True,
-            )
+        input_layer.setHelp(STR.NUMERIC_ATTRIBUTE_LAYER_DESC)
+        self.addParameter(input_layer)
+
+        exclude_fields = QgsProcessingParameterField(
+            self.EXCLUDE_FIELDS,
+            STR.EXCLUDE_FIELDS_OPTIONAL,
+            parentLayerParameterName=self.INPUT_LAYER,
+            type=QgsProcessingParameterField.Any,
+            allowMultiple=True,
+            optional=True,
         )
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.PRECISION,
-                STR.PRECISION_DECIMAL_PLACES,
-                type=QgsProcessingParameterNumber.Integer,
-                minValue=0,
-                maxValue=12,
-                defaultValue=prefs.get("precision", 2),
-            )
+        exclude_fields.setHelp(STR.FIELDS_TO_EXCLUDE_FROM_STATISTICS_DESC)
+        self.addParameter(exclude_fields)
+
+        precision = QgsProcessingParameterNumber(
+            self.PRECISION,
+            STR.PRECISION_DECIMAL_PLACES,
+            type=QgsProcessingParameterNumber.Integer,
+            minValue=0,
+            maxValue=12,
+            defaultValue=prefs.get("precision", 2),
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=prefs.get("display_help", True),
-            )
+        precision.setHelp(STR.STATISTICS_DECIMAL_PLACES_DESC)
+        self.addParameter(precision)
+
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
         p_load = QgsProcessingParameterBoolean(
             self.LOAD_AFTER,
             STR.LOAD_CSV_AUTOMATICALLY_AFTER_EXECUTION,
             defaultValue=prefs.get("load_after", False),
         )
         p_load.setFlags(p_load.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        p_load.setHelp(STR.LOAD_CSV_AFTER_EXECUTION_DESC)
         self.addParameter(p_load)
         p_force_ptbr = QgsProcessingParameterBoolean(
             self.PTBR_FORMAT,
@@ -104,6 +108,7 @@ class AttributeStatistics(BaseProcessingAlgorithm):
         p_force_ptbr.setFlags(
             p_force_ptbr.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
+        p_force_ptbr.setHelp(STR.FORCE_PTBR_CSV_FORMAT_DESC)
         self.addParameter(p_force_ptbr)
         p_open = QgsProcessingParameterBoolean(
             self.OPEN_OUTPUT_FOLDER,
@@ -111,6 +116,7 @@ class AttributeStatistics(BaseProcessingAlgorithm):
             defaultValue=prefs.get("open_output_folder", True),
         )
         p_open.setFlags(p_open.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        p_open.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
         self.addParameter(p_open)
         enabled_stats = prefs.get("stats_enabled", {})
         for key, label in self.STATS.items():
@@ -118,14 +124,18 @@ class AttributeStatistics(BaseProcessingAlgorithm):
                 key, f"{STR.CALCULATE}: {label}", defaultValue=enabled_stats.get(key, True)
             )
             p.setFlags(p.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+            p.setHelp(STR.INCLUDE_STATISTIC_IN_CSV_DESC)
             self.addParameter(p)
         last_folder = prefs.get("last_output_folder", "")
         default_output = os.path.join(last_folder, "atributos_estatistica.csv") if last_folder else None
-        self.addParameter(
-            QgsProcessingParameterFileDestination(
-                self.OUTPUT, STR.OUTPUT_CSV_FILE, fileFilter="CSV (*.csv)", defaultValue=default_output
-            )
+        output = QgsProcessingParameterFileDestination(
+            self.OUTPUT,
+            STR.OUTPUT_CSV_FILE,
+            fileFilter="CSV (*.csv)",
+            defaultValue=default_output,
         )
+        output.setHelp(STR.STATISTICS_CSV_OUTPUT_DESC)
+        self.addParameter(output)
 
     def processAlgorithm(self, parameters, context, feedback):
         layer = self.parameterAsLayer(parameters, self.INPUT_LAYER, context)

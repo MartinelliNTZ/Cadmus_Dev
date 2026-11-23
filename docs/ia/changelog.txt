@@ -1,3 +1,9 @@
+[3.1.0.24][23/11/2026] Tooltips contextuais da ferramenta 29 — Estatísticas de Atributos:
+   - A camada, os campos excluídos, a precisão, as opções de carregamento/formato, cada estatística, a pasta de saída, a ajuda e o CSV receberam descrições via `setHelp()`.
+   - Foram adicionados tokens semânticos somente em `Strings_pt_BR.py`; `OPEN_OUTPUT_FOLDER_DESC` e `DISPLAY_HELP_DESC` foram reutilizados.
+   - O padrão de descrições contextuais para parâmetros Processing foi registrado na `SKILL_PROCESSING` versão 1.3.1.
+   - Versão de distribuição incrementada de `3.1.0.23` para `3.1.0.24` somente em `build_distribution.py`.
+
 [3.1.0.23][23/11/2026] Tooltips contextuais da ferramenta 28 — Gerador de Diferenças entre Campos:
    - Os parâmetros da camada de pontos, campo base, campos excluídos, prefixo, precisão, saída e ajuda receberam descrições via `setHelp()`.
    - Foram adicionados somente os tokens pt-BR sem equivalente adequado em `Strings_pt_BR.py`; `DISPLAY_HELP_DESC` foi reutilizado.

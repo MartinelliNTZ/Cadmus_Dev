@@ -98,6 +98,8 @@ def initAlgorithm(self, config=None):
   - `OPEN_OUTPUT_FOLDER`: checkbox "Abrir pasta de saída" (STR.OPEN_OUTPUT_FOLDER)
   - `DISPLAY_HELP`: checkbox "Exibir campo de ajuda" (STR.DISPLAY_HELP_FIELD)
 - Ambos devem usar valores padrão vindos de `self.prefs.get(...)` para lembrar a última escolha do usuário.
+- Todo parâmetro visível deve receber uma descrição contextual com `setHelp(STR.<TOKEN>)`.
+  Parâmetros repetidos ou gerados dinamicamente devem reutilizar um token semântico comum.
 
 ```python
 self.addParameter(QgsProcessingParameterBoolean(
@@ -297,3 +299,4 @@ class MyAlgorithm(BaseProcessingAlgorithm):
 | 2026-07-31 | 1.1.0 | Novo padrão de ícone via tool_key: `BaseProcessingAlgorithm.icon()` resolve por `IconManager.icon_by_tool_key(TOOL_KEY)` com fallback para `cadmus_icon.ico`; `ICON` declarado com valor diferente de `DEFAULT_ICON` mantém prioridade (compatibilidade). Adicionados `icon_by_tool_key` e `icon_path_by_tool_key` ao `IconManager`. |
 | 2026-08-18 | 1.2.0 | Resolução completa por tool_key: `_resolve_name()` deriva `name()` do valor da `TOOL_KEY` (com `ALGORITHM_NAME` legado com prioridade); `shortHelpString()` resolve instruções via `HtmlInstructionsProvider.get_instructions(tool_key)`; adicionado `LEGACY_METHOD_SUFFIX` no provider para tool_keys legadas divergentes; `RasterDifferenceStatiscs` corrigido para `ToolKey.RASTER_DIFERENCE_STATISTICS`. |
 | 2026-08-18 | 1.3.0 | Removido todo o modo legado: eliminado `LEGACY_METHOD_SUFFIX` do `HtmlInstructionsProvider`; `ALGORITHM_NAME`/`ICON`/`INSTRUCTIONS_FILE` removidos de todos os filhos e da base; tool_keys padronizadas (`DIFFERENCE_FIELDS` → `difference_fields`, `RASTER_DIFERENCE_STATISTICS` → `raster_difference_statistics`); método HTML de GeometryLineFromPoints renomeado para `get_geometry_line_from_points_help`; ícones renomeados para `{tool_key}.ico`. |
+| 2026-11-23 | 1.3.1 | Formalizado o uso de `setHelp(STR.<TOKEN>)` em todos os parâmetros visíveis dos algoritmos Processing, incluindo a reutilização de descrições semânticas em parâmetros dinâmicos. |

@@ -1449,14 +1449,30 @@ class Strings_pt_BR:
     IMAGERY_DOWNLOADER_TOOLTIP = (
         "Busca e baixa cenas (Sentinel-2) por bbox, datas e % de nuvens"
     )
+    IMAGERY_SETTINGS_DESC = (
+        "Define a extensão, o período, o limite de nuvens, o processamento "
+        "e a pasta dos arquivos."
+    )
     START_DATE = "Data inicial"
+    START_DATE_DESC = "Define a data inicial usada para buscar cenas no catálogo."
     END_DATE = "Data final"
+    END_DATE_DESC = "Define a data final usada para buscar cenas no catálogo."
     DATE_PERIOD = "Período"
     CLOUD_MAX = "% Máximo de Nuvens"
+    CLOUD_MAX_DESC = (
+        "Limita a busca a cenas com cobertura de nuvens até o percentual informado."
+    )
     BANDS_ASSETS = "Bandas e Composições"
     BANDS_ASSETS_DESC = "Selecione bandas e composições a baixar"
+    BAND_ASSET_ITEM_DESC = "Marca esta banda/asset para incluí-la no download."
+    COMPOSITION_ITEM_DESC = (
+        "Marca a composição pronta; as bandas usadas por ela também serão selecionadas."
+    )
     SETTINGS = "Configurações"
     OPTIONS = "Opções de Processamento"
+    OPTIONS_DESC = (
+        "Aplica recorte, reprojeção, conversão de escala e remoção dos arquivos originais."
+    )
     CLIP_BY_POLYGON = "Recortar pelo polígono"
     CLIP_BY_POLYGON_DESC = (
         "Recorta pelo polígono desenhado ou pela camada de polígono; "
@@ -1471,7 +1487,9 @@ class Strings_pt_BR:
     DELETE_ORIGINALS = "Apagar originais"
     DELETE_ORIGINALS_DESC = "Remove os arquivos uint16 após conversão"
     EPSG_OUTPUT = "EPSG de saída"
+    EPSG_OUTPUT_DESC = "Define o CRS usado para gravar as imagens baixadas."
     SOURCE = "Fonte"
+    IMAGERY_SOURCE_DESC = "Fonte do catálogo de imagens consultado para listar as cenas."
     BBOX_SOURCE = "Extensão da Busca"
     BBOX_SOURCE_DESC = "Define a área de busca (camada, tela ou desenho no mapa)"
     BBOX_CAPTURE_SCREEN = "Tela"
@@ -1482,10 +1500,25 @@ class Strings_pt_BR:
         "botão direito ou duplo clique conclui)"
     )
     SEARCH_SCENES = "Buscar Cenas"
+    SEARCH_SCENES_DESC = (
+        "Busca no catálogo as cenas que atendem à extensão, ao período e à cobertura de nuvens."
+    )
     SCENES_FOUND = "cenas encontradas"
     NO_SCENES_FOUND = "Nenhuma cena encontrada para os filtros informados"
     SELECT_SCENES = "Selecionar cenas para download"
+    SCENE_RESULTS_STATUS_DESC = (
+        "Mostra quantas cenas foram encontradas e informa o carregamento das miniaturas."
+    )
+    SCENE_SELECTION_LIST_DESC = (
+        "Marque as cenas que deseja baixar; cada cartão mostra data, tile, plataforma e cobertura de nuvens."
+    )
+    SCENE_ITEM_DESC = (
+        "Marca esta cena para incluí-la no download; confira os dados e a miniatura antes de confirmar."
+    )
     DOWNLOAD_SELECTED = "Baixar Selecionadas"
+    DOWNLOAD_SELECTED_SCENES_DESC = (
+        "Confirma a seleção e inicia o download das cenas marcadas."
+    )
     NO_SCENE_SELECTED = "Selecione pelo menos uma cena"
     CLOUD_COVER = "nuvens"
     NO_THUMBNAIL = "sem thumbnail"

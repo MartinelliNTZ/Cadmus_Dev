@@ -86,6 +86,7 @@ class SceneSelectionDialog(BaseDialog):
             config={
                 "source": {
                     "label": STR.SOURCE,
+                    "description": STR.IMAGERY_SOURCE_DESC,
                     "options": self._api.source_labels(),
                     "selected_key": ImageryApi.DEFAULT_SOURCE,
                 },
@@ -99,6 +100,7 @@ class SceneSelectionDialog(BaseDialog):
             config={
                 "status": {
                     "text": f"{len(self._scenes)} {STR.SCENES_FOUND}",
+                    "description": STR.SCENE_RESULTS_STATUS_DESC,
                 },
             },
             parent=self,
@@ -106,6 +108,7 @@ class SceneSelectionDialog(BaseDialog):
         self.layout.addWidget(self._status)
 
         self._scene_list = SceneSelectionListWidget(parent=self)
+        self._scene_list.setToolTip(STR.SCENE_SELECTION_LIST_DESC)
         self.layout.addWidget(self._scene_list)
         self._scene_list.set_scenes(self._build_scene_items())
 
@@ -114,17 +117,17 @@ class SceneSelectionDialog(BaseDialog):
             config={
                 "select_all": {
                     "label": STR.SELECT_ALL,
-                    "description": "Marca todas as cenas",
+                    "description": STR.SELECT_ALL_LIST,
                     "callback": lambda: self._scene_list.select_all(),
                 },
                 "deselect_all": {
                     "label": STR.DESELECT_ALL,
-                    "description": "Desmarca todas as cenas",
+                    "description": STR.DESELECT_ALL_LIST,
                     "callback": lambda: self._scene_list.deselect_all(),
                 },
                 "download": {
                     "label": STR.DOWNLOAD_SELECTED,
-                    "description": "Confirma e inicia o download das cenas marcadas",
+                    "description": STR.DOWNLOAD_SELECTED_SCENES_DESC,
                     "callback": self._on_download,
                     "is_run_button": True,
                 },
@@ -149,6 +152,7 @@ class SceneSelectionDialog(BaseDialog):
                 f"{scene.get('date', '')} · tile {scene.get('tile', '')} · "
                 f"{scene.get('plataforma', '')} · {nuvens} {STR.CLOUD_COVER}"
             )
+            item["description"] = STR.SCENE_ITEM_DESC
             item["default"] = True
             items.append(item)
         return items

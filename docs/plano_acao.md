@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.19`<br>
+**Versão de referência:** `3.1.0.20`<br>
 **Data:** 23/11/2026
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -158,10 +158,15 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **23 — Amostrar Valores de Rasters:** concluídas a tooltip geral, a descrição das casas decimais, o botão/lista de seleção de rasters, a orientação de clique no mapa e os labels de valores amostrados.
 - A lista modal preserva a descrição contextual dos rasters, enquanto os controles internos de seleção continuam usando os tokens genéricos do widget.
 
+### Lote seguinte — ferramenta 24
+
+- **24 — Downloader de Imagens de Satélite:** concluídas a tooltip geral e as descrições das configurações, datas, limite de nuvens, opções, CRS, pasta de saída, bandas, composições e busca.
+- O diálogo auxiliar de seleção de cenas agora descreve a fonte, o status, a lista, cada cena e o download; os controles genéricos reutilizam os tokens existentes de seleção em lote.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.19`.
-- Changelog correspondente: `[3.1.0.19][23/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.20`.
+- Changelog correspondente: `[3.1.0.20][23/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -209,7 +214,7 @@ Para cada ferramenta, seguir esta ordem:
 | 21 | Recorte Massivo de Rasters | `raster_mass_clipper` | **Concluída** |
 | 22 | Amostragem Massiva de Rasters | `raster_mass_sampler` | **Concluída** |
 | 23 | Amostrar Valores de Rasters | `raster_sampler` | **Concluída** |
-| 24 | Downloader de Imagens de Satélite | `imagery_downloader` | A fazer |
+| 24 | Downloader de Imagens de Satélite | `imagery_downloader` | **Concluída** |
 | 25 | Developer Test Tool | `developer_test_tool` | A fazer |
 | 26 | Recortar Raster por Máscara de Feições | `raster_mask_clipper` | A fazer |
 | 27 | Otimizar Raster (Overviews) | `raster_optimizer` | A fazer |

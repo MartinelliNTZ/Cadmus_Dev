@@ -1,3 +1,10 @@
+[3.1.0.20][23/11/2026] Tooltips contextuais da ferramenta 24 — Downloader de Imagens de Satélite:
+   - As configurações, datas, limite de nuvens, opções, CRS, bandas, composições e busca receberam descrições contextualizadas.
+   - A pasta de saída passou a reutilizar `OUTPUT_FOLDER_DESC`; os botões genéricos de seleção reutilizam `SELECT_ALL_LIST` e `DESELECT_ALL_LIST`.
+   - O diálogo de cenas recebeu descrições para a fonte, status, lista, itens e download; as miniaturas e cartões preservam a orientação da seleção.
+   - Novos tokens foram adicionados somente em `Strings_pt_BR.py`; `metadata.txt`, `plugins/AboutDialog.py` e instruções HTML/MD não foram editados.
+   - Versão de distribuição incrementada de `3.1.0.19` para `3.1.0.20` somente em `build_distribution.py`.
+
 [3.1.0.19][23/11/2026] Tooltips contextuais da ferramenta 23 — Amostrar Valores de Rasters:
    - A tooltip geral foi revisada para explicar o clique no mapa, os valores, as diferenças e as casas decimais.
    - Casas decimais, seleção de rasters, orientação inicial e valores exibidos receberam descrições contextualizadas.

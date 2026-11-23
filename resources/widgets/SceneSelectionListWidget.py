@@ -221,6 +221,11 @@ class SceneSelectionListWidget(QWidget):
         )
         row_layout.addWidget(text_label, 1)
 
+        description = item.get("description", "")
+        if description:
+            for widget in (card, checkbox, thumb_label, text_label):
+                widget.setToolTip(description)
+
         self._checkboxes[scene_id] = checkbox
         self._thumb_labels[scene_id] = thumb_label
         self._container_layout.addWidget(card, row, col)

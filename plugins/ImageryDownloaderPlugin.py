@@ -95,6 +95,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         #    solto no diálogo (extensão, período, nuvens, opções, EPSG e pasta)
         self.settings_collapse = CollapsibleParametersWidget(
             title=STR.SETTINGS,
+            title_description=STR.IMAGERY_SETTINGS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -116,8 +117,16 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         # 1.2 Datas
         self.dates = GridDateSelector(
             config={
-                "start": {"label": STR.START_DATE, "date": "2026-01-01"},
-                "end": {"label": STR.END_DATE, "date": "2026-12-31"},
+                "start": {
+                    "label": STR.START_DATE,
+                    "description": STR.START_DATE_DESC,
+                    "date": "2026-01-01",
+                },
+                "end": {
+                    "label": STR.END_DATE,
+                    "description": STR.END_DATE_DESC,
+                    "date": "2026-12-31",
+                },
             },
             title=STR.DATE_PERIOD,
             parent=self,
@@ -129,6 +138,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             config={
                 "max_cloud": {
                     "label": STR.CLOUD_MAX,
+                    "description": STR.CLOUD_MAX_DESC,
                     "value": 50,
                     "min": 0,
                     "max": 100,
@@ -166,13 +176,14 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             items_per_row=2,
             parent=self,
         )
+        self.options.setToolTip(STR.OPTIONS_DESC)
         self.settings_collapse.add_content_widget(self.options)
 
         # 1.5 EPSG de saída
         self.epsg_output = ComplexCrsSelector(
             label_text=STR.EPSG_OUTPUT,
             default_auth_id="EPSG:4326",
-            tooltip=STR.EPSG_OUTPUT,
+            tooltip=STR.EPSG_OUTPUT_DESC,
             tool_key=self.TOOL_KEY,
             parent=self,
         )
@@ -183,7 +194,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             config={
                 "output": {
                     "label": STR.OUTPUT_FOLDER,
-                    "description": STR.TEMP_FOLDER_HINT,
+                    "description": STR.OUTPUT_FOLDER_DESC,
                     "mode_type": "output",
                     "allow_file": False,
                     "allow_folder": True,
@@ -198,6 +209,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         # 2. Bandas/composições pré-populadas (RF5) — segundo collapsable
         self.bands_collapse = CollapsibleParametersWidget(
             title=STR.BANDS_ASSETS,
+            title_description=STR.BANDS_ASSETS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -226,7 +238,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             config={
                 "run": {
                     "label": STR.SEARCH_SCENES,
-                    "description": STR.IMAGERY_DOWNLOADER_TOOLTIP,
+                    "description": STR.SEARCH_SCENES_DESC,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },
@@ -255,7 +267,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
                 continue
             config[band] = {
                 "label": f"{band} · {nome} ({res})",
-                "description": f"{nome} ({res})",
+                "description": STR.BAND_ASSET_ITEM_DESC,
                 "default": band in self.DEFAULT_BANDS,
             }
         for comp_key, comp in cfg["compositions"].items():
@@ -267,7 +279,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
                 continue
             config[f"comp_{comp_key}"] = {
                 "label": f"⭐ {comp['nome']}",
-                "description": "Composição pronta — marca as bandas ao selecionar",
+                "description": STR.COMPOSITION_ITEM_DESC,
                 "default": False,
                 "onchange": lambda checked, k=comp_key: (
                     self._on_composition_changed(checked, k)

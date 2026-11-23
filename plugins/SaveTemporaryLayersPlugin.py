@@ -80,12 +80,12 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
                 "prefix": {
                     "label": f"{STR.PREFIX}:",
                     "default": "",
-                    "description": "Prefixo adicionado ao nome dos arquivos de saída",
+                    "description": STR.PREFIX_DESC,
                 },
                 "suffix": {
                     "label": f"{STR.SUFFIX}:",
                     "default": "",
-                    "description": "Sufixo adicionado ao nome dos arquivos de saída",
+                    "description": STR.SUFFIX_DESC,
                 },
             },
             separator_bottom=True,
@@ -98,13 +98,13 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             config={
                 "vector_ext": {
                     "label": f"{STR.VECTOR_EXTENSIONS}:",
-                    "description": "Formato de arquivo para camadas vetoriais",
+                    "description": STR.VECTOR_EXTENSIONS_DESC,
                     "options": self.VECTOR_EXTENSIONS,
                     "selected_key": ".gpkg",
                 },
                 "raster_ext": {
                     "label": f"{STR.RASTER_EXTENSIONS}:",
-                    "description": "Formato de arquivo para camadas raster",
+                    "description": STR.RASTER_EXTENSIONS_DESC,
                     "options": self.RASTER_EXTENSIONS,
                     "selected_key": ".tif",
                 },
@@ -121,7 +121,7 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             config={
                 "output_folder": {
                     "label": f"{STR.OUTPUT_FOLDER}:",
-                    "description": "Pasta onde os arquivos serão salvos",
+                    "description": STR.SAVE_TEMPORARY_OUTPUT_FOLDER_DESC,
                     "mode_type": "output",
                     "allow_file": False,
                     "allow_folder": True,
@@ -141,7 +141,7 @@ class SaveTemporaryLayersPlugin(BasePluginMTL):
             config={
                 "salvar": {
                     "label": STR.SAVE,
-                    "description": "Salva as camadas temporárias em arquivos",
+                    "description": STR.START_SAVE_TEMPORARY_LAYERS,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

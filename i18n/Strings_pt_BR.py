@@ -983,18 +983,135 @@ class Strings_pt_BR:
     DIVIDE_POINTS_BY_STRIPS_INTRO = (
         "Configure a camada de pontos e os parâmetros iniciais da divisão por faixas."
     )
+    DIVIDE_POINTS_BY_STRIPS_INTRO_DESC = (
+        "Resume o objetivo da ferramenta: separar pontos em faixas usando os campos e parâmetros abaixo."
+    )
+    DIVIDE_POINTS_INPUT_DESC = (
+        "Selecione uma camada vetorial de pontos do projeto ou um arquivo de pontos para processar."
+    )
+    DIVIDE_POINTS_SELECTED_FEATURES_LABEL = "Usar apenas feições selecionadas"
+    DIVIDE_POINTS_SELECTED_FEATURES_DESC = (
+        "Limita o processamento às feições marcadas na camada; sem marcação, a camada inteira é considerada."
+    )
     OPERATIONAL_PARAMETERS = "Parâmetros Operacionais"
+    OPERATIONAL_PARAMETERS_DESC = (
+        "Reúne os campos e valores básicos usados para identificar e separar os pontos em faixas."
+    )
     SENSITIVITY_PARAMETERS = "Parâmetros de Sensibilidade"
+    SENSITIVITY_PARAMETERS_DESC = (
+        "Controla como mudanças de direção, tempo e caminho influenciam a detecção de quebras."
+    )
+    ATTRIBUTES_DESC = (
+        "Escolha quais campos calculados pela segmentação serão incluídos nas camadas de saída."
+    )
+    SAVING_DESC = (
+        "Defina opcionalmente onde salvar a camada de pontos processada e o rastro gerado."
+    )
     UNIQUE_SEQUENTIAL_ID_FIELD = "Campo ID único/sequencial"
+    UNIQUE_SEQUENTIAL_ID_FIELD_DESC = (
+        "Escolha o campo que identifica cada ponto em uma sequência sem valores repetidos."
+    )
+    GROUP_FIELD = "Agrupar por Campo (opcional)"
+    GROUP_FIELD_DESC = (
+        "Opcionalmente agrupa os pontos pelo valor deste campo antes de executar a segmentação."
+    )
     TIMESTAMP_FIELD = "Campo de timestamp"
+    TIMESTAMP_FIELD_DESC = (
+        "Escolha o campo de data e hora usado para ordenar os pontos e avaliar intervalos temporais."
+    )
+    JUDGE_MODE = "Modo de Processamento"
+    JUDGE_MODE_DESC = (
+        "Escolha o algoritmo que avaliará continuidade, direção e pontuação para identificar as quebras."
+    )
+    CURVE_PATH_DESC = (
+        "Considera o caminho como uma trajetória curva ao avaliar a continuidade dos pontos."
+    )
+    STRAIGHT_PATH_DESC = (
+        "Considera o caminho como uma trajetória reta ao avaliar a continuidade dos pontos."
+    )
+    BOTH_PATH_DESC = (
+        "Permite que a avaliação considere trajetórias curvas e retas."
+    )
+    SAVE_POINTS_OUTPUT_DESC = (
+        "Informe o arquivo de saída da camada de pontos depois da segmentação."
+    )
+    SAVE_TRACK_OUTPUT_DESC = (
+        "Informe o arquivo de saída do rastro linear gerado a partir dos pontos segmentados."
+    )
+    START_DIVIDE_POINTS_BY_STRIPS = (
+        "Executa a segmentação dos pontos usando os campos, parâmetros e saídas escolhidos."
+    )
     EXPECTED_POINT_FREQUENCY_SECONDS = "Frequência (s)"
+    EXPECTED_POINT_FREQUENCY_SECONDS_DESC = (
+        "Informe o intervalo esperado, em segundos, entre pontos consecutivos do levantamento."
+    )
     EXPECTED_LATERAL_WIDTH_METERS = "Largura (m)"
+    EXPECTED_LATERAL_WIDTH_METERS_DESC = (
+        "Informe a largura lateral esperada da faixa, em metros, para apoiar a separação dos pontos."
+    )
     AZIMUTH_MOVING_WINDOW = "Janela de azimute"
+    AZIMUTH_MOVING_WINDOW_DESC = (
+        "Define quantos pontos vizinhos entram no cálculo da direção média antes da detecção de mudança de rumo."
+    )
     LIGHT_AZIMUTH_DEVIATION_THRESHOLD = "Limiar leve (°)"
+    LIGHT_AZIMUTH_DEVIATION_THRESHOLD_DESC = (
+        "Desvio angular inicial que sinaliza uma possível mudança de direção."
+    )
     SEVERE_AZIMUTH_DEVIATION_THRESHOLD = "Limiar grave (°)"
+    SEVERE_AZIMUTH_DEVIATION_THRESHOLD_DESC = (
+        "Desvio angular alto que indica uma mudança de direção mais clara."
+    )
     MINIMUM_BREAK_SCORE = "Pontuação mínima"
+    MINIMUM_BREAK_SCORE_DESC = (
+        "Pontuação mínima para aceitar o desvio como uma quebra real de faixa."
+    )
     MINIMUM_POINT_COUNT = "Pontos mínimos"
+    MINIMUM_POINT_COUNT_DESC = (
+        "Quantidade mínima de pontos que um trecho precisa ter para ser considerado válido."
+    )
     TIME_TOLERANCE_MULTIPLIER = "Tolerância de tempo"
+    TIME_TOLERANCE_MULTIPLIER_DESC = (
+        "Multiplica o intervalo de tempo aceito entre fotos para evitar que pequenas variações criem uma quebra."
+    )
+    MAX_DEVIATION_POINTS = "Número máximo de pontos desviantes"
+    MAX_DEVIATION_POINTS_DESC = (
+        "Limita quantos pontos fora do padrão podem ser ignorados antes de confirmar uma quebra."
+    )
+    MAX_DISTANCE_BETWEEN_POINTS = "Distância máxima entre pontos"
+    MAX_DISTANCE_BETWEEN_POINTS_DESC = (
+        "Define a distância máxima entre pontos para que ainda possam pertencer ao mesmo trecho."
+    )
+
+    # Descrições dos campos calculados exibidos na seleção de saída.
+    SHOT_ID_FIELD_DESC = "Identificador único do segmento de tiro ou faixa."
+    OLD_SHOT_ID_FIELD_DESC = (
+        "Identificador original do segmento antes da validação do tamanho do grupo."
+    )
+    SHOT_VALID_FIELD_DESC = (
+        "Indica se o segmento possui pontos suficientes para ser considerado válido."
+    )
+    SCORE_FIELD_DESC = "Pontuação da quebra combinando direção e continuidade."
+    SCORE_DIRECTION_FIELD_DESC = "Componente da pontuação causada pela mudança de direção."
+    SCORE_CONTINUITY_FIELD_DESC = (
+        "Componente da pontuação causada por descontinuidade temporal ou espacial."
+    )
+    SEGMENT_TYPE_FIELD_DESC = "Classificação do segmento, como faixa ou bordadura."
+    INSTANT_AZIMUTH_FIELD_DESC = "Azimute calculado entre pontos consecutivos."
+    MEAN_AZIMUTH_FIELD_DESC = "Média circular do azimute, ponderada pela velocidade."
+    AZIMUTH_DELTA_FIELD_DESC = (
+        "Diferença angular entre o azimute instantâneo e a média."
+    )
+    TIME_DELTA_FIELD_DESC = "Diferença de tempo, em segundos, entre pontos consecutivos."
+    DISTANCE_DELTA_FIELD_DESC = "Distância, em metros, entre pontos consecutivos."
+    INSTANT_VELOCITY_FIELD_DESC = "Velocidade instantânea, em metros por segundo."
+    PREVIOUS_AZIMUTH_FIELD_DESC = "Azimute do segmento anterior (i-1 → i)."
+    NEXT_AZIMUTH_FIELD_DESC = "Azimute do segmento seguinte (i → i+1)."
+    PREVIOUS_AZIMUTH_DELTA_FIELD_DESC = (
+        "Diferença angular entre o azimute instantâneo e o azimute anterior."
+    )
+    NEXT_AZIMUTH_DELTA_FIELD_DESC = (
+        "Diferença angular entre o azimute instantâneo e o azimute seguinte."
+    )
     SELECT_POINT_VECTOR_LAYER = "Selecione uma camada vetorial de pontos."
     SELECT_FILE_BASED_POINT_LAYER = "Selecione uma camada de pontos baseada em arquivo."
     SELECT_REQUIRED_FIELDS = "Selecione os campos obrigatórios de ID e timestamp."
@@ -1111,14 +1228,28 @@ class Strings_pt_BR:
         "Salva camadas temporárias (memory) do projeto em arquivos permanentes no disco"
     )
     PREFIX = "Prefixo"
+    PREFIX_DESC = "Texto acrescentado antes do nome original das camadas salvas."
     SUFFIX = "Sufixo"
+    SUFFIX_DESC = "Texto acrescentado depois do nome original das camadas salvas."
     EXTENSION_VECTOR = "Extensão Vetor"
     EXTENSION_RASTER = "Extensão Raster"
     VECTORS_FOLDER = "Pasta de Vetores"
     RASTERS_FOLDER = "Pasta de Rasters"
     SEPARATOR = "Separador"
     VECTOR_EXTENSIONS = "Extensões Vetor"
+    VECTOR_EXTENSIONS_DESC = (
+        "Formato usado para salvar as camadas vetoriais temporárias encontradas no projeto."
+    )
     RASTER_EXTENSIONS = "Extensões Raster"
+    RASTER_EXTENSIONS_DESC = (
+        "Formato usado para salvar as camadas raster temporárias encontradas no projeto."
+    )
+    SAVE_TEMPORARY_OUTPUT_FOLDER_DESC = (
+        "Escolha a pasta base onde serão criadas as subpastas de vetores e rasters."
+    )
+    START_SAVE_TEMPORARY_LAYERS = (
+        "Localiza as camadas temporárias e grava vetores e rasters nos formatos escolhidos."
+    )
     OUTPUT_CONFIG = "Configuração de Saída"
     CONVERTER_FILE_TYPE = "Tipo de Arquivo"
     SELECT_OUTPUT_FOLDER = "Selecionar Pasta de Saída"

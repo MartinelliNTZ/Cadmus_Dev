@@ -16,7 +16,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.SHOT_ID: Field(
             label="Shot ID",
             attribute="shot_id",
-            description="Identificador único do segmento de tiro/faixa.",
+            description=STR.SHOT_ID_FIELD_DESC,
             type=QVariant.String,
             length=50,
             precision=0,
@@ -24,7 +24,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.OLD_SHOT_ID: Field(
             label="Old Shot ID",
             attribute="old_shot_id",
-            description="Identificador original do shot antes da validação de tamanho de grupo.",
+            description=STR.OLD_SHOT_ID_FIELD_DESC,
             type=QVariant.String,
             length=50,
             precision=0,
@@ -32,7 +32,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.SHOT_VALID: Field(
             label="Shot Valid",
             attribute="shot_valid",
-            description="Indica se o tiro possui pontos suficientes para ser válido.",
+            description=STR.SHOT_VALID_FIELD_DESC,
             type=QVariant.Int,
             length=1,
             precision=0,
@@ -40,7 +40,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.SCORE: Field(
             label="Score",
             attribute="score",
-            description="Pontuação de quebra (direção + continuidade).",
+            description=STR.SCORE_FIELD_DESC,
             type=QVariant.Int,
             length=10,
             precision=0,
@@ -48,7 +48,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.SCORE_DIRECTION: Field(
             label="Score Direction",
             attribute="score_direction",
-            description="Componente de quebra por mudança de direção.",
+            description=STR.SCORE_DIRECTION_FIELD_DESC,
             type=QVariant.Int,
             length=10,
             precision=0,
@@ -56,7 +56,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.SCORE_CONTINUITY: Field(
             label="Score Continuity",
             attribute="score_continuity",
-            description="Componente de quebra por descontinuidade temporal/espacial.",
+            description=STR.SCORE_CONTINUITY_FIELD_DESC,
             type=QVariant.Int,
             length=10,
             precision=0,
@@ -64,7 +64,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.SEG_TYPE: Field(
             label="Segment Type",
             attribute="seg_type",
-            description="Tipo: 'faixa' ou 'bordadura'.",
+            description=STR.SEGMENT_TYPE_FIELD_DESC,
             type=QVariant.String,
             length=20,
             precision=0,
@@ -72,7 +72,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.AZIMUTH_INSTANT: Field(
             label="Azimuth Instant",
             attribute="azimuth_instant",
-            description="Azimute instantâneo entre pontos consecutivos.",
+            description=STR.INSTANT_AZIMUTH_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -80,7 +80,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.AZIMUTH_MEAN: Field(
             label="Azimuth Mean",
             attribute="azimuth_mean",
-            description="Média circular ponderada por velocidade.",
+            description=STR.MEAN_AZIMUTH_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -88,7 +88,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.DELTA_AZIMUTH: Field(
             label="Delta Azimuth",
             attribute="delta_azimuth",
-            description="Diferença angular entre azimute instantâneo e média.",
+            description=STR.AZIMUTH_DELTA_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -96,7 +96,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.DELTA_TIME: Field(
             label="Delta Time",
             attribute="delta_time",
-            description="Diferença de tempo entre pontos consecutivos (s).",
+            description=STR.TIME_DELTA_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -104,7 +104,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.DELTA_DISTANCE: Field(
             label="Delta Distance",
             attribute="delta_distance",
-            description="Distância entre pontos consecutivos (m).",
+            description=STR.DISTANCE_DELTA_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -112,7 +112,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.VELOCITY_INSTANT: Field(
             label="Velocity Instant",
             attribute="velocity_instant",
-            description="Velocidade instantânea (m/s).",
+            description=STR.INSTANT_VELOCITY_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -120,7 +120,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.AZIMUTH_PREV: Field(
             label="Azimuth Prev",
             attribute="azimuth_prev",
-            description="Azimute do segmento anterior (i-1 → i).",
+            description=STR.PREVIOUS_AZIMUTH_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -128,7 +128,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.AZIMUTH_NEXT: Field(
             label="Azimuth Next",
             attribute="azimuth_next",
-            description="Azimute do segmento seguinte (i → i+1).",
+            description=STR.NEXT_AZIMUTH_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -136,7 +136,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.DELTA_AZ_PREV: Field(
             label="Delta Azimuth Prev",
             attribute="delta_az_prev",
-            description="Diferença angular entre azimute instantâneo e azimute anterior.",
+            description=STR.PREVIOUS_AZIMUTH_DELTA_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -144,7 +144,7 @@ class StringManager(BaseUtil):
         StripOutputFieldKey.DELTA_AZ_NEXT: Field(
             label="Delta Azimuth Next",
             attribute="delta_az_next",
-            description="Diferença angular entre azimute instantâneo e azimute seguinte.",
+            description=STR.NEXT_AZIMUTH_DELTA_FIELD_DESC,
             type=QVariant.Double,
             length=20,
             precision=8,
@@ -214,25 +214,25 @@ class StringManager(BaseUtil):
     DIVIDE_POINTS_OPERATIONAL_FIELDS = {
         "threshold_azimute_grave": {
             "title": STR.SEVERE_AZIMUTH_DEVIATION_THRESHOLD,
-            "description": "Desvio alto de azimute que indica uma mudanca de direcao clara.",
+            "description": STR.SEVERE_AZIMUTH_DEVIATION_THRESHOLD_DESC,
             "type": "float",
             "default": 45.0,
         },
         "n_minimo_pontos": {
             "title": STR.MINIMUM_POINT_COUNT,
-            "description": "Menor quantidade de pontos que um trecho precisa para ser aceito.",
+            "description": STR.MINIMUM_POINT_COUNT_DESC,
             "type": "int",
             "default": 20,
         },
         "max_desvio": {
-            "title": "Numero max de pontos desvio",
-            "description": "Maximo de pontos fora do padrao que serao ignorados antes de confirmar a quebra.",
+            "title": STR.MAX_DEVIATION_POINTS,
+            "description": STR.MAX_DEVIATION_POINTS_DESC,
             "type": "int",
             "default": 2,
         },
         "max_distance": {
-            "title": "Distância Máxima entre pontos",
-            "description": "Distância máxima entre pontos para considerar uma quebra.",
+            "title": STR.MAX_DISTANCE_BETWEEN_POINTS,
+            "description": STR.MAX_DISTANCE_BETWEEN_POINTS_DESC,
             "type": "int",
             "default": 150,
         },
@@ -240,35 +240,37 @@ class StringManager(BaseUtil):
     DIVIDE_POINTS_SENSITIVITY_FIELDS = {
         "janela_azimute": {
             "title": STR.AZIMUTH_MOVING_WINDOW,
-            "description": "Numero de pontos usados para calcular a direcao media antes de detectar mudanca de rumo.",
+            "description": STR.AZIMUTH_MOVING_WINDOW_DESC,
             "type": "int",
             "default": 10,
         },
         "threshold_azimute_leve": {
             "title": STR.LIGHT_AZIMUTH_DEVIATION_THRESHOLD,
-            "description": "Desvio leve de azimute que inicia a identificacao de uma possivel quebra.",
+            "description": STR.LIGHT_AZIMUTH_DEVIATION_THRESHOLD_DESC,
             "type": "float",
             "default": 20.0,
         },
         "score_minimo_quebra": {
             "title": STR.MINIMUM_BREAK_SCORE,
-            "description": "Pontos necessarios para que o desvio seja considerado uma quebra real.",
+            "description": STR.MINIMUM_BREAK_SCORE_DESC,
             "type": "int",
             "default": 3,
         },
         "tolerancia_tempo": {
             "title": STR.TIME_TOLERANCE_MULTIPLIER,
-            "description": "Multiplica a diferenca de tempo permitida entre fotos para evitar quebra por pequenas variacoes.",
+            "description": STR.TIME_TOLERANCE_MULTIPLIER_DESC,
             "type": "float",
             "default": 3.0,
         },
         "frequencia_pontos": {
             "title": STR.EXPECTED_POINT_FREQUENCY_SECONDS,
+            "description": STR.EXPECTED_POINT_FREQUENCY_SECONDS_DESC,
             "type": "int",
             "default": 1,
         },
         "largura_tiro": {
             "title": STR.EXPECTED_LATERAL_WIDTH_METERS,
+            "description": STR.EXPECTED_LATERAL_WIDTH_METERS_DESC,
             "type": "float",
             "default": 20.0,
         },

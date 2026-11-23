@@ -25,6 +25,7 @@ Lock Button:
   - allow_features_check: checkbox ABAIXO da linha principal, com texto.
     Default: False (desmarcado).
     Texto padrão: STR.ONLY_SELECTED_FEATURES
+  - features_check_description: tooltip contextual do checkbox de feições.
 """
 
 from __future__ import annotations
@@ -110,6 +111,7 @@ class ComplexSelector(QWidget):
         # ── Tool key para logger ──
         tool_key=None,
         parent=None,
+        features_check_description: str = "",
     ):
         super().__init__(parent)
 
@@ -146,6 +148,7 @@ class ComplexSelector(QWidget):
         self._allow_features_check = allow_features_check
         self._features_check_text = features_check_text or ""
         self._features_check_default = features_check_default
+        self._features_check_description = features_check_description or ""
 
         # Estado interno
         self._root_path: str = ""
@@ -256,6 +259,8 @@ class ComplexSelector(QWidget):
             self._features_checkbox = QCheckBox()
             check_text = self._features_check_text or ""
             self._features_checkbox.setText(check_text)
+            if self._features_check_description:
+                self._features_checkbox.setToolTip(self._features_check_description)
             self._features_checkbox.setChecked(self._features_check_default)
             self._features_checkbox.toggled.connect(self._on_features_checkbox_toggled)
             self._features_layout.addWidget(self._features_checkbox, 0, Qt.AlignmentFlag.AlignVCenter)

@@ -117,6 +117,8 @@ class CollapsibleParametersWidget(QWidget):
         Se True, inicia expandido.
     parent : QWidget, optional
         Widget pai.
+    title_description : str, optional
+        Tooltip contextual exibida ao passar o mouse sobre o header.
     """
 
     def __init__(
@@ -124,10 +126,12 @@ class CollapsibleParametersWidget(QWidget):
         title: str = "",
         expanded_by_default: bool = False,
         parent=None,
+        title_description: str = "",
     ):
         super().__init__(parent)
 
         self._title = title
+        self._title_description = title_description or ""
         self._is_expanded = expanded_by_default
         self._hovered = False
 
@@ -150,6 +154,14 @@ class CollapsibleParametersWidget(QWidget):
 
         self._title_label = QLabel(self._title)
         header_layout.addWidget(self._title_label, 1)
+
+        if self._title_description:
+            for header_widget in (
+                self._header,
+                self._icon_label,
+                self._title_label,
+            ):
+                header_widget.setToolTip(self._title_description)
 
         # Monta estrutura
         main_layout = QVBoxLayout(self)

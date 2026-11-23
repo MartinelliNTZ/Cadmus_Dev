@@ -316,6 +316,9 @@ class GridComplexSelector(QWidget):
         allow_features_check = field_config.get("allow_features_check", False)
         features_check_text = field_config.get("features_check_text", "")
         features_check_default = field_config.get("features_check_default", False)
+        features_check_description = field_config.get(
+            "features_check_description", ""
+        )
 
         # Resolve o parent_selector
         parent_selector = None
@@ -346,6 +349,7 @@ class GridComplexSelector(QWidget):
             allow_features_check=allow_features_check,
             features_check_text=features_check_text,
             features_check_default=features_check_default,
+            features_check_description=features_check_description,
             tool_key=self._tool_key or "GridComplexSelector",
             parent=self,
         )

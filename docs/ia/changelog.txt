@@ -1,3 +1,11 @@
+[3.1.0.13][22/11/2026] Tooltips contextuais das ferramentas 15 e 16:
+   - Dividir Vetor de Pontos por Faixas agora descreve a introdução, entrada, feições selecionadas, quatro seções, parâmetros, modos de caminho, campos de saída, arquivos opcionais e execução.
+   - Salvar Temporárias agora descreve prefixo, sufixo, extensões, pasta de saída e salvamento.
+   - As descrições dos campos calculados da segmentação foram centralizadas em `Strings_pt_BR.py` e continuam sendo entregues pela ferramenta aos widgets.
+   - `CollapsibleParametersWidget` passou a aceitar `title_description` e `GridComplexSelector` passou a aceitar `features_check_description`.
+   - `SKILL_WIDGETS2.md`, o mapa de ferramentas e o plano de ação foram atualizados para registrar os contratos e a conclusão do lote.
+   - Versão de distribuição incrementada de `3.1.0.12` para `3.1.0.13` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.12][22/11/2026] Tooltips contextuais da ferramenta 14 — Copiar Atributos de Vetor:
    - As camadas de origem e destino receberam descrições explicando o papel de cada uma.
    - O grupo de atributos, o checkbox de usar todos e cada campo dinâmico receberam descrição contextual via `STR`.

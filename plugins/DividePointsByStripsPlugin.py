@@ -103,7 +103,10 @@ class DividePointsByStripsPlugin(BasePluginMTL):
 
         # ── Label Introdutório ───────────────────────────────────────
         self.intro_label = GridLabel(config={
-            "intro": {"text": STR.DIVIDE_POINTS_BY_STRIPS_INTRO},
+            "intro": {
+                "text": STR.DIVIDE_POINTS_BY_STRIPS_INTRO,
+                "description": STR.DIVIDE_POINTS_BY_STRIPS_INTRO_DESC,
+            },
         }, parent=self)
         self.layout.addWidget(self.intro_label)
         self.layout.addWidget(SeparatorWidget())
@@ -113,11 +116,12 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             config={
                 "camada": {
                     "label": STR.INPUT_POINTS,
-                    "description": "Camada de pontos ou arquivo externo",
+                    "description": STR.DIVIDE_POINTS_INPUT_DESC,
                     "allow_layer": True,
                     "layer_filters": QgsMapLayerProxyModel.PointLayer,
                     "allow_features_check": True,
-                    "features_check_text": "Usar apenas feições selecionadas",
+                    "features_check_text": STR.DIVIDE_POINTS_SELECTED_FEATURES_LABEL,
+                    "features_check_description": STR.DIVIDE_POINTS_SELECTED_FEATURES_DESC,
                     "allow_file": True,
                     "allow_folder": False,
                     "file_filter": StringManager.FILTER_VECTOR,
@@ -136,13 +140,14 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             title=STR.OPERATIONAL_PARAMETERS,
             expanded_by_default=True,
             parent=self,
+            title_description=STR.OPERATIONAL_PARAMETERS_DESC,
         )
 
         self.id_field_selector = GridComboBox(
             config={
                 "id_field": {
                     "label": STR.UNIQUE_SEQUENTIAL_ID_FIELD,
-                    "description": "Campo com ID sequencial único",
+                    "description": STR.UNIQUE_SEQUENTIAL_ID_FIELD_DESC,
                     "options": {},
                     "selected_key": "",
                 },
@@ -155,8 +160,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.group_field_selector = GridComboBox(
             config={
                 "group_field": {
-                    "label": "Agrupar por Campo (opcional)",
-                    "description": "Agrupa pontos por valor de campo",
+                    "label": STR.GROUP_FIELD,
+                    "description": STR.GROUP_FIELD_DESC,
                     "options": {},
                     "selected_key": "",
                     "allow_empty": True,
@@ -185,6 +190,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             title=STR.SENSITIVITY_PARAMETERS,
             expanded_by_default=True,
             parent=self,
+            title_description=STR.SENSITIVITY_PARAMETERS_DESC,
         )
 
         self.sensitivity_fields = GridInputFields(
@@ -200,7 +206,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             config={
                 "time_field": {
                     "label": STR.TIMESTAMP_FIELD,
-                    "description": "Campo com timestamp",
+                    "description": STR.TIMESTAMP_FIELD_DESC,
                     "options": {},
                     "selected_key": "",
                     "allow_empty": True,
@@ -215,8 +221,8 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         self.judge_mode_selector = GridComboBox(
             config={
                 "judge_mode": {
-                    "label": "Modo de Processamento",
-                    "description": "Algoritmo de julgamento",
+                    "label": STR.JUDGE_MODE,
+                    "description": STR.JUDGE_MODE_DESC,
                     "options": self.JUDGE_MODES,
                     "selected_key": self.preferences.get(self.PREF_JUDGE_MODE, "Complexo"),
                 },
@@ -229,9 +235,18 @@ class DividePointsByStripsPlugin(BasePluginMTL):
         # ── Radio Button: Path Mode (chaves = STR) ───────────────────
         self.radio_path_mode = GridRadioButton(
             config={
-                STR.CURVE: {"label": STR.CURVE},
-                STR.STRAIGHT: {"label": STR.STRAIGHT},
-                STR.BOTH_PATH: {"label": STR.BOTH_PATH},
+                STR.CURVE: {
+                    "label": STR.CURVE,
+                    "description": STR.CURVE_PATH_DESC,
+                },
+                STR.STRAIGHT: {
+                    "label": STR.STRAIGHT,
+                    "description": STR.STRAIGHT_PATH_DESC,
+                },
+                STR.BOTH_PATH: {
+                    "label": STR.BOTH_PATH,
+                    "description": STR.BOTH_PATH_DESC,
+                },
             },
             columns=3,
             default_key=STR.BOTH_PATH,
@@ -247,6 +262,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             title=STR.ATTRIBUTES,
             expanded_by_default=True,
             parent=self,
+            title_description=STR.ATTRIBUTES_DESC,
         )
 
         self.output_fields_grid = GridCheckbox(
@@ -282,6 +298,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             title=STR.SAVING,
             expanded_by_default=False,
             parent=self,
+            title_description=STR.SAVING_DESC,
         )
 
         # Save Points Selector — lock button habilita/desabilita
@@ -289,6 +306,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             config={
                 "save_points": {
                     "label": f"{STR.SAVE_IN} {STR.SAVE_POINTS_CHECKBOX}",
+                    "description": STR.SAVE_POINTS_OUTPUT_DESC,
                     "mode_type": "output",
                     "allow_file": True,
                     "allow_folder": False,
@@ -309,6 +327,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             config={
                 "save_track": {
                     "label": f"{STR.SAVE_IN} {STR.SAVE_TRACK_CHECKBOX}",
+                    "description": STR.SAVE_TRACK_OUTPUT_DESC,
                     "mode_type": "output",
                     "allow_file": True,
                     "allow_folder": False,
@@ -331,7 +350,7 @@ class DividePointsByStripsPlugin(BasePluginMTL):
             config={
                 "run": {
                     "label": STR.EXECUTE,
-                    "description": "Inicia a segmentação por faixas",
+                    "description": STR.START_DIVIDE_POINTS_BY_STRIPS,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

@@ -789,6 +789,9 @@ grid.set_preferences(prefs)         # → carrega paths + lock_state + checked_s
 | `"layer_filters"` | Não | QgsMapLayerProxyModel filter |
 | `"show_explorer_button"` | Não | Botão explorar |
 | `"show_copy_button"` | Não | Botão copiar |
+| `"allow_features_check"` | Não | Exibe checkbox de feições selecionadas |
+| `"features_check_text"` | Não | Texto do checkbox de feições |
+| `"features_check_description"` | Não | Tooltip contextual do checkbox de feições |
 
 **Parâmetros do construtor:**
 
@@ -954,6 +957,7 @@ from ..resources.widgets.CollapsibleParametersWidget import CollapsibleParameter
 coll = CollapsibleParametersWidget(
     title="Configurações Avançadas",
     expanded_by_default=False,
+    title_description="Explica o conjunto de parâmetros reunido nesta seção",
     parent=self,
 )
 coll.add_content_widget(my_widget)
@@ -974,6 +978,10 @@ coll.set_preferences(Preferences.load_tool_prefs(self.TOOL_KEY).get("collapsible
 | `is_expanded()` → `bool` | Retorna True se expandido |
 | `get_preferences()` → `dict` | Retorna `{"expanded": bool}` para salvar em Preferences |
 | `set_preferences(prefs)` | Carrega estado de um dict vindo de Preferences |
+
+`title_description` é fornecida pela ferramenta quando o título da seção precisa
+explicar o objetivo do grupo. O widget aplica a tooltip ao header, ao ícone e ao
+título; a ferramenta continua sendo responsável pelo contexto do texto.
 
 ---
 
@@ -1443,6 +1451,7 @@ border: 1px solid {theme.COLOR_BORDER};
 
 | Data | Versão | Descrição |
 |------|--------|-----------|
+| 2026-11-22 | 3.3.0 | `CollapsibleParametersWidget` passou a aceitar `title_description` para tooltips de headers; `GridComplexSelector` passou a aceitar `features_check_description` para o checkbox de feições selecionadas. |
 | 2026-11-22 | 3.2.0 | `GridReadOnly` passou a aceitar `title_description` e `description` por campo; `SimpleReadOnly` passou a aceitar tooltip contextual sem substituir a tooltip genérica do botão interno de cópia; `GridAttributeSelector` passou a aceitar descrições do grupo, do checkbox geral e dos campos dinâmicos. |
 | 2026-07-21 | 1.0.0 | Criação inicial — Novo sistema de widgets autoconfiguráveis |
 | 2026-07-21 | 1.1.0 | Adicionada regra de callbacks (widget não expõe sinais Qt, plugin passa funções callback como parâmetros) |

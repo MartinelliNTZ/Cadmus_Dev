@@ -1,3 +1,11 @@
+[3.1.0.17][23/11/2026] Tooltips contextuais da ferramenta 18 — DJI Coordenadas de Drone:
+   - A tooltip geral passou a explicar o processamento do voo, metadados, saídas QML e relatório.
+   - A pasta MRK, as quatro opções, o título do projeto e o logotipo receberam descrições contextualizadas.
+   - As cinco seções de campos, salvamento, estilos e execução agora possuem tooltips próprias.
+   - Foram reaproveitados `SAVING_DESC`, `SAVE_POINTS_OUTPUT_DESC`, `SAVE_TRACK_OUTPUT_DESC`, `QML_STYLE_DESC`, os tokens internos dos widgets e as descrições já existentes dos campos de metadata.
+   - Novos tokens foram adicionados somente em `Strings_pt_BR.py`; `metadata.txt` e `plugins/AboutDialog.py` não foram editados.
+   - Versão de distribuição incrementada de `3.1.0.16` para `3.1.0.17` somente em `build_distribution.py`.
+
 [3.1.0.16][23/11/2026] Tooltips contextuais da ferramenta 21 — Recorte Massivo de Rasters:
    - A tooltip geral foi revisada para explicar recorte em lote, modo por camada ou feição, correção de borda e pasta de saída.
    - Os sete parâmetros do algoritmo passaram a usar `setHelp()` com descrições tokenizadas em `Strings_pt_BR.py`.

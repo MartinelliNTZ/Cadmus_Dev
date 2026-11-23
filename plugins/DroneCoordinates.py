@@ -55,10 +55,22 @@ class DroneCordinates(BasePluginMTL):
     TOOL_KEY = ToolKey.DRONE_COORDINATES
 
     CHECKBOX_OPTIONS = {
-        "recursive": STR.RECURSIVE_SEARCH,
-        "use_mrk": STR.USE_MRK_DATA,
-        "photos": STR.PHOTOS_METADATA,
-        "generate_report": STR.GENERATE_REPORT,
+        "recursive": {
+            "label": STR.RECURSIVE_SEARCH,
+            "description": STR.RECURSIVE_SEARCH_DESC,
+        },
+        "use_mrk": {
+            "label": STR.USE_MRK_DATA,
+            "description": STR.USE_MRK_DATA_DESC,
+        },
+        "photos": {
+            "label": STR.PHOTOS_METADATA,
+            "description": STR.PHOTOS_METADATA_DESC,
+        },
+        "generate_report": {
+            "label": STR.GENERATE_REPORT,
+            "description": STR.GENERATE_REPORT_DESC,
+        },
     }
 
     AUTO_SAVE_PREFS_ON_CLOSE = True
@@ -87,7 +99,7 @@ class DroneCordinates(BasePluginMTL):
             config={
                 "pasta_mrk": {
                     "label": STR.MRK_FOLDER,
-                    "description": "Pasta contendo os arquivos MRK",
+                    "description": STR.MRK_FOLDER_DESC,
                     "allow_file": False,
                     "allow_folder": True,
                     "mode_type": "input",
@@ -103,6 +115,7 @@ class DroneCordinates(BasePluginMTL):
         # ====== OPÇÕES (CollapsibleParametersWidget) ======
         self.opts_collapsible = CollapsibleParametersWidget(
             title=STR.OPTIONS,
+            title_description=STR.DRONE_OPTIONS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -113,7 +126,7 @@ class DroneCordinates(BasePluginMTL):
             config={
                 "logo": {
                     "label": STR.LOGO_LABEL,
-                    "description": "Arquivo de logotipo",
+                    "description": STR.LOGO_DESC,
                     "mode_type": "output",
                     "allow_file": True,
                     "allow_folder": False,
@@ -133,7 +146,8 @@ class DroneCordinates(BasePluginMTL):
             config={
                 "project_title": {
                     "label": STR.PROJECT_TITLE,
-                    "description": STR.PROJECT_TITLE_HINT,
+                    "description": STR.PROJECT_TITLE_DESC,
+                    "placeholder": STR.PROJECT_TITLE_HINT,
                     "default": "",
                 },
             },
@@ -147,9 +161,7 @@ class DroneCordinates(BasePluginMTL):
         checkbox_options = dict(self.CHECKBOX_OPTIONS)
 
         self.opts_checkbox = GridCheckbox(
-            config={
-                key: {"label": label} for key, label in checkbox_options.items()
-            },
+            config=checkbox_options,
             items_per_row=2,
             separator_bottom=False,
             parent=self,
@@ -168,7 +180,8 @@ class DroneCordinates(BasePluginMTL):
 
         # ====== METADATA EXIF FIELDS ======
         self.exif_fields_collapsible = CollapsibleParametersWidget(
-            title="EXIF Fields",
+            title=STR.EXIF_FIELDS,
+            title_description=STR.EXIF_FIELDS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -202,7 +215,8 @@ class DroneCordinates(BasePluginMTL):
 
         # ====== METADATA DJI FIELDS (XMP) ======
         self.xmp_fields_collapsible = CollapsibleParametersWidget(
-            title="DJI Fields",
+            title=STR.DJI_FIELDS,
+            title_description=STR.DJI_FIELDS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -236,7 +250,8 @@ class DroneCordinates(BasePluginMTL):
 
         # ====== METADATA CUSTOM FIELDS ======
         self.custom_fields_collapsible = CollapsibleParametersWidget(
-            title="Custom Fields",
+            title=STR.CUSTOM_FIELDS,
+            title_description=STR.CUSTOM_FIELDS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -270,7 +285,8 @@ class DroneCordinates(BasePluginMTL):
 
         # ====== METADATA INITIAL FIELDS ======
         self.initial_fields_collapsible = CollapsibleParametersWidget(
-            title="Initial Fields",
+            title=STR.INITIAL_FIELDS,
+            title_description=STR.INITIAL_FIELDS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -304,7 +320,8 @@ class DroneCordinates(BasePluginMTL):
 
         # ====== METADATA MRK FIELDS ======
         self.mrk_fields_collapsible = CollapsibleParametersWidget(
-            title="MRK Fields",
+            title=STR.MRK_FIELDS,
+            title_description=STR.MRK_FIELDS_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -339,6 +356,7 @@ class DroneCordinates(BasePluginMTL):
         # ====== SALVAMENTO (Collapsible + GridComplexSelector) ======
         self.save_collapsible = CollapsibleParametersWidget(
             title=STR.SAVING,
+            title_description=STR.SAVING_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -348,7 +366,7 @@ class DroneCordinates(BasePluginMTL):
             config={
                 "save_points": {
                     "label": STR.SAVE_IN,
-                    "description": STR.SAVE_POINTS_CHECKBOX,
+                    "description": STR.SAVE_POINTS_OUTPUT_DESC,
                     "mode_type": "output",
                     "parent": "grid_input.pasta_mrk",
                     "allow_file": True,
@@ -359,7 +377,7 @@ class DroneCordinates(BasePluginMTL):
                 },
                 "save_track": {
                     "label": STR.SAVE_IN,
-                    "description": STR.SAVE_TRACK_CHECKBOX,
+                    "description": STR.SAVE_TRACK_OUTPUT_DESC,
                     "mode_type": "output",
                     "parent": "grid_input.pasta_mrk",
                     "allow_file": True,
@@ -378,6 +396,7 @@ class DroneCordinates(BasePluginMTL):
         # ====== ESTILOS (QML) - Collapsible + GridComplexSelector ======
         self.styles_collapsible = CollapsibleParametersWidget(
             title=STR.STYLES,
+            title_description=STR.STYLES_DESC,
             expanded_by_default=False,
             parent=self,
         )
@@ -387,7 +406,7 @@ class DroneCordinates(BasePluginMTL):
             config={
                 "qml_points": {
                     "label": STR.QML_POINTS,
-                    "description": STR.APPLY_STYLE_POINTS,
+                    "description": STR.QML_STYLE_DESC,
                     "mode_type": "output",
                     "parent": "grid_input.pasta_mrk",
                     "allow_file": True,
@@ -398,7 +417,7 @@ class DroneCordinates(BasePluginMTL):
                 },
                 "qml_track": {
                     "label": STR.QML_TRACK,
-                    "description": STR.APPLY_STYLE_TRACK,
+                    "description": STR.QML_STYLE_DESC,
                     "mode_type": "output",
                     "parent": "grid_input.pasta_mrk",
                     "allow_file": True,
@@ -419,7 +438,7 @@ class DroneCordinates(BasePluginMTL):
             config={
                 "run": {
                     "label": STR.EXECUTE,
-                    "description": "Inicia o processamento de coordenadas de drone",
+                    "description": STR.START_DRONE_COORDINATES_DESC,
                     "callback": self.execute_tool,
                     "is_run_button": True,
                 },

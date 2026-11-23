@@ -562,17 +562,73 @@ class Strings_pt_BR:
     # plugins/DroneCoordinates.py
     DRONE_COORDINATES_TITLE = "DJI Coordenadas de Drone"
     DRONE_COORDINATES_TOOLTIP = (
-        "Le arquivos MRK de drone para gerar pontos das fotos e o rastro do voo.\n"
-        "Pode cruzar os pontos com metadados das imagens,\n"
-        "salvar os resultados em arquivo e aplicar estilos QML\n"
-        "aos pontos e ao trajeto gerados."
+        "Processa arquivos MRK do voo para gerar a camada de pontos e o rastro.\n"
+        "Permite cruzar os registros com metadados das imagens, escolher os campos,\n"
+        "salvar as saídas vetoriais, aplicar estilos QML e gerar um relatório HTML."
     )
     RECURSIVE_SEARCH = "Vasculhar subpastas"
+    RECURSIVE_SEARCH_DESC = (
+        "Quando marcado, procura arquivos relacionados também dentro das subpastas\n"
+        "da pasta selecionada."
+    )
     USE_MRK_DATA = "Obter dados MRK"
+    USE_MRK_DATA_DESC = (
+        "Usa os atributos dos arquivos MRK para complementar os registros do voo.\n"
+        "Desmarque para processar somente os metadados das fotos."
+    )
     PHOTOS_METADATA = "Cruzar com metadados das fotos"
+    PHOTOS_METADATA_DESC = (
+        "Extrai e cruza dados EXIF, XMP e campos derivados das imagens encontradas.\n"
+        "Essa opção requer a biblioteca Pillow."
+    )
     PHOTOS_METADATA_REQUIRED_MESSAGE = "Para cruzar com metadados das fotos é necessário instalar o pacote Pillow.\n\nDeseja instalar agora?"
     GENERATE_REPORT = "Gerar relatório"
+    GENERATE_REPORT_DESC = (
+        "Gera um relatório HTML com as informações de metadata do voo ao final\n"
+        "do processamento."
+    )
     MRK_FOLDER = "Pasta MRK:"
+    MRK_FOLDER_DESC = (
+        "Selecione a pasta que contém os arquivos MRK e, quando necessário,\n"
+        "as fotos relacionadas ao voo."
+    )
+    DRONE_OPTIONS_DESC = (
+        "Reúne as opções que controlam a busca de arquivos, o enriquecimento\n"
+        "dos registros e a geração do relatório."
+    )
+    LOGO_DESC = (
+        "Selecione um arquivo de logotipo opcional para identificar o projeto\n"
+        "nos resultados e no relatório."
+    )
+    PROJECT_TITLE_DESC = (
+        "Informe o título que identifica o projeto ou o voo nos resultados\n"
+        "gerados pela ferramenta."
+    )
+    EXIF_FIELDS = "Campos EXIF"
+    EXIF_FIELDS_DESC = (
+        "Selecione os campos EXIF das imagens que devem ser incluídos\n"
+        "na camada de pontos gerada."
+    )
+    DJI_FIELDS = "Campos DJI"
+    DJI_FIELDS_DESC = (
+        "Selecione os campos XMP específicos do DJI que devem ser incluídos\n"
+        "na camada de pontos gerada."
+    )
+    CUSTOM_FIELDS = "Campos personalizados"
+    CUSTOM_FIELDS_DESC = (
+        "Selecione os campos derivados calculados a partir dos metadados\n"
+        "das imagens para incluí-los na camada de pontos."
+    )
+    INITIAL_FIELDS = "Campos iniciais"
+    INITIAL_FIELDS_DESC = (
+        "Reúne os campos básicos de identificação e posição disponíveis\n"
+        "no catálogo de metadata do voo."
+    )
+    MRK_FIELDS = "Campos MRK"
+    MRK_FIELDS_DESC = (
+        "Selecione os atributos de contexto lidos dos arquivos MRK\n"
+        "para incluí-los na camada de pontos."
+    )
     SAVE_POINTS_CHECKBOX = "Salvar pontos MRK em arquivo?"
     SAVE_IN = "Salvar em:"
     SAVE_TRACK_CHECKBOX = "Salvar rastro em arquivo?"
@@ -584,6 +640,14 @@ class Strings_pt_BR:
     QML_POINTS = "QML pontos:"
     APPLY_STYLE_TRACK = "Aplicar estilo (QML) no rastro?"
     QML_TRACK = "QML:"
+    STYLES_DESC = (
+        "Defina arquivos QML opcionais para personalizar as camadas\n"
+        "de pontos e rastro geradas."
+    )
+    START_DRONE_COORDINATES_DESC = (
+        "Inicia o processamento dos arquivos, a criação das camadas\n"
+        "e as saídas opcionais configuradas acima."
+    )
     MRK_DROP_START = "Arquivo MRK detectado. Iniciando conversao."
     CONVERT_FILE_SUCCESS = "Arquivo convertido com sucesso."
     LOADED_EXISTING_GPKG = "Saidas GPKG existentes carregadas com sucesso."
@@ -835,7 +899,7 @@ class Strings_pt_BR:
     )
     QML_STYLE_DESC = (
         "Selecione um arquivo QML opcional para aplicar o estilo à camada de "
-        "rastro gerada."
+        "saída gerada."
     )
     START_TRAIL_GENERATION_DESC = (
         "Gera a faixa ocupada pelo implemento a partir da camada de linhas escolhida e "
@@ -1096,10 +1160,10 @@ class Strings_pt_BR:
         "Permite que a avaliação considere trajetórias curvas e retas."
     )
     SAVE_POINTS_OUTPUT_DESC = (
-        "Informe o arquivo de saída da camada de pontos depois da segmentação."
+        "Informe um arquivo de saída opcional para salvar a camada de pontos gerada."
     )
     SAVE_TRACK_OUTPUT_DESC = (
-        "Informe o arquivo de saída do rastro linear gerado a partir dos pontos segmentados."
+        "Informe um arquivo de saída opcional para salvar o rastro linear gerado."
     )
     START_DIVIDE_POINTS_BY_STRIPS = (
         "Executa a segmentação dos pontos usando os campos, parâmetros e saídas escolhidos."

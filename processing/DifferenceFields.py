@@ -44,19 +44,23 @@ class DifferenceFieldsAlgorithm(BaseProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.load_preferences()
-        self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.INPUT_LAYER, STR.POINT_LAYER, [QgsProcessing.TypeVectorPoint]
-            )
+        input_layer = QgsProcessingParameterFeatureSource(
+            self.INPUT_LAYER,
+            STR.POINT_LAYER,
+            [QgsProcessing.TypeVectorPoint],
         )
-        self.addParameter(
-            QgsProcessingParameterField(
-                self.BASE_FIELD,
-                STR.BASE_FIELD_SUBTRAHEND,
-                parentLayerParameterName=self.INPUT_LAYER,
-                type=QgsProcessingParameterField.Numeric,
-            )
+        input_layer.setHelp(STR.DIFFERENCE_FIELDS_INPUT_LAYER_DESC)
+        self.addParameter(input_layer)
+
+        base_field = QgsProcessingParameterField(
+            self.BASE_FIELD,
+            STR.BASE_FIELD_SUBTRAHEND,
+            parentLayerParameterName=self.INPUT_LAYER,
+            type=QgsProcessingParameterField.Numeric,
         )
+        base_field.setHelp(STR.BASE_FIELD_SUBTRAHEND_DESC)
+        self.addParameter(base_field)
+
         param_exclude = QgsProcessingParameterField(
             self.EXCLUDE_FIELDS,
             STR.FIELDS_TO_EXCLUDE_FROM_CALCULATION,
@@ -67,32 +71,39 @@ class DifferenceFieldsAlgorithm(BaseProcessingAlgorithm):
         param_exclude.setFlags(
             param_exclude.flags() | QgsProcessingParameterField.FlagOptional
         )
+        param_exclude.setHelp(STR.FIELDS_TO_EXCLUDE_FROM_CALCULATION_DESC)
         self.addParameter(param_exclude)
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.PREFIX,
-                STR.PREFIX_FOR_NEW_FIELDS,
-                defaultValue=self.prefs.get("prefix", "diff_"),
-            )
+
+        prefix = QgsProcessingParameterString(
+            self.PREFIX,
+            STR.PREFIX_FOR_NEW_FIELDS,
+            defaultValue=self.prefs.get("prefix", "diff_"),
         )
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.PRECISION,
-                STR.PRECISION_DECIMAL_PLACES,
-                type=QgsProcessingParameterNumber.Integer,
-                minValue=0,
-                maxValue=10,
-                defaultValue=self.prefs.get("precision", 2),
-            )
+        prefix.setHelp(STR.PREFIX_FOR_NEW_FIELDS_DESC)
+        self.addParameter(prefix)
+
+        precision = QgsProcessingParameterNumber(
+            self.PRECISION,
+            STR.PRECISION_DECIMAL_PLACES,
+            type=QgsProcessingParameterNumber.Integer,
+            minValue=0,
+            maxValue=10,
+            defaultValue=self.prefs.get("precision", 2),
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        precision.setHelp(STR.PRECISION_DECIMAL_PLACES_DESC)
+        self.addParameter(precision)
+
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
-        self.addParameter(QgsProcessingParameterFeatureSink(self.OUTPUT, STR.DIFFERENCE))
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
+
+        output = QgsProcessingParameterFeatureSink(self.OUTPUT, STR.DIFFERENCE)
+        output.setHelp(STR.DIFFERENCE_FIELDS_OUTPUT_DESC)
+        self.addParameter(output)
 
     def processAlgorithm(self, params, context, feedback):
         layer = self.parameterAsSource(params, self.INPUT_LAYER, context)

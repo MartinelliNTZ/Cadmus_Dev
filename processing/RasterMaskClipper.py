@@ -52,71 +52,71 @@ class RasterMaskClipper(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo RasterMaskClipper...")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_RASTER,
-                STR.RASTER,
-            )
+        input_raster = QgsProcessingParameterRasterLayer(
+            self.INPUT_RASTER,
+            STR.RASTER,
         )
+        input_raster.setHelp(STR.MASK_CLIP_RASTER_INPUT_DESC)
+        self.addParameter(input_raster)
 
-        self.addParameter(
-            QgsProcessingParameterVectorLayer(
-                self.INPUT_MASK,
-                STR.INPUT_MASK_POLYGON_LAYER,
-                [QgsProcessing.TypeVectorPolygon],
-            )
+        input_mask = QgsProcessingParameterVectorLayer(
+            self.INPUT_MASK,
+            STR.INPUT_MASK_POLYGON_LAYER,
+            [QgsProcessing.TypeVectorPolygon],
         )
+        input_mask.setHelp(STR.POLYGON_MASK_INPUT_DESC)
+        self.addParameter(input_mask)
 
-        self.addParameter(
-            QgsProcessingParameterFolderDestination(
-                self.OUTPUT_FOLDER,
-                STR.OUTPUT_FOLDER,
-                optional=True,
-                defaultValue=self.prefs.get("last_output_folder", ""),
-            )
+        output_folder = QgsProcessingParameterFolderDestination(
+            self.OUTPUT_FOLDER,
+            STR.OUTPUT_FOLDER,
+            optional=True,
+            defaultValue=self.prefs.get("last_output_folder", ""),
         )
+        output_folder.setHelp(STR.OUTPUT_FOLDER_DESC)
+        self.addParameter(output_folder)
 
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.PREFIX,
-                STR.PREFIX,
-                defaultValue="",
-                optional=True,
-            )
+        prefix = QgsProcessingParameterString(
+            self.PREFIX,
+            STR.PREFIX,
+            defaultValue="",
+            optional=True,
         )
+        prefix.setHelp(STR.PREFIX_DESC)
+        self.addParameter(prefix)
 
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.SUFFIX,
-                STR.SUFFIX,
-                defaultValue="",
-                optional=True,
-            )
+        suffix = QgsProcessingParameterString(
+            self.SUFFIX,
+            STR.SUFFIX,
+            defaultValue="",
+            optional=True,
         )
+        suffix.setHelp(STR.SUFFIX_DESC)
+        self.addParameter(suffix)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.SEPARATE_FEATURES,
-                STR.SEPARATE_FEATURES,
-                defaultValue=self.prefs.get("separate_features", True),
-            )
+        separate_features = QgsProcessingParameterBoolean(
+            self.SEPARATE_FEATURES,
+            STR.SEPARATE_FEATURES,
+            defaultValue=self.prefs.get("separate_features", True),
         )
+        separate_features.setHelp(STR.CLIP_PER_EACH_POLYGON_DESC)
+        self.addParameter(separate_features)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                STR.OPEN_OUTPUT_FOLDER,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            STR.OPEN_OUTPUT_FOLDER,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     # ------------------------------------------------------------------
     # Helpers de nomenclatura

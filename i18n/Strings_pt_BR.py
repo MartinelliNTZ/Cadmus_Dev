@@ -399,6 +399,9 @@ class Strings_pt_BR:
         "usando o campo 'name' (quando existir) para nomear os arquivos,\n"
         "com suporte a prefixo e sufixo personalizados."
     )
+    MASK_CLIP_RASTER_INPUT_DESC = (
+        "Selecione o raster que será recortado pela camada poligonal."
+    )
     RASTER_MASS_SAMPLER_TOOLTIP = (
         "Executa amostragem em lote de vários rasters sobre uma camada vetorial de pontos.\n"
         "Lê o valor de cada raster na posição de cada ponto, acrescenta os valores\n"
@@ -549,11 +552,32 @@ class Strings_pt_BR:
     SKEWNESS = "Assimetria"
     KURTOSIS = "Curtose"
     DIFFERENCE_FIELDS_TITLE = "Gerador de Diferenças entre Campos"
+    DIFFERENCE_FIELDS_INPUT_LAYER_DESC = (
+        "Selecione a camada de pontos com os campos numéricos que serão comparados."
+    )
     POINT_LAYER = "Camada de Pontos"
     BASE_FIELD_SUBTRAHEND = "Campo Base (subtraendo)"
+    BASE_FIELD_SUBTRAHEND_DESC = (
+        "Escolha o campo numérico usado como base; as diferenças serão calculadas "
+        "como campo comparado menos este valor."
+    )
     FIELDS_TO_EXCLUDE_FROM_CALCULATION = "Campos a EXCLUIR do cálculo"
+    FIELDS_TO_EXCLUDE_FROM_CALCULATION_DESC = (
+        "Opcionalmente, selecione campos numéricos que não devem entrar no cálculo. "
+        "Se vazio, todos os campos numéricos serão usados."
+    )
     PREFIX_FOR_NEW_FIELDS = "Prefixo para novos campos"
+    PREFIX_FOR_NEW_FIELDS_DESC = (
+        "Define o texto acrescentado ao início dos nomes dos campos de diferença."
+    )
+    PRECISION_DECIMAL_PLACES_DESC = (
+        "Define quantas casas decimais serão mantidas nos valores das diferenças."
+    )
     DIFFERENCE = "Diferenca"
+    DIFFERENCE_FIELDS_OUTPUT_DESC = (
+        "Escolha a camada de saída, que manterá os atributos originais e acrescentará "
+        "os campos de diferença."
+    )
     NO_EXCLUDED_FIELD_USING_ALL_NUMERIC = (
         "Nenhum campo excluído → usando todos os campos numéricos."
     )
@@ -1290,13 +1314,44 @@ class Strings_pt_BR:
         "e algoritmo de compressão (LZW, DEFLATE, ZSTD)."
     )
     INPUT_RASTER_LAYERS = "Camadas Raster de Entrada"
+    INPUT_RASTER_LAYERS_DESC = (
+        "Selecione camadas raster TIFF para criar ou atualizar overviews."
+    )
     INPUT_RASTER_FOLDER = "Pasta com Rasters"
+    INPUT_RASTER_FOLDER_DESC = (
+        "Selecione uma pasta com rasters TIFF; subpastas serão incluídas quando "
+        "a busca recursiva estiver marcada."
+    )
     OVERVIEW_LEVELS = "Níveis de Overview"
+    OVERVIEW_LEVELS_DESC = (
+        "Escolha os níveis de redução usados para criar as pirâmides raster."
+    )
     RESAMPLING_METHOD = "Método de Reamostragem"
+    RESAMPLING_METHOD_DESC = (
+        "Define como os pixels serão reamostrados ao gerar cada overview."
+    )
     COMPRESS_OVERVIEW = "Compressão das Overviews"
+    COMPRESS_OVERVIEW_DESC = (
+        "Escolha a compressão aplicada aos arquivos de overview internos."
+    )
     PREDICTOR = "Predictor"
+    PREDICTOR_DESC = (
+        "Define o predictor usado pelo codec para melhorar a compressão dos dados."
+    )
     ZLEVEL = "ZLevel (compressão)"
+    ZLEVEL_DESC = "Define o nível de compressão de 1 (menor) a 9 (maior)."
     DELETE_EXISTING_OVERVIEWS = "Deletar overviews existentes antes de recriar"
+    DELETE_EXISTING_OVERVIEWS_DESC = (
+        "Remove as overviews existentes antes de criar novas com as configurações escolhidas."
+    )
+    BIGTIFF_DESC = (
+        "Permite usar o formato BigTIFF nas overviews quando o tamanho do arquivo exigir."
+    )
+    SKIP_IF_HAS_OVERVIEWS = "Pular rasters com overviews existentes"
+    SKIP_IF_HAS_OVERVIEWS_DESC = (
+        "Quando marcado, ignora rasters que já possuem overviews internos, "
+        "exceto quando a remoção das existentes estiver marcada."
+    )
     OVERVIEWS_CREATED_SUCCESS = "Overviews criadas/atualizadas com sucesso."
     OVERVIEWS_ERROR = "Erro ao criar overviews: {error}"
     RASTER_OPTIMIZER_COMPLETED = "Otimização de rasters concluída."

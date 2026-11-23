@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.20`<br>
+**Versão de referência:** `3.1.0.23`<br>
 **Data:** 23/11/2026
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -163,10 +163,16 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **24 — Downloader de Imagens de Satélite:** concluídas a tooltip geral e as descrições das configurações, datas, limite de nuvens, opções, CRS, pasta de saída, bandas, composições e busca.
 - O diálogo auxiliar de seleção de cenas agora descreve a fonte, o status, a lista, cada cena e o download; os controles genéricos reutilizam os tokens existentes de seleção em lote.
 
+### Lote seguinte — ferramentas 26, 27 e 28
+
+- **26 — Recortar Raster por Máscara de Feições:** concluídas as descrições do raster, máscara, pasta, prefixo, sufixo, separação por feição, abertura da pasta e ajuda do Processing.
+- **27 — Otimizar Raster (Overviews):** concluídas as descrições das entradas, busca recursiva, níveis, reamostragem, compressão, predictor, ZLevel, remoção, BigTIFF e filtro de overviews existentes.
+- **28 — Gerador de Diferenças entre Campos:** concluídas as descrições da camada de pontos, campo base, exclusões, prefixo, precisão, saída e ajuda do Processing.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.20`.
-- Changelog correspondente: `[3.1.0.20][23/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.23`.
+- Changelog correspondente: `[3.1.0.23][23/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -215,10 +221,10 @@ Para cada ferramenta, seguir esta ordem:
 | 22 | Amostragem Massiva de Rasters | `raster_mass_sampler` | **Concluída** |
 | 23 | Amostrar Valores de Rasters | `raster_sampler` | **Concluída** |
 | 24 | Downloader de Imagens de Satélite | `imagery_downloader` | **Concluída** |
-| 25 | Developer Test Tool | `developer_test_tool` | A fazer |
-| 26 | Recortar Raster por Máscara de Feições | `raster_mask_clipper` | A fazer |
-| 27 | Otimizar Raster (Overviews) | `raster_optimizer` | A fazer |
-| 28 | Gerador de Diferenças entre Campos | `difference_fields` | A fazer |
+| 25 | Developer Test Tool | `developer_test_tool` | Não fazer agora — ferramenta complexa |
+| 26 | Recortar Raster por Máscara de Feições | `raster_mask_clipper` | **Concluída** |
+| 27 | Otimizar Raster (Overviews) | `raster_optimizer` | **Concluída** |
+| 28 | Gerador de Diferenças entre Campos | `difference_fields` | **Concluída** |
 | 29 | Estatísticas de Atributos | `attribute_statistics` | A fazer |
 | 30 | Linha de Diferença entre Pontos | `geometry_line_from_points` | A fazer |
 | 31 | Processar Diferença de Rasters | `raster_difference_statistics` | A fazer |

@@ -162,110 +162,106 @@ class RasterOptimizer(BaseProcessingAlgorithm):
 
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterMultipleLayers(
-                self.INPUT_RASTERS,
-                STR.INPUT_RASTER_LAYERS,
-                QgsProcessing.TypeRaster,
-                optional=True,
-            )
+        input_rasters = QgsProcessingParameterMultipleLayers(
+            self.INPUT_RASTERS,
+            STR.INPUT_RASTER_LAYERS,
+            QgsProcessing.TypeRaster,
+            optional=True,
         )
+        input_rasters.setHelp(STR.INPUT_RASTER_LAYERS_DESC)
+        self.addParameter(input_rasters)
 
-        self.addParameter(
-            QgsProcessingParameterFile(
-                self.INPUT_FOLDER,
-                STR.INPUT_RASTER_FOLDER,
-                behavior=QgsProcessingParameterFile.Folder,
-                optional=True,
-                defaultValue=self.prefs.get("last_folder", ""),
-            )
+        input_folder = QgsProcessingParameterFile(
+            self.INPUT_FOLDER,
+            STR.INPUT_RASTER_FOLDER,
+            behavior=QgsProcessingParameterFile.Folder,
+            optional=True,
+            defaultValue=self.prefs.get("last_folder", ""),
         )
+        input_folder.setHelp(STR.INPUT_RASTER_FOLDER_DESC)
+        self.addParameter(input_folder)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.RECURSIVE,
-                STR.USE_RECURSIVE_SEARCH,
-                defaultValue=self.prefs.get("recursive", True),
-            )
+        recursive = QgsProcessingParameterBoolean(
+            self.RECURSIVE,
+            STR.USE_RECURSIVE_SEARCH,
+            defaultValue=self.prefs.get("recursive", True),
         )
+        recursive.setHelp(STR.RECURSIVE_SEARCH_DESC)
+        self.addParameter(recursive)
 
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.OVERVIEW_LEVELS,
-                STR.OVERVIEW_LEVELS,
-                options=OVERVIEW_LEVEL_ALL,
-                allowMultiple=True,
-                defaultValue=self.prefs.get(
-                    "overview_levels", [0, 1, 2, 3, 4, 5, 6, 7]
-                ),
-            )
+        overview_levels = QgsProcessingParameterEnum(
+            self.OVERVIEW_LEVELS,
+            STR.OVERVIEW_LEVELS,
+            options=OVERVIEW_LEVEL_ALL,
+            allowMultiple=True,
+            defaultValue=self.prefs.get(
+                "overview_levels", [0, 1, 2, 3, 4, 5, 6, 7]
+            ),
         )
+        overview_levels.setHelp(STR.OVERVIEW_LEVELS_DESC)
+        self.addParameter(overview_levels)
 
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.RESAMPLING,
-                STR.RESAMPLING_METHOD,
-                options=RESAMPLING_METHODS,
-                defaultValue=self.prefs.get("resampling", 0),
-            )
+        resampling = QgsProcessingParameterEnum(
+            self.RESAMPLING,
+            STR.RESAMPLING_METHOD,
+            options=RESAMPLING_METHODS,
+            defaultValue=self.prefs.get("resampling", 0),
         )
+        resampling.setHelp(STR.RESAMPLING_METHOD_DESC)
+        self.addParameter(resampling)
 
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.COMPRESSION,
-                STR.COMPRESS_OVERVIEW,
-                options=COMPRESSION_METHODS,
-                defaultValue=self.prefs.get("compression", 0),  # LZW
-            )
+        compression = QgsProcessingParameterEnum(
+            self.COMPRESSION,
+            STR.COMPRESS_OVERVIEW,
+            options=COMPRESSION_METHODS,
+            defaultValue=self.prefs.get("compression", 0),  # LZW
         )
+        compression.setHelp(STR.COMPRESS_OVERVIEW_DESC)
+        self.addParameter(compression)
 
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.PREDICTOR,
-                STR.PREDICTOR,
-                options=PREDICTOR_VALUES,
-                defaultValue=self.prefs.get("predictor", 1),  # 1 (Default)
-            )
+        predictor = QgsProcessingParameterEnum(
+            self.PREDICTOR,
+            STR.PREDICTOR,
+            options=PREDICTOR_VALUES,
+            defaultValue=self.prefs.get("predictor", 1),  # 1 (Default)
         )
+        predictor.setHelp(STR.PREDICTOR_DESC)
+        self.addParameter(predictor)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.ZLEVEL,
-                STR.ZLEVEL,
-                type=QgsProcessingParameterNumber.Integer,
-                defaultValue=self.prefs.get("zlevel", 9),
-                minValue=1,
-                maxValue=9,
-            )
+        zlevel = QgsProcessingParameterNumber(
+            self.ZLEVEL,
+            STR.ZLEVEL,
+            type=QgsProcessingParameterNumber.Integer,
+            defaultValue=self.prefs.get("zlevel", 9),
+            minValue=1,
+            maxValue=9,
         )
+        zlevel.setHelp(STR.ZLEVEL_DESC)
+        self.addParameter(zlevel)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DELETE_EXISTING,
-                STR.DELETE_EXISTING_OVERVIEWS,
-                defaultValue=self.prefs.get("delete_existing", False),
-            )
+        delete_existing = QgsProcessingParameterBoolean(
+            self.DELETE_EXISTING,
+            STR.DELETE_EXISTING_OVERVIEWS,
+            defaultValue=self.prefs.get("delete_existing", False),
         )
+        delete_existing.setHelp(STR.DELETE_EXISTING_OVERVIEWS_DESC)
+        self.addParameter(delete_existing)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.BIGTIFF,
-                STR.BIGTIFF_YES,
-                defaultValue=self.prefs.get("bigtiff", True),
-            )
+        bigtiff = QgsProcessingParameterBoolean(
+            self.BIGTIFF,
+            STR.BIGTIFF_YES,
+            defaultValue=self.prefs.get("bigtiff", True),
         )
+        bigtiff.setHelp(STR.BIGTIFF_DESC)
+        self.addParameter(bigtiff)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.SKIP_IF_HAS_OVERVIEWS,
-                (
-                    STR.SKIP_IF_HAS_OVERVIEWS
-                    if hasattr(STR, "SKIP_IF_HAS_OVERVIEWS")
-                    else "Pular rasters que já possuem overviews internos"
-                ),
-                defaultValue=self.prefs.get("skip_if_has_overviews", True),
-            )
+        skip_if_has_overviews = QgsProcessingParameterBoolean(
+            self.SKIP_IF_HAS_OVERVIEWS,
+            STR.SKIP_IF_HAS_OVERVIEWS,
+            defaultValue=self.prefs.get("skip_if_has_overviews", True),
         )
+        skip_if_has_overviews.setHelp(STR.SKIP_IF_HAS_OVERVIEWS_DESC)
+        self.addParameter(skip_if_has_overviews)
 
     def flags(self):
         """

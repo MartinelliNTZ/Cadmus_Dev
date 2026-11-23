@@ -1,3 +1,18 @@
+[3.1.0.23][23/11/2026] Tooltips contextuais da ferramenta 28 — Gerador de Diferenças entre Campos:
+   - Os parâmetros da camada de pontos, campo base, campos excluídos, prefixo, precisão, saída e ajuda receberam descrições via `setHelp()`.
+   - Foram adicionados somente os tokens pt-BR sem equivalente adequado em `Strings_pt_BR.py`; `DISPLAY_HELP_DESC` foi reutilizado.
+   - Versão de distribuição incrementada de `3.1.0.22` para `3.1.0.23` somente em `build_distribution.py`.
+
+[3.1.0.22][23/11/2026] Tooltips contextuais da ferramenta 27 — Otimizar Raster (Overviews):
+   - Os parâmetros de camadas/pasta, níveis, reamostragem, compressão, predictor, ZLevel, remoção, BigTIFF e filtro de overviews receberam descrições via `setHelp()`.
+   - `RECURSIVE_SEARCH_DESC` foi reutilizado; o rótulo de overviews existentes passou a usar token pt-BR em vez de fallback literal.
+   - Versão de distribuição incrementada de `3.1.0.21` para `3.1.0.22` somente em `build_distribution.py`.
+
+[3.1.0.21][23/11/2026] Tooltips contextuais da ferramenta 26 — Recortar Raster por Máscara de Feições:
+   - Todos os parâmetros receberam ajuda contextual via `setHelp()`.
+   - Foram reutilizados `POLYGON_MASK_INPUT_DESC`, `OUTPUT_FOLDER_DESC`, `PREFIX_DESC`, `SUFFIX_DESC`, `CLIP_PER_EACH_POLYGON_DESC`, `OPEN_OUTPUT_FOLDER_DESC` e `DISPLAY_HELP_DESC`.
+   - Versão de distribuição incrementada de `3.1.0.20` para `3.1.0.21` somente em `build_distribution.py`.
+
 [3.1.0.20][23/11/2026] Tooltips contextuais da ferramenta 24 — Downloader de Imagens de Satélite:
    - As configurações, datas, limite de nuvens, opções, CRS, bandas, composições e busca receberam descrições contextualizadas.
    - A pasta de saída passou a reutilizar `OUTPUT_FOLDER_DESC`; os botões genéricos de seleção reutilizam `SELECT_ALL_LIST` e `DESELECT_ALL_LIST`.

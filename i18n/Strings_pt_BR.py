@@ -1168,6 +1168,26 @@ class Strings_pt_BR:
         "Use esta ação para recuperar a sessão ou corrigir problemas visuais.\n"
         "Se o projeto ainda não estiver salvo, a ferramenta pedirá um local para salvá-lo."
     )
+    RESTART_UNSAVED_PROJECT_CONFIRM = (
+        "O projeto ainda não foi salvo.\n\n"
+        "Para reiniciar o QGIS, é necessário salvar o arquivo.\n"
+        "Deseja salvar agora?"
+    )
+    UNSAVED_PROJECT_TITLE = "Projeto não salvo"
+    SAVE_PROJECT_DIALOG_TITLE = "Salvar Projeto"
+    QGIS_PROJECT_FILE_FILTER = "Projetos QGIS (*.qgz)"
+    RESTART_SAVE_REQUIRED = (
+        "Sem salvar o projeto, o QGIS não pode ser reaberto automaticamente."
+    )
+    RESTART_CANCELLED_TITLE = "Ação cancelada"
+    SAVE_PROJECT_ERROR = "Erro ao salvar projeto: {error}"
+    SAVE_PROJECT_CHANGES_ERROR = "Erro ao salvar alterações: {error}"
+    QGIS_EXECUTABLE_NOT_FOUND = (
+        "Não foi possível encontrar o executável do QGIS.\n"
+        "O reinício automático não será executado."
+    )
+    QGIS_RESTARTING_MESSAGE = "QGIS será reiniciado em alguns segundos..."
+    QGIS_RESTARTING_TITLE = "Reiniciando"
     LOGCAT_TITLE = "Logcat Viewer"
     LOGCAT_TOOLTIP = (
         "Abre o visualizador de logs do plugin.\n"

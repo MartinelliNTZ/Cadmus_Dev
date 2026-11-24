@@ -5,6 +5,7 @@ from qgis.PyQt.QtWidgets import QFileDialog
 from typing import Optional
 from qgis.core import QgsProject
 from ..core.config.LogUtils import LogUtils
+from ..i18n.TranslationManager import STR
 from ..utils.QgisMessageUtil import QgisMessageUtil
 from ..utils.ToolKeys import ToolKey
 from ..utils.Preferences import Preferences
@@ -136,26 +137,25 @@ def run_restart_qgis(iface) -> None:
         # Usar QgisMessageUtil para diálogo
         save_now = QgisMessageUtil.confirm(
             iface,
-            (
-                "O projeto ainda não foi salvo.\n\n"
-                "Para reiniciar o QGIS, é necessário salvar o arquivo.\n"
-                "Deseja salvar agora?"
-            ),
-            title="Projeto não salvo",
+            STR.RESTART_UNSAVED_PROJECT_CONFIRM,
+            title=STR.UNSAVED_PROJECT_TITLE,
         )
 
         if not save_now:
             logger.info("User cancelled restart", code="RESTART_CANCELLED_NO_SAVE")
             QgisMessageUtil.bar_warning(
                 iface,
-                "Sem salvar o projeto, o QGIS não pode ser reaberto automaticamente.",
-                title="Ação cancelada",
+                STR.RESTART_SAVE_REQUIRED,
+                title=STR.RESTART_CANCELLED_TITLE,
             )
             return
 
         # Solicitar caminho do arquivo
         save_path, _ = QFileDialog.getSaveFileName(
-            iface.mainWindow(), "Salvar Projeto", "", "Projetos QGIS (*.qgz)"
+            iface.mainWindow(),
+            STR.SAVE_PROJECT_DIALOG_TITLE,
+            "",
+            STR.QGIS_PROJECT_FILE_FILTER,
         )
 
         if not save_path:
@@ -176,7 +176,9 @@ def run_restart_qgis(iface) -> None:
                 "Failed to save project", code="RESTART_SAVE_ERROR", error=str(e)
             )
             QgisMessageUtil.modal_error(
-                iface, f"Erro ao salvar projeto: {str(e)}", title="Erro"
+                iface,
+                STR.SAVE_PROJECT_ERROR.format(error=str(e)),
+                title=STR.ERROR,
             )
             return
 
@@ -193,7 +195,9 @@ def run_restart_qgis(iface) -> None:
             error=str(e),
         )
         QgisMessageUtil.modal_error(
-            iface, f"Erro ao salvar alterações: {str(e)}", title="Erro"
+            iface,
+            STR.SAVE_PROJECT_CHANGES_ERROR.format(error=str(e)),
+            title=STR.ERROR,
         )
         return
 
@@ -206,9 +210,8 @@ def run_restart_qgis(iface) -> None:
         )
         QgisMessageUtil.modal_error(
             iface,
-            "Não foi possível encontrar o executável do QGIS.\n"
-            "O reinício automático não será executado.",
-            title="Erro",
+            STR.QGIS_EXECUTABLE_NOT_FOUND,
+            title=STR.ERROR,
         )
         return
 
@@ -222,8 +225,8 @@ def run_restart_qgis(iface) -> None:
     logger.info("Closing QGIS to start restart", code="RESTART_CLOSING")
     QgisMessageUtil.bar_info(
         iface,
-        "QGIS será reiniciado em alguns segundos...",
-        title="Reiniciando",
+        STR.QGIS_RESTARTING_MESSAGE,
+        title=STR.QGIS_RESTARTING_TITLE,
         duration=2,
     )
     iface.mainWindow().close()

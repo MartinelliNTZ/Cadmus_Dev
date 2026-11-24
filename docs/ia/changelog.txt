@@ -1,3 +1,8 @@
+[3.1.0.38][24/11/2026] Tokenização da ferramenta 03 — Salvar, Fechar e Reabrir Projeto:
+   - A confirmação de projeto não salvo, o diálogo de gravação `.qgz`, o aviso de cancelamento, os erros de salvamento e a falha ao localizar o executável passaram a usar tokens.
+   - A mensagem de status do reinício e seus títulos foram centralizados em `Strings_pt_BR.py`.
+   - Versão de distribuição incrementada de `3.1.0.37` para `3.1.0.38` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.37][24/11/2026] Tokenização da validação da ferramenta 02 — Substituir Texto em Layouts:
    - A proteção interna de `LayoutsUtils` passou a reutilizar `STR.ENTER_TEXT_TO_SEARCH` em vez de propagar o literal `old_text vazio`.
    - As validações, confirmação destrutiva, resumo de layouts e contagem de alterações foram confirmados como tokenizados; textos dos layouts continuam dinâmicos.

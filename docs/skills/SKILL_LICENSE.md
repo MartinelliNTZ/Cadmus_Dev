@@ -1,6 +1,6 @@
 ---
 description: 'Skill de gerenciamento de licença — RegistryManager, RegistryFileManager, LicenseDialog, integração com SettingsPlugin, filtro por license_level no ToolRegistry, verificação de nível mínimo para relatórios, build_distribution.'
-version: '5.3.0'
+version: '5.4.0'
 ---
 
 # 🔐 SKILL: Gerenciamento de Licença
@@ -20,7 +20,8 @@ O sistema de licença do Cadmus é composto por:
 9. **ReportMetadataPlugin** — constante `LICENSE_LEVEL = 3`; verifica nível mínimo antes de gerar relatórios
 10. **DividePointsByStripsPlugin** — constante `LICENSE_LEVEL = 3` (premium nível 3+); protegido via verificação em `execute_tool()` com `has_minimum_level(3)`; compilado e empacotado via build_distribution junto com os 3 judges (`SimpleSPBJudge`, `ScoreSPBJudge`, `SequentialPointBreakJudge`)
 11. **ImageryDownloaderPlugin** — ferramenta premium de nível 3 (`registry_level=3`); seus módulos de busca, download, API e seleção são incluídos no `MODULES` para compilação e remoção do código-fonte no fluxo de distribuição
-12. **build_distribution.py** — empacota módulos em `.dist`; módulos de relatório, segmentação e download de imagens seguem o mesmo padrão de proteção por compilação usado pelas demais ferramentas premium
+12. **DeveloperTestTool** — ferramenta de nível 3 (`registry_level=3`) incluída no `MODULES` para seguir o mesmo fluxo de compilação e remoção das demais ferramentas protegidas
+13. **build_distribution.py** — empacota módulos em `.dist`; módulos de relatório, segmentação, download de imagens e testes seguem o mesmo padrão de proteção por compilação usado pelas demais ferramentas premium
 
 ---
 
@@ -408,6 +409,7 @@ MODULES = {
         "ReportMetadataPlugin.py",        # Plugin de relatório (nível 3+)
         "DividePointsByStripsPlugin.py",   # Segmentação premium (nível 3+)
         "ImageryDownloaderPlugin.py",      # Downloader premium (nível 3+)
+        "DeveloperTestTool.py",             # Ferramenta de testes (nível 3+)
     ],
     "core/config": [
         "RegistryManager.py",
@@ -503,3 +505,4 @@ ReportMetadataPlugin.execute_tool()
 | 2026-07-13 | 5.1.0 | Adicionado `DividePointsByStripsPlugin.py` (license_level=1) e judges `SimpleSPBJudge.py`, `ScoreSPBJudge.py`, `SequentialPointBreakJudge.py` ao MODULES do build_distribution; documentado na skill |
 | 2026-08-07 | 5.2.0 | Adicionada constante `ENABLE_REGISTRY` no RegistryManager (padrão `False`); quando `False`, nenhuma requisição ao servidor é feita e todas as features ficam liberadas; documentado na skill |
 | 2026-11-24 | 5.3.0 | Downloader de Imagens de Satélite marcado com `registry_level=3` e incluído, junto de seus módulos dedicados, no mesmo fluxo `MODULES` de compilação e remoção usado pelas ferramentas premium existentes |
+| 2026-11-24 | 5.4.0 | `DeveloperTestTool.py` incluído no mesmo fluxo `MODULES` de compilação e remoção; a ferramenta já permanece protegida por `registry_level=3` no `ToolRegistry` |

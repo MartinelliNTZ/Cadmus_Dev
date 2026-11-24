@@ -1,3 +1,8 @@
+[3.1.0.40][24/11/2026] Developer Test Tool incluída no fluxo protegido:
+   - `DeveloperTestTool.py` foi incluída no `MODULES` do Build Distribution.
+   - A ferramenta mantém `registry_level=3` no `ToolRegistry`, seguindo o padrão das demais ferramentas protegidas.
+   - Versão de distribuição incrementada de `3.1.0.39` para `3.1.0.40` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.39][24/11/2026] Downloader de Imagens de Satélite no padrão das ferramentas premium:
    - A ferramenta passou a usar `registry_level=3` no `ToolRegistry`, sem lógica especial de disponibilidade.
    - O plugin e seus módulos dedicados foram incluídos no `MODULES`, seguindo o mesmo fluxo de compilação e remoção das demais ferramentas protegidas.

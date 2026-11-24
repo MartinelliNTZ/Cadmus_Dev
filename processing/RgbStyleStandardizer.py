@@ -35,39 +35,41 @@ class RgbStyleStandardizer(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo RgbStyleStandardizer...")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_RASTER, STR.INPUT_RASTER_RGB)
+        input_raster = QgsProcessingParameterRasterLayer(
+            self.INPUT_RASTER, STR.INPUT_RASTER_RGB
         )
+        input_raster.setHelp(STR.RGB_STYLE_INPUT_DESC)
+        self.addParameter(input_raster)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.LOWER_PCT,
-                "Percentil inferior (%)",
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=self.prefs.get("lower_pct", 2.0),
-                minValue=0.0,
-                maxValue=50.0,
-            )
+        lower_pct = QgsProcessingParameterNumber(
+            self.LOWER_PCT,
+            STR.LOWER_PERCENTILE,
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=self.prefs.get("lower_pct", 2.0),
+            minValue=0.0,
+            maxValue=50.0,
         )
+        lower_pct.setHelp(STR.LOWER_PERCENTILE_DESC)
+        self.addParameter(lower_pct)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.UPPER_PCT,
-                "Percentil superior (%)",
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=self.prefs.get("upper_pct", 98.0),
-                minValue=50.0,
-                maxValue=100.0,
-            )
+        upper_pct = QgsProcessingParameterNumber(
+            self.UPPER_PCT,
+            STR.UPPER_PERCENTILE,
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=self.prefs.get("upper_pct", 98.0),
+            minValue=50.0,
+            maxValue=100.0,
         )
+        upper_pct.setHelp(STR.UPPER_PERCENTILE_DESC)
+        self.addParameter(upper_pct)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                self.PARAM_DISPLAY_HELP_LABEL,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            self.PARAM_DISPLAY_HELP_LABEL,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm do RgbStyleStandardizer...")

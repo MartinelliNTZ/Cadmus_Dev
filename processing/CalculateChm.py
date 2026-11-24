@@ -60,37 +60,33 @@ class CalculateChm(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo CalculateChm...")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_MDS, STR.MDS
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_MDT, STR.MDT
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterRasterDestination(
-                self.OUTPUT, STR.CHM
-            )
-        )
+        mds = QgsProcessingParameterRasterLayer(self.INPUT_MDS, STR.MDS)
+        mds.setHelp(STR.MDS_INPUT_DESC)
+        self.addParameter(mds)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                STR.OPEN_OUTPUT_FOLDER,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
-        )
+        mdt = QgsProcessingParameterRasterLayer(self.INPUT_MDT, STR.MDT)
+        mdt.setHelp(STR.MDT_INPUT_DESC)
+        self.addParameter(mdt)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        output = QgsProcessingParameterRasterDestination(self.OUTPUT, STR.CHM)
+        output.setHelp(STR.CHM_OUTPUT_DESC)
+        self.addParameter(output)
+
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            STR.OPEN_OUTPUT_FOLDER,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
+
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
+        )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm...")

@@ -44,42 +44,38 @@ class RasterMeanAdjust(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo RasterMeanAdjust...")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT, STR.RASTER
-            )
-        )
+        input_raster = QgsProcessingParameterRasterLayer(self.INPUT, STR.RASTER)
+        input_raster.setHelp(STR.MEAN_ADJUST_INPUT_DESC)
+        self.addParameter(input_raster)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.TARGET_MEAN,
-                STR.TARGET_MEAN,
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=self.prefs.get("target_mean", 100.0),
-            )
+        target_mean = QgsProcessingParameterNumber(
+            self.TARGET_MEAN,
+            STR.TARGET_MEAN,
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=self.prefs.get("target_mean", 100.0),
         )
+        target_mean.setHelp(STR.TARGET_MEAN_DESC)
+        self.addParameter(target_mean)
 
-        self.addParameter(
-            QgsProcessingParameterRasterDestination(
-                self.OUTPUT, STR.OUTPUT
-            )
-        )
+        output = QgsProcessingParameterRasterDestination(self.OUTPUT, STR.OUTPUT)
+        output.setHelp(STR.MEAN_ADJUST_OUTPUT_DESC)
+        self.addParameter(output)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                STR.OPEN_OUTPUT_FOLDER,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            STR.OPEN_OUTPUT_FOLDER,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                STR.DISPLAY_HELP_FIELD,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            STR.DISPLAY_HELP_FIELD,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm...")

@@ -1439,15 +1439,32 @@ class Strings_pt_BR:
     SEARCHING_RASTERS = "Buscando rasters..."
     BIGTIFF_YES = "Forçar BIGTIFF (necessário para arquivos >4GB)"
     RGB_MOSAIC_CREATOR_TITLE = "Criador de Mosaico RGB"
+    RGB_MOSAIC_BAND_RASTER_DESC = (
+        "Selecione o raster que contém o canal de cor correspondente ao componente "
+        "RGB escolhido."
+    )
     INPUT_RASTER_RED_BAND = "Raster Banda Vermelha (R)"
     INPUT_RASTER_GREEN_BAND = "Raster Banda Verde (G)"
     INPUT_RASTER_BLUE_BAND = "Raster Banda Azul (B)"
     BAND_RED_LABEL = "Banda R"
     BAND_GREEN_LABEL = "Banda G"
     BAND_BLUE_LABEL = "Banda B"
+    RGB_MOSAIC_BAND_SELECTION_DESC = (
+        "Escolha a banda do raster que será usada no respectivo canal do mosaico RGB."
+    )
     CREATE_ALPHA_BAND = "Criar banda alpha para NoData"
+    CREATE_ALPHA_BAND_DESC = (
+        "Quando marcado, cria uma banda alpha para indicar os pixels NoData do mosaico."
+    )
     ALPHA_NODATA_VALUE = "Valor NoData para alpha"
+    ALPHA_NODATA_VALUE_DESC = (
+        "Informe o valor que será tratado como NoData ao criar a banda alpha."
+    )
     RGB_COMPOSITE = "Composicao RGB"
+    RGB_MOSAIC_OUTPUT_DESC = (
+        "Escolha o raster de saída que receberá os canais vermelho, verde e azul "
+        "e a banda alpha quando habilitada."
+    )
     NIR_RASTER_INPUT_DESC = (
         "Selecione o raster que contém a banda do infravermelho próximo (NIR)."
     )
@@ -1509,15 +1526,53 @@ class Strings_pt_BR:
         "Escolha o raster de saída onde será gravada a média ponderada."
     )
     CALCULATE_CHM_TITLE = "Calcular CHM (MDS - MDT)"
+    MDS_INPUT_DESC = (
+        "Selecione o MDS, que define a grade de referência usada para calcular o "
+        "modelo de altura das copas."
+    )
     MDS = "Raster MDS (Modelo Digital de Superfície)"
+    MDT_INPUT_DESC = (
+        "Selecione o MDT que será subtraído do MDS. Se as grades forem diferentes, "
+        "o MDT será alinhado à grade do MDS."
+    )
     MDT = "Raster MDT (Modelo Digital do Terreno)"
     CHM = "Raster CHM (Modelo de Altura de Copas)"
+    CHM_OUTPUT_DESC = (
+        "Escolha o raster de saída do CHM, calculado como MDS menos MDT."
+    )
     RASTER_MEAN_ADJUST_TITLE = "Ajustar Média Raster"
     TARGET_MEAN = "Média desejada"
+    MEAN_ADJUST_INPUT_DESC = (
+        "Selecione o raster cuja média da banda 1 será ajustada. Os pixels NoData "
+        "serão preservados."
+    )
+    TARGET_MEAN_DESC = (
+        "Informe a média desejada. A ferramenta calcula um fator e multiplica os "
+        "pixels válidos para atingir esse valor."
+    )
     OUTPUT = "Saída"
+    MEAN_ADJUST_OUTPUT_DESC = (
+        "Escolha o raster de saída que receberá os valores com a média ajustada."
+    )
     GLI_CALCULATOR_TITLE = "Calculadora GLI (Green Leaf Index)"
+    GLI_INPUT_RASTER_DESC = (
+        "Selecione um mosaico RGB ou RGBA com pelo menos três bandas."
+    )
     INPUT_RASTER_RGB_GLI = "Raster RGB de entrada (3 ou 4 bandas)"
     GLI = "GLI"
+    RGB_RED_BAND_LABEL = "Banda R (Red)"
+    RGB_GREEN_BAND_LABEL = "Banda G (Green)"
+    RGB_BLUE_BAND_LABEL = "Banda B (Blue)"
+    GLI_BAND_SELECTION_DESC = (
+        "Escolha a banda do raster RGB que corresponde ao canal indicado para o "
+        "cálculo do GLI."
+    )
+    GLI_TARGET_RESOLUTION = "Reamostragem (resolução alvo em metros, 0 = original)"
+    GLI_TARGET_RESOLUTION_DESC = (
+        "Informe a resolução alvo em metros para reamostrar o raster antes do cálculo. "
+        "Use zero para manter a resolução original."
+    )
+    GLI_OUTPUT_DESC = "Escolha o raster de saída onde será gravado o índice GLI."
     GLI_STYLE_PATH = "Caminho do estilo QML GLI"
     GLI_INTERPRETATION = """Interpretacao dos valores GLI:
   -1.0 a 0.0  : Solo exposto, agua, superficies nao vegetadas
@@ -1526,6 +1581,20 @@ class Strings_pt_BR:
    0.5 a 1.0  : Vegetacao densa e saudavel"""
     RGB_STYLE_STANDARDIZER_TITLE = "Padronizar Estilo RGB (Percentil)"
     INPUT_RASTER_RGB = "Raster RGB de entrada"
+    RGB_STYLE_INPUT_DESC = (
+        "Selecione um raster RGB multibanda. As três primeiras bandas serão usadas "
+        "para calcular o ajuste de visualização."
+    )
+    LOWER_PERCENTILE = "Percentil inferior (%)"
+    LOWER_PERCENTILE_DESC = (
+        "Define o percentil inferior usado como limite mínimo do estiramento de "
+        "contraste."
+    )
+    UPPER_PERCENTILE = "Percentil superior (%)"
+    UPPER_PERCENTILE_DESC = (
+        "Define o percentil superior usado como limite máximo do estiramento de "
+        "contraste."
+    )
     RGB_STANDARDIZER_OUTPUT = "Raster RGB padronizado"
     SEGMENTATION_MODE = "Modo de Segmentação"
     CURVE = "Curva"

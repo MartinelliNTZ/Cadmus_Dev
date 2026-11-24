@@ -55,65 +55,68 @@ class GliCalculator(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo GliCalculator...")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_RASTER, STR.INPUT_RASTER_RGB_GLI
-            )
+        input_raster = QgsProcessingParameterRasterLayer(
+            self.INPUT_RASTER, STR.INPUT_RASTER_RGB_GLI
         )
+        input_raster.setHelp(STR.GLI_INPUT_RASTER_DESC)
+        self.addParameter(input_raster)
 
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.BAND_RED,
-                "Banda R (Red)",
-                parentLayerParameterName=self.INPUT_RASTER,
-                defaultValue=self.prefs.get("band_red", 1),
-            )
+        band_red = QgsProcessingParameterBand(
+            self.BAND_RED,
+            STR.RGB_RED_BAND_LABEL,
+            parentLayerParameterName=self.INPUT_RASTER,
+            defaultValue=self.prefs.get("band_red", 1),
         )
+        band_red.setHelp(STR.GLI_BAND_SELECTION_DESC)
+        self.addParameter(band_red)
 
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.BAND_GREEN,
-                "Banda G (Green)",
-                parentLayerParameterName=self.INPUT_RASTER,
-                defaultValue=self.prefs.get("band_green", 2),
-            )
+        band_green = QgsProcessingParameterBand(
+            self.BAND_GREEN,
+            STR.RGB_GREEN_BAND_LABEL,
+            parentLayerParameterName=self.INPUT_RASTER,
+            defaultValue=self.prefs.get("band_green", 2),
         )
+        band_green.setHelp(STR.GLI_BAND_SELECTION_DESC)
+        self.addParameter(band_green)
 
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.BAND_BLUE,
-                "Banda B (Blue)",
-                parentLayerParameterName=self.INPUT_RASTER,
-                defaultValue=self.prefs.get("band_blue", 3),
-            )
+        band_blue = QgsProcessingParameterBand(
+            self.BAND_BLUE,
+            STR.RGB_BLUE_BAND_LABEL,
+            parentLayerParameterName=self.INPUT_RASTER,
+            defaultValue=self.prefs.get("band_blue", 3),
         )
+        band_blue.setHelp(STR.GLI_BAND_SELECTION_DESC)
+        self.addParameter(band_blue)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.TARGET_RESOLUTION,
-                "Reamostragem (resolucao alvo em metros, 0=original)",
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=self.prefs.get("target_resolution", 0.0),
-                minValue=0.0,
-            )
+        target_resolution = QgsProcessingParameterNumber(
+            self.TARGET_RESOLUTION,
+            STR.GLI_TARGET_RESOLUTION,
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=self.prefs.get("target_resolution", 0.0),
+            minValue=0.0,
         )
+        target_resolution.setHelp(STR.GLI_TARGET_RESOLUTION_DESC)
+        self.addParameter(target_resolution)
 
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT, STR.GLI))
+        output = QgsProcessingParameterRasterDestination(self.OUTPUT, STR.GLI)
+        output.setHelp(STR.GLI_OUTPUT_DESC)
+        self.addParameter(output)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
+            defaultValue=self.prefs.get("open_output_folder", True),
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                self.PARAM_DISPLAY_HELP_LABEL,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
+
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            self.PARAM_DISPLAY_HELP_LABEL,
+            defaultValue=self.prefs.get("display_help", True),
         )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def _detect_alpha_and_nodata(self, raster_path: str):
         """

@@ -1,3 +1,23 @@
+[3.1.0.35][23/11/2026] Tooltips contextuais da ferramenta 40 — Ajustar Média Raster:
+   - O raster de entrada, média desejada, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
+   - A descrição registra que os pixels NoData são preservados durante o ajuste.
+
+[3.1.0.34][23/11/2026] Tooltips contextuais da ferramenta 39 — Calcular CHM:
+   - Os rasters MDS/MDT, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
+   - A descrição explica o alinhamento do MDT à grade de referência do MDS.
+
+[3.1.0.33][23/11/2026] Tooltips contextuais da ferramenta 38 — Calculadora GLI:
+   - O raster RGB/RGBA, canais R/G/B, reamostragem, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
+   - Os rótulos literais dos canais e da resolução foram tokenizados em `Strings_pt_BR.py`.
+
+[3.1.0.32][23/11/2026] Tooltips contextuais da ferramenta 37 — Padronizar Estilo RGB:
+   - O raster RGB, percentis inferior/superior e ajuda receberam descrições via `setHelp()`.
+   - Os rótulos literais dos percentis foram substituídos por tokens pt-BR.
+
+[3.1.0.31][23/11/2026] Tooltips contextuais da ferramenta 36 — Criador de Mosaico RGB:
+   - Os rasters/bandas RGB, banda alpha, valor NoData, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
+   - Foram adicionados tokens semânticos somente em `Strings_pt_BR.py`.
+
 [3.1.0.30][23/11/2026] Tooltips contextuais da ferramenta 35 — Calculadora NDRE:
    - Os rasters NIR/RedEdge, bandas, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
    - Foi reutilizado o token semântico de seleção de bandas e foram adicionados tokens somente em `Strings_pt_BR.py`.

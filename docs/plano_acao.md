@@ -1,6 +1,6 @@
 # Plano de ação — Tooltips do Cadmus
 
-**Versão de referência:** `3.1.0.30`<br>
+**Versão de referência:** `3.1.0.35`<br>
 **Data:** 23/11/2026
 **Documento técnico:** desenvolvimento e manutenção das tooltips  
 **Fonte do inventário:** [`mapa_ferramentas.html`](mapa_ferramentas.html)
@@ -188,10 +188,18 @@ O `ListSelectionDialog` agora preserva a descrição contextual dos itens recebi
 - **34 — Calculadora NDVI:** concluídas as descrições dos rasters NIR/RED, bandas, saída, abertura da pasta e ajuda.
 - **35 — Calculadora NDRE:** concluídas as descrições dos rasters NIR/RedEdge, bandas, saída, abertura da pasta e ajuda.
 
+### Lote final — ferramentas 36 a 40
+
+- **36 — Criador de Mosaico RGB:** concluídas as descrições dos rasters e bandas RGB, criação de alpha, valor NoData, saída, abertura da pasta e ajuda.
+- **37 — Padronizar Estilo RGB (Percentil):** concluídas as descrições do raster RGB, percentis inferior/superior e ajuda; rótulos literais foram tokenizados.
+- **38 — Calculadora GLI:** concluídas as descrições do raster RGB/RGBA, canais R/G/B, reamostragem, saída, abertura da pasta e ajuda; rótulos literais foram tokenizados.
+- **39 — Calcular CHM:** concluídas as descrições dos rasters MDS/MDT, saída, abertura da pasta e ajuda.
+- **40 — Ajustar Média Raster:** concluídas as descrições do raster de entrada, média desejada, saída, abertura da pasta e ajuda.
+
 ### Versão e changelog
 
-- Versão atual em `build_distribution.py`: `3.1.0.30`.
-- Changelog correspondente: `[3.1.0.30][23/11/2026]`.
+- Versão atual em `build_distribution.py`: `3.1.0.35`.
+- Changelog correspondente: `[3.1.0.35][23/11/2026]`.
 - `metadata.txt` e `plugins/AboutDialog.py` não foram editados manualmente.
 
 ## Execução daqui em diante
@@ -251,11 +259,11 @@ Para cada ferramenta, seguir esta ordem:
 | 33 | Gerador de Grade | `grid_generator` | **Concluída** |
 | 34 | Calculadora NDVI | `ndvi_calculator` | **Concluída** |
 | 35 | Calculadora NDRE (Red Edge) | `ndre_calculator` | **Concluída** |
-| 36 | Criador de Mosaico RGB | `rgb_mosaic_creator` | A fazer |
-| 37 | Padronizar Estilo RGB (Percentil) | `rgb_style_standardizer` | A fazer |
-| 38 | Calculadora GLI (Green Leaf Index) | `gli_calculator` | A fazer |
-| 39 | Calcular CHM (MDS - MDT) | `calculate_chm` | A fazer |
-| 40 | Ajustar Média Raster | `raster_mean_adjust` | A fazer |
+| 36 | Criador de Mosaico RGB | `rgb_mosaic_creator` | **Concluída** |
+| 37 | Padronizar Estilo RGB (Percentil) | `rgb_style_standardizer` | **Concluída** |
+| 38 | Calculadora GLI (Green Leaf Index) | `gli_calculator` | **Concluída** |
+| 39 | Calcular CHM (MDS - MDT) | `calculate_chm` | **Concluída** |
+| 40 | Ajustar Média Raster | `raster_mean_adjust` | **Concluída** |
 
 ## Backlog transversal de widgets
 

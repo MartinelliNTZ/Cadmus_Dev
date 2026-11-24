@@ -47,76 +47,88 @@ class RgbMosaicCreator(BaseProcessingAlgorithm):
         self.logger.debug("Inicializando algoritmo RgbMosaicCreator...")
         self.load_preferences()
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_R, STR.INPUT_RASTER_RED_BAND)
+        raster_r = QgsProcessingParameterRasterLayer(
+            self.INPUT_R, STR.INPUT_RASTER_RED_BAND
         )
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.BAND_R,
-                STR.BAND_RED_LABEL,
-                parentLayerParameterName=self.INPUT_R,
-                defaultValue=self.prefs.get("band_r", 1),
-            )
-        )
+        raster_r.setHelp(STR.RGB_MOSAIC_BAND_RASTER_DESC)
+        self.addParameter(raster_r)
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_G, STR.INPUT_RASTER_GREEN_BAND)
+        band_r = QgsProcessingParameterBand(
+            self.BAND_R,
+            STR.BAND_RED_LABEL,
+            parentLayerParameterName=self.INPUT_R,
+            defaultValue=self.prefs.get("band_r", 1),
         )
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.BAND_G,
-                STR.BAND_GREEN_LABEL,
-                parentLayerParameterName=self.INPUT_G,
-                defaultValue=self.prefs.get("band_g", 1),
-            )
-        )
+        band_r.setHelp(STR.RGB_MOSAIC_BAND_SELECTION_DESC)
+        self.addParameter(band_r)
 
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(self.INPUT_B, STR.INPUT_RASTER_BLUE_BAND)
+        raster_g = QgsProcessingParameterRasterLayer(
+            self.INPUT_G, STR.INPUT_RASTER_GREEN_BAND
         )
-        self.addParameter(
-            QgsProcessingParameterBand(
-                self.BAND_B,
-                STR.BAND_BLUE_LABEL,
-                parentLayerParameterName=self.INPUT_B,
-                defaultValue=self.prefs.get("band_b", 1),
-            )
-        )
+        raster_g.setHelp(STR.RGB_MOSAIC_BAND_RASTER_DESC)
+        self.addParameter(raster_g)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.CREATE_ALPHA,
-                STR.CREATE_ALPHA_BAND,
-                defaultValue=self.prefs.get("create_alpha", True),
-            )
+        band_g = QgsProcessingParameterBand(
+            self.BAND_G,
+            STR.BAND_GREEN_LABEL,
+            parentLayerParameterName=self.INPUT_G,
+            defaultValue=self.prefs.get("band_g", 1),
         )
+        band_g.setHelp(STR.RGB_MOSAIC_BAND_SELECTION_DESC)
+        self.addParameter(band_g)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.ALPHA_NODATA,
-                STR.ALPHA_NODATA_VALUE,
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=self.prefs.get("alpha_nodata", 0.0),
-                optional=True,
-            )
+        raster_b = QgsProcessingParameterRasterLayer(
+            self.INPUT_B, STR.INPUT_RASTER_BLUE_BAND
         )
+        raster_b.setHelp(STR.RGB_MOSAIC_BAND_RASTER_DESC)
+        self.addParameter(raster_b)
 
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT, STR.RGB_COMPOSITE))
+        band_b = QgsProcessingParameterBand(
+            self.BAND_B,
+            STR.BAND_BLUE_LABEL,
+            parentLayerParameterName=self.INPUT_B,
+            defaultValue=self.prefs.get("band_b", 1),
+        )
+        band_b.setHelp(STR.RGB_MOSAIC_BAND_SELECTION_DESC)
+        self.addParameter(band_b)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.OPEN_OUTPUT_FOLDER,
-                self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
-                defaultValue=self.prefs.get("open_output_folder", True),
-            )
+        create_alpha = QgsProcessingParameterBoolean(
+            self.CREATE_ALPHA,
+            STR.CREATE_ALPHA_BAND,
+            defaultValue=self.prefs.get("create_alpha", True),
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.DISPLAY_HELP,
-                self.PARAM_DISPLAY_HELP_LABEL,
-                defaultValue=self.prefs.get("display_help", True),
-            )
+        create_alpha.setHelp(STR.CREATE_ALPHA_BAND_DESC)
+        self.addParameter(create_alpha)
+
+        alpha_nodata = QgsProcessingParameterNumber(
+            self.ALPHA_NODATA,
+            STR.ALPHA_NODATA_VALUE,
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=self.prefs.get("alpha_nodata", 0.0),
+            optional=True,
         )
+        alpha_nodata.setHelp(STR.ALPHA_NODATA_VALUE_DESC)
+        self.addParameter(alpha_nodata)
+
+        output = QgsProcessingParameterRasterDestination(self.OUTPUT, STR.RGB_COMPOSITE)
+        output.setHelp(STR.RGB_MOSAIC_OUTPUT_DESC)
+        self.addParameter(output)
+
+        open_output_folder = QgsProcessingParameterBoolean(
+            self.OPEN_OUTPUT_FOLDER,
+            self.PARAM_OPEN_OUTPUT_FOLDER_LABEL,
+            defaultValue=self.prefs.get("open_output_folder", True),
+        )
+        open_output_folder.setHelp(STR.OPEN_OUTPUT_FOLDER_DESC)
+        self.addParameter(open_output_folder)
+
+        display_help = QgsProcessingParameterBoolean(
+            self.DISPLAY_HELP,
+            self.PARAM_DISPLAY_HELP_LABEL,
+            defaultValue=self.prefs.get("display_help", True),
+        )
+        display_help.setHelp(STR.DISPLAY_HELP_DESC)
+        self.addParameter(display_help)
 
     def processAlgorithm(self, params, context, feedback):
         self.logger.debug("Iniciando processAlgorithm do RgbMosaicCreator...")

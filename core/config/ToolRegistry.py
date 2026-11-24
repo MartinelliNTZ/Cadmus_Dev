@@ -530,6 +530,7 @@ class ToolRegistry:
             tooltip=STR.IMAGERY_DOWNLOADER_TOOLTIP,
             order=40,
             show_in_toolbar=True,
+            registry_level=3,
         )
         tools.append(imagery_downloader)
 

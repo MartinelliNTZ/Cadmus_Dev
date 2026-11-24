@@ -1,3 +1,9 @@
+[3.1.0.39][24/11/2026] Downloader de Imagens de Satélite no padrão das ferramentas premium:
+   - A ferramenta passou a usar `registry_level=3` no `ToolRegistry`, sem lógica especial de disponibilidade.
+   - O plugin e seus módulos dedicados foram incluídos no `MODULES`, seguindo o mesmo fluxo de compilação e remoção das demais ferramentas protegidas.
+   - A skill de licença e o mapa de ferramentas foram atualizados para registrar o nível e o padrão aplicado.
+   - Versão de distribuição incrementada de `3.1.0.38` para `3.1.0.39` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.38][24/11/2026] Tokenização da ferramenta 03 — Salvar, Fechar e Reabrir Projeto:
    - A confirmação de projeto não salvo, o diálogo de gravação `.qgz`, o aviso de cancelamento, os erros de salvamento e a falha ao localizar o executável passaram a usar tokens.
    - A mensagem de status do reinício e seus títulos foram centralizados em `Strings_pt_BR.py`.

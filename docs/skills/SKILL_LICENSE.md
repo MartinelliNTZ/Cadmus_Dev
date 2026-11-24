@@ -1,6 +1,6 @@
 ---
 description: 'Skill de gerenciamento de licença — RegistryManager, RegistryFileManager, LicenseDialog, integração com SettingsPlugin, filtro por license_level no ToolRegistry, verificação de nível mínimo para relatórios, build_distribution.'
-version: '5.0.0'
+version: '5.3.0'
 ---
 
 # 🔐 SKILL: Gerenciamento de Licença
@@ -19,7 +19,8 @@ O sistema de licença do Cadmus é composto por:
 8. **DronePipelineService** — constante `LICENSE_LEVEL = 3`; verifica nível mínimo antes de adicionar ReportGenerationStep
 9. **ReportMetadataPlugin** — constante `LICENSE_LEVEL = 3`; verifica nível mínimo antes de gerar relatórios
 10. **DividePointsByStripsPlugin** — constante `LICENSE_LEVEL = 3` (premium nível 3+); protegido via verificação em `execute_tool()` com `has_minimum_level(3)`; compilado e empacotado via build_distribution junto com os 3 judges (`SimpleSPBJudge`, `ScoreSPBJudge`, `SequentialPointBreakJudge`)
-11. **build_distribution.py** — empacota módulos em `.dist`; módulos de relatório e segmentação (DividePointsByStrips + judges) só são acessíveis se licença for válida
+11. **ImageryDownloaderPlugin** — ferramenta premium de nível 3 (`registry_level=3`); seus módulos de busca, download, API e seleção são incluídos no `MODULES` para compilação e remoção do código-fonte no fluxo de distribuição
+12. **build_distribution.py** — empacota módulos em `.dist`; módulos de relatório, segmentação e download de imagens seguem o mesmo padrão de proteção por compilação usado pelas demais ferramentas premium
 
 ---
 
@@ -406,6 +407,7 @@ MODULES = {
         "PathExtensionPlugin.py",
         "ReportMetadataPlugin.py",        # Plugin de relatório (nível 3+)
         "DividePointsByStripsPlugin.py",   # Segmentação premium (nível 3+)
+        "ImageryDownloaderPlugin.py",      # Downloader premium (nível 3+)
     ],
     "core/config": [
         "RegistryManager.py",
@@ -416,10 +418,23 @@ MODULES = {
     "core/task": [
         "PathExtensionTask.py",
         "ReportGenerationTask.py",
+        "ImagerySearchTask.py",
+        "DownloadDateTask.py",
     ],
     "core/engine_tasks": [
         "PathExtensionStep.py",
         "ReportGenerationStep.py",
+        "ImagerySearchStep.py",
+        "DownloadDateStep.py",
+    ],
+    "core/api": [
+        "ImageryApi.py",
+    ],
+    "core/ui/dialogs": [
+        "SceneSelectionDialog.py",
+    ],
+    "resources/widgets": [
+        "SceneSelectionListWidget.py",
     ],
     "utils/judge": [
         "SimpleSPBJudge.py",              # Judge simplificado (nível 1+)
@@ -487,3 +502,4 @@ ReportMetadataPlugin.execute_tool()
 | 2026-07-13 | 5.0.0 | Adicionado método `get_level()` e `has_minimum_level()` no RegistryManager; constante `LICENSE_LEVEL=3` movida para cada ferramenta (DroneCoordinates, ReportMetadataPlugin e DronePipelineService); documentado build_distribution com proteção em runtime via import lazy |
 | 2026-07-13 | 5.1.0 | Adicionado `DividePointsByStripsPlugin.py` (license_level=1) e judges `SimpleSPBJudge.py`, `ScoreSPBJudge.py`, `SequentialPointBreakJudge.py` ao MODULES do build_distribution; documentado na skill |
 | 2026-08-07 | 5.2.0 | Adicionada constante `ENABLE_REGISTRY` no RegistryManager (padrão `False`); quando `False`, nenhuma requisição ao servidor é feita e todas as features ficam liberadas; documentado na skill |
+| 2026-11-24 | 5.3.0 | Downloader de Imagens de Satélite marcado com `registry_level=3` e incluído, junto de seus módulos dedicados, no mesmo fluxo `MODULES` de compilação e remoção usado pelas ferramentas premium existentes |

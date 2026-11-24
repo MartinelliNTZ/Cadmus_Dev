@@ -38,7 +38,7 @@ from core.services.PackageManager import PackageManager
 # Se vazia "", nenhuma chave é adicionada
 DISTRIBUTION_KEY = "6U5D9-4H0J8-6P1U4"
 # Fonte única da versão. metadata.txt e AboutDialog.py são atualizados pelo build.
-VERSION = "3.1.0.38"
+VERSION = "3.1.0.39"
 VERSION_PATTERN = r"\d+(?:\.\d+)+"
 
 # Nome do arquivo de saída (sem extensão) — extensão .dist
@@ -119,6 +119,7 @@ MODULES = {
         "PathExtensionPlugin.py",
         "ReportMetadataPlugin.py",
         "DividePointsByStripsPlugin.py",
+        "ImageryDownloaderPlugin.py",
     ],
     "core/config": [
         "RegistryManager.py",
@@ -131,10 +132,23 @@ MODULES = {
     "core/task": [
         "PathExtensionTask.py",
         "ReportGenerationTask.py",
+        "ImagerySearchTask.py",
+        "DownloadDateTask.py",
     ],
     "core/engine_tasks": [
         "PathExtensionStep.py",
         "ReportGenerationStep.py",
+        "ImagerySearchStep.py",
+        "DownloadDateStep.py",
+    ],
+    "core/api": [
+        "ImageryApi.py",
+    ],
+    "core/ui/dialogs": [
+        "SceneSelectionDialog.py",
+    ],
+    "resources/widgets": [
+        "SceneSelectionListWidget.py",
     ],
     "utils/judge": [
         "SimpleSPBJudge.py",

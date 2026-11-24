@@ -60,7 +60,7 @@ As linhas abaixo não afirmam que todos os textos da ferramenta estão pendentes
 | Nº | Ferramenta | Sub-itens que precisam ser tokenizados ou confirmados | Prioridade |
 |---:|---|---|:---:|
 | 01 | Export all layouts | **Concluído nesta etapa:** falha de instalação de dependência e texto dos resultados de PDF/PNG unidos passaram a reutilizar tokens existentes; wrappers de erro já estavam tokenizados. | ✅ |
-| 02 | Replace text layouts | Mensagens de validação, ausência de seleção e resultados; confirmar se os textos vindos dos layouts são dados dinâmicos e não tokens. | P3 |
+| 02 | Replace text layouts | **Concluído nesta etapa:** validação interna passou a usar `STR.ENTER_TEXT_TO_SEARCH`; validações, confirmação, resumo e contagens já usavam tokens. Textos dos layouts permanecem dinâmicos. | ✅ |
 | 03 | Restart QGIS | Confirmação de salvamento, títulos de diálogo, filtro `*.qgz`, avisos de cancelamento, erros de salvamento, falha ao localizar o executável e status de reinício. | P1 |
 | 05 | Settings | Nomes exibidos dos idiomas, nomes e descrições dos temas, além dos controles comuns do registro/licença. | P1 |
 | 06 | About | Labels, descrições e ações dos links sociais e copiar conteúdo; executar somente pelo fluxo protegido do arquivo. | P3 / protegido |

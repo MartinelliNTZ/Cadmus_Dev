@@ -5,6 +5,7 @@ from datetime import datetime
 from qgis.core import QgsLayoutItemLabel, QgsProject
 
 from ..core.config.LogUtils import LogUtils
+from ..i18n.TranslationManager import STR
 from .BaseUtil import BaseUtil
 
 
@@ -74,7 +75,7 @@ class LayoutsUtils(BaseUtil):
         """
 
         if not old_text:
-            raise ValueError("old_text vazio")
+            raise ValueError(STR.ENTER_TEXT_TO_SEARCH)
 
         matcher = LayoutsUtils._build_matcher(
             old_text, new_text, case_sensitive, full_replace

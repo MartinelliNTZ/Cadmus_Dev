@@ -1,3 +1,13 @@
+[3.1.0.37][24/11/2026] Tokenização da validação da ferramenta 02 — Substituir Texto em Layouts:
+   - A proteção interna de `LayoutsUtils` passou a reutilizar `STR.ENTER_TEXT_TO_SEARCH` em vez de propagar o literal `old_text vazio`.
+   - As validações, confirmação destrutiva, resumo de layouts e contagem de alterações foram confirmados como tokenizados; textos dos layouts continuam dinâmicos.
+   - Versão de distribuição incrementada de `3.1.0.36` para `3.1.0.37` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
+[3.1.0.36][24/11/2026] Tokenização complementar da ferramenta 01 — Exportar Todos os Layouts:
+   - A falha ao iniciar a instalação de uma dependência passou a reutilizar tokens existentes para a mensagem e o nome da dependência.
+   - Os resultados de união de PDF/PNG passaram a reutilizar o token de localização do arquivo, removendo texto literal da interface.
+   - Versão de distribuição incrementada de `3.1.0.35` para `3.1.0.36` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.35][23/11/2026] Tooltips contextuais da ferramenta 40 — Ajustar Média Raster:
    - O raster de entrada, média desejada, saída, abertura da pasta e ajuda receberam descrições via `setHelp()`.
    - A descrição registra que os pixels NoData são preservados durante o ajuste.

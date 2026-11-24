@@ -263,7 +263,8 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
             )
             QgisMessageUtil.modal_error(
                 self.iface,
-                f"Não foi possível iniciar a instalação da biblioteca {dependency_name}.",
+                f"{STR.INSTALL_DEPENDENCY_FAILED}\n\n"
+                f"{STR.DEPENDENCY}: {dependency_name}",
             )
             self.checkbox_widget.set_checked(checkbox_key, False)
             return False
@@ -555,9 +556,15 @@ class ExportAllLayoutsPlugin(BasePluginMTL):
 
         sucesso_text = f"<b>{sucesso}</b> {STR.LAYOUTS_EXPORTED_SUCCESS}"
         if merge_pdf_success:
-            sucesso_text += f"<br><b>{STR.PDFS_MERGED}</b> em _PDF_UNICO_FINAL.pdf"
+            sucesso_text += (
+                f"<br><b>{STR.PDFS_MERGED}</b> — "
+                f"{STR.FILE_SAVED_IN} _PDF_UNICO_FINAL.pdf"
+            )
         if merge_png_success:
-            sucesso_text += f"<br><b>{STR.PNGS_MERGED}</b> em _PNG_MERGED_FINAL.pdf"
+            sucesso_text += (
+                f"<br><b>{STR.PNGS_MERGED}</b> — "
+                f"{STR.FILE_SAVED_IN} _PNG_MERGED_FINAL.pdf"
+            )
 
         texto += sucesso_text
 

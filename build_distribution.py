@@ -38,7 +38,7 @@ from core.services.PackageManager import PackageManager
 # Se vazia "", nenhuma chave é adicionada
 DISTRIBUTION_KEY = "6U5D9-4H0J8-6P1U4"
 # Fonte única da versão. metadata.txt e AboutDialog.py são atualizados pelo build.
-VERSION = "3.1.0.41"
+VERSION = "3.1.0.42"
 VERSION_PATTERN = r"\d+(?:\.\d+)+"
 
 # Nome do arquivo de saída (sem extensão) — extensão .dist
@@ -50,6 +50,7 @@ SOURCE_DISTRIBUTION_FILENAME = f"Cadmus_package_{VERSION}_src"
 PYC_DISTRIBUTION_FILENAME = f"Cadmus_package_{VERSION}_pyc"
 
 ZIP_FILENAME = f"Cadmus-{VERSION}.zip"  # Nome do arquivo ZIP final (opcional)
+DISTRIBUTION_DIRNAME = "distribution"
 
 # ======================================================================
 # Módulos a serem compilados na execução direta
@@ -213,6 +214,20 @@ class BuildDistribution:
         self._root = (
             Path(root_dir).resolve() if root_dir else Path(__file__).resolve().parent
         )
+        self._distribution_dir = self._root / DISTRIBUTION_DIRNAME
+
+    def _ensure_distribution_dir(self) -> bool:
+        """Cria a pasta que concentra os artefatos finais da distribuição."""
+        try:
+            self._distribution_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            print(
+                f"[BuildDistribution] ERRO ao criar pasta de distribuição: {exc}"
+            )
+            return False
+
+        print(f"[BuildDistribution] Pasta de distribuição: {self._distribution_dir}")
+        return True
 
     # ------------------------------------------------------------------
     # API pública
@@ -252,6 +267,9 @@ class BuildDistribution:
             )
             return False
 
+        if not self._ensure_distribution_dir():
+            return False
+
         # 1. Remover todos os __pycache__ do projeto
         self._remove_pycache()
 
@@ -289,9 +307,15 @@ class BuildDistribution:
 
         print("=" * 55)
         print(f"  BUILD CONCLUÍDO: {compile_ok} módulo(s) compilado(s)")
-        print(f"  Pacote fonte (.py):     {SOURCE_DISTRIBUTION_FILENAME}.dist")
-        print(f"  Pacote compilado (.pyc): {PYC_DISTRIBUTION_FILENAME}.dist")
-        print(f"  Pacote ZIP:              {ZIP_FILENAME}")
+        source_dist_path = (
+            self._distribution_dir / f"{SOURCE_DISTRIBUTION_FILENAME}.dist"
+        )
+        pyc_dist_path = (
+            self._distribution_dir / f"{PYC_DISTRIBUTION_FILENAME}.dist"
+        )
+        print(f"  Pacote fonte (.py):     {source_dist_path}")
+        print(f"  Pacote compilado (.pyc): {pyc_dist_path}")
+        print(f"  Pacote ZIP:              {self._distribution_dir / ZIP_FILENAME}")
         print("=" * 55)
         print("  O plugin agora está desabilitado.")
         print("  Para restaurar, use Configurações → 🔑")
@@ -393,7 +417,7 @@ class BuildDistribution:
         Returns:
             bool: True se OK.
         """
-        dist_path = self._root / f"{SOURCE_DISTRIBUTION_FILENAME}.dist"
+        dist_path = self._distribution_dir / f"{SOURCE_DISTRIBUTION_FILENAME}.dist"
         print(
             f"[BuildDistribution] Empacotando distribuição de fonte (.py): {dist_path}"
         )
@@ -422,7 +446,7 @@ class BuildDistribution:
         Returns:
             bool: True se OK.
         """
-        dist_path = self._root / f"{PYC_DISTRIBUTION_FILENAME}.dist"
+        dist_path = self._distribution_dir / f"{PYC_DISTRIBUTION_FILENAME}.dist"
         print(
             f"[BuildDistribution] Empacotando distribuição compilada (.pyc): {dist_path}"
         )
@@ -615,7 +639,7 @@ class BuildDistribution:
         """
         import zipfile
 
-        zip_path = self._root / ZIP_FILENAME
+        zip_path = self._distribution_dir / ZIP_FILENAME
         print(f"[BuildDistribution] Criando ZIP: {zip_path}")
 
         try:

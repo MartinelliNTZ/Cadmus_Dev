@@ -1,3 +1,9 @@
+[3.1.0.42][25/11/2026] Artefatos do Build Distribution centralizados:
+   - O build agora cria a pasta `distribution/` na raiz do plugin.
+   - Os pacotes `.dist` de fonte/compilado e o ZIP final passam a ser gravados nessa pasta.
+   - A pasta de artefatos foi adicionada ao `.gitignore`.
+   - Versão de distribuição incrementada de `3.1.0.41` para `3.1.0.42` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.41][25/11/2026] Correção de paths removidos no GridComplexSelector:
    - A pasta-base de arquivos e outputs passou a ser determinada pelo modo do selector, sem sondar o sistema de arquivos para decidir se um path ainda existe.
    - A restauração de preferências e a geração de outputs permanecem responsivas quando o arquivo ou a pasta salvos foram removidos ou estão indisponíveis.

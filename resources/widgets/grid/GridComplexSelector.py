@@ -496,7 +496,11 @@ class GridComplexSelector(QWidget):
             if not parent_path:
                 return
 
-            parent_dir = os.path.dirname(parent_path) if os.path.isfile(parent_path) else parent_path
+            parent_dir = (
+                parent_path
+                if parent_selector.is_folder_mode()
+                else os.path.dirname(parent_path)
+            )
             parent_stem = os.path.splitext(os.path.basename(parent_path))[0]
             suffix = meta.get("suffix", "")
             fixed_extension = meta.get("fixed_extension", "")

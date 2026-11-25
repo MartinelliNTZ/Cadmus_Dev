@@ -733,6 +733,8 @@ spin.get_all_values()              # → {"max_width": 4000}
 ### GridComplexSelector 🆕
 Grade de seletores de arquivo/pasta/camada configurados por dicionário. Usa `ComplexSelector` internamente. Suporta linking parent-child entre selectores e dynamic_parent.
 
+- Ao restaurar ou gerar paths, a pasta-base é determinada pelo modo do selector (`file` ou `folder`), sem usar `os.path.isfile()` para classificar caminhos obsoletos. Isso mantém a UI responsiva quando o arquivo, sua pasta ou uma unidade de rede não estão mais disponíveis.
+
 ```python
 grid = GridComplexSelector(
     config={
@@ -1530,4 +1532,5 @@ border: 1px solid {theme.COLOR_BORDER};
 | 2026-11-22 | 3.6.6 | `ComplexSelector` em modo `folder` não chama mais `os.path.isfile()` ao restaurar ou editar caminhos; isso evita bloqueios síncronos em pastas de rede indisponíveis e acelera a abertura de ferramentas que restauram paths remotos. |
 | 2026-11-22 | 3.6.7 | Formalizado o contrato de tooltips: a ferramenta é responsável pelas descrições contextuais dos itens declarados no `config`, o widget é responsável pelos controles internos; incluídas regras de separação de públicos e tokenização somente em `Strings_pt_BR`. |
 | 2026-11-22 | 3.6.8 | Nomes de tokens de tooltip devem ser semânticos e reutilizáveis; prefixos de ferramenta/widget só são permitidos quando o texto for realmente específico do contexto. |
+| 2026-11-25 | 3.6.9 | `ComplexSelector` e `GridComplexSelector` passaram a derivar pastas-base pelo modo do selector, inclusive ao gerar outputs, sem consultar `os.path.isfile()` em paths removidos ou indisponíveis. |
 

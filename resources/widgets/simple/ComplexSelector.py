@@ -451,7 +451,7 @@ class ComplexSelector(QWidget):
             src = layer.source()
             if src:
                 layer_path = src.split("|")[0] if "|" in src else src
-                self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
+                self._root_path = self._resolve_root_path(layer_path)
                 self._selected_list = [layer_path]
                 self.logger.debug(
                     f"_on_combo_layer_changed: path='{layer_path}', "
@@ -638,7 +638,7 @@ class ComplexSelector(QWidget):
                 src = layer.source()
                 if src:
                     layer_path = src.split("|")[0] if "|" in src else src
-                    self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
+                    self._root_path = self._resolve_root_path(layer_path)
                     self._selected_list = [layer_path]
                     self._emit_path_change()
 
@@ -666,7 +666,11 @@ class ComplexSelector(QWidget):
             return
 
         parent_path = parent_paths[0]
-        parent_dir = os.path.dirname(parent_path) if os.path.isfile(parent_path) else parent_path
+        parent_dir = (
+            parent_path
+            if self._parent_selector and self._parent_selector.is_folder_mode()
+            else os.path.dirname(parent_path)
+        )
         parent_stem = os.path.splitext(os.path.basename(parent_path))[0]
 
         suffix = self._suffix or ""
@@ -682,7 +686,11 @@ class ComplexSelector(QWidget):
 
         output_path = os.path.join(parent_dir, output_name)
 
-        self._root_path = os.path.dirname(output_path) if os.path.isfile(output_path) else output_path
+        self._root_path = (
+            output_path
+            if self._selection_mode == "folder"
+            else os.path.dirname(output_path)
+        )
         self._selected_list = [output_path]
         self._update_display()
         self._emit_path_change()
@@ -921,10 +929,12 @@ class ComplexSelector(QWidget):
     # ══════════════════════════════════════════════════════════════════
 
     def _resolve_root_path(self, path: str) -> str:
-        """Resolve o diretório-base sem sondar pastas remotas como arquivos."""
-        if not path or self._selection_mode == "folder":
-            return path or ""
-        return os.path.dirname(path) if os.path.isfile(path) else path
+        """Resolve o diretório-base pela semântica do selector, sem sondar o disco."""
+        if not path:
+            return ""
+        if self._selection_mode == "folder":
+            return path
+        return os.path.dirname(path)
 
     def get_root_path(self) -> str:
         return self._root_path
@@ -1031,10 +1041,10 @@ class ComplexSelector(QWidget):
                     src = layer.source()
                     if src:
                         layer_path = src.split("|")[0] if "|" in src else src
-                        self._root_path = os.path.dirname(layer_path) if os.path.isfile(layer_path) else layer_path
+                        self._root_path = self._resolve_root_path(layer_path)
                         self._selected_list = [layer_path]
                 if not self._selected_list and path:
-                    self._root_path = os.path.dirname(path) if os.path.isfile(path) else path
+                    self._root_path = self._resolve_root_path(path)
                     self._selected_list = [path]
             finally:
                 self._updating_display = False
@@ -1042,7 +1052,7 @@ class ComplexSelector(QWidget):
             # Modo line edit
             self._using_layer_combo = False
             if path:
-                self._root_path = os.path.dirname(path) if os.path.isfile(path) else path
+                self._root_path = self._resolve_root_path(path)
                 self._selected_list = [path]
             else:
                 self._root_path = ""

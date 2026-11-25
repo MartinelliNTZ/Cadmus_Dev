@@ -1,3 +1,9 @@
+[3.1.0.41][25/11/2026] Correção de paths removidos no GridComplexSelector:
+   - A pasta-base de arquivos e outputs passou a ser determinada pelo modo do selector, sem sondar o sistema de arquivos para decidir se um path ainda existe.
+   - A restauração de preferências e a geração de outputs permanecem responsivas quando o arquivo ou a pasta salvos foram removidos ou estão indisponíveis.
+   - `SKILL_WIDGETS2.md` foi atualizado para registrar o contrato de paths obsoletos.
+   - Versão de distribuição incrementada de `3.1.0.40` para `3.1.0.41` somente em `build_distribution.py`; arquivos derivados não foram editados manualmente.
+
 [3.1.0.40][24/11/2026] Developer Test Tool incluída no fluxo protegido:
    - `DeveloperTestTool.py` foi incluída no `MODULES` do Build Distribution.
    - A ferramenta mantém `registry_level=3` no `ToolRegistry`, seguindo o padrão das demais ferramentas protegidas.

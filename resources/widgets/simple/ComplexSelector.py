@@ -436,7 +436,15 @@ class ComplexSelector(QWidget):
             self._emit_path_change()
 
     def _on_combo_layer_changed(self, index: int):
-        if self._updating_display:
+        # O combo existe internamente em todos os modos, mas só pode alterar
+        # o caminho quando o selector permite camadas e está nesse modo.
+        # Sem esta guarda, qualquer camada adicionada ao QGIS (inclusive os
+        # rasters do downloader) sobrescreve uma pasta escolhida no line edit.
+        if (
+            self._updating_display
+            or not self._allow_layer
+            or not self._using_layer_combo
+        ):
             return
         layer = self._combo.currentLayer()
         self.logger.info(

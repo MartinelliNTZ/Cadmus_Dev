@@ -1,3 +1,8 @@
+[3.1.0.46][25/11/2026 17:50] Correção da sobrescrita da pasta de saída do downloader:
+   - `ComplexSelector` passou a ignorar alterações do combo de camadas quando o seletor não permite camadas ou está no modo de pasta/texto.
+   - O carregamento dos rasters no QGIS não sobrescreve mais a pasta de saída com uma URI XYZ, como `type=xyz&...`.
+   - Versão de distribuição incrementada de `3.1.0.45` para `3.1.0.46` somente em `build_distribution.py`.
+
 [3.1.0.45][25/11/2026 15:23] Matriz genérica para o andamento do downloader:
    - O widget específico do downloader foi substituído por `MatrizLabel`, responsável somente por exibir um dicionário em uma tabela sem bordas.
    - O plugin passou a organizar as cinco etapas, calcular a linha `Total`, registrar o início e o tempo decorrido e enviar o estado completo ao widget a cada sinal recebido.

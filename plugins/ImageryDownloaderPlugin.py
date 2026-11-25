@@ -9,6 +9,8 @@ opcional (clip polígono/boundary, reprojeção condicional, ÷10000) e carrega
 as camadas no QGIS agrupadas por data.
 """
 import os
+import time
+from datetime import datetime
 
 from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot
 
@@ -35,7 +37,7 @@ from ..resources.widgets.grid.GridCheckbox import GridCheckbox
 from ..resources.widgets.ComplexCrsSelector import ComplexCrsSelector
 from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
 from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
-from ..resources.widgets.grid.GridImageryProgress import GridImageryProgress
+from ..resources.widgets.grid.MatrizLabel import MatrizLabel
 
 
 class ImageryDownloaderPlugin(BasePluginMTL):
@@ -45,12 +47,16 @@ class ImageryDownloaderPlugin(BasePluginMTL):
     PLUGIN_NAME = STR.IMAGERY_DOWNLOADER_TITLE
     SOURCE_LABEL = "Sentinel-2"
     DEFAULT_BANDS = ("B04", "B03", "B02")
+    PROGRESS_STAGES = ("download", "clip", "reproject", "convert", "compose")
     stage_progress_received = pyqtSignal(object)
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
         self.iface = iface
         self._stage_progress_state = {}
+        self._progress_plan = {}
+        self._progress_started_at = None
+        self._progress_started_monotonic = None
         self.stage_progress_received.connect(self._on_stage_progress)
         self.init(self.TOOL_KEY, self.__class__.__name__)
         self._check_dependencies()
@@ -246,20 +252,8 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             expanded_by_default=True,
             parent=self,
         )
-        self.progress_grid = GridImageryProgress(
-            labels={
-                "header_stage": STR.IMAGERY_PROGRESS_STAGE,
-                "header_value": STR.IMAGERY_PROGRESS_VALUE,
-                "scene": STR.IMAGERY_PROGRESS_SCENES,
-                "download": STR.IMAGERY_PROGRESS_DOWNLOAD,
-                "clip": STR.IMAGERY_PROGRESS_CLIP,
-                "reproject": STR.IMAGERY_PROGRESS_REPROJECT,
-                "convert": STR.IMAGERY_PROGRESS_CONVERT,
-                "compose": STR.IMAGERY_PROGRESS_COMPOSE,
-            },
-            parent=self,
-        )
-        self.progress_collapse.add_content_widget(self.progress_grid)
+        self.progress_matrix = MatrizLabel(parent=self)
+        self.progress_collapse.add_content_widget(self.progress_matrix)
         self.layout.addWidget(self.progress_collapse)
 
         # 4. Botões de execução
@@ -547,7 +541,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         return len(dates) >= 2
 
     def _configure_progress(self, context):
-        """Prepara os totais da grade antes de iniciar o download."""
+        """Inicializa o estado agregado antes de iniciar o download."""
         selected = context.get("selected_scenes", []) or []
         bandas = context.get("bandas", []) or []
         compositions = context.get("compositions", []) or []
@@ -556,9 +550,12 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         n_bandas = len(bandas)
         total_images = n_scenes * n_bandas
 
-        self._stage_progress_state = {}
+        self._progress_started_at = datetime.now()
+        self._progress_started_monotonic = time.monotonic()
+        self._stage_progress_state = {
+            stage: {} for stage in self.PROGRESS_STAGES
+        }
         self._progress_plan = {
-            "scene": n_scenes,
             "download": total_images,
             "clip": total_images if options.get("clip", False) else 0,
             "reproject": (
@@ -576,17 +573,96 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             ),
             "compose": n_scenes * len(compositions),
         }
-        self.progress_grid.reset()
-        for stage, total in self._progress_plan.items():
-            self.progress_grid.set_stage_plan(stage, total, total > 0)
+        self._publish_progress()
+
+    @staticmethod
+    def _format_elapsed(seconds):
+        seconds = max(0, int(seconds or 0))
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    def _publish_progress(self):
+        """Monta o dicionário agregado e entrega-o ao widget genérico."""
+        if self._progress_started_monotonic is None:
+            elapsed_seconds = 0
+        else:
+            elapsed_seconds = max(
+                0.0, time.monotonic() - self._progress_started_monotonic
+            )
+
+        labels = {
+            "download": STR.IMAGERY_PROGRESS_DOWNLOAD,
+            "clip": STR.IMAGERY_PROGRESS_CLIP,
+            "reproject": STR.IMAGERY_PROGRESS_REPROJECT,
+            "convert": STR.IMAGERY_PROGRESS_CONVERT,
+            "compose": STR.IMAGERY_PROGRESS_COMPOSE,
+        }
+        rows = {}
+        total_current = 0
+        total_planned = 0
+
+        for stage in self.PROGRESS_STAGES:
+            states = self._stage_progress_state.get(stage, {})
+            current = sum(item["current"] for item in states.values())
+            event_total = sum(item["total"] for item in states.values())
+            planned_total = self._progress_plan.get(stage, 0)
+            total = max(planned_total, event_total)
+            failed = any(
+                item.get("status") == "failed" for item in states.values()
+            )
+            percent = (current * 100.0 / total) if total else None
+            rows[stage] = {
+                "label": labels[stage],
+                "current": current,
+                "total": total,
+                "percent": percent,
+                "status": "failed" if failed else "",
+            }
+            total_current += current
+            total_planned += total
+
+        total_percent = (
+            total_current * 100.0 / total_planned
+            if total_planned
+            else None
+        )
+        rows["total"] = {
+            "label": STR.IMAGERY_PROGRESS_TOTAL,
+            "current": total_current,
+            "total": total_planned,
+            "percent": total_percent,
+            "emphasis": True,
+        }
+
+        started_at = self._progress_started_at
+        data = {
+            "columns": [
+                STR.IMAGERY_PROGRESS_STAGE,
+                STR.IMAGERY_PROGRESS_VALUE,
+                STR.IMAGERY_PROGRESS_PERCENT,
+            ],
+            "metadata": {
+                STR.IMAGERY_PROGRESS_STARTED_AT: (
+                    started_at.strftime("%d/%m/%Y %H:%M:%S")
+                    if started_at
+                    else "—"
+                ),
+                STR.IMAGERY_PROGRESS_ELAPSED: self._format_elapsed(
+                    elapsed_seconds
+                ),
+            },
+            "rows": rows,
+        }
+        self.progress_matrix.set_data(data)
 
     @pyqtSlot(object)
     def _on_stage_progress(self, event):
-        """Agrega eventos por cena e atualiza a grade no thread da UI."""
+        """Agrega eventos por cena e publica o estado no thread da UI."""
         if not isinstance(event, dict):
             return
         stage = event.get("stage")
-        if stage not in getattr(self, "_progress_plan", {}):
+        if stage not in self.PROGRESS_STAGES:
             return
 
         key = (event.get("date", ""), event.get("item", ""))
@@ -596,14 +672,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             "total": max(0, int(event.get("total", 0))),
             "status": event.get("status", ""),
         }
-        current = sum(item["current"] for item in stage_state.values())
-        planned_total = self._progress_plan.get(stage, 0)
-        event_total = sum(item["total"] for item in stage_state.values())
-        total = max(planned_total, event_total)
-        status = "failed" if any(
-            item["status"] == "failed" for item in stage_state.values()
-        ) else ""
-        self.progress_grid.update_stage(stage, current, total, status)
+        self._publish_progress()
 
     def _run_download_pipeline(self, context):
         """Engine 2: baixa as datas selecionadas (ParallelStep ou sequencial)."""
@@ -652,6 +721,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
 
     def _on_download_pipeline_finished(self, context):
         """Callback final da engine 2."""
+        self._publish_progress()
         self.logger.info(STR.DOWNLOAD_FINISHED)
         QgisMessageUtil.bar_success(self.iface, STR.DOWNLOAD_FINISHED)
         if not context.get("output_folder"):

@@ -1741,12 +1741,15 @@ class Strings_pt_BR:
     )
     IMAGERY_PROGRESS_STAGE = "Etapa"
     IMAGERY_PROGRESS_VALUE = "Andamento"
-    IMAGERY_PROGRESS_SCENES = "Cenas processadas"
+    IMAGERY_PROGRESS_PERCENT = "%"
     IMAGERY_PROGRESS_DOWNLOAD = "Imagens baixadas"
     IMAGERY_PROGRESS_CLIP = "Recortes"
     IMAGERY_PROGRESS_REPROJECT = "Reprojeções"
     IMAGERY_PROGRESS_CONVERT = "Conversões"
     IMAGERY_PROGRESS_COMPOSE = "Composições"
+    IMAGERY_PROGRESS_TOTAL = "Total"
+    IMAGERY_PROGRESS_STARTED_AT = "Início"
+    IMAGERY_PROGRESS_ELAPSED = "Tempo decorrido"
     BAND_ASSET_ITEM_DESC = "Marca esta banda/asset para incluí-la no download."
     COMPOSITION_ITEM_DESC = (
         "Marca a composição pronta; as bandas usadas por ela também serão selecionadas."

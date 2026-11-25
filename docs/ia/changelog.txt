@@ -1,3 +1,10 @@
+[3.1.0.45][25/11/2026 15:23] Matriz genérica para o andamento do downloader:
+   - O widget específico do downloader foi substituído por `MatrizLabel`, responsável somente por exibir um dicionário em uma tabela sem bordas.
+   - O plugin passou a organizar as cinco etapas, calcular a linha `Total`, registrar o início e o tempo decorrido e enviar o estado completo ao widget a cada sinal recebido.
+   - A tabela agora exibe as colunas `Etapas`, `Andamento` e `%`, com a linha total ao final.
+   - Tasks continuam emitindo sinais; o `ParallelStep` permanece preservado e não há atualização periódica por segundo.
+   - Versão de distribuição incrementada de `3.1.0.44` para `3.1.0.45` somente em `build_distribution.py`.
+
 [3.1.0.44][25/11/2026 14:52] Retomada e acompanhamento detalhado do download de imagens:
    - A API valida rasters existentes e reutiliza produtos finais, originais de conversão e arquivos temporários válidos, evitando novo download após interrupção.
    - O downloader passou a emitir sinais PyQt com andamento por cena e por etapa: download, recorte, reprojeção, conversão e composição.

@@ -405,6 +405,25 @@ class ImageryApi(BaseUtil):
         code = srs.GetAuthorityCode(None)
         return int(code) if code else None
 
+    @staticmethod
+    def _is_valid_raster(raster_path: Union[str, Path]) -> bool:
+        """Verifica se um arquivo existente pode ser reaberto pelo GDAL."""
+        path = str(raster_path)
+        if not os.path.isfile(path):
+            return False
+        try:
+            if os.path.getsize(path) <= 0:
+                return False
+            from osgeo import gdal
+
+            with _GDAL_LOCK:
+                dataset = gdal.Open(path, gdal.GA_ReadOnly)
+                valid = dataset is not None
+                dataset = None
+            return valid
+        except Exception:
+            return False
+
     def _reproject_raster(self, src_path, target_epsg: int, output_path) -> str:
         """Reprojeta raster via ``gdal.Warp`` (thread-safe, sem QGIS)."""
         from osgeo import gdal
@@ -625,6 +644,7 @@ class ImageryApi(BaseUtil):
         delete_originals: bool = False,
         compositions: Optional[list] = None,
         progress_cb: Optional[Callable[[float], None]] = None,
+        stage_cb: Optional[Callable[[dict], None]] = None,
         unique_by_item: bool = False,
     ) -> dict:
         """Baixa e processa as bandas de uma cena.
@@ -655,6 +675,9 @@ class ImageryApi(BaseUtil):
             re-amostrando as bandas grossas para a banda mais fina da composição.
         progress_cb : callable, optional
             Callback de progresso 0-100.
+        stage_cb : callable, optional
+            Callback de progresso estruturado por etapa. O payload contém
+            ``stage``, ``current`` e ``total`` e não possui objetos QGIS.
         unique_by_item : bool, optional
             Se True, inclui o id único da cena no prefixo/pasta (necessário
             quando várias cenas da mesma data compartilham data+tile grid+
@@ -686,6 +709,26 @@ class ImageryApi(BaseUtil):
         originals_to_delete = []
         convertidos = 0
         pulados = 0
+        downloads_done = 0
+        convert_total = sum(
+            1 for banda in bandas
+            if convert_uint16 and str(banda).upper() != "SCL"
+        )
+        convert_done = 0
+
+        def _emit_stage(stage: str, current: int, total: int, **data):
+            if not callable(stage_cb):
+                return
+            payload = {
+                "stage": stage,
+                "current": max(0, int(current)),
+                "total": max(0, int(total)),
+            }
+            payload.update(data)
+            try:
+                stage_cb(payload)
+            except Exception as exc:  # noqa: BLE001 - telemetria nao pode abortar
+                self.logger.debug(f"Callback de etapa ignorado: {exc}")
 
         # ── Fase 1 — pré-varredura: pula produtos prontos e agenda downloads ──
         pendentes: dict = {}
@@ -704,28 +747,72 @@ class ImageryApi(BaseUtil):
             # Re-run seguro: se o produto final já existe na pasta, pula o
             # download/processamento e apenas reutiliza o arquivo (será
             # carregado no on_success). Evita WinError 183 / re-baixar tudo.
-            if os.path.exists(str(final_produto)):
-                try:
-                    existe_valido = os.path.getsize(str(final_produto)) > 0
-                except OSError:
-                    existe_valido = True
-                if existe_valido:
-                    self.logger.info(
-                        f"Produto já existe na pasta, pulando {banda}: "
-                        f"{final_produto.name}",
-                        code="IMAGERY_SKIP_EXISTING",
-                        item=item.get("id"),
+            if self._is_valid_raster(final_produto):
+                self.logger.info(
+                    f"Produto já existe na pasta, pulando {banda}: "
+                    f"{final_produto.name}",
+                    code="IMAGERY_SKIP_EXISTING",
+                    item=item.get("id"),
+                    banda=banda,
+                    path=str(final_produto),
+                )
+                files.append(str(final_produto))
+                pulados += 1
+                downloads_done += 1
+                _emit_stage(
+                    "download",
+                    downloads_done,
+                    total_bandas,
+                    banda=banda,
+                    status="existing",
+                    item=item.get("id"),
+                )
+                if convert_uint16 and not eh_scl:
+                    convert_done += 1
+                    _emit_stage(
+                        "convert",
+                        convert_done,
+                        convert_total,
                         banda=banda,
-                        path=str(final_produto),
+                        status="existing",
+                        item=item.get("id"),
                     )
-                    files.append(str(final_produto))
-                    pulados += 1
-                    if progress_cb is not None:
-                        progress_cb((idx / total_bandas) * 100.0)
-                    continue
+                if progress_cb is not None:
+                    progress_cb((idx / total_bandas) * 100.0)
+                continue
 
             asset_key = self.resolve_asset_key(item, cfg, banda)
+            source_produto = pasta_item / f"{prefixo}_{banda}.tif"
             caminho_temp = pasta_item / f"_tmp_{banda}.tif"
+            download_required = True
+
+            # Retoma um original baixado quando apenas a conversao final
+            # ficou pendente. Tambem reutiliza um _tmp valido deixado por
+            # uma interrupcao, evitando um novo download.
+            if convert_uint16 and not eh_scl and self._is_valid_raster(source_produto):
+                caminho_temp = source_produto
+                download_required = False
+                status = "existing_source"
+            elif self._is_valid_raster(caminho_temp):
+                download_required = False
+                status = "resumed_temp"
+            else:
+                if os.path.exists(str(caminho_temp)):
+                    ExplorerUtils.delete_file(
+                        str(caminho_temp), tool_key=self.tool_key
+                    )
+                status = "pending"
+
+            if not download_required:
+                downloads_done += 1
+                _emit_stage(
+                    "download",
+                    downloads_done,
+                    total_bandas,
+                    banda=banda,
+                    status=status,
+                    item=item.get("id"),
+                )
 
             def _band_progress(part, base=idx - 1, total=total_bandas, cb=progress_cb):
                 if cb is not None:
@@ -737,16 +824,22 @@ class ImageryApi(BaseUtil):
                 "asset_key": asset_key,
                 "caminho_temp": caminho_temp,
                 "progress": _band_progress,
+                "download": download_required,
             }
 
         # ── Fase 2 — downloads em paralelo (rede pura, FORA do lock GDAL) ──
         # A rede é o gargalo dominante; threads de I/O paralelas aumentam a
         # vazão agregada. O processamento pesado continua SERIALIZADO pelo
         # _GDAL_LOCK (regra SKILL_UTILS 2.3.2) — sem risco de crash.
-        if pendentes:
+        to_download = {
+            banda: info
+            for banda, info in pendentes.items()
+            if info.get("download", True)
+        }
+        if to_download:
             from concurrent.futures import ThreadPoolExecutor
 
-            n_workers = max(1, min(MAX_BAND_DOWNLOADS, len(pendentes)))
+            n_workers = max(1, min(MAX_BAND_DOWNLOADS, len(to_download)))
 
             def _download_one(item_info: dict) -> None:
                 """Baixa UMA banda (thread do pool), fora do lock GDAL."""
@@ -762,13 +855,22 @@ class ImageryApi(BaseUtil):
             ) as _pool:
                 _futures = {
                     banda: _pool.submit(_download_one, info)
-                    for banda, info in pendentes.items()
+                    for banda, info in to_download.items()
                 }
 
                 # Re-lança erros de rede/HTTP por banda — 1 banda não derruba a cena.
-                for banda, info in pendentes.items():
+                for banda, info in to_download.items():
                     try:
                         _futures[banda].result()
+                        downloads_done += 1
+                        _emit_stage(
+                            "download",
+                            downloads_done,
+                            total_bandas,
+                            banda=banda,
+                            status="downloaded",
+                            item=item.get("id"),
+                        )
                     except Exception as exc:  # noqa: BLE001
                         info["ok"] = False
                         self.logger.error(
@@ -779,11 +881,28 @@ class ImageryApi(BaseUtil):
                         )
                         if progress_cb is not None:
                             progress_cb((info["idx"] / total_bandas) * 100.0)
+                        downloads_done += 1
+                        _emit_stage(
+                            "download",
+                            downloads_done,
+                            total_bandas,
+                            banda=banda,
+                            status="failed",
+                            item=item.get("id"),
+                        )
 
         # ── Fase 3 — processamento pesado de banda (clip, rename, ÷10000) ──
         # GDAL/numpy. Sempre SERIALIZADO via _GDAL_LOCK (regra SKILL_UTILS
         # 2.3.2): nunca rodar GDAL/numpy em 2 tasks paralelas do mesmo
         # processo (access violation → crash duro do QGIS sem exceção).
+        processable = [
+            info for info in pendentes.values() if info.get("ok", True)
+        ]
+        clip_total = len(processable) if clip_mode else 0
+        clip_done = 0
+        reproject_total = len(processable) if epsg_out else 0
+        reproject_done = 0
+
         for banda in bandas:
             info = pendentes.get(banda)
             if info is None or not info.get("ok", True):
@@ -830,6 +949,17 @@ class ImageryApi(BaseUtil):
                         str(out_clip),
                     )
 
+                if clip_mode:
+                    clip_done += 1
+                    _emit_stage(
+                        "clip",
+                        clip_done,
+                        clip_total,
+                        banda=banda,
+                        status="processed",
+                        item=item.get("id"),
+                    )
+
                 # 2.5 Reprojeção condicional (só se o EPSG de saída diferir do
                 #     CRS da cena). Resolve "EPSG:xxxx" -> int e aplica gdal.Warp.
                 epsg_out_int = self.resolve_epsg(epsg_out, scene_epsg)
@@ -839,6 +969,25 @@ class ImageryApi(BaseUtil):
                         ExplorerUtils.delete_file(str(reproj_path), tool_key=self.tool_key)
                     start_path = self._reproject_raster(
                         str(start_path), epsg_out_int, str(reproj_path)
+                    )
+                    reproject_done += 1
+                    _emit_stage(
+                        "reproject",
+                        reproject_done,
+                        reproject_total,
+                        banda=banda,
+                        status="processed",
+                        item=item.get("id"),
+                    )
+                elif reproject_total:
+                    reproject_done += 1
+                    _emit_stage(
+                        "reproject",
+                        reproject_done,
+                        reproject_total,
+                        banda=banda,
+                        status="skipped",
+                        item=item.get("id"),
                     )
 
                 # 3. Arquivo final base (sem conversão)
@@ -858,7 +1007,7 @@ class ImageryApi(BaseUtil):
                         )
 
                 # 4. Conversão uint16 → float32 (÷10000); SCL passa direto
-                if convert_uint16:
+                if convert_uint16 and str(banda).upper() != "SCL":
                     refl_path = pasta_item / f"{prefixo}_{banda}_refl.tif"
                     RasterLayerProcessing.scale_raster_to_float32(
                         str(final_path),
@@ -869,6 +1018,15 @@ class ImageryApi(BaseUtil):
                     if os.path.exists(str(refl_path)):
                         files.append(str(refl_path))
                         convertidos += 1
+                        convert_done += 1
+                        _emit_stage(
+                            "convert",
+                            convert_done,
+                            convert_total,
+                            banda=banda,
+                            status="processed",
+                            item=item.get("id"),
+                        )
                         if delete_originals and os.path.exists(str(final_path)):
                             originals_to_delete.append(str(final_path))
                         continue
@@ -882,6 +1040,8 @@ class ImageryApi(BaseUtil):
         # inválido de grids diferentes no BuildVRT).
         composicoes_geradas = 0
         composite_files = []
+        composition_total = len(compositions or [])
+        composition_done = 0
         for comp_key in (compositions or []):
             comp = cfg["compositions"].get(comp_key)
             if not comp:
@@ -889,6 +1049,15 @@ class ImageryApi(BaseUtil):
                     f"Composição desconhecida {comp_key} — ignorada",
                     code="IMAGERY_COMP_UNKNOWN",
                     comp=comp_key,
+                )
+                composition_done += 1
+                _emit_stage(
+                    "compose",
+                    composition_done,
+                    composition_total,
+                    composition=comp_key,
+                    status="skipped",
+                    item=item.get("id"),
                 )
                 continue
 
@@ -899,6 +1068,15 @@ class ImageryApi(BaseUtil):
                     code="IMAGERY_COMP_MIN_BANDS",
                     comp=comp_key,
                     bandas=bandas_comp,
+                )
+                composition_done += 1
+                _emit_stage(
+                    "compose",
+                    composition_done,
+                    composition_total,
+                    composition=comp_key,
+                    status="skipped",
+                    item=item.get("id"),
                 )
                 continue
 
@@ -954,6 +1132,15 @@ class ImageryApi(BaseUtil):
                     band_files.append(str(p))
 
             if faltando:
+                composition_done += 1
+                _emit_stage(
+                    "compose",
+                    composition_done,
+                    composition_total,
+                    composition=comp_key,
+                    status="skipped",
+                    item=item.get("id"),
+                )
                 self.logger.warning(
                     f"Uma ou mais bandas da composição {comp_key} não baixadas — pulando",
                     code="IMAGERY_COMP_MISSING_BAND",
@@ -976,16 +1163,42 @@ class ImageryApi(BaseUtil):
                         code="IMAGERY_COMP_FAILED",
                         comp=comp_key,
                     )
+                    composition_done += 1
+                    _emit_stage(
+                        "compose",
+                        composition_done,
+                        composition_total,
+                        composition=comp_key,
+                        status="failed",
+                        item=item.get("id"),
+                    )
                     continue
             files.append(str(comp_path))
             composite_files.append(str(comp_path))
             composicoes_geradas += 1
+            composition_done += 1
+            _emit_stage(
+                "compose",
+                composition_done,
+                composition_total,
+                composition=comp_key,
+                status="processed",
+                item=item.get("id"),
+            )
             self.logger.info(
                 f"Composição {comp_key} gerada: {comp_path.name}",
                 code="IMAGERY_COMP_DONE",
                 comp=comp_key,
                 path=str(comp_path),
             )
+
+        _emit_stage(
+            "scene",
+            1,
+            1,
+            status="processed",
+            item=item.get("id"),
+        )
 
         if progress_cb is not None:
             progress_cb(100.0)

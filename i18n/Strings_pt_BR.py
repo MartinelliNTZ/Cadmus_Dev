@@ -1735,6 +1735,18 @@ class Strings_pt_BR:
     )
     BANDS_ASSETS = "Bandas e Composições"
     BANDS_ASSETS_DESC = "Selecione bandas e composições a baixar"
+    IMAGERY_PROGRESS_TITLE = "Andamento"
+    IMAGERY_PROGRESS_DESC = (
+        "Acompanha cenas, imagens e etapas de processamento em tempo real."
+    )
+    IMAGERY_PROGRESS_STAGE = "Etapa"
+    IMAGERY_PROGRESS_VALUE = "Andamento"
+    IMAGERY_PROGRESS_SCENES = "Cenas processadas"
+    IMAGERY_PROGRESS_DOWNLOAD = "Imagens baixadas"
+    IMAGERY_PROGRESS_CLIP = "Recortes"
+    IMAGERY_PROGRESS_REPROJECT = "Reprojeções"
+    IMAGERY_PROGRESS_CONVERT = "Conversões"
+    IMAGERY_PROGRESS_COMPOSE = "Composições"
     BAND_ASSET_ITEM_DESC = "Marca esta banda/asset para incluí-la no download."
     COMPOSITION_ITEM_DESC = (
         "Marca a composição pronta; as bandas usadas por ela também serão selecionadas."

@@ -96,6 +96,8 @@ class _ParallelGroupTask(BaseTask):
                 self._subtasks.append(task)
                 task.on_success = self._make_success_handler(step)
                 task.on_error = self._make_error_handler(step)
+                if hasattr(task, "stage_progress"):
+                    task.stage_progress.connect(self._forward_stage_progress)
                 self._pending += 1
 
             self._total = self._pending
@@ -121,6 +123,14 @@ class _ParallelGroupTask(BaseTask):
                     self._done_event.set()
                 self._cancel_subtasks()
                 break
+
+    def _forward_stage_progress(self, payload) -> None:
+        """Reencaminha eventos de etapa sem tocar em APIs do QGIS."""
+        if isinstance(payload, dict):
+            try:
+                self.stage_progress.emit(payload.copy())
+            except RuntimeError:
+                self.logger.debug("Sinal de etapa descartado após destruição do grupo")
 
     def _make_success_handler(self, step: BaseStep):
         def _on_success(result):

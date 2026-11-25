@@ -29,6 +29,7 @@ class AsyncPipelineEngine:
         on_finished=None,
         on_error=None,
         on_cancelled=None,
+        on_stage_progress=None,
     ):
         self._pipeline_task = None
         self._steps = steps
@@ -37,6 +38,7 @@ class AsyncPipelineEngine:
         self._on_finished = on_finished
         self._on_error = on_error
         self._on_cancelled = on_cancelled
+        self._on_stage_progress = on_stage_progress
 
         self._current_index = 0
         self._current_task = None
@@ -136,6 +138,8 @@ class AsyncPipelineEngine:
         task.on_success = self._handle_task_success
         task.on_error = self._handle_task_error
         task.progressChanged.connect(self._set_global_progress)
+        if callable(self._on_stage_progress) and hasattr(task, "stage_progress"):
+            task.stage_progress.connect(self._on_stage_progress)
 
         QgsApplication.taskManager().addTask(task)
 

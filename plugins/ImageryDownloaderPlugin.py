@@ -10,6 +10,8 @@ as camadas no QGIS agrupadas por data.
 """
 import os
 
+from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot
+
 from ..plugins.BasePlugin import BasePluginMTL
 from ..utils.ToolKeys import ToolKey
 from ..utils.Preferences import Preferences
@@ -33,6 +35,7 @@ from ..resources.widgets.grid.GridCheckbox import GridCheckbox
 from ..resources.widgets.ComplexCrsSelector import ComplexCrsSelector
 from ..resources.widgets.grid.GridComplexSelector import GridComplexSelector
 from ..resources.widgets.grid.GridExecutionButtons import GridExecutionButtons
+from ..resources.widgets.grid.GridImageryProgress import GridImageryProgress
 
 
 class ImageryDownloaderPlugin(BasePluginMTL):
@@ -42,10 +45,13 @@ class ImageryDownloaderPlugin(BasePluginMTL):
     PLUGIN_NAME = STR.IMAGERY_DOWNLOADER_TITLE
     SOURCE_LABEL = "Sentinel-2"
     DEFAULT_BANDS = ("B04", "B03", "B02")
+    stage_progress_received = pyqtSignal(object)
 
     def __init__(self, iface):
         super().__init__(iface.mainWindow())
         self.iface = iface
+        self._stage_progress_state = {}
+        self.stage_progress_received.connect(self._on_stage_progress)
         self.init(self.TOOL_KEY, self.__class__.__name__)
         self._check_dependencies()
 
@@ -233,7 +239,30 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         self.bands_collapse.add_content_widget(self.bands)
         self.layout.addWidget(self.bands_collapse)
 
-        # 3. Botões de execução
+        # 3. Andamento detalhado por etapa
+        self.progress_collapse = CollapsibleParametersWidget(
+            title=STR.IMAGERY_PROGRESS_TITLE,
+            title_description=STR.IMAGERY_PROGRESS_DESC,
+            expanded_by_default=True,
+            parent=self,
+        )
+        self.progress_grid = GridImageryProgress(
+            labels={
+                "header_stage": STR.IMAGERY_PROGRESS_STAGE,
+                "header_value": STR.IMAGERY_PROGRESS_VALUE,
+                "scene": STR.IMAGERY_PROGRESS_SCENES,
+                "download": STR.IMAGERY_PROGRESS_DOWNLOAD,
+                "clip": STR.IMAGERY_PROGRESS_CLIP,
+                "reproject": STR.IMAGERY_PROGRESS_REPROJECT,
+                "convert": STR.IMAGERY_PROGRESS_CONVERT,
+                "compose": STR.IMAGERY_PROGRESS_COMPOSE,
+            },
+            parent=self,
+        )
+        self.progress_collapse.add_content_widget(self.progress_grid)
+        self.layout.addWidget(self.progress_collapse)
+
+        # 4. Botões de execução
         self.buttons = GridExecutionButtons(
             config={
                 "run": {
@@ -335,6 +364,9 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             prefs.get("settings_collapse", {})
         )
         self.bands_collapse.set_preferences(prefs.get("bands_collapse", {}))
+        self.progress_collapse.set_preferences(
+            prefs.get("progress_collapse", {})
+        )
 
     def _save_prefs(self):
         """Persiste preferências via Preferences (padrão novo sistema)."""
@@ -353,6 +385,9 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         self.preferences[
             "bands_collapse"
         ] = self.bands_collapse.get_preferences()
+        self.preferences[
+            "progress_collapse"
+        ] = self.progress_collapse.get_preferences()
         Preferences.save_tool_prefs(self.TOOL_KEY, self.preferences)
         self.logger.info("Preferências do ImageryDownloader salvas")
 
@@ -511,6 +546,65 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         """RF10: paralelismo viável com 2+ datas independentes."""
         return len(dates) >= 2
 
+    def _configure_progress(self, context):
+        """Prepara os totais da grade antes de iniciar o download."""
+        selected = context.get("selected_scenes", []) or []
+        bandas = context.get("bandas", []) or []
+        compositions = context.get("compositions", []) or []
+        options = context.get("options", {}) or {}
+        n_scenes = len(selected)
+        n_bandas = len(bandas)
+        total_images = n_scenes * n_bandas
+
+        self._stage_progress_state = {}
+        self._progress_plan = {
+            "scene": n_scenes,
+            "download": total_images,
+            "clip": total_images if options.get("clip", False) else 0,
+            "reproject": (
+                total_images
+                if options.get("reproject", True)
+                and context.get("epsg_out")
+                else 0
+            ),
+            "convert": (
+                n_scenes * sum(
+                    1 for banda in bandas if str(banda).upper() != "SCL"
+                )
+                if options.get("convert", False)
+                else 0
+            ),
+            "compose": n_scenes * len(compositions),
+        }
+        self.progress_grid.reset()
+        for stage, total in self._progress_plan.items():
+            self.progress_grid.set_stage_plan(stage, total, total > 0)
+
+    @pyqtSlot(object)
+    def _on_stage_progress(self, event):
+        """Agrega eventos por cena e atualiza a grade no thread da UI."""
+        if not isinstance(event, dict):
+            return
+        stage = event.get("stage")
+        if stage not in getattr(self, "_progress_plan", {}):
+            return
+
+        key = (event.get("date", ""), event.get("item", ""))
+        stage_state = self._stage_progress_state.setdefault(stage, {})
+        stage_state[key] = {
+            "current": max(0, int(event.get("current", 0))),
+            "total": max(0, int(event.get("total", 0))),
+            "status": event.get("status", ""),
+        }
+        current = sum(item["current"] for item in stage_state.values())
+        planned_total = self._progress_plan.get(stage, 0)
+        event_total = sum(item["total"] for item in stage_state.values())
+        total = max(planned_total, event_total)
+        status = "failed" if any(
+            item["status"] == "failed" for item in stage_state.values()
+        ) else ""
+        self.progress_grid.update_stage(stage, current, total, status)
+
     def _run_download_pipeline(self, context):
         """Engine 2: baixa as datas selecionadas (ParallelStep ou sequencial)."""
         selected = context.get("selected_scenes", []) or []
@@ -520,6 +614,8 @@ class ImageryDownloaderPlugin(BasePluginMTL):
         if not dates:
             QgisMessageUtil.bar_warning(self.iface, STR.NO_SCENE_SELECTED)
             return
+
+        self._configure_progress(context)
 
         if self._can_use_parallel(dates):
             QgisMessageUtil.bar_info(
@@ -550,6 +646,7 @@ class ImageryDownloaderPlugin(BasePluginMTL):
             context=context,
             on_finished=self._on_download_pipeline_finished,
             on_error=self._on_pipeline_error,
+            on_stage_progress=self.stage_progress_received.emit,
         )
         engine.start()
 

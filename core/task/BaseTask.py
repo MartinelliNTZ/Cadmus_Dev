@@ -1,4 +1,5 @@
 from qgis.core import QgsTask, QgsMessageLog, Qgis
+from qgis.PyQt.QtCore import pyqtSignal
 from ..config.LogUtils import LogUtils
 
 
@@ -13,6 +14,8 @@ class BaseTask(QgsTask):
     - Retornar resultado para o controller
     """
 
+    stage_progress = pyqtSignal(object)
+
     def __init__(self, description: str, tool_key="untraceable"):
         super().__init__(description, QgsTask.CanCancel)
         self.tool_key = tool_key
@@ -25,6 +28,20 @@ class BaseTask(QgsTask):
         # callbacks
         self.on_success = None
         self.on_error = None
+
+    def emit_stage_progress(self, stage: str, current: int, total: int, **data):
+        """Emite progresso de etapa sem acessar objetos QGIS na thread worker."""
+        payload = {
+            "stage": str(stage),
+            "current": max(0, int(current)),
+            "total": max(0, int(total)),
+        }
+        payload.update(data)
+        try:
+            self.stage_progress.emit(payload)
+        except RuntimeError:
+            # A task pode ser destruída enquanto uma thread de download termina.
+            self.logger.debug("Sinal de progresso descartado após destruição da task")
 
     def run(self) -> bool:
         self.logger.info("Task started")

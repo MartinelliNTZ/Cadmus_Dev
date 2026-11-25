@@ -50,9 +50,10 @@ class DownloadDateTask(BaseTask):
         compositions = self._context.get("compositions", []) or []
         options = self._context.get("options", {}) or {}
         clip = bool(options.get("clip", False))
+        reproject = bool(options.get("reproject", True))
         convert = bool(options.get("convert", False))
         delete_originals = bool(options.get("delete", False))
-        epsg_out = self._context.get("epsg_out")
+        epsg_out = self._context.get("epsg_out") if reproject else None
         output_folder = self._context.get("output_folder") or \
             ExplorerUtils.get_temp_folder(self.tool_key, "imagery")
 
@@ -118,6 +119,24 @@ class DownloadDateTask(BaseTask):
             """
             api_local = ImageryApi(tool_key=self.tool_key)
 
+            def _stage_cb(event):
+                if not isinstance(event, dict):
+                    return
+                payload = dict(event)
+                stage = payload.pop("stage", "")
+                current = payload.pop("current", 0)
+                total_stage = payload.pop("total", 0)
+                payload.update(
+                    date=self._date,
+                    item=item.get("id"),
+                )
+                self.emit_stage_progress(
+                    stage,
+                    current,
+                    total_stage,
+                    **payload,
+                )
+
             try:
                 return api_local.process_item(
                     item,
@@ -133,6 +152,7 @@ class DownloadDateTask(BaseTask):
                     # O progresso da data e atualizado pela propria task,
                     # depois que cada cena termina.
                     progress_cb=None,
+                    stage_cb=_stage_cb,
                     unique_by_item=unique_by_item,
                 )
             except Exception as exc:  # noqa: BLE001 - 1 cena não pode derrubar a data

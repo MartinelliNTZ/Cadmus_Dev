@@ -38,7 +38,7 @@ from core.services.PackageManager import PackageManager
 # Se vazia "", nenhuma chave é adicionada
 DISTRIBUTION_KEY = "6U5D9-4H0J8-6P1U4"
 # Fonte única da versão. metadata.txt e AboutDialog.py são atualizados pelo build.
-VERSION = "3.1.0.43"
+VERSION = "3.1.0.44"
 VERSION_PATTERN = r"\d+(?:\.\d+)+"
 
 # Nome do arquivo de saída (sem extensão) — extensão .dist
@@ -151,6 +151,9 @@ MODULES = {
     ],
     "resources/widgets": [
         "SceneSelectionListWidget.py",
+    ],
+    "resources/widgets/grid": [
+        "GridImageryProgress.py",
     ],
     "utils/judge": [
         "SimpleSPBJudge.py",

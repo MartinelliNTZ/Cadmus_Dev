@@ -1,3 +1,10 @@
+[3.1.0.43][25/11/2026 11:56] Correção de crash no pipeline paralelo do download de imagens:
+   - `ParallelStep` continua executando subtarefas em paralelo, mas agora as registra na thread principal do QGIS.
+   - Removido `QgsApplication.processEvents()` das threads worker do grupo paralelo e do `PipelineTask`.
+   - O progresso do downloader deixou de chamar `setProgress()` a partir das threads internas `imagery_dl_*`.
+   - GDAL/numpy continuam protegidos pelo lock existente; `CoordClickTool` não foi alterado.
+   - Versão de distribuição incrementada de `3.1.0.42` para `3.1.0.43` somente em `build_distribution.py`.
+
 [3.1.0.42][25/11/2026] Artefatos do Build Distribution centralizados:
    - O build agora cria a pasta `distribution/` na raiz do plugin.
    - Os pacotes `.dist` de fonte/compilado e o ZIP final passam a ser gravados nessa pasta.

@@ -1,31 +1,22 @@
 # -*- coding: utf-8 -*-
 from typing import List, Any, Dict, Optional
 import threading
-import time
 
-from qgis.core import QgsTask, QgsApplication
+from qgis.core import QgsApplication
 
 from .BaseStep import BaseStep
 from .ExecutionContext import ExecutionContext
+from ..task.BaseTask import BaseTask
 from ..config.LogUtils import LogUtils
 
 
 class ParallelStep(BaseStep):
-    """
-    Composite Step que executa vários `BaseStep` em paralelo.
-
-    - Recebe uma lista de steps independentes
-    - Cria as tasks desses sub-steps
-    - Agenda todas as tasks com `QgsApplication.taskManager().addTask()`
-    - Aguarda todas finalizarem, agrupa resultados e retorna um dict
-
-    Nota: Todo o paralelismo fica encapsulado aqui; o `AsyncPipelineEngine`
-    continua tratando `ParallelStep` como um `BaseStep` normal.
-    """
+    """Composite step that executes independent steps in parallel."""
 
     def __init__(self, steps: List[BaseStep], description: Optional[str] = None):
         if not isinstance(steps, list):
             raise TypeError("ParallelStep expects a list of BaseStep instances")
+        super().__init__()
         self._steps = steps
         self._description = description
         self.logger = LogUtils(tool="ParallelStep", class_name="ParallelStep")
@@ -33,44 +24,34 @@ class ParallelStep(BaseStep):
     def name(self) -> str:
         if self._description:
             return f"Parallel[{self._description}]"
-        names = ",".join([s.name() for s in self._steps])
+        names = ",".join([step.name() for step in self._steps])
         return f"Parallel[{names}]"
 
     def should_run(self, context: ExecutionContext) -> bool:
-        # Executa se pelo menos um sub-step desejar rodar
-        return any(s.should_run(context) for s in self._steps)
+        return any(step.should_run(context) for step in self._steps)
 
     def create_task(self, context: ExecutionContext):
-        return _ParallelGroupTask(self._steps, context, self.name())
+        task = _ParallelGroupTask(self._steps, context, self.name())
+        # The engine calls create_task() on the main QGIS thread. Registering
+        # child tasks here avoids calling the QGIS task manager from run().
+        task.schedule_subtasks()
+        return task
 
     def on_success(self, context: ExecutionContext, result: Any) -> None:
-        # Por design, os on_success dos sub-steps já foram executados
-        # pelo _ParallelGroupTask; aqui podemos adicionar agregações
         try:
             context.set("parallel_result", result)
-        except Exception as e:
-            self.logger.error(f"ParallelStep.on_success error: {e}")
+        except Exception as exc:
+            self.logger.error(f"ParallelStep.on_success error: {exc}")
 
     def on_error(self, context: ExecutionContext, exception: Exception) -> None:
-        # Já foi coletado pelo grupo; apenas registre
         try:
             context.add_error(exception)
-        except Exception as e:
-            self.logger.error(f"ParallelStep.on_error error: {e}")
+        except Exception as exc:
+            self.logger.error(f"ParallelStep.on_error error: {exc}")
 
 
-class _ParallelGroupTask(QgsTask):
-    """
-    Task composta que agenda e monitora um grupo de tasks.
-
-    Comportamento:
-    - Cria as tasks dos sub-steps
-    - Anexa callbacks locais para coletar resultados/erros
-    - Agenda as tasks em paralelo
-    - Monitora até todas terminarem ou até cancelamento
-    - Em caso de erro, cancela tasks restantes e chama `self.on_error`
-    - Em caso de sucesso, chama `self.on_success` com dict {step_name: result}
-    """
+class _ParallelGroupTask(BaseTask):
+    """Waits for a group of already registered child tasks."""
 
     def __init__(
         self,
@@ -78,181 +59,138 @@ class _ParallelGroupTask(QgsTask):
         context: ExecutionContext,
         description: str = "ParallelGroup",
     ):
-        super().__init__(description, QgsTask.CanCancel)
+        super().__init__(description, tool_key=context.tool_key)
         self._steps = steps
         self._context = context
-
         self._lock = threading.Lock()
         self._pending = 0
+        self._total = 0
         self._results: Dict[str, Any] = {}
         self._error: Optional[Exception] = None
         self._done_event = threading.Event()
-        self._subtasks: List[QgsTask] = []
+        self._subtasks: List[BaseTask] = []
+        self._prepared = False
         self.logger = LogUtils(
             tool="ParallelGroupTask", class_name="_ParallelGroupTask"
         )
 
-        # callbacks that will be set by engine
-        self.on_success = None
-        self.on_error = None
+    def schedule_subtasks(self) -> None:
+        """Create and register child tasks from the main QGIS thread."""
+        if self._prepared:
+            return
+        self._prepared = True
 
-    def run(self) -> bool:
-        # Cria e agenda subtasks
         with self._lock:
             for step in self._steps:
                 try:
                     task = step.create_task(self._context)
-                except Exception as e:
-                    # falha ao criar task -> aborta
-                    self._error = e
+                except Exception as exc:
+                    self._error = exc
+                    self.exception = exc
                     self._done_event.set()
                     break
 
                 if task is None:
-                    # step optou por não criar task
                     continue
 
-                # Guarda referência
                 self._subtasks.append(task)
-
-                # Envolva callbacks para coletar resultados
-                def make_success_handler(s, t):
-                    def _on_success(result):
-                        try:
-                            # permite que o próprio sub-step aplique sua lógica
-                            try:
-                                s.on_success(self._context, result)
-                            except Exception as e:
-                                self.logger.error(f"substep on_success error: {e}")
-
-                            with self._lock:
-                                self._results[s.name()] = result
-                                self._pending -= 1
-                                if self._pending <= 0:
-                                    self._done_event.set()
-                        except Exception as e:
-                            # registro local
-                            self.logger.error(f"subtask success handler error: {e}")
-
-                    return _on_success
-
-                def make_error_handler(s, t):
-                    def _on_error(exc):
-                        try:
-                            try:
-                                s.on_error(self._context, exc)
-                            except Exception as e:
-                                self.logger.error(f"substep on_error error: {e}")
-
-                            with self._lock:
-                                # registra primeira exceção
-                                if self._error is None:
-                                    self._error = exc
-                                # força cancelamento das demais
-                                for st in self._subtasks:
-                                    try:
-                                        st.cancel()
-                                    except Exception as e:
-                                        self.logger.error(
-                                            f"Error cancelling subtask: {e}"
-                                        )
-
-                                self._done_event.set()
-                        except Exception as e:
-                            self.logger.error(f"subtask error handler error: {e}")
-
-                    return _on_error
-
-                # Attach handlers
-                task.on_success = make_success_handler(step, task)
-                task.on_error = make_error_handler(step, task)
-
-                # Forward subtask progress to group progress
-                try:
-                    task.progressChanged.connect(self._on_subtask_progress)
-                except Exception as e:
-                    self.logger.error(f"Failed connecting progressChanged: {e}")
+                task.on_success = self._make_success_handler(step)
+                task.on_error = self._make_error_handler(step)
                 self._pending += 1
 
-        # Se erro na criação das tasks
-        if self._error:
-            return False
+            self._total = self._pending
 
-        # Agenda subtasks
-        for st in list(self._subtasks):
-
-            try:
-                QgsApplication.taskManager().addTask(st)
-            except Exception as e:
-                # falha ao agendar
-                with self._lock:
-                    if self._error is None:
-                        self._error = e
-                    # cancela os já agendados
-                    for s in self._subtasks:
-                        try:
-                            s.cancel()
-                        except Exception as e:
-                            self.logger.error(
-                                f"Error cancelling scheduled subtask: {e}"
-                            )
-
-                    self._done_event.set()
-                break
-
-        # Aguarda conclusão ou cancelamento
-        while not self._done_event.is_set():
-            if self.isCanceled():
-                # Propaga cancelamento para subtasks
-                for st in list(self._subtasks):
-                    try:
-                        st.cancel()
-                    except Exception as e:
-                        self.logger.error(
-                            f"Error cancelling subtask during shutdown: {e}"
-                        )
-                self._done_event.set()
-                break
-            QgsApplication.processEvents()
-            time.sleep(0.01)
-
-        # Retorna sucesso se não houve erro
-        return self._error is None
-
-    def _on_subtask_progress(self, value: float) -> None:
-        # Calcula média simples de progresso entre subtasks
-        try:
-            # tenta ler progress individuais (não disponível), então apenas
-            # estima com base no último valor recebido e número de tasks
-            # para manter o feed de progresso ao engine.
-            # Aqui adotamos: group_progress = value / max(1, len(self._subtasks))
-            total = max(1, len(self._subtasks))
-            group_progress = min(100.0, float(value) / total)
-            try:
-                self.setProgress(int(group_progress))
-            except Exception as e:
-                self.logger.error(f"_on_subtask_progress setProgress error: {e}")
-        except Exception as e:
-            self.logger.error(f"_on_subtask_progress error: {e}")
-
-    def finished(self, success: bool):
-        # Se sucesso, chama on_success com dicionário de resultados
-        if success and self._error is None:
-            if callable(self.on_success):
-                try:
-                    self.on_success(self._results)
-                except Exception as e:
-                    self.logger.error(f"Parallel group on_success error: {e}")
+        if self._error is not None:
+            self._cancel_subtasks()
             return
 
-        # Em caso de erro, prioriza a primeira exceção coletada
-        exc = (
-            self._error
-            if self._error is not None
-            else Exception("ParallelGroup failed")
-        )
-        if callable(self.on_error):
+        if not self._subtasks:
+            self._done_event.set()
+            return
+
+        # This method is called by ParallelStep.create_task(), on the main
+        # thread. Never move addTask() into a worker's run() method.
+        for subtask in list(self._subtasks):
             try:
-                self.on_error(exc)
-            except Exception as e:
-                self.logger.error(f"Parallel group on_error error: {e}")
+                QgsApplication.taskManager().addTask(subtask)
+            except Exception as exc:
+                with self._lock:
+                    if self._error is None:
+                        self._error = exc
+                        self.exception = exc
+                    self._done_event.set()
+                self._cancel_subtasks()
+                break
+
+    def _make_success_handler(self, step: BaseStep):
+        def _on_success(result):
+            try:
+                try:
+                    step.on_success(self._context, result)
+                except Exception as exc:
+                    self.logger.error(f"substep on_success error: {exc}")
+
+                with self._lock:
+                    self._results[step.name()] = result
+                    self._pending -= 1
+                    completed = self._total - self._pending
+                    is_done = self._pending <= 0
+                    if is_done:
+                        self._done_event.set()
+
+                # Child finished() callbacks run on the QGIS main thread, so
+                # this progress update never comes from imagery worker threads.
+                try:
+                    self.setProgress(int(completed * 100 / max(1, self._total)))
+                except Exception as exc:
+                    self.logger.error(f"Parallel progress update error: {exc}")
+            except Exception as exc:
+                self.logger.error(f"subtask success handler error: {exc}")
+
+        return _on_success
+
+    def _make_error_handler(self, step: BaseStep):
+        def _on_error(exception):
+            if not isinstance(exception, Exception):
+                exception = Exception(str(exception or "Parallel child failed"))
+            try:
+                try:
+                    step.on_error(self._context, exception)
+                except Exception as exc:
+                    self.logger.error(f"substep on_error error: {exc}")
+
+                with self._lock:
+                    if self._error is None:
+                        self._error = exception
+                        self.exception = exception
+                    self._done_event.set()
+                self._cancel_subtasks()
+            except Exception as exc:
+                self.logger.error(f"subtask error handler error: {exc}")
+
+        return _on_error
+
+    def _cancel_subtasks(self) -> None:
+        for subtask in list(self._subtasks):
+            try:
+                subtask.cancel()
+            except Exception as exc:
+                self.logger.error(f"Error cancelling subtask: {exc}")
+
+    def _run(self) -> bool:
+        while not self._done_event.wait(0.05):
+            if self.isCanceled():
+                self._cancel_subtasks()
+                self._done_event.set()
+                break
+
+        if self._error is not None:
+            self.exception = self._error
+            return False
+        if self.isCanceled():
+            self.exception = Exception("ParallelGroup cancelled")
+            return False
+
+        self.result = self._results.copy()
+        self.setProgress(100)
+        return True

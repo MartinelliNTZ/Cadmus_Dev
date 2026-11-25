@@ -109,20 +109,14 @@ class DownloadDateTask(BaseTask):
             {ImageryApi.compute_prefixo(s) for s in items}
         ) < total
 
-        def _process_cena(idx, item, base):
-            """Baixa/processa UMA cena (thread do pool) com progresso local.
+        def _process_cena(item):
+            """Baixa/processa UMA cena em uma thread do pool.
 
             Usa instância própria de ImageryApi por thread (evita compartilhar
             estado) e retorna o dict de resultado, ou None em falha (1 cena
             não pode derrubar a data).
             """
             api_local = ImageryApi(tool_key=self.tool_key)
-
-            def _cb(part, base=base, total=total):
-                try:
-                    self.setProgress(int(base + (part / total) if total else 100))
-                except Exception as e:
-                    self.logger.warning(f"setProgress falhou: {e}")
 
             try:
                 return api_local.process_item(
@@ -135,7 +129,10 @@ class DownloadDateTask(BaseTask):
                     convert_uint16=convert,
                     delete_originals=delete_originals,
                     compositions=compositions,
-                    progress_cb=_cb,
+                    # ImageryApi chama o callback nas threads imagery_dl_*.
+                    # O progresso da data e atualizado pela propria task,
+                    # depois que cada cena termina.
+                    progress_cb=None,
                     unique_by_item=unique_by_item,
                 )
             except Exception as exc:  # noqa: BLE001 - 1 cena não pode derrubar a data
@@ -162,7 +159,7 @@ class DownloadDateTask(BaseTask):
                 max_workers=n_cenas, thread_name_prefix="imagery_scene"
             ) as _pool:
                 futures = {}
-                for idx, item in enumerate(items):
+                for item in items:
                     if self.isCanceled() or self._context.is_cancelled():
                         self.logger.warning(
                             "Download cancelado pelo usuário",
@@ -171,9 +168,9 @@ class DownloadDateTask(BaseTask):
                         for f in futures:
                             f.cancel()
                         return False
-                    base = (idx / total) * 100.0 if total else 0.0
-                    futures[_pool.submit(_process_cena, idx, item, base)] = item
+                    futures[_pool.submit(_process_cena, item)] = item
 
+                completed = 0
                 for future in as_completed(futures):
                     if self.isCanceled() or self._context.is_cancelled():
                         self.logger.warning(
@@ -184,6 +181,8 @@ class DownloadDateTask(BaseTask):
                             f.cancel()
                         return False
                     result = future.result()
+                    completed += 1
+                    self.setProgress(int(completed * 100 / total))
                     if result is None:
                         falhas += 1
                         continue
@@ -191,15 +190,15 @@ class DownloadDateTask(BaseTask):
                     all_composites.extend(result.get("composite_files", []) or [])
                     all_delete.extend(result.get("originals_to_delete", []) or [])
         else:
-            for idx, item in enumerate(items):
+            for item in items:
                 if self.isCanceled() or self._context.is_cancelled():
                     self.logger.warning(
                         "Download cancelado pelo usuário",
                         code="IMAGERY_TASK_CANCELLED_RUN",
                     )
                     return False
-                base = (idx / total) * 100.0 if total else 0.0
-                result = _process_cena(idx, item, base)
+                result = _process_cena(item)
+                self.setProgress(100)
                 if result is None:
                     falhas += 1
                     continue

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import List
+import threading
 
 from qgis.core import QgsApplication
 
@@ -235,18 +236,15 @@ class PipelineTask(QgsTask):
 
     def __init__(self, description="Pipeline"):
         super().__init__(description, QgsTask.CanCancel)
-        self._done = False
+        self._done_event = threading.Event()
 
     def run(self):
         # mantém task viva até engine marcar done
-        # sleep de 10ms reduz consumo de CPU de 100% para ~5%
-        import time
-        while not self._done:
+        # A thread worker não deve chamar QgsApplication.processEvents().
+        while not self._done_event.wait(0.05):
             if self.isCanceled():
                 return False
-            QgsApplication.processEvents()
-            time.sleep(0.01)
-        return True
+        return not self.isCanceled()
 
     def mark_done(self):
-        self._done = True
+        self._done_event.set()

@@ -38,6 +38,9 @@ class SettingsPlugin(BasePluginMTL):
         STR.BOTH,
     ]
     DEFAULT_CRS_AUTHID = "EPSG:4326"
+    DEFAULT_CARTESIAN_FIELD_NAME = "area"
+    DEFAULT_ELLIPSOIDAL_FIELD_NAME = "area_eli"
+    LEGACY_METRIC_FIELD_BASE_NAME = "area"
     AUTO_SAVE_PREFS_ON_CLOSE = False
     system_preferences = {}
     prefer_VectorFields = {}
@@ -224,7 +227,7 @@ class SettingsPlugin(BasePluginMTL):
                         "CARTESIAN_FIELD_NAME_PLACEHOLDER",
                         STR.CARTESIAN_SUFFIX_PLACEHOLDER,
                     ),
-                    "default": "",
+                    "default": self.DEFAULT_CARTESIAN_FIELD_NAME,
                 },
                 "ellipsoidal_field_name": {
                     "label": getattr(
@@ -240,7 +243,7 @@ class SettingsPlugin(BasePluginMTL):
                         "ELLIPSOIDAL_FIELD_NAME_PLACEHOLDER",
                         STR.ELLIPSOIDAL_SUFFIX_PLACEHOLDER,
                     ),
-                    "default": "",
+                    "default": self.DEFAULT_ELLIPSOIDAL_FIELD_NAME,
                 },
             },
             parent=self,
@@ -296,6 +299,32 @@ class SettingsPlugin(BasePluginMTL):
         self.layout.addWidget(self.calc_collapsable)
         self.layout.add_execution_buttons(self.action_buttons)
         self.logger.info("Interface de configurações construída com sucesso")
+
+    def _get_display_metric_field_names(self):
+        """Resolve os nomes exibidos, incluindo a compatibilidade legada."""
+        cartesian_field_name = self._get_display_field_name(
+            "cartesian_field_name",
+            "cartesian_suffix",
+            self.DEFAULT_CARTESIAN_FIELD_NAME,
+        )
+        ellipsoidal_field_name = self._get_display_field_name(
+            "ellipsoidal_field_name",
+            "ellipsoidal_suffix",
+            self.DEFAULT_ELLIPSOIDAL_FIELD_NAME,
+        )
+        return cartesian_field_name, ellipsoidal_field_name
+
+    def _get_display_field_name(self, field_key, suffix_key, default_name):
+        """Retorna nome salvo, nome legado convertido ou nome padrão."""
+        configured_name = self.prefer_VectorFields.get(field_key)
+        if configured_name is not None and str(configured_name).strip():
+            return str(configured_name).strip()
+
+        if suffix_key in self.prefer_VectorFields:
+            legacy_suffix = self.prefer_VectorFields.get(suffix_key) or ""
+            return f"{self.LEGACY_METRIC_FIELD_BASE_NAME}{legacy_suffix}".strip()
+
+        return default_name
 
     def _load_prefs(self):
         """Carrega preferências salvas."""
@@ -364,14 +393,13 @@ class SettingsPlugin(BasePluginMTL):
         self.spin_precision.set_value("precision", precision_value)
         self.logger.debug(f"Precisão de campos vetoriais carregada: {precision_value}")
 
+        cartesian_field_name, ellipsoidal_field_name = (
+            self._get_display_metric_field_names()
+        )
         self.area_fields_inputs.set_values(
             {
-                "cartesian_field_name": self.prefer_VectorFields.get(
-                    "cartesian_field_name", ""
-                ),
-                "ellipsoidal_field_name": self.prefer_VectorFields.get(
-                    "ellipsoidal_field_name", ""
-                ),
+                "cartesian_field_name": cartesian_field_name,
+                "ellipsoidal_field_name": ellipsoidal_field_name,
             }
         )
 

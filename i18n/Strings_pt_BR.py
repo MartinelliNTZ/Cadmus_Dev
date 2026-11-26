@@ -883,12 +883,14 @@ class Strings_pt_BR:
     )
     CARTESIAN_FIELD_NAME_DESC = (
         "Nome exato do campo usado no cálculo cartesiano.\n"
-        "Se ficar vazio, o Cadmus usa o sufixo cartesiano legado."
+        "Padrão: area. Se não existir nome salvo, uma preferência antiga\n"
+        "de sufixo será convertida para area + sufixo."
     )
-    CARTESIAN_FIELD_NAME_PLACEHOLDER = "Ex.: area_cart"
+    CARTESIAN_FIELD_NAME_PLACEHOLDER = "Ex.: area"
     ELLIPSOIDAL_FIELD_NAME_DESC = (
         "Nome exato do campo usado no cálculo elipsoidal.\n"
-        "Se ficar vazio, o Cadmus usa o sufixo elipsoidal legado."
+        "Padrão: area_eli. Se não existir nome salvo, uma preferência antiga\n"
+        "de sufixo será convertida para area + sufixo."
     )
     ELLIPSOIDAL_FIELD_NAME_PLACEHOLDER = "Ex.: area_eli"
     CARTESIAN_SUFFIX_DESC = (

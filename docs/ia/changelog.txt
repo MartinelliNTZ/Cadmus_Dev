@@ -1,3 +1,10 @@
+[3.1.0.48][26/11/2026 13:32] Ajuste da compatibilidade dos nomes de campos vetoriais:
+   - Preferências sem nomes novos agora exibem os padrões `area` e `area_eli`.
+   - Sufixos antigos são convertidos em memória para `area` + sufixo ao abrir as configurações.
+   - A conversão não grava preferências automaticamente; a gravação ocorre somente ao salvar as configurações.
+   - O plugin continua usando o modelo legado enquanto os nomes novos ainda não existirem.
+   - Versão de distribuição incrementada de `3.1.0.47` para `3.1.0.48` somente em `build_distribution.py`.
+
 [3.1.0.47][26/11/2026 12:02] Nomes explícitos para campos vetoriais calculados:
    - As configurações passaram a aceitar o nome final dos campos cartesiano e elipsoidal.
    - O cálculo vetorial prioriza os nomes configurados e mantém fallback para as preferências antigas de sufixo, combinando-as com `length` ou `area`.

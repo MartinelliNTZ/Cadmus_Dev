@@ -863,3 +863,4 @@ point_layer = VectorLayerGeometry.create_point_layer_from_dicts(
 |------|--------|-----------|
 | 2026-06-23 | 1.0.0 | Criação — análise completa de utils/vector (5 classes) e utils/raster (6 classes). Documentação de todos os métodos estáticos principais, exemplos, padrões e limitações. |
 | 2026-11-26 | 1.1.0 | `resolve_field_names_for_calculation()` passou a aceitar nomes finais explícitos por modo e mantém fallback compatível para sufixos antigos. |
+| 2026-11-26 | 1.1.1 | Preferências sem nomes passam a exibir `area` e `area_eli`; sufixos legados são convertidos visualmente para `area + sufixo` sem gravação automática. |

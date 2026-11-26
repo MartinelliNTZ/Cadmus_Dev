@@ -809,8 +809,13 @@ class Strings_pt_BR:
     PROJECTS_FOLDER = "Pasta de projetos"
     TOOLBAR_VISIBLE_CATEGORIES = "Toolbar - Categorias Visiveis"
     VECTOR_CALCULATIONS_PLUGIN = "Plugin de Calculos Vetoriais"
+    CARTESIAN_FIELD_NAME = "Nome do campo cartesiano"
+    ELLIPSOIDAL_FIELD_NAME = "Nome do campo elipsoidal"
     CARTESIAN_SUFFIX = "Sulfixo Cartesiano"
     ELLIPSOIDAL_SUFFIX = "Sulfixo Elipsoidal"
+    AREA_FIELD_NAMES_CANNOT_MATCH = (
+        "Os nomes dos campos cartesiano e elipsoidal não podem ser iguais."
+    )
     AREA_SUFFIXES_CANNOT_MATCH = (
         "Os sulfixos cartesiano e elipsoidal nao podem ser iguais."
     )
@@ -850,8 +855,8 @@ class Strings_pt_BR:
     )
     VECTOR_CALCULATIONS_PLUGIN_DESC = (
         "Configurações do plugin de cálculo de campos vetoriais.\n"
-        "Define o método de cálculo (elipsoidal/cartesiano), os sufixos\n"
-        "dos campos de área e comprimento."
+        "Define o método de cálculo (elipsoidal/cartesiano) e os nomes\n"
+        "dos campos métricos de área e comprimento."
     )
     ASK_BEFORE_REPLACING_FIELDS = "Perguntar ao substituir campos existentes"
     ASK_BEFORE_REPLACING_FIELDS_DESC = (
@@ -873,9 +878,19 @@ class Strings_pt_BR:
     )
     BOTH_DESC = (
         "Calcula ambos os métodos (elipsoidal e cartesiano) simultaneamente.\n"
-        "Gera dois campos separados para cada métrica, usando os sufixos\n"
+        "Gera dois campos separados para cada métrica, usando os nomes\n"
         "configurados abaixo. Útil para comparar resultados."
     )
+    CARTESIAN_FIELD_NAME_DESC = (
+        "Nome exato do campo usado no cálculo cartesiano.\n"
+        "Se ficar vazio, o Cadmus usa o sufixo cartesiano legado."
+    )
+    CARTESIAN_FIELD_NAME_PLACEHOLDER = "Ex.: area_cart"
+    ELLIPSOIDAL_FIELD_NAME_DESC = (
+        "Nome exato do campo usado no cálculo elipsoidal.\n"
+        "Se ficar vazio, o Cadmus usa o sufixo elipsoidal legado."
+    )
+    ELLIPSOIDAL_FIELD_NAME_PLACEHOLDER = "Ex.: area_eli"
     CARTESIAN_SUFFIX_DESC = (
         "Sufixo adicionado ao nome dos campos calculados em modo cartesiano.\n"
         "Ex: campo 'area' com sufixo '' vira 'area'.\n"

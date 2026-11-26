@@ -67,11 +67,14 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
             self.logger.debug(f"Falha ao iniciar estatísticas: {e}")
 
         source = layer.source().lower()
-        if source.endswith(".kml") or (
-            "|layername=" in source
-            and source.startswith("file://")
-            and ".kml" in source
-        ):
+        is_kml_layer = all(
+            (
+                "|layername=" in source,
+                source.startswith("file://"),
+                ".kml" in source,
+            )
+        )
+        if source.endswith(".kml") or is_kml_layer:
             self.logger.warning("Camada KML não pode ser editada")
             QgisMessageUtil.bar_critical(
                 self.iface,
@@ -168,12 +171,19 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
             "calculation_method", STR.ELLIPSOIDAL
         )
         calc_mode, mode_altered = self._resolve_calculation_mode(layer, requested_mode)
-        cartesian_suffix, ellipsoidal_suffix = self._get_metric_suffixes()
+        (
+            cartesian_field_name,
+            ellipsoidal_field_name,
+            cartesian_suffix,
+            ellipsoidal_suffix,
+        ) = self._get_metric_field_names()
 
         field_map = VectorLayerAttributes.resolve_field_names_for_calculation(
             layer,
             "length",
             calc_mode,
+            cartesian_field_name=cartesian_field_name,
+            ellipsoidal_field_name=ellipsoidal_field_name,
             cartesian_suffix=cartesian_suffix,
             ellipsoidal_suffix=ellipsoidal_suffix,
         )
@@ -194,12 +204,19 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
             "calculation_method", STR.ELLIPSOIDAL
         )
         calc_mode, mode_altered = self._resolve_calculation_mode(layer, requested_mode)
-        cartesian_suffix, ellipsoidal_suffix = self._get_metric_suffixes()
+        (
+            cartesian_field_name,
+            ellipsoidal_field_name,
+            cartesian_suffix,
+            ellipsoidal_suffix,
+        ) = self._get_metric_field_names()
 
         field_map = VectorLayerAttributes.resolve_field_names_for_calculation(
             layer,
             "area",
             calc_mode,
+            cartesian_field_name=cartesian_field_name,
+            ellipsoidal_field_name=ellipsoidal_field_name,
             cartesian_suffix=cartesian_suffix,
             ellipsoidal_suffix=ellipsoidal_suffix,
         )
@@ -267,17 +284,29 @@ class VectorFieldsCalculationPlugin(BasePluginMTL):
             i += 1
         return f"{base_name}_{i}"
 
-    def _get_metric_suffixes(self):
-        """Lê sufixos configurados para campos de comprimento e área."""
+    def _get_metric_field_names(self):
+        """Lê nomes explícitos e sufixos legados dos campos métricos."""
+        cartesian_field_name = self.preferences.get("cartesian_field_name", "")
+        ellipsoidal_field_name = self.preferences.get("ellipsoidal_field_name", "")
         cartesian_suffix = self.preferences.get("cartesian_suffix", "")
         ellipsoidal_suffix = self.preferences.get("ellipsoidal_suffix", "_eli")
+
+        if cartesian_field_name is None:
+            cartesian_field_name = ""
+        if ellipsoidal_field_name is None:
+            ellipsoidal_field_name = ""
 
         if cartesian_suffix is None:
             cartesian_suffix = ""
         if ellipsoidal_suffix is None:
             ellipsoidal_suffix = "_eli"
 
-        return str(cartesian_suffix), str(ellipsoidal_suffix)
+        return (
+            str(cartesian_field_name).strip(),
+            str(ellipsoidal_field_name).strip(),
+            str(cartesian_suffix),
+            str(ellipsoidal_suffix),
+        )
 
     # ==================== EXECUTION ====================
 

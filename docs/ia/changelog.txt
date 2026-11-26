@@ -1,3 +1,10 @@
+[3.1.0.47][26/11/2026 12:02] Nomes explícitos para campos vetoriais calculados:
+   - As configurações passaram a aceitar o nome final dos campos cartesiano e elipsoidal.
+   - O cálculo vetorial prioriza os nomes configurados e mantém fallback para as preferências antigas de sufixo, combinando-as com `length` ou `area`.
+   - A validação impede nomes explícitos iguais entre os dois modos quando ambos estão preenchidos.
+   - `SKILL_VECTOR_RASTER_LAYER_UTILS.md` foi atualizado para documentar o novo contrato.
+   - Versão de distribuição incrementada de `3.1.0.46` para `3.1.0.47` somente em `build_distribution.py`.
+
 [3.1.0.46][25/11/2026 17:50] Correção da sobrescrita da pasta de saída do downloader:
    - `ComplexSelector` passou a ignorar alterações do combo de camadas quando o seletor não permite camadas ou está no modo de pasta/texto.
    - O carregamento dos rasters no QGIS não sobrescreve mais a pasta de saída com uma URI XYZ, como `type=xyz&...`.

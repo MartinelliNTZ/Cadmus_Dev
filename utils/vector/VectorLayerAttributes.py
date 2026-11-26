@@ -548,11 +548,13 @@ class VectorLayerAttributes:
         layer,
         base_name,
         calculation_mode="Elipsoidal",
+        cartesian_field_name=None,
+        ellipsoidal_field_name=None,
         cartesian_suffix="_car",
         ellipsoidal_suffix="_eli",
     ):
         """
-        Resolve nomes de campo baseado no modo de cálculo.
+        Resolve nomes de campo explícitos ou derivados de sufixos legados.
 
         Parameters
         ----------
@@ -562,6 +564,14 @@ class VectorLayerAttributes:
             Nome base do campo (ex: 'length', 'area')
         calculation_mode : str
             Modo de cálculo ('Elipsoidal', 'Cartesiana', 'Ambos')
+        cartesian_field_name : str, optional
+            Nome final do campo cartesiano. Quando vazio, usa o sufixo legado.
+        ellipsoidal_field_name : str, optional
+            Nome final do campo elipsoidal. Quando vazio, usa o sufixo legado.
+        cartesian_suffix : str, optional
+            Sufixo legado usado quando não há nome cartesiano configurado.
+        ellipsoidal_suffix : str, optional
+            Sufixo legado usado quando não há nome elipsoidal configurado.
 
         Returns
         -------
@@ -570,27 +580,33 @@ class VectorLayerAttributes:
         """
         field_map = {}
 
+        def _resolve_field_name(configured_name, legacy_suffix):
+            """Retorna o nome explícito ou preserva a convenção legada."""
+            normalized_name = str(configured_name or "").strip()
+            if normalized_name:
+                return normalized_name
+
+            return VectorLayerAttributes.generate_field_name_with_suffix(
+                base_name,
+                str(legacy_suffix or ""),
+            )
+
+        eli_name = _resolve_field_name(
+            ellipsoidal_field_name,
+            ellipsoidal_suffix,
+        )
+        car_name = _resolve_field_name(
+            cartesian_field_name,
+            cartesian_suffix,
+        )
+
         if calculation_mode == "Ambos":
-            eli_name = VectorLayerAttributes.generate_field_name_with_suffix(
-                base_name, ellipsoidal_suffix
-            )
-            car_name = VectorLayerAttributes.generate_field_name_with_suffix(
-                base_name, cartesian_suffix
-            )
             field_map["Elipsoidal"] = eli_name
             field_map["Cartesiana"] = car_name
         elif calculation_mode == "Elipsoidal":
-            field_map[calculation_mode] = (
-                VectorLayerAttributes.generate_field_name_with_suffix(
-                    base_name, ellipsoidal_suffix
-                )
-            )
+            field_map[calculation_mode] = eli_name
         elif calculation_mode == "Cartesiana":
-            field_map[calculation_mode] = (
-                VectorLayerAttributes.generate_field_name_with_suffix(
-                    base_name, cartesian_suffix
-                )
-            )
+            field_map[calculation_mode] = car_name
         else:
             field_map[calculation_mode] = base_name
 

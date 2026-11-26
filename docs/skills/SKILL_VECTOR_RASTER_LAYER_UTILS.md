@@ -75,7 +75,7 @@ Responsável por campos e atributos de camadas vetoriais. Orquestra operações 
 | `update_point_xy_coordinates(layer, field_map, precision)` | Atualiza campos X,Y com coordenadas dos pontos | `None` |
 | `update_feature_values(layer, z_values, z_field)` | Atualiza campo de altimetria com valores calculados | `None` |
 | `generate_field_name_with_suffix(base_name, suffix, max_length)` | Gera nome de campo com sufixo respeitando limite (SHP=10) | `str` |
-| `resolve_field_names_for_calculation(layer, base_name, calculation_mode, ...)` | Resolve nomes de campo baseado no modo de cálculo | `dict` |
+| `resolve_field_names_for_calculation(layer, base_name, calculation_mode, ...)` | Resolve nomes explícitos por modo e usa sufixos legados quando necessário | `dict` |
 | `get_field_options(layer, include_empty, empty_key, empty_label)` | Retorna opções para seletores de campo `{key: label}` | `dict` |
 | `ensure_has_features(layer, logger)` | Valida se a camada tem feições | `bool` |
 
@@ -862,3 +862,4 @@ point_layer = VectorLayerGeometry.create_point_layer_from_dicts(
 | Data | Versão | Descrição |
 |------|--------|-----------|
 | 2026-06-23 | 1.0.0 | Criação — análise completa de utils/vector (5 classes) e utils/raster (6 classes). Documentação de todos os métodos estáticos principais, exemplos, padrões e limitações. |
+| 2026-11-26 | 1.1.0 | `resolve_field_names_for_calculation()` passou a aceitar nomes finais explícitos por modo e mantém fallback compatível para sufixos antigos. |

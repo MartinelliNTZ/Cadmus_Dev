@@ -207,26 +207,46 @@ class SettingsPlugin(BasePluginMTL):
         self.calc_collapsable.add_content_widget(self.radio_calc)
         self.logger.debug("Widget de cálculo vetorial adicionado")
 
-        # ── Sufixos de área (GridInputFields) ─────────────────────
+        # ── Nomes dos campos métricos (GridInputFields) ───────────
         self.area_fields_inputs = GridInputFields(
             config={
-                "cartesian_suffix": {
-                    "label": STR.CARTESIAN_SUFFIX,
-                    "description": STR.CARTESIAN_SUFFIX_DESC,
-                    "placeholder": STR.CARTESIAN_SUFFIX_PLACEHOLDER,
+                "cartesian_field_name": {
+                    "label": getattr(
+                        STR, "CARTESIAN_FIELD_NAME", STR.CARTESIAN_SUFFIX
+                    ),
+                    "description": getattr(
+                        STR,
+                        "CARTESIAN_FIELD_NAME_DESC",
+                        STR.CARTESIAN_SUFFIX_DESC,
+                    ),
+                    "placeholder": getattr(
+                        STR,
+                        "CARTESIAN_FIELD_NAME_PLACEHOLDER",
+                        STR.CARTESIAN_SUFFIX_PLACEHOLDER,
+                    ),
                     "default": "",
                 },
-                "ellipsoidal_suffix": {
-                    "label": STR.ELLIPSOIDAL_SUFFIX,
-                    "description": STR.ELLIPSOIDAL_SUFFIX_DESC,
-                    "placeholder": STR.ELLIPSOIDAL_SUFFIX_PLACEHOLDER,
-                    "default": "_eli",
+                "ellipsoidal_field_name": {
+                    "label": getattr(
+                        STR, "ELLIPSOIDAL_FIELD_NAME", STR.ELLIPSOIDAL_SUFFIX
+                    ),
+                    "description": getattr(
+                        STR,
+                        "ELLIPSOIDAL_FIELD_NAME_DESC",
+                        STR.ELLIPSOIDAL_SUFFIX_DESC,
+                    ),
+                    "placeholder": getattr(
+                        STR,
+                        "ELLIPSOIDAL_FIELD_NAME_PLACEHOLDER",
+                        STR.ELLIPSOIDAL_SUFFIX_PLACEHOLDER,
+                    ),
+                    "default": "",
                 },
             },
             parent=self,
         )
         self.calc_collapsable.add_content_widget(self.area_fields_inputs)
-        self.logger.debug("Widget de sufixos de área adicionado")
+        self.logger.debug("Widget de nomes de campos métricos adicionado")
 
         # ── Pergunta ao substituir campos (GridCheckbox) ──────────
         self.ask_replace_check = GridCheckbox(
@@ -346,11 +366,11 @@ class SettingsPlugin(BasePluginMTL):
 
         self.area_fields_inputs.set_values(
             {
-                "cartesian_suffix": self.prefer_VectorFields.get(
-                    "cartesian_suffix", ""
+                "cartesian_field_name": self.prefer_VectorFields.get(
+                    "cartesian_field_name", ""
                 ),
-                "ellipsoidal_suffix": self.prefer_VectorFields.get(
-                    "ellipsoidal_suffix", "_eli"
+                "ellipsoidal_field_name": self.prefer_VectorFields.get(
+                    "ellipsoidal_field_name", ""
                 ),
             }
         )
@@ -449,23 +469,28 @@ class SettingsPlugin(BasePluginMTL):
         paths = self.project_folder_selector.get_paths()
         self.system_preferences["projects_folder"] = paths[0] if paths else ""
 
-        cartesian_suffix = (
-            self.area_fields_inputs.get_value("cartesian_suffix") or ""
+        cartesian_field_name = (
+            self.area_fields_inputs.get_value("cartesian_field_name") or ""
         ).strip()
-        ellipsoidal_suffix = (
-            self.area_fields_inputs.get_value("ellipsoidal_suffix") or "_eli"
+        ellipsoidal_field_name = (
+            self.area_fields_inputs.get_value("ellipsoidal_field_name") or ""
         ).strip()
 
-        if cartesian_suffix == ellipsoidal_suffix:
+        same_field_name = cartesian_field_name == ellipsoidal_field_name
+        if cartesian_field_name and ellipsoidal_field_name and same_field_name:
             QgisMessageUtil.modal_warning(
                 self.iface,
-                STR.AREA_SUFFIXES_CANNOT_MATCH,
+                getattr(
+                    STR,
+                    "AREA_FIELD_NAMES_CANNOT_MATCH",
+                    STR.AREA_SUFFIXES_CANNOT_MATCH,
+                ),
             )
-            self.logger.warning("Salvamento cancelado: sulfixos de area duplicados")
+            self.logger.warning("Salvamento cancelado: nomes de campos duplicados")
             return False
 
-        self.prefer_VectorFields["cartesian_suffix"] = cartesian_suffix
-        self.prefer_VectorFields["ellipsoidal_suffix"] = ellipsoidal_suffix
+        self.prefer_VectorFields["cartesian_field_name"] = cartesian_field_name
+        self.prefer_VectorFields["ellipsoidal_field_name"] = ellipsoidal_field_name
 
         self._persist_window_size()
         self.on_finish_plugin()
